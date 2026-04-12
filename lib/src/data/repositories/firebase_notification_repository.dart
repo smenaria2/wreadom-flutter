@@ -1,0 +1,51 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../domain/models/app_notification.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../utils/firestore_utils.dart';
+
+class FirebaseNotificationRepository implements NotificationRepository {
+  FirebaseNotificationRepository({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+
+  @override
+  Future<void> markAllAsRead(String userId) async {
+    final snapshot = await _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
+
+  @override
+  Future<void> markAsRead(String notificationId) async {
+    await _firestore
+        .collection('notifications')
+        .doc(notificationId)
+        .update({'isRead': true});
+  }
+
+  @override
+  Stream<List<AppNotification>> watchNotifications(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final items = snapshot.docs.map((doc) {
+        final data = mapFirestoreData(doc.data(), doc.id);
+        return AppNotification.fromJson(data);
+      }).toList();
+      items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return items;
+    });
+  }
+}

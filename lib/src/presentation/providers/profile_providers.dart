@@ -1,0 +1,14 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/repositories/firebase_profile_repository.dart';
+import '../../domain/models/user_model.dart';
+import '../../domain/repositories/profile_repository.dart';
+
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  return FirebaseProfileRepository();
+});
+
+final publicProfileProvider =
+    FutureProvider.family<UserModel?, String>((ref, userId) async {
+  return ref.watch(profileRepositoryProvider).getPublicProfile(userId);
+});

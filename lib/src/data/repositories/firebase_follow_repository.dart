@@ -1,0 +1,91 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../domain/models/user_model.dart';
+import '../../domain/repositories/follow_repository.dart';
+
+class FirebaseFollowRepository implements FollowRepository {
+  FirebaseFollowRepository({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+
+  @override
+  Future<void> followUser({
+    required UserModel follower,
+    required UserModel following,
+  }) async {
+    final existing = await _firestore
+        .collection('follows')
+        .where('followerId', isEqualTo: follower.id)
+        .where('followingId', isEqualTo: following.id)
+        .limit(1)
+        .get();
+    if (existing.docs.isNotEmpty) return;
+
+    await _firestore.runTransaction((transaction) async {
+      transaction.set(_firestore.collection('follows').doc(), {
+        'followerId': follower.id,
+        'followingId': following.id,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      transaction.set(
+        _firestore.collection('users').doc(follower.id),
+        {
+          'followingCount': FieldValue.increment(1),
+        },
+        SetOptions(merge: true),
+      );
+      transaction.set(
+        _firestore.collection('users').doc(following.id),
+        {
+          'followersCount': FieldValue.increment(1),
+        },
+        SetOptions(merge: true),
+      );
+    });
+  }
+
+  @override
+  Future<bool> isFollowing(String followerId, String followingId) async {
+    final snapshot = await _firestore
+        .collection('follows')
+        .where('followerId', isEqualTo: followerId)
+        .where('followingId', isEqualTo: followingId)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
+  @override
+  Future<void> unfollowUser({
+    required String followerId,
+    required String followingId,
+  }) async {
+    final snapshot = await _firestore
+        .collection('follows')
+        .where('followerId', isEqualTo: followerId)
+        .where('followingId', isEqualTo: followingId)
+        .get();
+
+    await _firestore.runTransaction((transaction) async {
+      for (final doc in snapshot.docs) {
+        transaction.delete(doc.reference);
+      }
+      transaction.set(
+        _firestore.collection('users').doc(followerId),
+        {
+          'followingCount': FieldValue.increment(-1),
+        },
+        SetOptions(merge: true),
+      );
+      transaction.set(
+        _firestore.collection('users').doc(followingId),
+        {
+          'followersCount': FieldValue.increment(-1),
+        },
+        SetOptions(merge: true),
+      );
+    });
+  }
+}
