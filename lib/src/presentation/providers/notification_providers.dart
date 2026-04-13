@@ -17,3 +17,12 @@ final notificationsProvider = StreamProvider<List<AppNotification>>((ref) async*
   }
   yield* ref.watch(notificationRepositoryProvider).watchNotifications(user.id);
 });
+
+/// Count of unread notifications for the current user (0 if logged out).
+final unreadNotificationCountProvider = Provider<int>((ref) {
+  final async = ref.watch(notificationsProvider);
+  return async.maybeWhen(
+    data: (list) => list.where((n) => !n.isRead).length,
+    orElse: () => 0,
+  );
+});

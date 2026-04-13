@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'auth_providers.dart';
 
@@ -31,9 +31,19 @@ class AuthController extends _$AuthController {
 
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
+    try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
-    });
+      state = const AsyncValue.data(null);
+    } on GoogleSignInException catch (e, st) {
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        state = const AsyncValue.data(null);
+        return;
+      }
+      state = AsyncValue.error(e, st);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
   Future<void> logout() async {

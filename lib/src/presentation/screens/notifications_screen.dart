@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/notification_providers.dart';
+import '../routing/app_routes.dart';
+import '../routing/app_router.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -34,7 +36,7 @@ class NotificationsScreen extends ConsumerWidget {
           }
           return ListView.separated(
             itemCount: items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
@@ -58,6 +60,66 @@ class NotificationsScreen extends ConsumerWidget {
                     await ref
                         .read(notificationRepositoryProvider)
                         .markAsRead(item.id!);
+                  }
+
+                  if (!context.mounted) return;
+
+                  // Navigation logic
+                  switch (item.type) {
+                    case 'post':
+                    case 'like':
+                    case 'comment':
+                    case 'reply':
+                      if (item.targetId != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.postDetail,
+                          arguments: item.targetId,
+                        );
+                      } else {
+                        // Fallback to Feed tab
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.main,
+                          arguments: 1,
+                        );
+                      }
+                      break;
+                    case 'chapter':
+                      if (item.targetId != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: item.targetId,
+                        );
+                      }
+                      break;
+                    case 'follow':
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.publicProfile,
+                        arguments: PublicProfileArguments(userId: item.actorId),
+                      );
+                      break;
+                    case 'message':
+                      if (item.id != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.conversation,
+                          arguments: ConversationArguments(
+                            conversationId: item.metadata?['conversationId'] ?? '',
+                            title: item.actorName,
+                          ),
+                        );
+                      }
+                      break;
+                    case 'book_review':
+                    case 'book_quote':
+                      if (item.targetId != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: item.targetId,
+                        );
+                      }
+                      break;
+                    default:
+                      // Optional: handle unknown types
+                      break;
                   }
                 },
               );

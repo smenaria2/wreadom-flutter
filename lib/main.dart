@@ -13,6 +13,9 @@ import 'firebase_options.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 
+const String _googleServerClientId =
+    '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -20,7 +23,11 @@ void main() async {
   );
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(
-      clientId: '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com',
+      clientId: _googleServerClientId,
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.android) {
+    await GoogleSignIn.instance.initialize(
+      serverClientId: _googleServerClientId,
     );
   }
   runApp(const ProviderScope(child: MyApp()));
@@ -69,7 +76,6 @@ class AuthWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
-    print('AuthWrapper building with state: $authState');
 
     return authState.when(
       data: (user) {

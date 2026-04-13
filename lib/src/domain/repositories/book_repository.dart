@@ -9,5 +9,10 @@ abstract class BookRepository {
   Future<List<Book>> getPopularBooks({int limit = 10});
   Future<List<Book>> getRecentBooks({int limit = 10});
   Future<List<Book>> searchBooks(String query, {int limit = 20});
+  Future<List<Book>> getBooksByIds(List<String> ids);
   Future<void> incrementViewCount(String bookId);
+  Future<void> updateReadingHistory(String userId, String bookId);
+  Future<List<Book>> getBooksByGenre(String genre, {int limit = 10, dynamic lastDoc});
+  Future<void> updateReadingProgress(String userId, String bookId, {required int chapterIndex, required double position});
+  Future<List<String>> getUpvotedIABookIds();
 }

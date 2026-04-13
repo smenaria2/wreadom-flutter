@@ -1,7 +1,12 @@
 import '../models/user_model.dart';
 
 abstract class ProfileRepository {
-  Future<UserModel?> getPublicProfile(String userId);
+  /// [viewerUserId] is the signed-in user (null if logged out). Used for
+  /// deactivated filtering and privacy / follower-only rules.
+  Future<UserModel?> getPublicProfile(
+    String userId, {
+    String? viewerUserId,
+  });
   Future<void> updateProfileDetails({
     required String userId,
     String? bio,

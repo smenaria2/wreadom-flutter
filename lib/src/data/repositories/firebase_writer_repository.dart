@@ -40,9 +40,15 @@ class FirebaseWriterRepository implements WriterRepository {
     }
     final snapshot = await query.get();
     final items = snapshot.docs.map((doc) {
-      final data = mapFirestoreData(doc.data(), doc.id);
-      return Book.fromJson(data);
-    }).where((book) => book.status != 'deleted').toList();
+      try {
+        final data = normalizeBookMapForModel(doc.data(), doc.id);
+        return Book.fromJson(data);
+      } catch (e) {
+        print('[FirebaseWriterRepository] Error parsing book ${doc.id}: $e');
+        return null;
+      }
+    }).whereType<Book>().where((book) => book.status != 'deleted').toList();
+
     items.sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
     return items;
   }

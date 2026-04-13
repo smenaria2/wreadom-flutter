@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -147,18 +148,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       final email = _emailController.text.trim();
                       if (email.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text('Enter your email first')),
                         );
                         return;
                       }
-                      await ref.read(authRepositoryProvider).resetPassword(email);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                      try {
+                        await ref
+                            .read(authRepositoryProvider)
+                            .resetPassword(email);
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Password reset email sent'),
+                          ),
+                        );
+                      } on firebase_auth.FirebaseAuthException catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(e.message ?? e.code),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString()),
+                            backgroundColor: Colors.red,
                           ),
                         );
                       }

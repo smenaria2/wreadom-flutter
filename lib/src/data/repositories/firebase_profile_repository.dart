@@ -10,6 +10,31 @@ class FirebaseProfileRepository implements ProfileRepository {
 
   final FirebaseFirestore _firestore;
 
+  UserModel _stripPrivateFields(UserModel user) {
+    return user.copyWith(
+      email: '',
+      bio: null,
+      penName: null,
+      readingHistory: [],
+      savedBooks: [],
+      bookmarks: [],
+      pinnedWorks: [],
+      totalPoints: null,
+      tier: null,
+      pointsLastUpdatedAt: null,
+    );
+  }
+
+  Future<bool> _isFollowing(String followerId, String followingId) async {
+    final snapshot = await _firestore
+        .collection('follows')
+        .where('followerId', isEqualTo: followerId)
+        .where('followingId', isEqualTo: followingId)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
   @override
   Future<void> deactivateProfile(String userId) async {
     await _firestore.collection('users').doc(userId).update({
@@ -18,11 +43,44 @@ class FirebaseProfileRepository implements ProfileRepository {
   }
 
   @override
-  Future<UserModel?> getPublicProfile(String userId) async {
+  Future<UserModel?> getPublicProfile(
+    String userId, {
+    String? viewerUserId,
+  }) async {
     final snapshot = await _firestore.collection('users').doc(userId).get();
     if (!snapshot.exists || snapshot.data() == null) return null;
-    final data = mapFirestoreData(snapshot.data()!, snapshot.id);
-    return UserModel.fromJson(data);
+
+    final normalized = normalizeUserMapForModel(snapshot.data()!, snapshot.id);
+    final user = UserModel.fromJson(normalized);
+
+    final isSelf = viewerUserId != null && viewerUserId == userId;
+    if (user.isDeactivated == true && !isSelf) {
+      return null;
+    }
+
+    if (isSelf) {
+      return user;
+    }
+
+    final level = (user.privacyLevel ?? 'public').toLowerCase();
+    if (level == 'private') {
+      return _stripPrivateFields(user);
+    }
+
+    final followersOnly = level == 'followers' ||
+        level == 'followersonly' ||
+        level == 'followers_only';
+    if (followersOnly) {
+      if (viewerUserId == null) {
+        return _stripPrivateFields(user);
+      }
+      final follows = await _isFollowing(viewerUserId, userId);
+      if (!follows) {
+        return _stripPrivateFields(user);
+      }
+    }
+
+    return user;
   }
 
   @override

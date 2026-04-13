@@ -99,7 +99,7 @@ class FirebaseGamificationRepository implements GamificationRepository {
 
       final snapshot = await query.get();
       final items = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         data['id'] = doc.id;
         return PointsHistoryItem.fromJson(data);
       }).toList();

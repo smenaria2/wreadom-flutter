@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/repositories/firebase_feed_repository.dart';
 import '../../domain/repositories/feed_repository.dart';
@@ -19,4 +18,9 @@ Future<List<FeedPost>> feedPosts(Ref ref) async {
 @riverpod
 Future<List<FeedPost>> userFeedPosts(Ref ref, String userId) async {
   return ref.watch(feedRepositoryProvider).getUserFeedPosts(userId);
+}
+
+@riverpod
+Future<FeedPost?> singlePost(Ref ref, String postId) async {
+  return ref.watch(feedRepositoryProvider).getFeedPost(postId);
 }

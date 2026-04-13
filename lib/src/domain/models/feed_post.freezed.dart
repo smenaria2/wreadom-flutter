@@ -294,7 +294,7 @@ as List<String>,
 mixin _$FeedPost {
 
  String? get id; String get userId; String get username; String get type;// 'comment' | 'quote' | 'review' | 'testimony' | 'post'
- dynamic get bookId; String? get bookTitle; String? get bookCover; String get text; String? get quote; int? get rating; String? get chapterTitle; String? get chapterId; int get timestamp; List<String> get likes; String? get userPhotoURL; String? get displayName; String? get penName; List<CommentReply>? get comments; String? get targetUserId; String? get targetUsername; String? get targetUserDisplayName; String? get targetUserPenName; String? get privacy; String get visibility; String? get imageUrl; List<StoryImage>? get images; bool? get userIsDeactivated; Map<String, String>? get mentions;
+ dynamic get bookId; String? get bookTitle; String? get bookCover; String get text; String? get quote; int? get rating; String? get chapterTitle; String? get chapterId; int get timestamp; List<String> get likes; String? get userPhotoURL; String? get displayName; String? get penName; List<Comment>? get comments; String? get targetUserId; String? get targetUsername; String? get targetUserDisplayName; String? get targetUserPenName; String? get privacy; String get visibility; String? get imageUrl; List<StoryImage>? get images; int? get commentCount; Map<String, String>? get mentions;
 /// Create a copy of FeedPost
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -307,16 +307,16 @@ $FeedPostCopyWith<FeedPost> get copyWith => _$FeedPostCopyWithImpl<FeedPost>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedPost&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.bookCover, bookCover) || other.bookCover == bookCover)&&(identical(other.text, text) || other.text == text)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&const DeepCollectionEquality().equals(other.likes, likes)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other.comments, comments)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.targetUsername, targetUsername) || other.targetUsername == targetUsername)&&(identical(other.targetUserDisplayName, targetUserDisplayName) || other.targetUserDisplayName == targetUserDisplayName)&&(identical(other.targetUserPenName, targetUserPenName) || other.targetUserPenName == targetUserPenName)&&(identical(other.privacy, privacy) || other.privacy == privacy)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other.images, images)&&(identical(other.userIsDeactivated, userIsDeactivated) || other.userIsDeactivated == userIsDeactivated)&&const DeepCollectionEquality().equals(other.mentions, mentions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedPost&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.bookCover, bookCover) || other.bookCover == bookCover)&&(identical(other.text, text) || other.text == text)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&const DeepCollectionEquality().equals(other.likes, likes)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other.comments, comments)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.targetUsername, targetUsername) || other.targetUsername == targetUsername)&&(identical(other.targetUserDisplayName, targetUserDisplayName) || other.targetUserDisplayName == targetUserDisplayName)&&(identical(other.targetUserPenName, targetUserPenName) || other.targetUserPenName == targetUserPenName)&&(identical(other.privacy, privacy) || other.privacy == privacy)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other.images, images)&&(identical(other.commentCount, commentCount) || other.commentCount == commentCount)&&const DeepCollectionEquality().equals(other.mentions, mentions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,username,type,const DeepCollectionEquality().hash(bookId),bookTitle,bookCover,text,quote,rating,chapterTitle,chapterId,timestamp,const DeepCollectionEquality().hash(likes),userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(comments),targetUserId,targetUsername,targetUserDisplayName,targetUserPenName,privacy,visibility,imageUrl,const DeepCollectionEquality().hash(images),userIsDeactivated,const DeepCollectionEquality().hash(mentions)]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,username,type,const DeepCollectionEquality().hash(bookId),bookTitle,bookCover,text,quote,rating,chapterTitle,chapterId,timestamp,const DeepCollectionEquality().hash(likes),userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(comments),targetUserId,targetUsername,targetUserDisplayName,targetUserPenName,privacy,visibility,imageUrl,const DeepCollectionEquality().hash(images),commentCount,const DeepCollectionEquality().hash(mentions)]);
 
 @override
 String toString() {
-  return 'FeedPost(id: $id, userId: $userId, username: $username, type: $type, bookId: $bookId, bookTitle: $bookTitle, bookCover: $bookCover, text: $text, quote: $quote, rating: $rating, chapterTitle: $chapterTitle, chapterId: $chapterId, timestamp: $timestamp, likes: $likes, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, comments: $comments, targetUserId: $targetUserId, targetUsername: $targetUsername, targetUserDisplayName: $targetUserDisplayName, targetUserPenName: $targetUserPenName, privacy: $privacy, visibility: $visibility, imageUrl: $imageUrl, images: $images, userIsDeactivated: $userIsDeactivated, mentions: $mentions)';
+  return 'FeedPost(id: $id, userId: $userId, username: $username, type: $type, bookId: $bookId, bookTitle: $bookTitle, bookCover: $bookCover, text: $text, quote: $quote, rating: $rating, chapterTitle: $chapterTitle, chapterId: $chapterId, timestamp: $timestamp, likes: $likes, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, comments: $comments, targetUserId: $targetUserId, targetUsername: $targetUsername, targetUserDisplayName: $targetUserDisplayName, targetUserPenName: $targetUserPenName, privacy: $privacy, visibility: $visibility, imageUrl: $imageUrl, images: $images, commentCount: $commentCount, mentions: $mentions)';
 }
 
 
@@ -327,7 +327,7 @@ abstract mixin class $FeedPostCopyWith<$Res>  {
   factory $FeedPostCopyWith(FeedPost value, $Res Function(FeedPost) _then) = _$FeedPostCopyWithImpl;
 @useResult
 $Res call({
- String? id, String userId, String username, String type, dynamic bookId, String? bookTitle, String? bookCover, String text, String? quote, int? rating, String? chapterTitle, String? chapterId, int timestamp, List<String> likes, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? comments, String? targetUserId, String? targetUsername, String? targetUserDisplayName, String? targetUserPenName, String? privacy, String visibility, String? imageUrl, List<StoryImage>? images, bool? userIsDeactivated, Map<String, String>? mentions
+ String? id, String userId, String username, String type, dynamic bookId, String? bookTitle, String? bookCover, String text, String? quote, int? rating, String? chapterTitle, String? chapterId, int timestamp, List<String> likes, String? userPhotoURL, String? displayName, String? penName, List<Comment>? comments, String? targetUserId, String? targetUsername, String? targetUserDisplayName, String? targetUserPenName, String? privacy, String visibility, String? imageUrl, List<StoryImage>? images, int? commentCount, Map<String, String>? mentions
 });
 
 
@@ -344,7 +344,7 @@ class _$FeedPostCopyWithImpl<$Res>
 
 /// Create a copy of FeedPost
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? type = null,Object? bookId = freezed,Object? bookTitle = freezed,Object? bookCover = freezed,Object? text = null,Object? quote = freezed,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterId = freezed,Object? timestamp = null,Object? likes = null,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? comments = freezed,Object? targetUserId = freezed,Object? targetUsername = freezed,Object? targetUserDisplayName = freezed,Object? targetUserPenName = freezed,Object? privacy = freezed,Object? visibility = null,Object? imageUrl = freezed,Object? images = freezed,Object? userIsDeactivated = freezed,Object? mentions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? type = null,Object? bookId = freezed,Object? bookTitle = freezed,Object? bookCover = freezed,Object? text = null,Object? quote = freezed,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterId = freezed,Object? timestamp = null,Object? likes = null,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? comments = freezed,Object? targetUserId = freezed,Object? targetUsername = freezed,Object? targetUserDisplayName = freezed,Object? targetUserPenName = freezed,Object? privacy = freezed,Object? visibility = null,Object? imageUrl = freezed,Object? images = freezed,Object? commentCount = freezed,Object? mentions = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -364,7 +364,7 @@ as List<String>,userPhotoURL: freezed == userPhotoURL ? _self.userPhotoURL : use
 as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,penName: freezed == penName ? _self.penName : penName // ignore: cast_nullable_to_non_nullable
 as String?,comments: freezed == comments ? _self.comments : comments // ignore: cast_nullable_to_non_nullable
-as List<CommentReply>?,targetUserId: freezed == targetUserId ? _self.targetUserId : targetUserId // ignore: cast_nullable_to_non_nullable
+as List<Comment>?,targetUserId: freezed == targetUserId ? _self.targetUserId : targetUserId // ignore: cast_nullable_to_non_nullable
 as String?,targetUsername: freezed == targetUsername ? _self.targetUsername : targetUsername // ignore: cast_nullable_to_non_nullable
 as String?,targetUserDisplayName: freezed == targetUserDisplayName ? _self.targetUserDisplayName : targetUserDisplayName // ignore: cast_nullable_to_non_nullable
 as String?,targetUserPenName: freezed == targetUserPenName ? _self.targetUserPenName : targetUserPenName // ignore: cast_nullable_to_non_nullable
@@ -372,8 +372,8 @@ as String?,privacy: freezed == privacy ? _self.privacy : privacy // ignore: cast
 as String?,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,images: freezed == images ? _self.images : images // ignore: cast_nullable_to_non_nullable
-as List<StoryImage>?,userIsDeactivated: freezed == userIsDeactivated ? _self.userIsDeactivated : userIsDeactivated // ignore: cast_nullable_to_non_nullable
-as bool?,mentions: freezed == mentions ? _self.mentions : mentions // ignore: cast_nullable_to_non_nullable
+as List<StoryImage>?,commentCount: freezed == commentCount ? _self.commentCount : commentCount // ignore: cast_nullable_to_non_nullable
+as int?,mentions: freezed == mentions ? _self.mentions : mentions // ignore: cast_nullable_to_non_nullable
 as Map<String, String>?,
   ));
 }
@@ -459,10 +459,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  bool? userIsDeactivated,  Map<String, String>? mentions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<Comment>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  int? commentCount,  Map<String, String>? mentions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FeedPost() when $default != null:
-return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.userIsDeactivated,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.commentCount,_that.mentions);case _:
   return orElse();
 
 }
@@ -480,10 +480,10 @@ return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  bool? userIsDeactivated,  Map<String, String>? mentions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<Comment>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  int? commentCount,  Map<String, String>? mentions)  $default,) {final _that = this;
 switch (_that) {
 case _FeedPost():
-return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.userIsDeactivated,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.commentCount,_that.mentions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -500,10 +500,10 @@ return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  bool? userIsDeactivated,  Map<String, String>? mentions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String userId,  String username,  String type,  dynamic bookId,  String? bookTitle,  String? bookCover,  String text,  String? quote,  int? rating,  String? chapterTitle,  String? chapterId,  int timestamp,  List<String> likes,  String? userPhotoURL,  String? displayName,  String? penName,  List<Comment>? comments,  String? targetUserId,  String? targetUsername,  String? targetUserDisplayName,  String? targetUserPenName,  String? privacy,  String visibility,  String? imageUrl,  List<StoryImage>? images,  int? commentCount,  Map<String, String>? mentions)?  $default,) {final _that = this;
 switch (_that) {
 case _FeedPost() when $default != null:
-return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.userIsDeactivated,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_that.bookTitle,_that.bookCover,_that.text,_that.quote,_that.rating,_that.chapterTitle,_that.chapterId,_that.timestamp,_that.likes,_that.userPhotoURL,_that.displayName,_that.penName,_that.comments,_that.targetUserId,_that.targetUsername,_that.targetUserDisplayName,_that.targetUserPenName,_that.privacy,_that.visibility,_that.imageUrl,_that.images,_that.commentCount,_that.mentions);case _:
   return null;
 
 }
@@ -515,7 +515,7 @@ return $default(_that.id,_that.userId,_that.username,_that.type,_that.bookId,_th
 @JsonSerializable()
 
 class _FeedPost implements FeedPost {
-  const _FeedPost({this.id, required this.userId, required this.username, required this.type, this.bookId, this.bookTitle, this.bookCover, required this.text, this.quote, this.rating, this.chapterTitle, this.chapterId, required this.timestamp, required final  List<String> likes, this.userPhotoURL, this.displayName, this.penName, final  List<CommentReply>? comments, this.targetUserId, this.targetUsername, this.targetUserDisplayName, this.targetUserPenName, this.privacy, required this.visibility, this.imageUrl, final  List<StoryImage>? images, this.userIsDeactivated, final  Map<String, String>? mentions}): _likes = likes,_comments = comments,_images = images,_mentions = mentions;
+  const _FeedPost({this.id, required this.userId, required this.username, required this.type, this.bookId, this.bookTitle, this.bookCover, required this.text, this.quote, this.rating, this.chapterTitle, this.chapterId, required this.timestamp, required final  List<String> likes, this.userPhotoURL, this.displayName, this.penName, final  List<Comment>? comments, this.targetUserId, this.targetUsername, this.targetUserDisplayName, this.targetUserPenName, this.privacy, required this.visibility, this.imageUrl, final  List<StoryImage>? images, this.commentCount, final  Map<String, String>? mentions}): _likes = likes,_comments = comments,_images = images,_mentions = mentions;
   factory _FeedPost.fromJson(Map<String, dynamic> json) => _$FeedPostFromJson(json);
 
 @override final  String? id;
@@ -542,8 +542,8 @@ class _FeedPost implements FeedPost {
 @override final  String? userPhotoURL;
 @override final  String? displayName;
 @override final  String? penName;
- final  List<CommentReply>? _comments;
-@override List<CommentReply>? get comments {
+ final  List<Comment>? _comments;
+@override List<Comment>? get comments {
   final value = _comments;
   if (value == null) return null;
   if (_comments is EqualUnmodifiableListView) return _comments;
@@ -567,7 +567,7 @@ class _FeedPost implements FeedPost {
   return EqualUnmodifiableListView(value);
 }
 
-@override final  bool? userIsDeactivated;
+@override final  int? commentCount;
  final  Map<String, String>? _mentions;
 @override Map<String, String>? get mentions {
   final value = _mentions;
@@ -591,16 +591,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedPost&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.bookCover, bookCover) || other.bookCover == bookCover)&&(identical(other.text, text) || other.text == text)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&const DeepCollectionEquality().equals(other._likes, _likes)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other._comments, _comments)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.targetUsername, targetUsername) || other.targetUsername == targetUsername)&&(identical(other.targetUserDisplayName, targetUserDisplayName) || other.targetUserDisplayName == targetUserDisplayName)&&(identical(other.targetUserPenName, targetUserPenName) || other.targetUserPenName == targetUserPenName)&&(identical(other.privacy, privacy) || other.privacy == privacy)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other._images, _images)&&(identical(other.userIsDeactivated, userIsDeactivated) || other.userIsDeactivated == userIsDeactivated)&&const DeepCollectionEquality().equals(other._mentions, _mentions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedPost&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.bookCover, bookCover) || other.bookCover == bookCover)&&(identical(other.text, text) || other.text == text)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&const DeepCollectionEquality().equals(other._likes, _likes)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other._comments, _comments)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.targetUsername, targetUsername) || other.targetUsername == targetUsername)&&(identical(other.targetUserDisplayName, targetUserDisplayName) || other.targetUserDisplayName == targetUserDisplayName)&&(identical(other.targetUserPenName, targetUserPenName) || other.targetUserPenName == targetUserPenName)&&(identical(other.privacy, privacy) || other.privacy == privacy)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other._images, _images)&&(identical(other.commentCount, commentCount) || other.commentCount == commentCount)&&const DeepCollectionEquality().equals(other._mentions, _mentions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,username,type,const DeepCollectionEquality().hash(bookId),bookTitle,bookCover,text,quote,rating,chapterTitle,chapterId,timestamp,const DeepCollectionEquality().hash(_likes),userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(_comments),targetUserId,targetUsername,targetUserDisplayName,targetUserPenName,privacy,visibility,imageUrl,const DeepCollectionEquality().hash(_images),userIsDeactivated,const DeepCollectionEquality().hash(_mentions)]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,username,type,const DeepCollectionEquality().hash(bookId),bookTitle,bookCover,text,quote,rating,chapterTitle,chapterId,timestamp,const DeepCollectionEquality().hash(_likes),userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(_comments),targetUserId,targetUsername,targetUserDisplayName,targetUserPenName,privacy,visibility,imageUrl,const DeepCollectionEquality().hash(_images),commentCount,const DeepCollectionEquality().hash(_mentions)]);
 
 @override
 String toString() {
-  return 'FeedPost(id: $id, userId: $userId, username: $username, type: $type, bookId: $bookId, bookTitle: $bookTitle, bookCover: $bookCover, text: $text, quote: $quote, rating: $rating, chapterTitle: $chapterTitle, chapterId: $chapterId, timestamp: $timestamp, likes: $likes, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, comments: $comments, targetUserId: $targetUserId, targetUsername: $targetUsername, targetUserDisplayName: $targetUserDisplayName, targetUserPenName: $targetUserPenName, privacy: $privacy, visibility: $visibility, imageUrl: $imageUrl, images: $images, userIsDeactivated: $userIsDeactivated, mentions: $mentions)';
+  return 'FeedPost(id: $id, userId: $userId, username: $username, type: $type, bookId: $bookId, bookTitle: $bookTitle, bookCover: $bookCover, text: $text, quote: $quote, rating: $rating, chapterTitle: $chapterTitle, chapterId: $chapterId, timestamp: $timestamp, likes: $likes, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, comments: $comments, targetUserId: $targetUserId, targetUsername: $targetUsername, targetUserDisplayName: $targetUserDisplayName, targetUserPenName: $targetUserPenName, privacy: $privacy, visibility: $visibility, imageUrl: $imageUrl, images: $images, commentCount: $commentCount, mentions: $mentions)';
 }
 
 
@@ -611,7 +611,7 @@ abstract mixin class _$FeedPostCopyWith<$Res> implements $FeedPostCopyWith<$Res>
   factory _$FeedPostCopyWith(_FeedPost value, $Res Function(_FeedPost) _then) = __$FeedPostCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, String userId, String username, String type, dynamic bookId, String? bookTitle, String? bookCover, String text, String? quote, int? rating, String? chapterTitle, String? chapterId, int timestamp, List<String> likes, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? comments, String? targetUserId, String? targetUsername, String? targetUserDisplayName, String? targetUserPenName, String? privacy, String visibility, String? imageUrl, List<StoryImage>? images, bool? userIsDeactivated, Map<String, String>? mentions
+ String? id, String userId, String username, String type, dynamic bookId, String? bookTitle, String? bookCover, String text, String? quote, int? rating, String? chapterTitle, String? chapterId, int timestamp, List<String> likes, String? userPhotoURL, String? displayName, String? penName, List<Comment>? comments, String? targetUserId, String? targetUsername, String? targetUserDisplayName, String? targetUserPenName, String? privacy, String visibility, String? imageUrl, List<StoryImage>? images, int? commentCount, Map<String, String>? mentions
 });
 
 
@@ -628,7 +628,7 @@ class __$FeedPostCopyWithImpl<$Res>
 
 /// Create a copy of FeedPost
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? type = null,Object? bookId = freezed,Object? bookTitle = freezed,Object? bookCover = freezed,Object? text = null,Object? quote = freezed,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterId = freezed,Object? timestamp = null,Object? likes = null,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? comments = freezed,Object? targetUserId = freezed,Object? targetUsername = freezed,Object? targetUserDisplayName = freezed,Object? targetUserPenName = freezed,Object? privacy = freezed,Object? visibility = null,Object? imageUrl = freezed,Object? images = freezed,Object? userIsDeactivated = freezed,Object? mentions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? type = null,Object? bookId = freezed,Object? bookTitle = freezed,Object? bookCover = freezed,Object? text = null,Object? quote = freezed,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterId = freezed,Object? timestamp = null,Object? likes = null,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? comments = freezed,Object? targetUserId = freezed,Object? targetUsername = freezed,Object? targetUserDisplayName = freezed,Object? targetUserPenName = freezed,Object? privacy = freezed,Object? visibility = null,Object? imageUrl = freezed,Object? images = freezed,Object? commentCount = freezed,Object? mentions = freezed,}) {
   return _then(_FeedPost(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -648,7 +648,7 @@ as List<String>,userPhotoURL: freezed == userPhotoURL ? _self.userPhotoURL : use
 as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,penName: freezed == penName ? _self.penName : penName // ignore: cast_nullable_to_non_nullable
 as String?,comments: freezed == comments ? _self._comments : comments // ignore: cast_nullable_to_non_nullable
-as List<CommentReply>?,targetUserId: freezed == targetUserId ? _self.targetUserId : targetUserId // ignore: cast_nullable_to_non_nullable
+as List<Comment>?,targetUserId: freezed == targetUserId ? _self.targetUserId : targetUserId // ignore: cast_nullable_to_non_nullable
 as String?,targetUsername: freezed == targetUsername ? _self.targetUsername : targetUsername // ignore: cast_nullable_to_non_nullable
 as String?,targetUserDisplayName: freezed == targetUserDisplayName ? _self.targetUserDisplayName : targetUserDisplayName // ignore: cast_nullable_to_non_nullable
 as String?,targetUserPenName: freezed == targetUserPenName ? _self.targetUserPenName : targetUserPenName // ignore: cast_nullable_to_non_nullable
@@ -656,8 +656,8 @@ as String?,privacy: freezed == privacy ? _self.privacy : privacy // ignore: cast
 as String?,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,images: freezed == images ? _self._images : images // ignore: cast_nullable_to_non_nullable
-as List<StoryImage>?,userIsDeactivated: freezed == userIsDeactivated ? _self.userIsDeactivated : userIsDeactivated // ignore: cast_nullable_to_non_nullable
-as bool?,mentions: freezed == mentions ? _self._mentions : mentions // ignore: cast_nullable_to_non_nullable
+as List<StoryImage>?,commentCount: freezed == commentCount ? _self.commentCount : commentCount // ignore: cast_nullable_to_non_nullable
+as int?,mentions: freezed == mentions ? _self._mentions : mentions // ignore: cast_nullable_to_non_nullable
 as Map<String, String>?,
   ));
 }

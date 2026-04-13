@@ -62,10 +62,14 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _privacy,
+                initialValue: _privacy,
                 decoration: const InputDecoration(labelText: 'Privacy'),
                 items: const [
                   DropdownMenuItem(value: 'public', child: Text('Public')),
+                  DropdownMenuItem(
+                    value: 'followers',
+                    child: Text('Followers only'),
+                  ),
                   DropdownMenuItem(value: 'private', child: Text('Private')),
                 ],
                 onChanged: (value) {

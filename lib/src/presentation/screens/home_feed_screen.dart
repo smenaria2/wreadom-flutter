@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/feed_providers.dart';
+import '../providers/notification_providers.dart';
 import '../components/feed_post_card.dart';
 import '../components/create_post_sheet.dart';
 import '../routing/app_routes.dart';
@@ -32,8 +33,23 @@ class HomeFeedScreen extends ConsumerWidget {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded),
+                  icon: Consumer(
+                    builder: (context, ref, _) {
+                      final unreadCount = ref.watch(unreadNotificationCountProvider);
+                      return Badge(
+                        label: Text('$unreadCount'),
+                        isLabelVisible: unreadCount > 0,
+                        backgroundColor: Colors.red,
+                        child: const Icon(Icons.notifications_none_rounded),
+                      );
+                    },
+                  ),
                   onPressed: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search_rounded),
+                  tooltip: 'Search books',
+                  onPressed: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
                 ),
               ],
             ),

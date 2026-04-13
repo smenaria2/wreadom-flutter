@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/book_providers.dart';
+import '../providers/discovery_providers.dart';
 import '../../domain/models/book.dart';
 import 'book_detail_screen.dart';
 
@@ -73,7 +74,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         : null,
                     filled: true,
                     fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
+                        .withOpacity(0.5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -106,7 +107,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
                     itemCount: _genres.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
                       final genre = _genres[i];
                       final active = _activeGenre == genre;
@@ -145,24 +146,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
           ),
 
-          // ─── Results ──────────────────────────────────────────────
+          // ─── Results or Default Browse ─────────────────────────────
           if (effectiveQuery.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.search_rounded, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text(
-                      'Search for books or pick a genre',
-                      style: TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
-            )
+            ..._buildDefaultBrowse(context, theme)
           else
             searchAsync.when(
               data: (books) {
@@ -209,6 +195,222 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       ),
     );
   }
+
+  /// Builds the default Discovery browse view with trending books and
+  /// genre previews when no search is active.
+  List<Widget> _buildDefaultBrowse(BuildContext context, ThemeData theme) {
+    final trendingAsync = ref.watch(archiveTrendingProvider);
+
+    return [
+      // ─── Trending Section ─────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              Icon(Icons.trending_up_rounded,
+                  size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                'Trending Now',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: SizedBox(
+          height: 200,
+          child: trendingAsync.when(
+            data: (books) {
+              if (books.isEmpty) {
+                return const Center(
+                  child: Text('No trending books found',
+                      style: TextStyle(color: Colors.grey)),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                scrollDirection: Axis.horizontal,
+                itemCount: books.length,
+                itemBuilder: (context, i) =>
+                    _TrendingBookCard(book: books[i]),
+              );
+            },
+            loading: () =>
+                const Center(child: CircularProgressIndicator()),
+            error: (err, _) =>
+                Center(child: Text('Error: $err')),
+          ),
+        ),
+      ),
+
+      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+      // ─── Genre Preview Sections ───────────────────────────────
+      ..._genres.take(4).expand((genre) {
+        final genreAsync = ref.watch(archiveGenrePreviewProvider(genre));
+        return [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    genre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _activeGenre = genre;
+                        _searchController.clear();
+                        _query = '';
+                      });
+                    },
+                    child: const Text('See All'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 200,
+              child: genreAsync.when(
+                data: (books) {
+                  if (books.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No $genre books found',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: books.length,
+                    itemBuilder: (context, i) =>
+                        _TrendingBookCard(book: books[i]),
+                  );
+                },
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        ];
+      }),
+
+      // Bottom padding
+      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+    ];
+  }
+}
+
+// ─── Trending Book Card ───────────────────────────────────────────────────────
+class _TrendingBookCard extends StatelessWidget {
+  final Book book;
+  const _TrendingBookCard({required this.book});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BookDetailScreen(
+            bookId: book.id,
+            preloadedBook: book,
+          ),
+        ),
+      ),
+      child: Container(
+        width: 120,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    book.coverUrl != null
+                        ? Image.network(
+                            book.coverUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                _CoverPlaceholder(title: book.title),
+                          )
+                        : _CoverPlaceholder(title: book.title),
+                    // Source badge
+                    if (book.source == 'archive')
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'IA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Title
+            Text(
+              book.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+            // Author
+            Text(
+              book.authors.isNotEmpty
+                  ? book.authors.first.name
+                  : 'Unknown',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Search Result Tile ───────────────────────────────────────────────────────
@@ -248,7 +450,7 @@ class _SearchResultTile extends StatelessWidget {
                         width: 56,
                         height: 80,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             _MiniPlaceholder(title: book.title),
                       )
                     : _MiniPlaceholder(title: book.title),
@@ -278,26 +480,50 @@ class _SearchResultTile extends StatelessWidget {
                           color: Colors.grey[600], fontSize: 12),
                     ),
                     const SizedBox(height: 6),
-                    if (book.subjects.isNotEmpty)
-                      Wrap(
-                        spacing: 4,
-                        children: book.subjects.take(2).map((s) {
-                          return Chip(
-                            label: Text(s,
-                                style: const TextStyle(fontSize: 10)),
-                            padding: EdgeInsets.zero,
-                            labelPadding:
-                                const EdgeInsets.symmetric(horizontal: 6),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            side: BorderSide.none,
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withValues(alpha: 0.4),
-                          );
-                        }).toList(),
-                      ),
+                    Row(
+                      children: [
+                        if (book.source == 'archive')
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                            ),
+                            child: const Text(
+                              'Internet Archive',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        if (book.subjects.isNotEmpty)
+                          Expanded(
+                            child: Wrap(
+                              spacing: 4,
+                              children: book.subjects.take(2).map((s) {
+                                return Chip(
+                                  label: Text(s,
+                                      style: const TextStyle(fontSize: 10)),
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  side: BorderSide.none,
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                      .withOpacity(0.4),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -333,6 +559,36 @@ class _MiniPlaceholder extends StatelessWidget {
             style: TextStyle(
               color: Theme.of(context).colorScheme.onPrimaryContainer,
               fontSize: 9,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverPlaceholder extends StatelessWidget {
+  final String title;
+  const _CoverPlaceholder({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            title,
+            maxLines: 3,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),

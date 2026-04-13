@@ -86,6 +86,7 @@ abstract class UserModel with _$UserModel {
     List<String>? pinnedWorks,
     int? createdAt,
     int? lastLogin,
+    Map<String, dynamic>? readingProgress,
     NotificationSettings? notificationSettings,
   }) = _UserModel;
 

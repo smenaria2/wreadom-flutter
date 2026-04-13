@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
-import '../providers/bookmark_providers.dart';
-import '../providers/feed_providers.dart';
-import '../components/feed_post_card.dart';
+import '../providers/notification_providers.dart';
+import '../../utils/maintenance_utils.dart';
 import '../routing/app_routes.dart';
+import '../components/profile/user_posts_tab.dart';
+import '../components/profile/user_about_tab.dart';
+import '../components/profile/user_history_tab.dart';
+import '../components/profile/user_saved_tab.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -14,316 +17,246 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
 
-    return Scaffold(
-      body: userAsync.when(
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('Please log in'));
-          }
-          return CustomScrollView(
-            slivers: [
-              // ─── Collapsible profile header ──────────────────────
-              SliverAppBar(
-                expandedHeight: 240,
-                pinned: true,
-                actions: [
-                  IconButton(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.notifications),
-                    icon: const Icon(Icons.notifications_none_rounded),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (val) async {
-                      if (val == 'logout') {
-                        await ref
-                            .read(authControllerProvider.notifier)
-                            .logout();
-                      } else if (val == 'settings') {
-                        if (context.mounted) {
-                          Navigator.of(context)
-                              .pushNamed(AppRoutes.profileSettings);
-                        }
-                      } else if (val == 'writer') {
-                        if (context.mounted) {
-                          Navigator.of(context)
-                              .pushNamed(AppRoutes.writerDashboard);
-                        }
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'settings',
-                        child: Row(
-                          children: [
-                            Icon(Icons.settings, size: 18),
-                            SizedBox(width: 8),
-                            Text('Settings'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'writer',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_note, size: 18),
-                            SizedBox(width: 8),
-                            Text('Writer Dashboard'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout, size: 18),
-                            SizedBox(width: 8),
-                            Text('Logout'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    icon: const Icon(Icons.more_vert),
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.secondary,
-                        ],
-                      ),
-                    ),
-                    child: SafeArea(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 40),
-                          // Avatar
-                          CircleAvatar(
-                            radius: 44,
-                            backgroundColor: Colors.white24,
-                            backgroundImage: user.photoURL != null
-                                ? NetworkImage(user.photoURL!)
-                                : null,
-                            child: user.photoURL == null
-                                ? Text(
-                                    (user.displayName ?? user.username)[0]
-                                        .toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 12),
-                          // Display name / pen name
-                          Text(
-                            user.displayName ?? user.username,
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).colorScheme.onPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (user.penName != null &&
-                              user.penName!.isNotEmpty)
-                            Text(
-                              '✍️ ${user.penName}',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimary
-                                    .withValues(alpha: 0.8),
-                                fontSize: 13,
-                              ),
-                            ),
-                          Text(
-                            '@${user.username}',
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimary
-                                  .withValues(alpha: 0.7),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+    return userAsync.when(
+      data: (user) {
+        if (user == null) {
+          return const Scaffold(body: Center(child: Text('Please log in')));
+        }
 
-              // ─── Stats row ───────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 20),
-                  child: Card(
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  // ─── Collapsible profile header ──────────────────
+                  SliverAppBar(
+                    expandedHeight: 240,
+                    pinned: true,
+                    stretch: true,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey[200]!),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    iconTheme: IconThemeData(
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
+                    flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.pin,
+                      title: AnimatedOpacity(
+                        opacity: innerBoxIsScrolled ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          user.displayName ?? user.username,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      background: Container(
+                        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                        child: SafeArea(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Avatar
+                              CircleAvatar(
+                                radius: 42,
+                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                backgroundImage: user.photoURL != null
+                                    ? NetworkImage(user.photoURL!)
+                                    : null,
+                                child: user.photoURL == null
+                                    ? Text(
+                                        (user.displayName ?? user.username)[0]
+                                            .toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                user.displayName ?? user.username,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '@${user.username}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    actions: [
+                      _NotificationAction(),
+                      _ProfileMenu(ref: ref),
+                    ],
+                  ),
+
+                  // ─── Stats & Summary ───────────────────────────
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _StatItem(
-                              label: 'Followers',
-                              value: _fmt(user.followersCount ?? 0)),
-                          _Divider(),
+                            label: 'Followers',
+                            value: _fmt(user.followersCount ?? 0),
+                          ),
                           _StatItem(
-                              label: 'Following',
-                              value: _fmt(user.followingCount ?? 0)),
-                          _Divider(),
+                            label: 'Following',
+                            value: _fmt(user.followingCount ?? 0),
+                          ),
                           _StatItem(
-                              label: 'Points',
-                              value: _fmt(user.totalPoints ?? 0)),
+                            label: 'Points',
+                            value: _fmt(user.totalPoints ?? 0),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ),
 
-              // ─── Bio ────────────────────────────────────────────
-              if (user.bio != null && user.bio!.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'About',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          user.bio!,
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // ─── Posts header ────────────────────────────────────
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Text(
-                    'My Posts',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: ref.watch(userBookmarksProvider).when(
-                        data: (bookmarks) {
-                          if (bookmarks.isEmpty) return const SizedBox.shrink();
-                          return Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: bookmarks
-                                .take(6)
-                                .map((bookmark) => Chip(
-                                      label: Text(bookmark.label),
-                                    ))
-                                .toList(),
-                          );
-                        },
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      ),
-                ),
-              ),
-
-              // ─── Posts list ──────────────────────────────────────
-              ref.watch(userFeedPostsProvider(user.id)).when(
-                    data: (posts) {
-                      if (posts.isEmpty) {
-                        return const SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 48),
-                            child: Center(
-                              child: Text(
-                                'No posts yet.\nStart sharing your reading journey!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              FeedPostCard(post: posts[index]),
-                          childCount: posts.length,
-                        ),
-                      );
-                    },
-                    loading: () => const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: CircularProgressIndicator()),
+                  // ─── Tab Bar ───────────────────────────────────
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        labelColor: Theme.of(context).colorScheme.primary,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Theme.of(context).colorScheme.primary,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        tabs: const [
+                          Tab(text: 'About'),
+                          Tab(text: 'Posts'),
+                          Tab(text: 'History'),
+                          Tab(text: 'Saved'),
+                        ],
                       ),
                     ),
-                    error: (err, _) => SliverToBoxAdapter(
-                      child: Center(
-                          child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child:
-                            Text('Error loading posts: $err'),
-                      )),
-                    ),
                   ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
-          );
-        },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-      ),
+                ];
+              },
+              body: TabBarView(
+                children: [
+                  UserAboutTab(user: user),
+                  UserPostsTab(userId: user.id),
+                  const UserHistoryTab(),
+                  const UserSavedTab(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, _) => Scaffold(body: Center(child: Text('Error: $err'))),
     );
   }
 
-  String _fmt(int n) {
+  static String _fmt(int n) {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
   }
 }
 
-class _Divider extends StatelessWidget {
+class _NotificationAction extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadNotificationCountProvider);
+    final btn = IconButton(
+      onPressed: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+      icon: const Icon(Icons.notifications_none_rounded),
+    );
+    if (unread <= 0) return btn;
+    return Badge(
+      label: Text(unread > 99 ? '99+' : '$unread'),
+      child: btn,
+    );
+  }
+}
+
+class _ProfileMenu extends StatelessWidget {
+  final WidgetRef ref;
+  const _ProfileMenu({required this.ref});
+
   @override
   Widget build(BuildContext context) {
-    return Container(height: 40, width: 1, color: Colors.grey[200]);
+    return PopupMenuButton<String>(
+      onSelected: (val) async {
+        if (val == 'logout') {
+          await ref.read(authControllerProvider.notifier).logout();
+        } else if (val == 'settings') {
+          Navigator.of(context).pushNamed(AppRoutes.profileSettings);
+        } else if (val == 'writer') {
+          Navigator.of(context).pushNamed(AppRoutes.writerDashboard);
+        } else if (val == 'migrate') {
+          await migrateComments();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Migration complete!')),
+            );
+          }
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings, size: 18),
+              SizedBox(width: 8),
+              Text('Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'writer',
+          child: Row(
+            children: [
+              Icon(Icons.edit_note, size: 18),
+              SizedBox(width: 8),
+              Text('Writer Dashboard'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'migrate',
+          child: Row(
+            children: [
+              Icon(Icons.storage, size: 18),
+              SizedBox(width: 8),
+              Text('Migrate Comments'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 18),
+              SizedBox(width: 8),
+              Text('Logout'),
+            ],
+          ),
+        ),
+      ],
+      icon: const Icon(Icons.more_vert),
+    );
   }
 }
 
@@ -338,14 +271,38 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          style: TextStyle(color: Colors.grey[600], fontSize: 11),
         ),
       ],
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

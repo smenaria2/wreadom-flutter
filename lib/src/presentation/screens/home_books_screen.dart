@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/book_providers.dart';
+import '../providers/notification_providers.dart';
+import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
 import 'book_detail_screen.dart';
 import '../routing/app_routes.dart';
+import '../providers/book_providers.dart';
 
 class HomeBooksScreen extends ConsumerWidget {
-  /// Callback to switch to the Discovery (search) tab.
-  final VoidCallback? onNavigateToDiscovery;
-
-  const HomeBooksScreen({super.key, this.onNavigateToDiscovery});
+  const HomeBooksScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final originalsAsync = ref.watch(originalBooksProvider);
-    final popularAsync = ref.watch(popularBooksProvider);
-    final recentAsync = ref.watch(recentBooksProvider);
+    final originalsAsync = ref.watch(homepageOriginalsProvider);
+    final popularAsync = ref.watch(homepagePopularProvider);
+    final recentAsync = ref.watch(homepageRecentProvider);
+    final fantasyAsync = ref.watch(homepageGenreProvider('fantasy'));
+    final romanceAsync = ref.watch(homepageGenreProvider('romance'));
+    final sciFiAsync = ref.watch(homepageGenreProvider('sci-fi'));
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -31,20 +33,33 @@ class HomeBooksScreen extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 1,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            tooltip: 'Notifications',
-            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+          Builder(
+            builder: (context) {
+              final unread = ref.watch(unreadNotificationCountProvider);
+              final btn = IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                tooltip: 'Notifications',
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.notifications),
+              );
+              if (unread <= 0) return btn;
+              return Badge(
+                label: Text(unread > 99 ? '99+' : '$unread'),
+                child: btn,
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Search books',
-            onPressed: onNavigateToDiscovery,
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.invalidate(homepageMetadataProvider);
+          ref.invalidate(homepageBooksProvider);
           ref.invalidate(originalBooksProvider);
           ref.invalidate(popularBooksProvider);
           ref.invalidate(recentBooksProvider);
@@ -55,14 +70,14 @@ class HomeBooksScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Hero Banner ─────────────────────────────────────────
-              _HeroBanner(onExplore: onNavigateToDiscovery),
+              _HeroBanner(onExplore: () => Navigator.of(context).pushNamed(AppRoutes.discovery)),
               const SizedBox(height: 28),
 
               // ─── Wreadom Originals ────────────────────────────────────
               _BookshelfSection(
                 title: '✨ Wreadom Originals',
                 booksAsync: originalsAsync,
-                onSeeAll: onNavigateToDiscovery,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
               ),
               const SizedBox(height: 28),
 
@@ -70,7 +85,7 @@ class HomeBooksScreen extends ConsumerWidget {
               _BookshelfSection(
                 title: '🔥 Popular Right Now',
                 booksAsync: popularAsync,
-                onSeeAll: onNavigateToDiscovery,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
               ),
               const SizedBox(height: 28),
 
@@ -78,7 +93,31 @@ class HomeBooksScreen extends ConsumerWidget {
               _BookshelfSection(
                 title: '🆕 Recently Added',
                 booksAsync: recentAsync,
-                onSeeAll: onNavigateToDiscovery,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+              ),
+              const SizedBox(height: 28),
+
+              // ─── Fantasy ────────────────────────────────────────────────
+              _BookshelfSection(
+                title: '🧙 Fantasy',
+                booksAsync: fantasyAsync,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+              ),
+              const SizedBox(height: 28),
+
+              // ─── Romance ────────────────────────────────────────────────
+              _BookshelfSection(
+                title: '💖 Romance',
+                booksAsync: romanceAsync,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+              ),
+              const SizedBox(height: 28),
+
+              // ─── Sci-Fi ──────────────────────────────────────────────────
+              _BookshelfSection(
+                title: '🚀 Sci-Fi',
+                booksAsync: sciFiAsync,
+                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
               ),
               const SizedBox(height: 32),
             ],
@@ -90,12 +129,106 @@ class HomeBooksScreen extends ConsumerWidget {
 }
 
 // ─── Hero Banner ─────────────────────────────────────────────────────────────
-class _HeroBanner extends StatelessWidget {
+class _HeroBanner extends ConsumerWidget {
   final VoidCallback? onExplore;
   const _HeroBanner({this.onExplore});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final metadataAsync = ref.watch(homepageMetadataProvider);
+
+    return metadataAsync.when(
+      data: (metadata) {
+        final activeTopics = metadata.dailyTopics.where((t) => t.isEnabled).toList();
+        if (activeTopics.isEmpty) return _buildDefaultBanner(context);
+
+        final topic = activeTopics.first;
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            image: DecorationImage(
+              image: NetworkImage(topic.coverImageUrl),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+             padding: const EdgeInsets.all(24),
+             decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.3),
+                  ],
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                ),
+             ),
+             child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                       color: Theme.of(context).colorScheme.primary,
+                       borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Daily Topic', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    topic.topicName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    topic.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: onExplore,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: const Text('Read More',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => _buildDefaultBanner(context),
+    );
+  }
+
+  Widget _buildDefaultBanner(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -216,7 +349,7 @@ class _BookshelfSection extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: books.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                separatorBuilder: (_, _) => const SizedBox(width: 14),
                 itemBuilder: (context, index) =>
                     _BookCard(book: books[index]),
               );
@@ -225,8 +358,8 @@ class _BookshelfSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: 5,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder: (_, __) => const _BookCardSkeleton(),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemBuilder: (_, _) => const _BookCardSkeleton(),
             ),
             error: (err, _) => Center(
               child: Text('Failed to load',
@@ -271,7 +404,7 @@ class _BookCard extends StatelessWidget {
                           book.coverUrl!,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               _CoverPlaceholder(title: book.title),
                         ),
                       )

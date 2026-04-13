@@ -36,7 +36,7 @@ abstract class FeedPost with _$FeedPost {
     String? userPhotoURL,
     String? displayName,
     String? penName,
-    List<CommentReply>? comments,
+    List<Comment>? comments,
     String? targetUserId,
     String? targetUsername,
     String? targetUserDisplayName,
@@ -45,7 +45,7 @@ abstract class FeedPost with _$FeedPost {
     required String visibility,
     String? imageUrl,
     List<StoryImage>? images,
-    bool? userIsDeactivated,
+    int? commentCount,
     Map<String, String>? mentions,
   }) = _FeedPost;
 

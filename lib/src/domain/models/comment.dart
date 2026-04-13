@@ -25,8 +25,8 @@ abstract class CommentReply with _$CommentReply {
 abstract class Comment with _$Comment {
   const factory Comment({
     String? id,
-    required dynamic bookId,
-    required String bookTitle,
+    dynamic bookId,
+    String? bookTitle,
     required String userId,
     required String username,
     required String text,

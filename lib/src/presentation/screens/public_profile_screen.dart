@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../widgets/follow_button.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
@@ -20,6 +21,8 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(publicProfileProvider(userId));
     final followingAsync = ref.watch(isFollowingProvider(userId));
+    final selfId = ref.watch(currentUserProvider).asData?.value?.id;
+    final isSelf = selfId == userId;
 
     return Scaffold(
       body: profileAsync.when(
@@ -108,71 +111,69 @@ class PublicProfileScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      followingAsync.when(
-                        data: (isFollowing) => Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () async {
-                                final currentUser =
-                                    await ref.read(currentUserProvider.future);
-                                if (currentUser == null) return;
-                                if (isFollowing) {
-                                  await ref
-                                      .read(followRepositoryProvider)
-                                      .unfollowUser(
-                                        followerId: currentUser.id,
-                                        followingId: user.id,
-                                      );
-                                } else {
-                                  await ref
-                                      .read(followRepositoryProvider)
-                                      .followUser(
-                                        follower: currentUser,
-                                        following: user,
-                                      );
-                                }
-                                ref.invalidate(isFollowingProvider(userId));
-                                ref.invalidate(publicProfileProvider(userId));
-                              },
-                              icon: Icon(isFollowing
-                                  ? Icons.person_remove_alt_1
-                                  : Icons.person_add_alt_1),
-                              label: Text(isFollowing ? 'Unfollow' : 'Follow'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                final currentUser =
-                                    await ref.read(currentUserProvider.future);
-                                if (currentUser == null) return;
-                                final conversationId = await ref
-                                    .read(messageRepositoryProvider)
-                                    .getOrCreateDirectConversation(
-                                      currentUser: currentUser,
-                                      otherUser: user,
-                                    );
-                                if (context.mounted) {
-                                  Navigator.of(context).pushNamed(
-                                    AppRoutes.conversation,
-                                    arguments: ConversationArguments(
-                                      conversationId: conversationId,
-                                      title:
-                                          user.displayName ?? user.username,
-                                      subtitle: '@${user.username}',
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              label: const Text('Message'),
-                            ),
-                          ],
+                      if (!isSelf) ...[
+                        const SizedBox(height: 16),
+                        followingAsync.when(
+                          data: (isFollowing) {
+                            final level =
+                                (user.privacyLevel ?? 'public').toLowerCase();
+                            final followersOnly = level == 'followers' ||
+                                level == 'followersonly' ||
+                                level == 'followers_only';
+                            if (level == 'private') {
+                              return _PrivacyNoticeCard(
+                                message:
+                                    'This account is private. Only basic profile info is visible.',
+                                icon: Icons.lock_outline,
+                              );
+                            }
+                            if (followersOnly && !isFollowing) {
+                              return _PrivacyNoticeCard(
+                                message:
+                                    'Follow this account to see their full profile.',
+                                icon: Icons.people_outline,
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
-                        loading: () =>
-                            const CircularProgressIndicator(strokeWidth: 2),
-                        error: (_, __) => const SizedBox.shrink(),
+                      ],
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          FollowButton(targetUserId: userId),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final currentUser =
+                                  await ref.read(currentUserProvider.future);
+                              if (currentUser == null) return;
+                              final conversationId = await ref
+                                  .read(messageRepositoryProvider)
+                                  .getOrCreateDirectConversation(
+                                    currentUser: currentUser,
+                                    otherUser: user,
+                                  );
+                              if (context.mounted) {
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.conversation,
+                                  arguments: ConversationArguments(
+                                    conversationId: conversationId,
+                                    title:
+                                        user.displayName ?? user.username,
+                                    subtitle: '@${user.username}',
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            label: const Text('Message'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -183,6 +184,39 @@ class PublicProfileScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Failed to load: $error')),
+      ),
+    );
+  }
+}
+
+class _PrivacyNoticeCard extends StatelessWidget {
+  const _PrivacyNoticeCard({
+    required this.message,
+    required this.icon,
+  });
+
+  final String message;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

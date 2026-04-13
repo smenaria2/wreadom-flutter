@@ -42,4 +42,17 @@ class FirebaseCommentRepository implements CommentRepository {
     items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return items;
   }
+  @override
+  Future<List<Comment>> getFeedPostComments(String postId) async {
+    final snapshot = await _firestore
+        .collection('comments')
+        .where('feedPostId', isEqualTo: postId)
+        .get();
+    final items = snapshot.docs.map((doc) {
+      final data = mapFirestoreData(doc.data(), doc.id);
+      return Comment.fromJson(data);
+    }).toList();
+    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return items;
+  }
 }

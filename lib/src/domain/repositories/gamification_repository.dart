@@ -1,4 +1,3 @@
-import '../models/points_history.dart';
 import '../models/user_model.dart';
 
 abstract class GamificationRepository {

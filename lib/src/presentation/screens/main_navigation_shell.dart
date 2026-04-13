@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'messages_screen.dart';
 import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
-import 'discovery_screen.dart';
+import 'writer_dashboard_screen.dart';
 import 'profile_screen.dart';
 
 /// Provides a way for child screens to switch the root tab.
@@ -18,7 +18,8 @@ class TabSwitchNotifier extends ChangeNotifier {
 }
 
 class MainNavigationShell extends ConsumerStatefulWidget {
-  const MainNavigationShell({super.key});
+  final int initialIndex;
+  const MainNavigationShell({super.key, this.initialIndex = 0});
 
   @override
   ConsumerState<MainNavigationShell> createState() =>
@@ -26,12 +27,13 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   final TabSwitchNotifier _tabNotifier = TabSwitchNotifier();
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _tabNotifier.addListener(_onTabSwitch);
   }
 
@@ -47,9 +49,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   }
 
   List<Widget> get _screens => [
-        HomeBooksScreen(onNavigateToDiscovery: () => _tabNotifier.switchTo(2)),
+        const HomeBooksScreen(),
         HomeFeedScreen(),
-        DiscoveryScreen(),
+        const WriterDashboardScreen(),
         const MessagesScreen(),
         ProfileScreen(),
       ];
@@ -77,9 +79,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Feed',
           ),
           NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Discover',
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Writer',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),

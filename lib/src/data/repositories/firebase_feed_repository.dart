@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../utils/firestore_utils.dart';
@@ -14,6 +16,8 @@ class FirebaseFeedRepository implements FeedRepository {
       Query query = _firestore
           .collection(_collection)
           .where('visibility', isEqualTo: 'public')
+          .where('userIsDeactivated', isNotEqualTo: true)
+          .orderBy('userIsDeactivated')
           .orderBy('timestamp', descending: true)
           .limit(limit);
 
@@ -45,8 +49,58 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<List<FeedPost>> getFollowingFeed(List<String> followedUserIds,
+      {int limit = 10, dynamic lastDoc}) async {
+    if (followedUserIds.isEmpty) return [];
+
+    try {
+      final chunks = [];
+      for (var i = 0; i < followedUserIds.length; i += 10) {
+        chunks.add(followedUserIds.sublist(
+            i,
+            i + 10 > followedUserIds.length
+                ? followedUserIds.length
+                : i + 10));
+      }
+
+      final List<FeedPost> allPosts = [];
+
+      for (final chunk in chunks) {
+        Query query = _firestore
+            .collection(_collection)
+            .where('userId', whereIn: chunk)
+            .where('userIsDeactivated', isNotEqualTo: true)
+            .orderBy('userIsDeactivated')
+            .orderBy('timestamp', descending: true)
+            .limit(limit);
+
+        if (lastDoc != null && lastDoc is DocumentSnapshot) {
+          query = query.startAfterDocument(lastDoc);
+        }
+
+        final snapshot = await query.get();
+        allPosts.addAll(snapshot.docs.map((doc) {
+          final data =
+              mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          return FeedPost.fromJson(data);
+        }).toList());
+      }
+
+      allPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      if (allPosts.length > limit) {
+        return allPosts.sublist(0, limit);
+      }
+      return allPosts;
+    } catch (e) {
+      print('[FirebaseFeedRepository] Error fetching following feed: $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<FeedPost>> getUserFeedPosts(String userId,
       {int limit = 10, dynamic lastDoc}) async {
+
     Query query = _firestore
         .collection(_collection)
         .where('userId', isEqualTo: userId)
@@ -113,13 +167,44 @@ class FirebaseFeedRepository implements FeedRepository {
 
   @override
   Future<void> addComment(String postId, Map<String, dynamic> comment) async {
-    await _firestore.collection(_collection).doc(postId).update({
-      'comments': FieldValue.arrayUnion([
-        {
-          ...comment,
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-        }
-      ])
+    // We now save to the standalone comments collection
+    await _firestore.collection('comments').add({
+      ...comment,
+      'feedPostId': postId,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
+
+    // Increment comment count on the post
+    await _firestore.collection('feed').doc(postId).set({
+      'commentCount': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<String> uploadPostImage(Uint8List bytes, String fileName) async {
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('feed_images')
+        .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
+    
+    final uploadTask = await storageRef.putData(
+      bytes,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    
+    return await uploadTask.ref.getDownloadURL();
+  }
+
+  @override
+  Future<FeedPost?> getFeedPost(String postId) async {
+    try {
+      final doc = await _firestore.collection(_collection).doc(postId).get();
+      if (!doc.exists) return null;
+      final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+      return FeedPost.fromJson(data);
+    } catch (e) {
+      print('[FirebaseFeedRepository] Error fetching single post $postId: $e');
+      return null;
+    }
   }
 }

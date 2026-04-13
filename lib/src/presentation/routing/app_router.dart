@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/book.dart';
-import '../../domain/models/message.dart';
+import '../../domain/models/feed_post.dart';
 import '../screens/book_detail_screen.dart';
 import '../screens/conversation_screen.dart';
+import '../screens/discovery_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/post_detail_screen.dart';
 import '../screens/profile_settings_screen.dart';
 import '../screens/public_profile_screen.dart';
 import '../screens/reader_screen.dart';
@@ -33,6 +35,16 @@ class PublicProfileArguments {
   final String userId;
 }
 
+class BookDetailArguments {
+  const BookDetailArguments({
+    required this.bookId,
+    this.book,
+  });
+
+  final String bookId;
+  final Book? book;
+}
+
 class ConversationArguments {
   const ConversationArguments({
     required this.conversationId,
@@ -53,6 +65,16 @@ class WriterPadArguments {
   final Book? book;
 }
 
+class PostDetailArguments {
+  const PostDetailArguments({
+    required this.postId,
+    this.post,
+  });
+
+  final String postId;
+  final FeedPost? post;
+}
+
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -60,12 +82,28 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case AppRoutes.main:
       case AppRoutes.root:
-        return MaterialPageRoute(builder: (_) => const MainNavigationShell());
+        final initialIndex = settings.arguments as int? ?? 0;
+        return MaterialPageRoute(
+          builder: (_) => MainNavigationShell(initialIndex: initialIndex),
+        );
       case AppRoutes.bookDetail:
-        final book = settings.arguments as Book;
+        final args = settings.arguments;
+        String bookId;
+        Book? book;
+
+        if (args is Book) {
+          bookId = args.id;
+          book = args;
+        } else if (args is BookDetailArguments) {
+          bookId = args.bookId;
+          book = args.book;
+        } else {
+          bookId = args.toString();
+        }
+
         return MaterialPageRoute(
           builder: (_) => BookDetailScreen(
-            bookId: book.id,
+            bookId: bookId,
             preloadedBook: book,
           ),
         );
@@ -95,10 +133,33 @@ class AppRouter {
         );
       case AppRoutes.writerDashboard:
         return MaterialPageRoute(builder: (_) => const WriterDashboardScreen());
+      case AppRoutes.discovery:
+        return MaterialPageRoute(builder: (_) => const DiscoveryScreen());
       case AppRoutes.writerPad:
         final args = settings.arguments as WriterPadArguments?;
         return MaterialPageRoute(
           builder: (_) => WriterPadScreen(book: args?.book),
+        );
+      case AppRoutes.postDetail:
+        final args = settings.arguments;
+        String postId;
+        FeedPost? post;
+
+        if (args is FeedPost) {
+          postId = args.id ?? '';
+          post = args;
+        } else if (args is PostDetailArguments) {
+          postId = args.postId;
+          post = args.post;
+        } else {
+          postId = args.toString();
+        }
+
+        return MaterialPageRoute(
+          builder: (_) => PostDetailScreen(
+            postId: postId,
+            preloadedPost: post,
+          ),
         );
       case AppRoutes.profileSettings:
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());

@@ -11,29 +11,21 @@ _Book _$BookFromJson(Map<String, dynamic> json) => _Book(
   title: json['title'] as String,
   description: json['description'] as String?,
   coverUrl: json['coverUrl'] as String?,
-  authors:
-      (json['authors'] as List<dynamic>?)
-          ?.map((e) => Author.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-  subjects:
-      (json['subjects'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-  languages:
-      (json['languages'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-  formats:
-      (json['formats'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ) ??
-      const {},
-  downloadCount: (json['download_count'] as num?)?.toInt() ?? 0,
-  mediaType: json['media_type'] as String? ?? 'text',
-  bookshelves:
-      (json['bookshelves'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
+  authors: (json['authors'] as List<dynamic>)
+      .map((e) => Author.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  subjects: (json['subjects'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
+  languages: (json['languages'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
+  formats: Map<String, String>.from(json['formats'] as Map),
+  downloadCount: (json['download_count'] as num).toInt(),
+  mediaType: json['media_type'] as String,
+  bookshelves: (json['bookshelves'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
   year: json['year'],
   source: json['source'] as String?,
   isOriginal: json['isOriginal'] as bool?,

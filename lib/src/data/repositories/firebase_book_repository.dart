@@ -22,7 +22,7 @@ class FirebaseBookRepository implements BookRepository {
       final snapshot = await query.get();
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data() as Map<String, dynamic>, doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -50,7 +50,7 @@ class FirebaseBookRepository implements BookRepository {
       final snapshot = await query.get();
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data() as Map<String, dynamic>, doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -74,7 +74,7 @@ class FirebaseBookRepository implements BookRepository {
 
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -97,7 +97,7 @@ class FirebaseBookRepository implements BookRepository {
 
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -113,7 +113,7 @@ class FirebaseBookRepository implements BookRepository {
     try {
       final doc = await _firestore.collection(_collection).doc(bookId).get();
       if (!doc.exists) return null;
-      final data = mapFirestoreData(doc.data()!, doc.id);
+      final data = normalizeBookMapForModel(doc.data()!, doc.id);
       return Book.fromJson(data);
     } catch (_) {
       return null;
@@ -135,7 +135,7 @@ class FirebaseBookRepository implements BookRepository {
         if (snapshot.docs.isNotEmpty) {
           return snapshot.docs.map((doc) {
             try {
-              final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+              final data = normalizeBookMapForModel(doc.data(), doc.id);
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -154,7 +154,7 @@ class FirebaseBookRepository implements BookRepository {
 
       return fallback.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -177,7 +177,7 @@ class FirebaseBookRepository implements BookRepository {
 
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -203,7 +203,7 @@ class FirebaseBookRepository implements BookRepository {
 
       return snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
@@ -215,9 +215,126 @@ class FirebaseBookRepository implements BookRepository {
   }
 
   @override
+  Future<List<Book>> getBooksByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    try {
+      final chunks = <List<String>>[];
+      for (var i = 0; i < ids.length; i += 10) {
+        chunks.add(ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10));
+      }
+
+      final List<Book> books = [];
+      for (final chunk in chunks) {
+        final snapshot = await _firestore
+            .collection(_collection)
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+
+        books.addAll(snapshot.docs.map((doc) {
+          try {
+            final data =
+                mapFirestoreData(doc.data(), doc.id);
+            return Book.fromJson(data);
+          } catch (_) {
+            return null;
+          }
+        }).whereType<Book>());
+      }
+
+      // Maintain order if possible (optional but good for history/library)
+      final idMap = {for (var book in books) book.id: book};
+      return ids.map((id) => idMap[id]).whereType<Book>().toList();
+    } catch (e) {
+      print('[FirebaseBookRepository] Error in getBooksByIds: $e');
+      return [];
+    }
+  }
+
+  @override
   Future<void> incrementViewCount(String bookId) async {
     await _firestore.collection(_collection).doc(bookId).set({
       'viewCount': FieldValue.increment(1),
     }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> updateReadingHistory(String userId, String bookId) async {
+    try {
+      final userDoc = _firestore.collection('users').doc(userId);
+      final snapshot = await userDoc.get();
+
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data();
+      List<String> history = List<String>.from(data?['readingHistory'] ?? []);
+
+      // Remove if exists to move to top
+      history.remove(bookId);
+      // Add to front
+      history.insert(0, bookId);
+
+      // Limit to 50 items
+      if (history.length > 50) {
+        history = history.sublist(0, 50);
+      }
+
+      await userDoc.update({'readingHistory': history});
+    } catch (e) {
+      print('[FirebaseBookRepository] Error updating reading history: $e');
+    }
+  }
+
+  @override
+  Future<List<Book>> getBooksByGenre(String genre, {int limit = 10, dynamic lastDoc}) async {
+    try {
+      Query query = _firestore
+          .collection(_collection)
+          .where('genres', arrayContains: genre)
+          .where('status', isEqualTo: 'published')
+          .limit(limit);
+
+      if (lastDoc != null && lastDoc is DocumentSnapshot) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) {
+        try {
+          final data = normalizeBookMapForModel(doc.data() as Map<String, dynamic>, doc.id);
+          return Book.fromJson(data);
+        } catch (_) {
+          return null;
+        }
+      }).whereType<Book>().toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> updateReadingProgress(String userId, String bookId, {required int chapterIndex, required double position}) async {
+    try {
+      final userDoc = _firestore.collection('users').doc(userId);
+      await userDoc.update({
+        'readingProgress.$bookId': {
+          'chapterIndex': chapterIndex,
+          'position': position,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }
+      });
+    } catch (e) {
+      print('[FirebaseBookRepository] Error updating reading progress: $e');
+    }
+  }
+
+  @override
+  Future<List<String>> getUpvotedIABookIds() async {
+    try {
+      final snapshot = await _firestore.collection('ia_upvotes').get();
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      print('[FirebaseBookRepository] Error getting upvoted IA IDs: $e');
+      return [];
+    }
   }
 }

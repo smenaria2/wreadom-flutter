@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/book.dart';
+import '../components/book/review_sheet.dart';
+import '../components/book/quote_sheet.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../routing/app_router.dart';
@@ -50,6 +52,14 @@ class _BookDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final authors = book.authors.map((a) => a.name).join(', ');
+    final userAsync = ref.watch(currentUserProvider);
+    final bookIdStr = book.id.toString();
+    final isSaved = userAsync.maybeWhen(
+      data: (u) =>
+          u != null &&
+          u.savedBooks.any((e) => e?.toString() == bookIdStr),
+      orElse: () => false,
+    );
 
     return CustomScrollView(
       slivers: [
@@ -87,7 +97,7 @@ class _BookDetailBody extends ConsumerWidget {
                                 book.coverUrl!,
                                 height: 220,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
+                                errorBuilder: (_, _, _) =>
                                     _PlaceholderCover(title: book.title),
                               )
                             : _PlaceholderCover(title: book.title),
@@ -178,16 +188,37 @@ class _BookDetailBody extends ConsumerWidget {
                   Expanded(
                     child: FilledButton.icon(
                       icon: const Icon(Icons.menu_book_rounded),
-                      label: const Text('Start Reading'),
+                      label: Text(
+                        userAsync.maybeWhen(
+                                  data: (u) => u?.readingProgress?[book.id.toString()] != null,
+                                  orElse: () => false,
+                                )
+                            ? 'Continue Reading'
+                            : 'Start Reading',
+                      ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
+                        final bookIdStr = book.id.toString();
+                        final progress = userAsync.maybeWhen(
+                          data: (u) => u?.readingProgress?[bookIdStr],
+                          orElse: () => null,
+                        );
+
+                        int startChapter = 0;
+                        if (progress != null && progress is Map) {
+                          startChapter = progress['chapterIndex'] ?? 0;
+                        }
+
                         Navigator.of(context).pushNamed(
                           AppRoutes.reader,
-                          arguments: ReaderArguments(book: book),
+                          arguments: ReaderArguments(
+                            book: book,
+                            initialChapterIndex: startChapter,
+                          ),
                         );
                       },
                     ),
@@ -204,8 +235,9 @@ class _BookDetailBody extends ConsumerWidget {
                       final user = await ref.read(currentUserProvider.future);
                       if (user == null) return;
                       final savedBooks = List<dynamic>.from(user.savedBooks);
-                      if (savedBooks.contains(book.id)) {
-                        savedBooks.remove(book.id);
+                      final idStr = book.id.toString();
+                      if (savedBooks.any((e) => e?.toString() == idStr)) {
+                        savedBooks.removeWhere((e) => e?.toString() == idStr);
                       } else {
                         savedBooks.add(book.id);
                       }
@@ -214,7 +246,29 @@ class _BookDetailBody extends ConsumerWidget {
                           .updateUserSavedBooks(user.id, savedBooks);
                       ref.invalidate(currentUserProvider);
                     },
-                    child: const Icon(Icons.bookmark_border_rounded),
+                    child: Icon(
+                      isSaved
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Community Actions
+              Row(
+                children: [
+                   _ActionButton(
+                    icon: Icons.star_outline_rounded,
+                    label: 'Review',
+                    onTap: () => showReviewSheet(context, book),
+                  ),
+                  const SizedBox(width: 12),
+                  _ActionButton(
+                    icon: Icons.format_quote_rounded,
+                    label: 'Quote',
+                    onTap: () => showQuoteSheet(context, book),
                   ),
                 ],
               ),
@@ -353,6 +407,49 @@ class _ExpandableTextState extends State<_ExpandableText> {
           child: Text(_expanded ? 'Show less' : 'Read more'),
         ),
       ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

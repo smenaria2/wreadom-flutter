@@ -26,7 +26,7 @@ final class GamificationRepositoryProvider
         argument: null,
         retry: null,
         name: r'gamificationRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -55,7 +55,7 @@ final class GamificationRepositoryProvider
 }
 
 String _$gamificationRepositoryHash() =>
-    r'03861b14c0352e8e517b3bbda962fbad0b367591';
+    r'28fea96cdcb1382637356039feaffd5be3f7beaa';
 
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
@@ -69,7 +69,7 @@ final class AuthRepositoryProvider
         argument: null,
         retry: null,
         name: r'authRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -96,7 +96,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'fb15ba78002f3819575f0de444ba8bea643a4943';
+String _$authRepositoryHash() => r'34a527397e557ed58fbd3b2f3de4aaf44144d6c4';
 
 @ProviderFor(authState)
 final authStateProvider = AuthStateProvider._();
@@ -173,4 +173,4 @@ final class CurrentUserProvider
   }
 }
 
-String _$currentUserHash() => r'b2d04efaec69872f7724acf0aa97acabb986516c';
+String _$currentUserHash() => r'3a5e1560751631480e71f5d845d2b722f46f892f';

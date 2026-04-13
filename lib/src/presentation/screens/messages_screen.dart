@@ -27,7 +27,7 @@ class MessagesScreen extends ConsumerWidget {
           }
           return ListView.separated(
             itemCount: conversations.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final conversation = conversations[index];
               final otherId = conversation.participants.firstWhere(

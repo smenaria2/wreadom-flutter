@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
+import '../../domain/models/comment.dart';
 import '../providers/feed_providers.dart';
 import '../providers/auth_providers.dart';
+import '../providers/comment_providers.dart';
+import '../widgets/comment_widgets.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 
@@ -220,55 +224,66 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 // ─── Book reference ───────────────────────────────
                 if (post.bookTitle != null) ...[
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primaryContainer
-                          .withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        if (post.bookCover != null)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.network(
-                              post.bookCover!,
-                              width: 36,
-                              height: 52,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox(),
+                  InkWell(
+                    onTap: () {
+                      if (post.bookId != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: BookDetailArguments(
+                            bookId: post.bookId.toString(),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer
+                            .withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          if (post.bookCover != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(
+                                post.bookCover!,
+                                width: 36,
+                                height: 52,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => const SizedBox(),
+                              ),
+                            ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Regarding',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                Text(
+                                  post.bookTitle!,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Regarding',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary,
-                                ),
-                              ),
-                              Text(
-                                post.bookTitle!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -285,7 +300,26 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     style: const TextStyle(fontSize: 14, height: 1.45),
                   ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+
+                // ─── Post image ───────────────────────────────────
+                if (post.imageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: post.imageUrl!,
+                      placeholder: (context, url) => Container(
+                        height: 200,
+                        color: Colors.grey[100],
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => const SizedBox(),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // ─── Actions ──────────────────────────────────────
                 Row(
@@ -305,7 +339,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
                       label:
-                          (post.comments?.length ?? 0).toString(),
+                          (post.commentCount ?? 0).toString(),
                       onTap: () => _showComments(context),
                     ),
                     const Spacer(),
@@ -438,6 +472,7 @@ class _CommentsSheet extends ConsumerStatefulWidget {
 class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
   final _ctrl = TextEditingController();
   bool _submitting = false;
+  Comment? _replyingTo;
 
   @override
   void dispose() {
@@ -453,17 +488,39 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
 
     setState(() => _submitting = true);
     try {
-      await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
-        'userId': user.id,
-        'username': user.username,
-        'displayName': user.displayName,
-        'userPhotoURL': user.photoURL,
-        'text': text,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'likes': [],
-      });
-      ref.invalidate(feedPostsProvider);
+      if (_replyingTo != null) {
+        // Submit a reply
+        await ref.read(commentRepositoryProvider).addReply(
+          _replyingTo!.id!,
+          CommentReply(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            userPhotoURL: user.photoURL,
+            text: text,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      } else {
+        // Submit a top-level comment
+        await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
+          'userId': user.id,
+          'username': user.username,
+          'displayName': user.displayName,
+          'userPhotoURL': user.photoURL,
+          'text': text,
+        });
+      }
+      
+      ref.invalidate(feedPostCommentsProvider(widget.post.id!));
       _ctrl.clear();
+      setState(() => _replyingTo = null);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error subitting comment: $e'))
+        );
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -471,7 +528,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final comments = widget.post.comments ?? [];
+    final commentsAsync = ref.watch(feedPostCommentsProvider(widget.post.id!));
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -493,64 +550,82 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Comments (${comments.length})',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16),
+              commentsAsync.when(
+                data: (comments) => 'Comments (${comments.length})',
+                loading: () => 'Comments…',
+                error: (_, _) => 'Comments',
+              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
           const SizedBox(height: 8),
-          if (comments.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Text('No comments yet. Be the first!',
-                    style: TextStyle(color: Colors.grey)),
-              ),
-            )
-          else
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: comments.length,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, i) {
-                  final c = comments[i];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      radius: 16,
-                      backgroundImage: c.userPhotoURL != null
-                          ? NetworkImage(c.userPhotoURL!)
-                          : null,
-                      child: c.userPhotoURL == null
-                          ? Text(c.username[0].toUpperCase(),
-                              style: const TextStyle(fontSize: 12))
-                          : null,
-                    ),
-                    title: Text(c.displayName ?? c.username,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
-                    subtitle: Text(c.text),
-                    trailing: Text(
-                      _relativeTime(c.timestamp),
-                      style: const TextStyle(
-                          fontSize: 10, color: Colors.grey),
+          Flexible(
+            child: commentsAsync.when(
+              data: (comments) {
+                if (comments.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Text('No comments yet. Be the first!',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                   );
-                },
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: comments.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemBuilder: (context, i) {
+                    final c = comments[i];
+                    return CommentTile(
+                      comment: c,
+                      onReply: () {
+                        setState(() => _replyingTo = c);
+                      },
+                    );
+                  },
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(child: Text('Error loading comments: $e')),
               ),
             ),
-          const Divider(),
+          ),
+          if (_replyingTo != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey[100],
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: () => setState(() => _replyingTo = null),
+                  ),
+                ],
+              ),
+            ),
+          const Divider(height: 1),
           // Comment input
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _ctrl,
                     decoration: InputDecoration(
-                      hintText: 'Add a comment…',
+                      hintText: _replyingTo != null ? 'Add a reply…' : 'Add a comment…',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,

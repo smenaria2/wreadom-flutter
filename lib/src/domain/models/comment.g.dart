@@ -41,7 +41,7 @@ Map<String, dynamic> _$CommentReplyToJson(_CommentReply instance) =>
 _Comment _$CommentFromJson(Map<String, dynamic> json) => _Comment(
   id: json['id'] as String?,
   bookId: json['bookId'],
-  bookTitle: json['bookTitle'] as String,
+  bookTitle: json['bookTitle'] as String?,
   userId: json['userId'] as String,
   username: json['username'] as String,
   text: json['text'] as String,

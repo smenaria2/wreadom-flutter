@@ -40,7 +40,7 @@ _FeedPost _$FeedPostFromJson(Map<String, dynamic> json) => _FeedPost(
   displayName: json['displayName'] as String?,
   penName: json['penName'] as String?,
   comments: (json['comments'] as List<dynamic>?)
-      ?.map((e) => CommentReply.fromJson(e as Map<String, dynamic>))
+      ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
       .toList(),
   targetUserId: json['targetUserId'] as String?,
   targetUsername: json['targetUsername'] as String?,
@@ -52,7 +52,7 @@ _FeedPost _$FeedPostFromJson(Map<String, dynamic> json) => _FeedPost(
   images: (json['images'] as List<dynamic>?)
       ?.map((e) => StoryImage.fromJson(e as Map<String, dynamic>))
       .toList(),
-  userIsDeactivated: json['userIsDeactivated'] as bool?,
+  commentCount: (json['commentCount'] as num?)?.toInt(),
   mentions: (json['mentions'] as Map<String, dynamic>?)?.map(
     (k, e) => MapEntry(k, e as String),
   ),
@@ -85,6 +85,6 @@ Map<String, dynamic> _$FeedPostToJson(_FeedPost instance) => <String, dynamic>{
   'visibility': instance.visibility,
   'imageUrl': instance.imageUrl,
   'images': instance.images,
-  'userIsDeactivated': instance.userIsDeactivated,
+  'commentCount': instance.commentCount,
   'mentions': instance.mentions,
 };

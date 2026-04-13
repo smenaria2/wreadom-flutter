@@ -237,7 +237,7 @@ return $default(_that.id,_that.title,_that.description,_that.coverUrl,_that.auth
 @JsonSerializable()
 
 class _Book implements Book {
-  const _Book({required this.id, required this.title, this.description, this.coverUrl, final  List<Author> authors = const [], final  List<String> subjects = const [], final  List<String> languages = const [], final  Map<String, String> formats = const {}, @JsonKey(name: 'download_count') this.downloadCount = 0, @JsonKey(name: 'media_type') this.mediaType = 'text', final  List<String> bookshelves = const [], this.year, this.source, this.isOriginal, this.contentType, this.authorId, final  List<Chapter>? chapters, this.status, this.createdAt, this.updatedAt, this.identifier, this.recommendationCount, this.weightedScore, this.averageRating, this.viewCount, this.ratingsCount, final  List<String>? topics, this.chapterCount}): _authors = authors,_subjects = subjects,_languages = languages,_formats = formats,_bookshelves = bookshelves,_chapters = chapters,_topics = topics;
+  const _Book({required this.id, required this.title, this.description, this.coverUrl, required final  List<Author> authors, required final  List<String> subjects, required final  List<String> languages, required final  Map<String, String> formats, @JsonKey(name: 'download_count') required this.downloadCount, @JsonKey(name: 'media_type') required this.mediaType, required final  List<String> bookshelves, this.year, this.source, this.isOriginal, this.contentType, this.authorId, final  List<Chapter>? chapters, this.status, this.createdAt, this.updatedAt, this.identifier, this.recommendationCount, this.weightedScore, this.averageRating, this.viewCount, this.ratingsCount, final  List<String>? topics, this.chapterCount}): _authors = authors,_subjects = subjects,_languages = languages,_formats = formats,_bookshelves = bookshelves,_chapters = chapters,_topics = topics;
   factory _Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);
 
 @override final  String id;
@@ -245,28 +245,28 @@ class _Book implements Book {
 @override final  String? description;
 @override final  String? coverUrl;
  final  List<Author> _authors;
-@override@JsonKey() List<Author> get authors {
+@override List<Author> get authors {
   if (_authors is EqualUnmodifiableListView) return _authors;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_authors);
 }
 
  final  List<String> _subjects;
-@override@JsonKey() List<String> get subjects {
+@override List<String> get subjects {
   if (_subjects is EqualUnmodifiableListView) return _subjects;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_subjects);
 }
 
  final  List<String> _languages;
-@override@JsonKey() List<String> get languages {
+@override List<String> get languages {
   if (_languages is EqualUnmodifiableListView) return _languages;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_languages);
 }
 
  final  Map<String, String> _formats;
-@override@JsonKey() Map<String, String> get formats {
+@override Map<String, String> get formats {
   if (_formats is EqualUnmodifiableMapView) return _formats;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_formats);
@@ -275,7 +275,7 @@ class _Book implements Book {
 @override@JsonKey(name: 'download_count') final  int downloadCount;
 @override@JsonKey(name: 'media_type') final  String mediaType;
  final  List<String> _bookshelves;
-@override@JsonKey() List<String> get bookshelves {
+@override List<String> get bookshelves {
   if (_bookshelves is EqualUnmodifiableListView) return _bookshelves;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_bookshelves);

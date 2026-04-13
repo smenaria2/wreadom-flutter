@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/firebase_profile_repository.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/profile_repository.dart';
+import 'auth_providers.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return FirebaseProfileRepository();
@@ -10,5 +11,9 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 
 final publicProfileProvider =
     FutureProvider.family<UserModel?, String>((ref, userId) async {
-  return ref.watch(profileRepositoryProvider).getPublicProfile(userId);
+  final viewer = await ref.watch(currentUserProvider.future);
+  return ref.watch(profileRepositoryProvider).getPublicProfile(
+        userId,
+        viewerUserId: viewer?.id,
+      );
 });

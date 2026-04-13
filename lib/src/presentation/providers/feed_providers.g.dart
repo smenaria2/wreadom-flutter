@@ -163,3 +163,77 @@ final class UserFeedPostsFamily extends $Family
   @override
   String toString() => r'userFeedPostsProvider';
 }
+
+@ProviderFor(singlePost)
+final singlePostProvider = SinglePostFamily._();
+
+final class SinglePostProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<FeedPost?>,
+          FeedPost?,
+          FutureOr<FeedPost?>
+        >
+    with $FutureModifier<FeedPost?>, $FutureProvider<FeedPost?> {
+  SinglePostProvider._({
+    required SinglePostFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'singlePostProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$singlePostHash();
+
+  @override
+  String toString() {
+    return r'singlePostProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<FeedPost?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<FeedPost?> create(Ref ref) {
+    final argument = this.argument as String;
+    return singlePost(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SinglePostProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$singlePostHash() => r'4705ee1166dbc660eae0ca3b7ee0b10ebda7e868';
+
+final class SinglePostFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<FeedPost?>, String> {
+  SinglePostFamily._()
+    : super(
+        retry: null,
+        name: r'singlePostProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  SinglePostProvider call(String postId) =>
+      SinglePostProvider._(argument: postId, from: this);
+
+  @override
+  String toString() => r'singlePostProvider';
+}

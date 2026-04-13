@@ -16,4 +16,6 @@ class AppRoutes {
   static const certificate = '/certificate';
   static const dailyTopic = '/daily-topic';
   static const competition = '/competition';
+  static const discovery = '/discovery';
+  static const postDetail = '/post-detail';
 }

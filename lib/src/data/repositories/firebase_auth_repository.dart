@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/gamification_repository.dart';
+import '../utils/firestore_utils.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   final firebase.FirebaseAuth _auth = firebase.FirebaseAuth.instance;
@@ -12,20 +14,24 @@ class FirebaseAuthRepository implements AuthRepository {
   final GamificationRepository _gamificationRepository;
 
   FirebaseAuthRepository(this._gamificationRepository) {
-    // In google_sign_in v7, the web renderButton flow returns credentials via
-    // authenticationEvents stream. We must listen and bridge into Firebase Auth.
-    GoogleSignIn.instance.authenticationEvents
-        .listen((GoogleSignInAuthenticationEvent event) async {
-      if (event is GoogleSignInAuthenticationEventSignIn) {
-        if (_auth.currentUser == null) {
-          try {
-            await _handleGoogleSignInResult(event.user);
-          } catch (e) {
-            print('Auto Firebase sign-in from Google failed: $e');
+    // Web-only: GIS renderButton delivers sign-in via authenticationEvents.
+    // On Android/iOS, signInWithGoogle() already calls authenticate(); a second
+    // listener causes duplicate/racy signInWithCredential calls and can leave
+    // Firebase unsigned-in while the account picker has already completed.
+    if (kIsWeb) {
+      GoogleSignIn.instance.authenticationEvents
+          .listen((GoogleSignInAuthenticationEvent event) async {
+        if (event is GoogleSignInAuthenticationEventSignIn) {
+          if (_auth.currentUser == null) {
+            try {
+              await _handleGoogleSignInResult(event.user);
+            } catch (e) {
+              print('Auto Firebase sign-in from Google failed: $e');
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -99,14 +105,20 @@ class FirebaseAuthRepository implements AuthRepository {
       final userDoc = await _firestore.collection('users').doc(fbUser.uid).get();
       
       if (userDoc.exists) {
-        final data = userDoc.data()!;
-        data['id'] = fbUser.uid;
-        data['lastLogin'] = DateTime.now().millisecondsSinceEpoch;
-        
-        await _firestore.collection('users').doc(fbUser.uid).update({
+        final raw = userDoc.data()!;
+        final hadNotificationSettings = raw['notificationSettings'] != null;
+        final patch = <String, dynamic>{
           'lastLogin': DateTime.now().millisecondsSinceEpoch,
-        });
+        };
+        if (!hadNotificationSettings) {
+          patch['notificationSettings'] = defaultNotificationSettingsMap();
+        }
+        await _firestore.collection('users').doc(fbUser.uid).update(patch);
 
+        final data = normalizeUserMapForModel(
+          {...raw, ...patch, 'id': fbUser.uid},
+          fbUser.uid,
+        );
         return UserModel.fromJson(data);
       } else {
         // Handle legacy or missing doc
@@ -133,10 +145,11 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) throw Exception('Google Sign-In canceled');
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       return await _handleGoogleSignInResult(googleUser);
+    } on GoogleSignInException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -144,10 +157,21 @@ class FirebaseAuthRepository implements AuthRepository {
 
   Future<UserModel> _handleGoogleSignInResult(GoogleSignInAccount googleUser) async {
     try {
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        print('Google Sign-In Error: idToken is null. Check Firebase SHA-1 configuration.');
+        throw Exception(
+          'Google Sign-In did not return an ID token. For Android, add your '
+          'debug/release SHA-1 in Firebase Console for this package, download '
+          'an updated google-services.json (it must include an Android OAuth '
+          'client, not only the Web client), and ensure GoogleSignIn.initialize '
+          'uses your Web client ID as serverClientId.',
+        );
+      }
+
       final firebase.AuthCredential credential = firebase.GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
+        idToken: idToken,
       );
 
       final result = await _auth.signInWithCredential(credential);
@@ -156,14 +180,20 @@ class FirebaseAuthRepository implements AuthRepository {
       final userDoc = await _firestore.collection('users').doc(fbUser.uid).get();
       
       if (userDoc.exists) {
-        final data = userDoc.data()!;
-        data['id'] = fbUser.uid;
-        data['lastLogin'] = DateTime.now().millisecondsSinceEpoch;
-        
-        await _firestore.collection('users').doc(fbUser.uid).update({
+        final raw = userDoc.data()!;
+        final hadNotificationSettings = raw['notificationSettings'] != null;
+        final patch = <String, dynamic>{
           'lastLogin': DateTime.now().millisecondsSinceEpoch,
-        });
+        };
+        if (!hadNotificationSettings) {
+          patch['notificationSettings'] = defaultNotificationSettingsMap();
+        }
+        await _firestore.collection('users').doc(fbUser.uid).update(patch);
 
+        final data = normalizeUserMapForModel(
+          {...raw, ...patch, 'id': fbUser.uid},
+          fbUser.uid,
+        );
         return UserModel.fromJson(data);
       } else {
         final userModel = UserModel(
@@ -185,6 +215,8 @@ class FirebaseAuthRepository implements AuthRepository {
 
         return userModel;
       }
+    } on GoogleSignInException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -205,8 +237,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<UserModel?> getUser(String userId) async {
     final doc = await _firestore.collection('users').doc(userId).get();
     if (!doc.exists) return null;
-    final data = doc.data()!;
-    data['id'] = doc.id;
+    final data = normalizeUserMapForModel(doc.data()!, doc.id);
     return UserModel.fromJson(data);
   }
 
@@ -270,13 +301,12 @@ class FirebaseAuthRepository implements AuthRepository {
     // Simple direct match for now, or prefix match
     final query = _firestore.collection('users')
       .where('username', isGreaterThanOrEqualTo: term)
-      .where('username', isLessThanOrEqualTo: term + '\uf8ff')
+      .where('username', isLessThanOrEqualTo: '$term\uf8ff')
       .limit(maxResults);
       
     final snapshot = await query.get();
     return snapshot.docs.map((doc) {
-      final data = doc.data();
-      data['id'] = doc.id;
+      final data = normalizeUserMapForModel(doc.data(), doc.id);
       return UserModel.fromJson(data);
     }).toList();
   }

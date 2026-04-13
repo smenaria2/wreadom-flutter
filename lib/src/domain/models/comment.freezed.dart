@@ -321,7 +321,7 @@ as Map<String, String>?,
 /// @nodoc
 mixin _$Comment {
 
- String? get id; dynamic get bookId; String get bookTitle; String get userId; String get username; String get text; int? get rating; String? get chapterTitle; int? get chapterIndex; String? get chapterId; String? get quote; int get timestamp; String? get feedPostId; String? get userPhotoURL; String? get displayName; String? get penName; List<CommentReply>? get replies; List<String>? get likes; Map<String, String>? get mentions;
+ String? get id; dynamic get bookId; String? get bookTitle; String get userId; String get username; String get text; int? get rating; String? get chapterTitle; int? get chapterIndex; String? get chapterId; String? get quote; int get timestamp; String? get feedPostId; String? get userPhotoURL; String? get displayName; String? get penName; List<CommentReply>? get replies; List<String>? get likes; Map<String, String>? get mentions;
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -354,7 +354,7 @@ abstract mixin class $CommentCopyWith<$Res>  {
   factory $CommentCopyWith(Comment value, $Res Function(Comment) _then) = _$CommentCopyWithImpl;
 @useResult
 $Res call({
- String? id, dynamic bookId, String bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions
+ String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions
 });
 
 
@@ -371,12 +371,12 @@ class _$CommentCopyWithImpl<$Res>
 
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = null,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as dynamic,bookTitle: null == bookTitle ? _self.bookTitle : bookTitle // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as dynamic,bookTitle: freezed == bookTitle ? _self.bookTitle : bookTitle // ignore: cast_nullable_to_non_nullable
+as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
@@ -477,7 +477,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Comment() when $default != null:
 return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions);case _:
@@ -498,7 +498,7 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)  $default,) {final _that = this;
 switch (_that) {
 case _Comment():
 return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions);case _:
@@ -518,7 +518,7 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  dynamic bookId,  String bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions)?  $default,) {final _that = this;
 switch (_that) {
 case _Comment() when $default != null:
 return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions);case _:
@@ -533,12 +533,12 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 @JsonSerializable()
 
 class _Comment implements Comment {
-  const _Comment({this.id, required this.bookId, required this.bookTitle, required this.userId, required this.username, required this.text, this.rating, this.chapterTitle, this.chapterIndex, this.chapterId, this.quote, required this.timestamp, this.feedPostId, this.userPhotoURL, this.displayName, this.penName, final  List<CommentReply>? replies, final  List<String>? likes, final  Map<String, String>? mentions}): _replies = replies,_likes = likes,_mentions = mentions;
+  const _Comment({this.id, this.bookId, this.bookTitle, required this.userId, required this.username, required this.text, this.rating, this.chapterTitle, this.chapterIndex, this.chapterId, this.quote, required this.timestamp, this.feedPostId, this.userPhotoURL, this.displayName, this.penName, final  List<CommentReply>? replies, final  List<String>? likes, final  Map<String, String>? mentions}): _replies = replies,_likes = likes,_mentions = mentions;
   factory _Comment.fromJson(Map<String, dynamic> json) => _$CommentFromJson(json);
 
 @override final  String? id;
 @override final  dynamic bookId;
-@override final  String bookTitle;
+@override final  String? bookTitle;
 @override final  String userId;
 @override final  String username;
 @override final  String text;
@@ -613,7 +613,7 @@ abstract mixin class _$CommentCopyWith<$Res> implements $CommentCopyWith<$Res> {
   factory _$CommentCopyWith(_Comment value, $Res Function(_Comment) _then) = __$CommentCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, dynamic bookId, String bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions
+ String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions
 });
 
 
@@ -630,12 +630,12 @@ class __$CommentCopyWithImpl<$Res>
 
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = null,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
   return _then(_Comment(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as dynamic,bookTitle: null == bookTitle ? _self.bookTitle : bookTitle // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as dynamic,bookTitle: freezed == bookTitle ? _self.bookTitle : bookTitle // ignore: cast_nullable_to_non_nullable
+as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
