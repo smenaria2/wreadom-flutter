@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../utils/firestore_utils.dart';
 
@@ -324,6 +325,33 @@ class FirebaseBookRepository implements BookRepository {
       });
     } catch (e) {
       print('[FirebaseBookRepository] Error updating reading progress: $e');
+    }
+  }
+
+  @override
+  Future<List<Chapter>> getChapters(String bookId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .doc(bookId)
+          .collection('chapters')
+          .orderBy('order')
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        // Fallback: check if they are embedded in the book document
+        final book = await getBook(bookId);
+        return book?.chapters ?? [];
+      }
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return Chapter.fromJson(data);
+      }).toList();
+    } catch (e) {
+      print('[FirebaseBookRepository] Error getting chapters: $e');
+      return [];
     }
   }
 

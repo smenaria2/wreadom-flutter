@@ -1,4 +1,5 @@
-import '../../domain/models/book.dart';
+import '../models/book.dart';
+import '../models/chapter.dart';
 
 abstract class BookRepository {
   Future<List<Book>> getBooks({int limit = 10, dynamic lastDoc});
@@ -6,6 +7,7 @@ abstract class BookRepository {
   Future<List<Book>> getOriginalBooks({int limit = 10});
   Future<List<Book>> getUserBooks(String userId);
   Future<Book?> getBook(String bookId);
+  Future<List<Chapter>> getChapters(String bookId);
   Future<List<Book>> getPopularBooks({int limit = 10});
   Future<List<Book>> getRecentBooks({int limit = 10});
   Future<List<Book>> searchBooks(String query, {int limit = 20});

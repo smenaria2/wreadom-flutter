@@ -1,4 +1,5 @@
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'firebase_book_repository.dart';
 import 'archive_book_repository.dart';
@@ -173,6 +174,15 @@ class CompositeBookRepository implements BookRepository {
   Future<void> incrementViewCount(String bookId) async {
     if (_isFirebaseId(bookId)) {
       await _firebaseRepo.incrementViewCount(bookId);
+    }
+  }
+
+  @override
+  Future<List<Chapter>> getChapters(String bookId) async {
+    if (_isFirebaseId(bookId)) {
+      return await _firebaseRepo.getChapters(bookId);
+    } else {
+      return await _archiveRepo.getChapters(bookId);
     }
   }
 

@@ -1,4 +1,5 @@
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../services/archive_book_service.dart';
 
@@ -61,15 +62,11 @@ class ArchiveBookRepository implements BookRepository {
 
   @override
   Future<List<Book>> getBooksByIds(List<String> ids) async {
-    if (ids.isEmpty) return [];
-    // Archive doesn't have a great batch fetch by ID in a single standard call 
-    // without using the search API with OR logic, similar to the web app's fallback.
-    final results = <Book>[];
-    for (final id in ids) {
-      final book = await getBook(id);
-      if (book != null) results.add(book);
+    try {
+      return await _service.getBooksByIds(ids);
+    } catch (_) {
+      return [];
     }
-    return results;
   }
 
   @override
@@ -93,6 +90,11 @@ class ArchiveBookRepository implements BookRepository {
     // Map genre to archive subjects
     final result = await _service.searchBooks(subject: genre, rows: limit);
     return result['results'] as List<Book>;
+  }
+
+  @override
+  Future<List<Chapter>> getChapters(String bookId) async {
+    return await _service.fetchBookChapters(bookId);
   }
 
   @override

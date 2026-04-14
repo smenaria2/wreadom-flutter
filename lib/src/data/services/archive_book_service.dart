@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../domain/models/book.dart';
 import '../../domain/models/author.dart';
+import '../../domain/models/chapter.dart';
 
 class ArchiveBookService {
   static const String searchUrl = 'https://archive.org/advancedsearch.php';
@@ -74,6 +75,109 @@ class ArchiveBookService {
 
     final data = jsonDecode(response.body);
     return _archiveMetadataToBook(data);
+  }
+
+  Future<List<Book>> getBooksByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+
+    // Construct a query for multiple identifiers: identifier:(id1 OR id2 OR ...)
+    final identifiersQuery = ids.map((id) => '"$id"').join(' OR ');
+    
+    // We use searchBooks logic but specifically for these IDs
+    final result = await searchBooks(
+      identifier: identifiersQuery,
+      rows: ids.length,
+    );
+
+    return result['results'] as List<Book>;
+  }
+
+  Future<List<Chapter>> fetchBookChapters(String identifier) async {
+    // 1. Get metadata to find the right text file
+    final metaUrl = Uri.parse('$metadataUrl/$identifier');
+    final metaResponse = await http.get(metaUrl);
+    if (metaResponse.statusCode != 200) throw Exception('Metadata fetch failed');
+    final metaData = jsonDecode(metaResponse.body);
+    
+    final files = (metaData['files'] as List? ?? []);
+    String? textFile;
+
+    for (final file in files) {
+      final name = file['name'] as String;
+      if (name.endsWith('_djvu.txt')) {
+        textFile = name;
+        break;
+      } else if (name.endsWith('.txt')) {
+        textFile ??= name;
+      }
+    }
+
+    if (textFile == null) {
+      throw Exception('No text file found for this book');
+    }
+
+    final baseUrl = 'https://archive.org/download/$identifier';
+    final contentUrl = Uri.parse('$baseUrl/${Uri.encodeComponent(textFile)}');
+
+    // 2. Fetch content (initial implementation: full fetch, optimized later with Range if needed)
+    final response = await http.get(contentUrl);
+    if (response.statusCode != 200) throw Exception('Failed to fetch book content');
+    
+    final text = response.body;
+    return _parseTextToChapters(text);
+  }
+
+  List<Chapter> _parseTextToChapters(String text) {
+    if (text.isEmpty) return [];
+
+    // Clean text: remove excessive whitespace
+    final cleanedText = text.replaceAll(RegExp(r'\r\n'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    // Regex for chapter detection (English, Hindi, Bengali)
+    final chapterRegex = RegExp(
+      r'^(?:chapter|lesson|unit|section|part|chapter\s+\d+|ch\s+\d+|অধ্যায়\s+\d+|अध्याय\s+\d+)\s*[:.\-\s]*.*$',
+      multiLine: true,
+      caseSensitive: false,
+    );
+
+    final matches = chapterRegex.allMatches(cleanedText).toList();
+    final chapters = <Chapter>[];
+
+    if (matches.isEmpty) {
+      // No chapters detected, split by length or just return as one
+      return [
+        Chapter(
+          id: '1',
+          title: 'Full Content',
+          content: cleanedText,
+          index: 0,
+        )
+      ];
+    }
+
+    for (int i = 0; i < matches.length; i++) {
+      final start = matches[i].start;
+      final end = (i + 1 < matches.length) ? matches[i + 1].start : cleanedText.length;
+      
+      final titleLine = matches[i].group(0) ?? 'Chapter ${i + 1}';
+      final content = cleanedText.substring(start, end).trim();
+
+      if (content.length > 50) { // Filter out very small fragments
+        chapters.add(Chapter(
+          id: (i + 1).toString(),
+          title: titleLine.trim(),
+          content: content,
+          index: i,
+        ));
+      }
+    }
+
+    // If parsing produced very few chapters or failed to capture most of the text
+    if (chapters.isEmpty) {
+       return [Chapter(id: '1', title: 'Content', content: cleanedText, index: 0)];
+    }
+
+    return chapters;
   }
 
   Book _archiveDocToBook(Map<String, dynamic> doc) {

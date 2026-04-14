@@ -24,8 +24,11 @@ class AuthTextField extends StatelessWidget {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.8),
         borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+        ),
       ),
       child: TextFormField(
         controller: controller,
@@ -38,11 +41,14 @@ class AuthTextField extends StatelessWidget {
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
           hintStyle: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 14.sp,
           ),
         ),
-        style: TextStyle(fontSize: 16.sp),
+        style: TextStyle(
+          fontSize: 16.sp,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }

@@ -51,7 +51,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       next.whenOrNull(
         error: (e, st) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         },
       );
@@ -138,7 +141,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const Expanded(child: Divider()),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: Text('OR', style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12.sp,
+                        ),
+                      ),
                     ),
                     const Expanded(child: Divider()),
                   ],
@@ -169,14 +178,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(e.message ?? e.code),
-                            backgroundColor: Colors.red,
+                            backgroundColor: Theme.of(context).colorScheme.error,
                           ),
                         );
                       } catch (e) {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(e.toString()),
-                            backgroundColor: Colors.red,
+                            backgroundColor: Theme.of(context).colorScheme.error,
                           ),
                         );
                       }
@@ -193,7 +202,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: RichText(
                     text: TextSpan(
                       text: _isLogin ? "Don't have an account? " : "Already have an account? ",
-                      style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14.sp,
+                      ),
                       children: [
                         TextSpan(
                           text: _isLogin ? "Sign Up" : "Login",

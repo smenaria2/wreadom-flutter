@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
 import 'auth_providers.dart';
@@ -68,4 +69,8 @@ final pinnedBooksProvider = FutureProvider<List<Book>>((ref) async {
 final booksByGenreProvider =
     FutureProvider.family<List<Book>, String>((ref, genre) async {
   return ref.watch(bookRepositoryProvider).getBooksByGenre(genre);
+});
+final bookChaptersProvider =
+    FutureProvider.family<List<Chapter>, String>((ref, bookId) async {
+  return ref.watch(bookRepositoryProvider).getChapters(bookId);
 });

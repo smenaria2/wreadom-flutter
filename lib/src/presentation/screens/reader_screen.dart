@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
@@ -104,12 +104,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chapters = widget.book.chapters ?? const [];
+    final bookmarksAsync = ref.watch(bookBookmarksProvider(widget.book.id));
+    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+    final chaptersAsync = ref.watch(bookChaptersProvider(widget.book.id));
+
+    return chaptersAsync.when(
+      data: (chapters) => _buildReader(context, chapters, bookmarksAsync, commentsAsync),
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(widget.book.title)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(child: Text('Failed to load book content: $err')),
+      ),
+    );
+  }
+
+  Widget _buildReader(
+    BuildContext context,
+    List<Chapter> chapters,
+    AsyncValue<dynamic> bookmarksAsync,
+    AsyncValue<dynamic> commentsAsync,
+  ) {
     final chapter = chapters.isEmpty
         ? null
         : chapters[_chapterIndex.clamp(0, chapters.length - 1)];
-    final bookmarksAsync = ref.watch(bookBookmarksProvider(widget.book.id));
-    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
 
     return Scaffold(
       appBar: AppBar(
@@ -187,16 +207,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         buttonItems: buttonItems,
                       );
                     },
-                    child: Text(
-                      _plainText(
-                        chapter?.content ?? widget.book.description ?? 'No readable content available yet.',
-                      ),
-                      style: TextStyle(
+                    child: HtmlWidget(
+                      chapter?.content ?? widget.book.description ?? 'No readable content available yet.',
+                      textStyle: TextStyle(
                         fontSize: _fontSize,
                         height: 1.8,
                         color: _getTextColor(),
                         fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
                       ),
+                      // Custom styles for images and links if needed
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -496,17 +515,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       case ReaderTheme.dark:
         return const Color(0xFFE0E0E0);
     }
-  }
-
-  String _plainText(String raw) {
-    return raw
-        .replaceAll(RegExp(r'<[^>]*>'), ' ')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&apos;', "'")
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .trim();
   }
 }
 
