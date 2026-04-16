@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/repositories/writer_repository.dart';
@@ -44,7 +45,7 @@ class FirebaseWriterRepository implements WriterRepository {
         final data = normalizeBookMapForModel(doc.data(), doc.id);
         return Book.fromJson(data);
       } catch (e) {
-        print('[FirebaseWriterRepository] Error parsing book ${doc.id}: $e');
+        debugPrint('[FirebaseWriterRepository] Error parsing book ${doc.id}: $e');
         return null;
       }
     }).whereType<Book>().where((book) => book.status != 'deleted').toList();

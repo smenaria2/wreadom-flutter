@@ -89,7 +89,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       .read(profileRepositoryProvider)
                       .updatePrivacyLevel(user.id, _privacy);
                   ref.invalidate(currentUserProvider);
-                  if (mounted) Navigator.of(context).pop();
+                  if (context.mounted) Navigator.of(context).pop();
                 },
                 child: const Text('Save Settings'),
               ),

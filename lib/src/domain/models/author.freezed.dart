@@ -208,8 +208,8 @@ return $default(_that.name,_that.birthYear,_that.deathYear);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _Author implements Author {
   const _Author({required this.name, @JsonKey(name: 'birth_year') this.birthYear, @JsonKey(name: 'death_year') this.deathYear});
   factory _Author.fromJson(Map<String, dynamic> json) => _$AuthorFromJson(json);

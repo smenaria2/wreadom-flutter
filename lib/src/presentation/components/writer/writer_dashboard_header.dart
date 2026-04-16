@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_providers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class WriterDashboardHeader extends ConsumerWidget {
   const WriterDashboardHeader({super.key});
@@ -76,7 +77,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                       radius: 28,
                       backgroundColor: Colors.white,
                       backgroundImage: user.photoURL != null
-                          ? NetworkImage(user.photoURL!)
+                          ? CachedNetworkImageProvider(user.photoURL!)
                           : null,
                       child: user.photoURL == null
                           ? Icon(Icons.person, size: 32, color: theme.primaryColor)

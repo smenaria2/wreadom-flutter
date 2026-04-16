@@ -10,6 +10,8 @@ import '../providers/book_providers.dart';
 import '../providers/bookmark_providers.dart';
 import '../providers/comment_providers.dart';
 import '../widgets/comment_widgets.dart';
+import '../../domain/repositories/book_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum ReaderTheme { light, sepia, dark }
 enum ReaderFont { sans, serif }
@@ -31,21 +33,55 @@ class ReaderScreen extends ConsumerStatefulWidget {
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late int _chapterIndex;
   double _fontSize = 18;
-  ReaderTheme _readerTheme = ReaderTheme.sepia;
+  ReaderTheme _readerTheme = ReaderTheme.dark;
   ReaderFont _readerFont = ReaderFont.serif;
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Comment? _replyingTo;
   String? _selectedQuote;
   String _selectedText = "";
-  final bool _isRestored = false;
+  late BookRepository _bookRepository;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _chapterIndex = widget.initialChapterIndex;
+    _bookRepository = ref.read(bookRepositoryProvider);
+    _loadReaderSettings();
+    _incrementView();
     _saveHistory();
     _restoreScrollPosition();
+  }
+
+  Future<void> _incrementView() async {
+    try {
+      await _bookRepository.incrementViewCount(widget.book.id);
+    } catch (e) {
+      debugPrint('Error incrementing view count: $e');
+    }
+  }
+
+  Future<void> _loadReaderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _fontSize = prefs.getDouble('reader_font_size') ?? 18.0;
+      final themeIndex = prefs.getInt('reader_theme_index');
+      if (themeIndex != null) {
+        _readerTheme = ReaderTheme.values[themeIndex];
+      }
+      final fontIndex = prefs.getInt('reader_font_index');
+      if (fontIndex != null) {
+        _readerFont = ReaderFont.values[fontIndex];
+      }
+    });
+  }
+
+  Future<void> _saveReaderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_font_size', _fontSize);
+    await prefs.setInt('reader_theme_index', _readerTheme.index);
+    await prefs.setInt('reader_font_index', _readerFont.index);
   }
 
   Future<void> _restoreScrollPosition() async {
@@ -73,20 +109,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _saveHistory() async {
     final user = ref.read(currentUserProvider).value;
     if (user != null) {
-      await ref.read(bookRepositoryProvider).updateReadingHistory(user.id, widget.book.id.toString());
+      _currentUserId = user.id;
+      await _bookRepository.updateReadingHistory(user.id, widget.book.id.toString());
     }
   }
 
   Future<void> _saveProgress() async {
     final user = ref.read(currentUserProvider).value;
-    if (user != null) {
+    final userId = user?.id ?? _currentUserId;
+    
+    if (userId != null) {
+      _currentUserId = userId;
       double position = 0.0;
       if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
         position = _scrollController.offset / _scrollController.position.maxScrollExtent;
       }
 
-      await ref.read(bookRepositoryProvider).updateReadingProgress(
-            user.id,
+      await _bookRepository.updateReadingProgress(
+            userId,
             widget.book.id.toString(),
             chapterIndex: _chapterIndex,
             position: position,
@@ -107,17 +147,38 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final bookmarksAsync = ref.watch(bookBookmarksProvider(widget.book.id));
     final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
     final chaptersAsync = ref.watch(bookChaptersProvider(widget.book.id));
+    final offline = ref.watch(offlineServiceProvider);
 
-    return chaptersAsync.when(
-      data: (chapters) => _buildReader(context, chapters, bookmarksAsync, commentsAsync),
-      loading: () => Scaffold(
-        appBar: AppBar(title: Text(widget.book.title)),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: Center(child: Text('Failed to load book content: $err')),
-      ),
+    // Keep current user ID updated
+    ref.listen(currentUserProvider, (previous, next) {
+      if (next.value != null) {
+        _currentUserId = next.value!.id;
+      }
+    });
+
+    return FutureBuilder<List<Chapter>>(
+      future: offline.getDownloadedChapters(widget.book.id.toString()),
+      builder: (context, snapshot) {
+        final offlineChapters = snapshot.data;
+        
+        // If we have offline chapters, use them immediately
+        if (offlineChapters != null && offlineChapters.isNotEmpty) {
+          return _buildReader(context, offlineChapters, bookmarksAsync, commentsAsync, isOffline: true);
+        }
+
+        // Otherwise, fallback to network provider
+        return chaptersAsync.when(
+          data: (chapters) => _buildReader(context, chapters, bookmarksAsync, commentsAsync, isOffline: false),
+          loading: () => Scaffold(
+            appBar: AppBar(title: Text(widget.book.title)),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) => Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(child: Text('Failed to load book content: $err')),
+          ),
+        );
+      },
     );
   }
 
@@ -125,8 +186,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     BuildContext context,
     List<Chapter> chapters,
     AsyncValue<dynamic> bookmarksAsync,
-    AsyncValue<dynamic> commentsAsync,
-  ) {
+    AsyncValue<dynamic> commentsAsync, {
+    required bool isOffline,
+  }) {
     final chapter = chapters.isEmpty
         ? null
         : chapters[_chapterIndex.clamp(0, chapters.length - 1)];
@@ -135,6 +197,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       appBar: AppBar(
         title: Text(widget.book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          if (isOffline)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Chip(
+                label: const Text('Offline', style: TextStyle(fontSize: 10, color: Colors.white)),
+                backgroundColor: Colors.green.withValues(alpha: 0.7),
+                padding: EdgeInsets.zero,
+                side: BorderSide.none,
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.format_size_rounded),
             onPressed: _showSettings,
@@ -277,7 +349,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                         border: Border(
                           left: BorderSide(
@@ -306,7 +378,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             _selectedQuote!,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
+                            style: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
                           ),
                         ],
                       ),
@@ -442,6 +518,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     setState(() => _fontSize = value);
                     setModalState(() {});
                   },
+                  onChangeEnd: (value) => _saveReaderSettings(),
                 ),
                 SwitchListTile(
                   value: _readerFont == ReaderFont.serif,
@@ -449,6 +526,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   title: const Text('Serif Font'),
                   onChanged: (value) {
                     setState(() => _readerFont = value ? ReaderFont.serif : ReaderFont.sans);
+                    _saveReaderSettings();
                     setModalState(() {});
                   },
                 ),
@@ -464,6 +542,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       selected: _readerTheme == ReaderTheme.light,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.light);
+                        _saveReaderSettings();
                         setModalState(() {});
                       },
                     ),
@@ -473,6 +552,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       selected: _readerTheme == ReaderTheme.sepia,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.sepia);
+                        _saveReaderSettings();
                         setModalState(() {});
                       },
                     ),
@@ -483,6 +563,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       selected: _readerTheme == ReaderTheme.dark,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.dark);
+                        _saveReaderSettings();
                         setModalState(() {});
                       },
                     ),
@@ -610,13 +691,13 @@ class _ThemeOption extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected ? Colors.blue : Colors.grey.withOpacity(0.5),
+                color: selected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
                 width: selected ? 3 : 1,
               ),
               boxShadow: [
                 if (selected)
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
+                    color: Colors.blue.withValues(alpha: 0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),

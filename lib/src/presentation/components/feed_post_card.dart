@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/comment.dart';
@@ -9,20 +10,8 @@ import '../widgets/comment_widgets.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../../utils/format_utils.dart';
 
-/// Relative timestamp helper
-String _relativeTime(int timestampMs) {
-  final now = DateTime.now();
-  final then = DateTime.fromMillisecondsSinceEpoch(timestampMs);
-  final diff = now.difference(then);
-
-  if (diff.inSeconds < 60) return 'just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  if (diff.inDays < 7) return '${diff.inDays}d ago';
-  if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
-  return '${(diff.inDays / 30).floor()}mo ago';
-}
 
 /// Maps post type → accent colour
 Color _typeColor(String type) {
@@ -62,20 +51,39 @@ class FeedPostCard extends ConsumerStatefulWidget {
 
 class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   bool _liking = false;
+  bool? _optimisticLiked;
+  int? _optimisticLikesCount;
 
   Future<void> _toggleLike() async {
     if (_liking) return;
-    final userAsync = ref.read(currentUserProvider).asData?.value;
-    final user = userAsync;
+    final user = ref.read(currentUserProvider).asData?.value;
     if (user == null || widget.post.id == null) return;
 
-    setState(() => _liking = true);
+    final wasLiked = _optimisticLiked ?? widget.post.likes.contains(user.id);
+    final prevCount = _optimisticLikesCount ?? widget.post.likes.length;
+
+    setState(() {
+      _optimisticLiked = !wasLiked;
+      _optimisticLikesCount = wasLiked ? prevCount - 1 : prevCount + 1;
+      _liking = true;
+    });
+
     try {
       await ref
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
-      ref.invalidate(feedPostsProvider);
-      ref.invalidate(userFeedPostsProvider(widget.post.userId));
+      // No need to invalidate, optimistic state handles it
+    } catch (e) {
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _optimisticLiked = wasLiked;
+          _optimisticLikesCount = prevCount;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _liking = false);
     }
@@ -87,9 +95,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final accentColor = _typeColor(post.type);
     final typeLabel = post.type[0].toUpperCase() + post.type.substring(1);
 
-    // Check if current user liked this post
+    // Check if current user liked this post (with optimistic override)
     final currentUser = ref.watch(currentUserProvider).asData?.value;
-    final liked = currentUser != null && post.likes.contains(currentUser.id);
+    final liked = _optimisticLiked ?? (currentUser != null && post.likes.contains(currentUser.id));
+    final likesCount = _optimisticLikesCount ?? post.likes.length;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -132,7 +141,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             CircleAvatar(
                               radius: 20,
                               backgroundImage: post.userPhotoURL != null
-                                  ? NetworkImage(post.userPhotoURL!)
+                                  ? CachedNetworkImageProvider(post.userPhotoURL!)
                                   : null,
                               backgroundColor:
                                   Theme.of(context).colorScheme.primaryContainer,
@@ -163,7 +172,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                                     ),
                                   ),
                                   Text(
-                                    _relativeTime(post.timestamp),
+                                    FormatUtils.relativeTime(post.timestamp),
                                     style: TextStyle(
                                       color: Colors.grey[500],
                                       fontSize: 11,
@@ -250,12 +259,17 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           if (post.bookCover != null)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
-                              child: Image.network(
-                                post.bookCover!,
+                              child: CachedNetworkImage(
+                                imageUrl: post.bookCover!,
                                 width: 36,
                                 height: 52,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => const SizedBox(),
+                                placeholder: (context, url) => Container(
+                                  width: 36,
+                                  height: 52,
+                                  color: Colors.grey[200],
+                                ),
+                                errorWidget: (_, _, _) => const SizedBox(),
                               ),
                             ),
                           const SizedBox(width: 10),
@@ -330,7 +344,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
                       iconColor: liked ? Colors.red : null,
-                      label: post.likes.length.toString(),
+                      label: likesCount.toString(),
                       loading: _liking,
                       onTap: _toggleLike,
                     ),
@@ -348,13 +362,12 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       icon: const Icon(Icons.share_outlined, size: 18),
                       color: Colors.grey[600],
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Native share integration is the next step.',
-                            ),
-                          ),
-                        );
+                        if (post.id != null) {
+                          Share.share(
+                            'Check out this post on Librebook: https://wreadom.in/posts/${post.id}',
+                            subject: 'Librebook Post',
+                          );
+                        }
                       },
                       visualDensity: VisualDensity.compact,
                     ),
@@ -572,7 +585,6 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                   );
                 }
                 return ListView.builder(
-                  shrinkWrap: true,
                   itemCount: comments.length,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemBuilder: (context, i) {

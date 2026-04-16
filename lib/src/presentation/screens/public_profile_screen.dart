@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/follow_button.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
@@ -52,7 +53,7 @@ class PublicProfileScreen extends ConsumerWidget {
                         child: CircleAvatar(
                           radius: 42,
                           backgroundImage: user.photoURL != null
-                              ? NetworkImage(user.photoURL!)
+                              ? CachedNetworkImageProvider(user.photoURL!)
                               : null,
                           child: user.photoURL == null
                               ? Text(

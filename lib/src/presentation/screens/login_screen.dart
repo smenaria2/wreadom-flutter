@@ -70,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           gradient: LinearGradient(
             colors: [
               Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   _isLogin ? 'Sign in to continue reading' : 'Join our community of readers',
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 SizedBox(height: 48.h),
@@ -158,6 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextButton(
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
+                      final colorScheme = Theme.of(context).colorScheme;
                       final email = _emailController.text.trim();
                       if (email.isEmpty) {
                         messenger.showSnackBar(
@@ -178,14 +179,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(e.message ?? e.code),
-                            backgroundColor: Theme.of(context).colorScheme.error,
+                            backgroundColor: colorScheme.error,
                           ),
                         );
                       } catch (e) {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(e.toString()),
-                            backgroundColor: Theme.of(context).colorScheme.error,
+                            backgroundColor: colorScheme.error,
                           ),
                         );
                       }

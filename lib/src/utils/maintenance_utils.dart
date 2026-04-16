@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// One-off script to migrate embedded feed comments to the separate collection.
 Future<void> migrateComments() async {
-  print('--- Starting Migration: Feed Comments ---');
+  debugPrint('--- Starting Migration: Feed Comments ---');
   final firestore = FirebaseFirestore.instance;
   
   final feedSnapshot = await firestore.collection('feed').get();
-  print('Found ${feedSnapshot.docs.length} feed posts.');
+  debugPrint('Found ${feedSnapshot.docs.length} feed posts.');
 
   int totalMigrated = 0;
 
@@ -16,7 +17,7 @@ Future<void> migrateComments() async {
 
     if (embeddedComments == null || embeddedComments.isEmpty) continue;
 
-    print('Processing post ${postDoc.id} (${embeddedComments.length} comments)...');
+    debugPrint('Processing post ${postDoc.id} (${embeddedComments.length} comments)...');
 
     for (final commentData in embeddedComments) {
       if (commentData is! Map<String, dynamic>) continue;
@@ -41,5 +42,5 @@ Future<void> migrateComments() async {
     });
   }
 
-  print('--- Migration Finished: $totalMigrated comments moved ---');
+  debugPrint('--- Migration Finished: $totalMigrated comments moved ---');
 }

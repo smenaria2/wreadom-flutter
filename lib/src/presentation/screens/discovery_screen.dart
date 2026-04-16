@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/book_providers.dart';
 import '../providers/discovery_providers.dart';
 import '../../domain/models/book.dart';
@@ -16,6 +18,35 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   final _searchController = TextEditingController();
   String _query = '';
   String? _activeGenre;
+  bool _initialized = false;
+  Timer? _debounce;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args.containsKey('query')) {
+        final query = args['query'] as String;
+        if (query.startsWith('subject:')) {
+          _activeGenre = query.split(':').last;
+          _query = '';
+        } else if (query.startsWith('topic:')) {
+          _query = query;
+          _searchController.text = query.split(':').last;
+        } else {
+          _query = query;
+          _searchController.text = _query;
+        }
+      }
+    }
+  }
+
+  String get effectiveQuery {
+    if (_activeGenre != null && _query.isEmpty) return 'subject:$_activeGenre';
+    return _query;
+  }
 
   static const _genres = [
     'Fantasy', 'Romance', 'Science Fiction', 'Mystery', 'Horror',
@@ -24,6 +55,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -31,9 +63,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveQuery =
-        _activeGenre != null && _query.isEmpty ? _activeGenre! : _query;
-    final searchAsync = ref.watch(bookSearchProvider(effectiveQuery));
+    // Choose the provider based on current state (Genre vs Search)
+    final searchAsync = (_activeGenre != null && _query.isEmpty)
+        ? ref.watch(booksByGenreProvider(_activeGenre!))
+        : ref.watch(bookSearchProvider(effectiveQuery));
 
     return Scaffold(
       body: CustomScrollView(
@@ -55,9 +88,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
-                    setState(() {
-                      _query = val.trim();
-                      if (_query.isNotEmpty) _activeGenre = null;
+                    if (_debounce?.isActive ?? false) _debounce!.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 500), () {
+                      setState(() {
+                        _query = val.trim();
+                        if (_query.isNotEmpty) _activeGenre = null;
+                      });
                     });
                   },
                   decoration: InputDecoration(
@@ -68,13 +104,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
+                              if (_debounce?.isActive ?? false) _debounce!.cancel();
                               setState(() => _query = '');
                             },
                           )
                         : null,
                     filled: true,
                     fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -85,6 +122,45 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
             ),
           ),
+
+          // ─── Context Title (Topic/Genre) ───────────────────────────
+          if (_activeGenre != null || (effectiveQuery.isNotEmpty && effectiveQuery != _searchController.text))
+             SliverToBoxAdapter(
+               child: Padding(
+                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                 child: Row(
+                   children: [
+                     Icon(
+                       _activeGenre != null ? Icons.category_rounded : Icons.topic_rounded,
+                       size: 18,
+                       color: theme.colorScheme.primary,
+                     ),
+                     const SizedBox(width: 8),
+                     Text(
+                       _activeGenre != null 
+                           ? 'Category: $_activeGenre' 
+                           : 'Topic: $effectiveQuery',
+                       style: TextStyle(
+                         fontWeight: FontWeight.bold,
+                         fontSize: 16,
+                         color: theme.colorScheme.primary,
+                       ),
+                     ),
+                     const Spacer(),
+                     TextButton(
+                       onPressed: () {
+                         setState(() {
+                           _activeGenre = null;
+                           _query = '';
+                           _searchController.clear();
+                         });
+                       },
+                       child: const Text('Clear Filter'),
+                     ),
+                   ],
+                 ),
+               ),
+             ),
 
           // ─── Genre chips ───────────────────────────────────────────
           SliverToBoxAdapter(
@@ -253,65 +329,62 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
       // ─── Genre Preview Sections ───────────────────────────────
-      ..._genres.take(4).expand((genre) {
+      ..._genres.take(4).map((genre) {
         final genreAsync = ref.watch(archiveGenrePreviewProvider(genre));
-        return [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
+        return SliverToBoxAdapter(
+          child:
+          genreAsync.when(
+            data: (books) {
+              if (books.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    genre,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          genre,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _activeGenre = genre;
+                              _searchController.clear();
+                              _query = '';
+                            });
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _activeGenre = genre;
-                        _searchController.clear();
-                        _query = '';
-                      });
-                    },
-                    child: const Text('See All'),
+                  SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: books.length,
+                      itemBuilder: (context, i) =>
+                          _TrendingBookCard(book: books[i]),
+                    ),
                   ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: SizedBox(
+              );
+            },
+            loading: () => const SizedBox(
               height: 200,
-              child: genreAsync.when(
-                data: (books) {
-                  if (books.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No $genre books found',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: books.length,
-                    itemBuilder: (context, i) =>
-                        _TrendingBookCard(book: books[i]),
-                  );
-                },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
+              child: Center(child: CircularProgressIndicator()),
             ),
+            error: (_, _) => const SizedBox.shrink(),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ];
+        );
       }),
 
       // Bottom padding
@@ -350,10 +423,21 @@ class _TrendingBookCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     book.coverUrl != null
-                        ? Image.network(
-                            book.coverUrl!,
+                        ? CachedNetworkImage(
+                            imageUrl: book.coverUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) =>
                                 _CoverPlaceholder(title: book.title),
                           )
                         : _CoverPlaceholder(title: book.title),
@@ -445,12 +529,17 @@ class _SearchResultTile extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: book.coverUrl != null
-                    ? Image.network(
-                        book.coverUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: book.coverUrl!,
                         width: 56,
                         height: 80,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
+                        placeholder: (context, url) => Container(
+                          width: 56,
+                          height: 80,
+                          color: Colors.grey[200],
+                        ),
+                        errorWidget: (context, url, error) =>
                             _MiniPlaceholder(title: book.title),
                       )
                     : _MiniPlaceholder(title: book.title),
@@ -517,7 +606,7 @@ class _SearchResultTile extends StatelessWidget {
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
                                       .primaryContainer
-                                      .withOpacity(0.4),
+                                      .withValues(alpha: 0.4),
                                 );
                               }).toList(),
                             ),

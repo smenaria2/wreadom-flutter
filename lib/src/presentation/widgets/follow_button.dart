@@ -68,11 +68,12 @@ class FollowButton extends ConsumerWidget {
       } else {
         await repo.followUser(followerId: followerId, followingId: targetUserId);
       }
-      // Invalidate to refresh UI
+      // Invalidate both to refresh UI
       ref.invalidate(isFollowingProvider(targetUserId));
+      ref.invalidate(followingListProvider);
     } catch (e) {
       // Handle error (could show a snackbar)
-      print('Error toggling follow: $e');
+      debugPrint('Error toggling follow: $e');
     }
   }
 }

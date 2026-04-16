@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/book.dart';
 import '../components/book/review_sheet.dart';
 import '../components/book/quote_sheet.dart';
@@ -8,21 +9,37 @@ import '../providers/book_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 
-class BookDetailScreen extends ConsumerWidget {
+class BookDetailScreen extends ConsumerStatefulWidget {
   final String bookId;
-  final Book? preloadedBook; // passed from list for instant hero display
+  final Book? preloadedBook;
+  final String? heroTag;
 
   const BookDetailScreen({
     super.key,
     required this.bookId,
     this.preloadedBook,
+    this.heroTag,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bookAsync = preloadedBook != null
-        ? AsyncValue.data(preloadedBook)
-        : ref.watch(bookDetailProvider(bookId));
+  ConsumerState<BookDetailScreen> createState() => _BookDetailScreenState();
+}
+
+class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Increment view count when book is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(bookRepositoryProvider).incrementViewCount(widget.bookId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bookAsync = widget.preloadedBook != null
+        ? AsyncValue.data(widget.preloadedBook)
+        : ref.watch(bookDetailProvider(widget.bookId));
 
     return Scaffold(
       body: bookAsync.when(
@@ -30,7 +47,7 @@ class BookDetailScreen extends ConsumerWidget {
           if (book == null) {
             return const Center(child: Text('Book not found'));
           }
-          return _BookDetailBody(book: book);
+          return _BookDetailBody(book: book, heroTag: widget.heroTag);
         },
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
@@ -46,7 +63,8 @@ class BookDetailScreen extends ConsumerWidget {
 
 class _BookDetailBody extends ConsumerWidget {
   final Book book;
-  const _BookDetailBody({required this.book});
+  final String? heroTag;
+  const _BookDetailBody({required this.book, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,15 +107,23 @@ class _BookDetailBody extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Hero(
-                      tag: 'book-cover-${book.id}',
+                      tag: heroTag ?? 'book-cover-${book.id}',
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: book.coverUrl != null
-                            ? Image.network(
-                                book.coverUrl!,
+                            ? CachedNetworkImage(
+                                imageUrl: book.coverUrl!,
                                 height: 220,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) =>
+                                placeholder: (context, url) => Container(
+                                  height: 220,
+                                  width: 150, // Approximate width
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) =>
                                     _PlaceholderCover(title: book.title),
                               )
                             : _PlaceholderCover(title: book.title),
@@ -223,7 +249,10 @@ class _BookDetailBody extends ConsumerWidget {
                       },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+                  // ─── Download Button ────────────────────────────────────
+                  _BookDownloadButton(book: book),
+                  const SizedBox(width: 8),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -450,6 +479,110 @@ class _ActionButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Download Button Component ──────────────────────────────────────────────
+class _BookDownloadButton extends ConsumerStatefulWidget {
+  final Book book;
+  const _BookDownloadButton({required this.book});
+
+  @override
+  ConsumerState<_BookDownloadButton> createState() => _BookDownloadButtonState();
+}
+
+class _BookDownloadButtonState extends ConsumerState<_BookDownloadButton> {
+  bool _isDownloading = false;
+  bool _isDownloaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    final offline = ref.read(offlineServiceProvider);
+    final downloaded = await offline.isBookDownloaded(widget.book.id.toString());
+    if (mounted) {
+      setState(() => _isDownloaded = downloaded);
+    }
+  }
+
+  Future<void> _handleDownload() async {
+    if (_isDownloaded) {
+      // Show option to delete?
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Remove Download'),
+          content: const Text('Are you sure you want to remove this book from offline storage?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        await ref.read(offlineServiceProvider).deleteBook(widget.book.id.toString());
+        setState(() => _isDownloaded = false);
+      }
+      return;
+    }
+
+    setState(() => _isDownloading = true);
+    try {
+      // 1. Fetch all chapters
+      final chapters = await ref.read(bookChaptersProvider(widget.book.id.toString()).future);
+      
+      // 2. Save to offline storage
+      await ref.read(offlineServiceProvider).downloadBook(widget.book, chapters);
+      
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _isDownloaded = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Book downloaded for offline reading!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: _isDownloaded 
+            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+            : null,
+      ),
+      onPressed: _isDownloading ? null : _handleDownload,
+      child: _isDownloading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              _isDownloaded ? Icons.download_done_rounded : Icons.download_for_offline_outlined,
+              color: _isDownloaded ? Theme.of(context).colorScheme.primary : null,
+            ),
     );
   }
 }

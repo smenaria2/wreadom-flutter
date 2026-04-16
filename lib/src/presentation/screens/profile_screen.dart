@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
 import '../../utils/maintenance_utils.dart';
+import '../../utils/format_utils.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
@@ -55,7 +58,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       background: Container(
-                        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         child: SafeArea(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -63,9 +66,9 @@ class ProfileScreen extends ConsumerWidget {
                               // Avatar
                               CircleAvatar(
                                 radius: 42,
-                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                 backgroundImage: user.photoURL != null
-                                    ? NetworkImage(user.photoURL!)
+                                    ? CachedNetworkImageProvider(user.photoURL!)
                                     : null,
                                 child: user.photoURL == null
                                     ? Text(
@@ -83,18 +86,18 @@ class ProfileScreen extends ConsumerWidget {
                               Text(
                                 user.displayName ?? user.username,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '@${user.username}',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '@${user.username}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
                             ],
                           ),
                         ),
@@ -115,15 +118,15 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           _StatItem(
                             label: 'Followers',
-                            value: _fmt(user.followersCount ?? 0),
+                            value: FormatUtils.formatNumber(user.followersCount ?? 0),
                           ),
                           _StatItem(
                             label: 'Following',
-                            value: _fmt(user.followingCount ?? 0),
+                            value: FormatUtils.formatNumber(user.followingCount ?? 0),
                           ),
                           _StatItem(
                             label: 'Points',
-                            value: _fmt(user.totalPoints ?? 0),
+                            value: FormatUtils.formatNumber(user.totalPoints ?? 0),
                           ),
                         ],
                       ),
@@ -165,12 +168,6 @@ class ProfileScreen extends ConsumerWidget {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(body: Center(child: Text('Error: $err'))),
     );
-  }
-
-  static String _fmt(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
   }
 }
 
@@ -234,16 +231,17 @@ class _ProfileMenu extends StatelessWidget {
             ],
           ),
         ),
-        const PopupMenuItem(
-          value: 'migrate',
-          child: Row(
-            children: [
-              Icon(Icons.storage, size: 18),
-              SizedBox(width: 8),
-              Text('Migrate Comments'),
-            ],
+        if (kDebugMode)
+          const PopupMenuItem(
+            value: 'migrate',
+            child: Row(
+              children: [
+                Icon(Icons.storage, size: 18),
+                SizedBox(width: 8),
+                Text('Migrate Comments'),
+              ],
+            ),
           ),
-        ),
         const PopupMenuItem(
           value: 'logout',
           child: Row(

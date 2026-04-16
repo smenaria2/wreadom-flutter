@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -26,7 +26,7 @@ class FirebaseAuthRepository implements AuthRepository {
             try {
               await _handleGoogleSignInResult(event.user);
             } catch (e) {
-              print('Auto Firebase sign-in from Google failed: $e');
+              debugPrint('Auto Firebase sign-in from Google failed: $e');
             }
           }
         }
@@ -82,7 +82,7 @@ class FirebaseAuthRepository implements AuthRepository {
       await _firestore.collection('users').doc(fbUser.uid).set(userModel.toJson());
 
       // Award registration points
-      _gamificationRepository.updateUserPoints(fbUser.uid, 'REGISTRATION').catchError((e) => print('Failed award points: $e'));
+      _gamificationRepository.updateUserPoints(fbUser.uid, 'REGISTRATION').catchError((e) => debugPrint('Failed award points: $e'));
 
       return userModel;
     } catch (e) {
@@ -160,7 +160,7 @@ class FirebaseAuthRepository implements AuthRepository {
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final String? idToken = googleAuth.idToken;
       if (idToken == null || idToken.isEmpty) {
-        print('Google Sign-In Error: idToken is null. Check Firebase SHA-1 configuration.');
+        debugPrint('Google Sign-In Error: idToken is null. Check Firebase SHA-1 configuration.');
         throw Exception(
           'Google Sign-In did not return an ID token. For Android, add your '
           'debug/release SHA-1 in Firebase Console for this package, download '
@@ -211,7 +211,7 @@ class FirebaseAuthRepository implements AuthRepository {
         );
         await _firestore.collection('users').doc(fbUser.uid).set(userModel.toJson());
         
-        _gamificationRepository.updateUserPoints(fbUser.uid, 'REGISTRATION').catchError((e) => print('Failed award points: $e'));
+        _gamificationRepository.updateUserPoints(fbUser.uid, 'REGISTRATION').catchError((e) => debugPrint('Failed award points: $e'));
 
         return userModel;
       }

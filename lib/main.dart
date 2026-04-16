@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +11,7 @@ import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
+import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
@@ -18,8 +21,15 @@ const String _googleServerClientId =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await OfflineService().init(); // Open the offline boxes
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+    webProvider: ReCaptchaV3Provider('6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1'),
   );
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(

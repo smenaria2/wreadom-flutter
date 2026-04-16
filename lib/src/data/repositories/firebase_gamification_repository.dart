@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/gamification_constants.dart';
 import '../../domain/models/points_history.dart';
 import '../../domain/models/user_model.dart';
@@ -42,9 +43,9 @@ class FirebaseGamificationRepository implements GamificationRepository {
       await _firestore.collection(historyCollection).add(historyItem);
 
       // 3. Check for Tier Update (Background check)
-      _checkAndHandleTierUpdate(userId).catchError((err) => print('Tier update check failed: $err'));
+      _checkAndHandleTierUpdate(userId).catchError((err) => debugPrint('Tier update check failed: $err'));
     } catch (e) {
-      print('Error updating points: $e');
+      debugPrint('Error updating points: $e');
     }
   }
 
@@ -76,7 +77,7 @@ class FirebaseGamificationRepository implements GamificationRepository {
         });
       }
     } catch (e) {
-      print('Error checking tier update: $e');
+      debugPrint('Error checking tier update: $e');
     }
   }
 
@@ -109,7 +110,7 @@ class FirebaseGamificationRepository implements GamificationRepository {
         'lastDoc': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
       };
     } catch (e) {
-      print('Error fetching points history: $e');
+      debugPrint('Error fetching points history: $e');
       rethrow;
     }
   }
@@ -134,7 +135,7 @@ class FirebaseGamificationRepository implements GamificationRepository {
 
       return countSnapshot.count! + 1;
     } catch (e) {
-      print('Error getting user rank: $e');
+      debugPrint('Error getting user rank: $e');
       return 0;
     }
   }
@@ -156,7 +157,7 @@ class FirebaseGamificationRepository implements GamificationRepository {
 
       return allUsers.where((u) => u.privacyLevel != 'private').take(limitCount).toList();
     } catch (e) {
-      print('Error fetching leaderboard: $e');
+      debugPrint('Error fetching leaderboard: $e');
       return [];
     }
   }

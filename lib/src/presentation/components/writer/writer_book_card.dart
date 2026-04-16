@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../domain/models/book.dart';
 import '../../utils/date_formatter.dart';
 
@@ -40,7 +41,7 @@ class WriterBookCard extends StatelessWidget {
                   color: theme.primaryColor.withValues(alpha: 0.1),
                   image: book.coverUrl != null
                       ? DecorationImage(
-                          image: NetworkImage(book.coverUrl!),
+                          image: CachedNetworkImageProvider(book.coverUrl!),
                           fit: BoxFit.cover,
                         )
                       : null,

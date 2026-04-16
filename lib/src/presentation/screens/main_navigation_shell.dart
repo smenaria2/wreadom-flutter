@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/navigation_providers.dart';
 import 'messages_screen.dart';
 import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
 import 'writer_dashboard_screen.dart';
 import 'profile_screen.dart';
-
-/// Provides a way for child screens to switch the root tab.
-class TabSwitchNotifier extends ChangeNotifier {
-  int _index = 0;
-  int get index => _index;
-
-  void switchTo(int i) {
-    _index = i;
-    notifyListeners();
-  }
-}
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -27,25 +17,14 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
-  late int _selectedIndex;
-  final TabSwitchNotifier _tabNotifier = TabSwitchNotifier();
-
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex;
-    _tabNotifier.addListener(_onTabSwitch);
-  }
-
-  void _onTabSwitch() {
-    setState(() => _selectedIndex = _tabNotifier.index);
-  }
-
-  @override
-  void dispose() {
-    _tabNotifier.removeListener(_onTabSwitch);
-    _tabNotifier.dispose();
-    super.dispose();
+    // Use future to ensure provider is updated after initial build if needed,
+    // but better yet, set it directly if it's the first time.
+    Future.microtask(() {
+      ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
+    });
   }
 
   List<Widget> get _screens => [
@@ -58,15 +37,17 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = ref.watch(selectedTabProvider);
+
     return Scaffold(
       body: IndexedStack(
-        index: _selectedIndex,
+        index: selectedIndex,
         children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
+            ref.read(selectedTabProvider.notifier).setTab(index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.book_outlined),

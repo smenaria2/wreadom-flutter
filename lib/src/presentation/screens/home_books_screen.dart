@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../domain/models/homepage/homepage_metadata.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
 import 'book_detail_screen.dart';
 import '../routing/app_routes.dart';
 import '../providers/book_providers.dart';
+import '../providers/daily_topic_providers.dart';
 
 class HomeBooksScreen extends ConsumerWidget {
   const HomeBooksScreen({super.key});
@@ -18,6 +21,8 @@ class HomeBooksScreen extends ConsumerWidget {
     final fantasyAsync = ref.watch(homepageGenreProvider('fantasy'));
     final romanceAsync = ref.watch(homepageGenreProvider('romance'));
     final sciFiAsync = ref.watch(homepageGenreProvider('sci-fi'));
+    
+    // Watch saved books for the new section
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -69,23 +74,33 @@ class HomeBooksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ─── Hero Banner ─────────────────────────────────────────
-              _HeroBanner(onExplore: () => Navigator.of(context).pushNamed(AppRoutes.discovery)),
+              // ─── Hero Banner (Daily Topics) ───────────────────────────
+              const _HeroBanner(),
+              const SizedBox(height: 12),
+
+              // ─── Saved Books (Local & Remote) ─────────────────────────
+              const _SavedBooksSection(),
               const SizedBox(height: 28),
 
               // ─── Wreadom Originals ────────────────────────────────────
               _BookshelfSection(
                 title: '✨ Wreadom Originals',
                 booksAsync: originalsAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+                onSeeAll: () => Navigator.of(context).pushNamed(
+                  AppRoutes.discovery,
+                  arguments: {'query': 'originals'},
+                ),
               ),
               const SizedBox(height: 28),
 
-              // ─── Popular ─────────────────────────────────────────────
+              // ─── Popular Books ────────────────────────────────────────
               _BookshelfSection(
-                title: '🔥 Popular Right Now',
+                title: '🔥 Popular Now',
                 booksAsync: popularAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+                onSeeAll: () => Navigator.of(context).pushNamed(
+                  AppRoutes.discovery,
+                  arguments: {'query': 'popular'},
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -93,32 +108,17 @@ class HomeBooksScreen extends ConsumerWidget {
               _BookshelfSection(
                 title: '🆕 Recently Added',
                 booksAsync: recentAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+                onSeeAll: () => Navigator.of(context).pushNamed(
+                  AppRoutes.discovery,
+                  arguments: {'query': 'recent'},
+                ),
               ),
               const SizedBox(height: 28),
 
-              // ─── Fantasy ────────────────────────────────────────────────
-              _BookshelfSection(
-                title: '🧙 Fantasy',
-                booksAsync: fantasyAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
-              ),
-              const SizedBox(height: 28),
-
-              // ─── Romance ────────────────────────────────────────────────
-              _BookshelfSection(
-                title: '💖 Romance',
-                booksAsync: romanceAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
-              ),
-              const SizedBox(height: 28),
-
-              // ─── Sci-Fi ──────────────────────────────────────────────────
-              _BookshelfSection(
-                title: '🚀 Sci-Fi',
-                booksAsync: sciFiAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
-              ),
+              // ─── Genre Sections (Filtered) ─────────────────────────────
+              _GenreSection(title: '🧙 Fantasy', booksAsync: fantasyAsync, genre: 'Fantasy', sectionId: 'fantasy'),
+              _GenreSection(title: '💖 Romance', booksAsync: romanceAsync, genre: 'Romance', sectionId: 'romance'),
+              _GenreSection(title: '🚀 Sci-Fi', booksAsync: sciFiAsync, genre: 'Sci-Fi', sectionId: 'sci-fi'),
               const SizedBox(height: 32),
             ],
           ),
@@ -129,102 +129,92 @@ class HomeBooksScreen extends ConsumerWidget {
 }
 
 // ─── Hero Banner ─────────────────────────────────────────────────────────────
-class _HeroBanner extends ConsumerWidget {
-  final VoidCallback? onExplore;
-  const _HeroBanner({this.onExplore});
+class _HeroBanner extends ConsumerStatefulWidget {
+  const _HeroBanner();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final metadataAsync = ref.watch(homepageMetadataProvider);
+  ConsumerState<_HeroBanner> createState() => _HeroBannerState();
+}
 
-    return metadataAsync.when(
-      data: (metadata) {
-        final activeTopics = metadata.dailyTopics.where((t) => t.isEnabled).toList();
-        if (activeTopics.isEmpty) return _buildDefaultBanner(context);
+class _HeroBannerState extends ConsumerState<_HeroBanner> {
+  final PageController _pageController = PageController();
 
-        final topic = activeTopics.first;
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topicsAsync = ref.watch(dailyTopicsProvider);
+
+    return topicsAsync.when(
+      data: (topics) {
+        if (topics.isEmpty) return _buildDefaultBanner(context);
+
+        return Column(
+          children: [
+            SizedBox(
+              height: 260,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: topics.length,
+                onPageChanged: (index) {
+                  setState(() {}); // For indicator update
+                  if (index >= topics.length - 1) {
+                    ref.read(dailyTopicsProvider.notifier).fetchMore();
+                  }
+                },
+                itemBuilder: (context, index) {
+                  final topic = topics[index];
+                  return _DailyTopicCard(topic: topic);
+                },
               ),
-            ],
-            image: DecorationImage(
-              image: NetworkImage(topic.coverImageUrl),
-              fit: BoxFit.cover,
             ),
-          ),
-          child: Container(
-             padding: const EdgeInsets.all(24),
-             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withValues(alpha: 0.8),
-                    Colors.black.withValues(alpha: 0.3),
-                  ],
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                ),
-             ),
-             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                       color: Theme.of(context).colorScheme.primary,
-                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Daily Topic', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    topic.topicName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    topic.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: onExplore,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                    child: const Text('Read More',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                topics.length,
+                (index) => _buildIndicator(index, topics.length),
               ),
-          ),
+            ),
+          ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SizedBox(
+        height: 180,
+        child: Center(child: CircularProgressIndicator()),
+      ),
       error: (_, _) => _buildDefaultBanner(context),
+    );
+  }
+
+  Widget _buildIndicator(int index, int total) {
+    bool isActive = false;
+    try {
+      if (_pageController.hasClients) {
+        // Use the actual page index from state/controller
+        isActive = (_pageController.page?.round() ?? _pageController.initialPage) == index;
+      } else {
+        isActive = (index == 0);
+      }
+    } catch (_) {
+      isActive = (index == 0);
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      height: 6,
+      width: isActive ? 20 : 6,
+      decoration: BoxDecoration(
+        color: isActive
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(3),
+      ),
     );
   }
 
@@ -276,7 +266,7 @@ class _HeroBanner extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: onExplore,
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.onPrimary,
               foregroundColor: Theme.of(context).colorScheme.primary,
@@ -294,80 +284,273 @@ class _HeroBanner extends ConsumerWidget {
   }
 }
 
+class _DailyTopicCard extends StatelessWidget {
+  final DailyTopic topic;
+
+  const _DailyTopicCard({required this.topic});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        image: DecorationImage(
+          image: CachedNetworkImageProvider(topic.coverImageUrl),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              Colors.black.withValues(alpha: 0.85),
+              Colors.black.withValues(alpha: 0.2),
+            ],
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Daily Topic',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              topic.topicName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              topic.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 14,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to a filtered view for this topic
+                Navigator.of(context).pushNamed(
+                  AppRoutes.discovery,
+                  arguments: {'query': 'topic:${topic.topicName}'},
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text(
+                'Read More',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GenreSection extends ConsumerWidget {
+  final String title;
+  final AsyncValue<List<Book>> booksAsync;
+  final String genre;
+  final String sectionId;
+  const _GenreSection({
+    required this.title,
+    required this.booksAsync,
+    required this.genre,
+    required this.sectionId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return booksAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: [
+            _BookshelfSection(
+              title: title,
+              booksAsync: booksAsync,
+              sectionId: sectionId,
+              onSeeAll: () => Navigator.of(context).pushNamed(
+                AppRoutes.discovery,
+                arguments: {'query': 'subject:$genre'},
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+        );
+      },
+      loading: () => Column(
+        children: [
+          _BookshelfSection(title: title, booksAsync: booksAsync),
+          const SizedBox(height: 28),
+        ],
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+// ─── Saved Books Section (Top Shelf) ──────────────────────────────────────────
+class _SavedBooksSection extends ConsumerWidget {
+  const _SavedBooksSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remoteSavedAsync = ref.watch(savedBooksProvider);
+
+    return remoteSavedAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const SizedBox.shrink();
+
+        return _BookshelfSection(
+          title: '📚 Your Shelf',
+          booksAsync: remoteSavedAsync,
+          sectionId: 'saved',
+          onSeeAll: () {
+            // Navigate to main tab 1 or filtered discovery
+            Navigator.of(context).pushNamed(AppRoutes.main, arguments: 1);
+          },
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
 // ─── Bookshelf Row ────────────────────────────────────────────────────────────
 class _BookshelfSection extends StatelessWidget {
   final String title;
   final AsyncValue<List<Book>> booksAsync;
+  final String? sectionId;
   final VoidCallback? onSeeAll;
 
   const _BookshelfSection({
     required this.title,
     required this.booksAsync,
+    this.sectionId,
     this.onSeeAll,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              TextButton(
-                onPressed: onSeeAll,
-                child: const Text('See All'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 210,
-          child: booksAsync.when(
-            data: (books) {
-              if (books.isEmpty) {
-                return Center(
-                  child: Text(
-                    'No books found',
-                    style: TextStyle(color: Colors.grey[500]),
+    return booksAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                );
-              }
-              return ListView.separated(
+                  TextButton(
+                    onPressed: onSeeAll,
+                    child: const Text('See All'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 210,
+              child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: books.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
                 itemBuilder: (context, index) =>
-                    _BookCard(book: books[index]),
-              );
-            },
-            loading: () => ListView.separated(
+                    _BookCard(
+                  book: books[index],
+                  sectionId: sectionId ?? title.replaceAll(' ', '-').toLowerCase(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 24,
+              width: 140,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 210,
+            child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: 5,
               separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (_, _) => const _BookCardSkeleton(),
             ),
-            error: (err, _) => Center(
-              child: Text('Failed to load',
-                  style: TextStyle(color: Colors.grey[500])),
-            ),
           ),
-        ),
-      ],
+        ],
+      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -375,19 +558,24 @@ class _BookshelfSection extends StatelessWidget {
 // ─── Book Card ────────────────────────────────────────────────────────────────
 class _BookCard extends StatelessWidget {
   final Book book;
-  const _BookCard({required this.book});
+  final String sectionId;
+  const _BookCard({required this.book, required this.sectionId});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => BookDetailScreen(
-            bookId: book.id,
-            preloadedBook: book,
+      onTap: () {
+        final tag = 'book-cover-$sectionId-${book.id}';
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BookDetailScreen(
+              bookId: book.id,
+              preloadedBook: book,
+              heroTag: tag,
+            ),
           ),
-        ),
-      ),
+        );
+      },
       child: SizedBox(
         width: 120,
         child: Column(
@@ -399,12 +587,22 @@ class _BookCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: book.coverUrl != null
                     ? Hero(
-                        tag: 'book-cover-${book.id}',
-                        child: Image.network(
-                          book.coverUrl!,
+                        tag: 'book-cover-$sectionId-${book.id}',
+                        child: CachedNetworkImage(
+                          imageUrl: book.coverUrl!,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          errorBuilder: (_, _, _) =>
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) =>
                               _CoverPlaceholder(title: book.title),
                         ),
                       )

@@ -26,8 +26,15 @@ class ArchiveBookService {
     if (identifier != null) queryParts.add('identifier:($identifier)');
 
     if (query != null && query.isNotEmpty) {
-      if (query.contains(':') && RegExp(r'^[a-z]+:', caseSensitive: false).hasMatch(query)) {
-        queryParts.add(query);
+      if (query.contains(':') &&
+          RegExp(r'^[a-z]+:', caseSensitive: false).hasMatch(query)) {
+        // Map 'topic:' to 'subject:' for Archive.org
+        if (query.toLowerCase().startsWith('topic:')) {
+          final term = query.split(':').last;
+          queryParts.add('subject:("$term")');
+        } else {
+          queryParts.add(query);
+        }
       } else {
         final cleanSearch = Uri.encodeComponent(query);
         queryParts.add('(title:(*$cleanSearch*) OR creator:(*$cleanSearch*))');

@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/notification_providers.dart';
+import '../providers/navigation_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 
@@ -42,7 +44,7 @@ class NotificationsScreen extends ConsumerWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundImage: item.actorPhotoURL != null
-                      ? NetworkImage(item.actorPhotoURL!)
+                      ? CachedNetworkImageProvider(item.actorPhotoURL!)
                       : null,
                   child: item.actorPhotoURL == null
                       ? Text(item.actorName.isEmpty
@@ -64,61 +66,126 @@ class NotificationsScreen extends ConsumerWidget {
 
                   if (!context.mounted) return;
 
+                  // Navigation debug
+                  debugPrint('Notification tapped: ID=${item.id}, Type=${item.type}, TargetId=${item.targetId}');
+                  debugPrint('Metadata: ${item.metadata}');
+                  debugPrint('Link: ${item.link}');
+
                   // Navigation logic
+                  final metadata = item.metadata ?? {};
+                  final link = item.link;
+                  final targetId = item.targetId;
+                  
+                  // Priority check for bookId in metadata or link
+                  final bookIdFromMeta = metadata['bookId']?.toString();
+                  String? bookIdFromLink;
+                  if (link.contains('/book/')) {
+                    bookIdFromLink = link.split('/book/').last.split('?').first;
+                  } else if (link.contains('/b/')) {
+                    bookIdFromLink = link.split('/b/').last.split('?').first;
+                  }
+                  
+                  final effectiveBookId = bookIdFromMeta ?? bookIdFromLink;
+
+                  final isBookRelated = effectiveBookId != null || 
+                                      ['chapter', 'book_review', 'book_quote', 'published'].contains(item.type);
+
                   switch (item.type) {
                     case 'post':
+                    case 'feedPost':
                     case 'like':
                     case 'comment':
                     case 'reply':
-                      if (item.targetId != null) {
+                      // Prioritize post detail if we have a targetId (the post ID)
+                      // unless it's explicitly a book-only notification
+                      if (targetId != null && targetId.isNotEmpty && targetId != 'null') {
                         Navigator.of(context).pushNamed(
                           AppRoutes.postDetail,
-                          arguments: item.targetId,
+                          arguments: targetId,
                         );
-                      } else {
-                        // Fallback to Feed tab
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.main,
-                          arguments: 1,
-                        );
-                      }
-                      break;
-                    case 'chapter':
-                      if (item.targetId != null) {
+                      } else if (isBookRelated && effectiveBookId != null) {
                         Navigator.of(context).pushNamed(
                           AppRoutes.bookDetail,
-                          arguments: item.targetId,
+                          arguments: effectiveBookId,
+                        );
+                      } else {
+                        // Fallback to Feed tab (index 1) without pushing new shell
+                        ref.read(selectedTabProvider.notifier).setTab(1);
+                        Navigator.of(context).popUntil((route) => 
+                          route.settings.name == AppRoutes.main || route.isFirst);
+                      }
+                      break;
+                    case 'published':
+                    case 'chapter':
+                      final id = effectiveBookId ?? targetId;
+                      if (id != null && id.isNotEmpty) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: id,
                         );
                       }
                       break;
                     case 'follow':
-                      Navigator.of(context).pushNamed(
-                        AppRoutes.publicProfile,
-                        arguments: PublicProfileArguments(userId: item.actorId),
-                      );
+                    case 'following':
+                      String? followerId = item.actorId.isNotEmpty ? item.actorId : null;
+                      
+                      // Fallback: check link for userId if actorId is missing
+                      if (followerId == null || followerId.isEmpty) {
+                        if (link.contains('/user/')) {
+                          followerId = link.split('/user/').last.split('?').first;
+                        } else if (link.contains('/u/')) {
+                          followerId = link.split('/u/').last.split('?').first;
+                        }
+                      }
+                      
+                      // Last resort: targetId if it's a valid ID
+                      followerId ??= (targetId != null && targetId.isNotEmpty && targetId != 'null') ? targetId : null;
+
+                      if (followerId != null && followerId.isNotEmpty) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.publicProfile,
+                          arguments: PublicProfileArguments(userId: followerId),
+                        );
+                      }
                       break;
                     case 'message':
-                      if (item.id != null) {
+                      final convId = metadata['conversationId']?.toString() ?? 
+                                   metadata['id']?.toString() ?? 
+                                   (targetId != null && targetId.isNotEmpty ? targetId : null) ??
+                                   '';
+                      
+                      // Robust check to avoid "Invalid document path"
+                      if (convId.isNotEmpty && 
+                          convId != 'null' && 
+                          convId != 'undefined' && 
+                          !convId.contains('/') && // Minimal sanity check for Firestore IDs
+                          convId.length > 5) {
                         Navigator.of(context).pushNamed(
                           AppRoutes.conversation,
                           arguments: ConversationArguments(
-                            conversationId: item.metadata?['conversationId'] ?? '',
+                            conversationId: convId,
                             title: item.actorName,
                           ),
                         );
+                      } else {
+                        debugPrint('Invalid conversationId in notification: $convId');
                       }
                       break;
                     case 'book_review':
                     case 'book_quote':
-                      if (item.targetId != null) {
+                      final id = effectiveBookId ?? targetId;
+                      if (id != null && id.isNotEmpty) {
                         Navigator.of(context).pushNamed(
                           AppRoutes.bookDetail,
-                          arguments: item.targetId,
+                          arguments: id,
                         );
                       }
                       break;
                     default:
-                      // Optional: handle unknown types
+                      if (link.isNotEmpty) {
+                        // Optional: hande as deep link if nothing else matches
+                        Navigator.of(context).pushNamed(link);
+                      }
                       break;
                   }
                 },

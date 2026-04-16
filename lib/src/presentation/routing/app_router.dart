@@ -77,17 +77,57 @@ class PostDetailArguments {
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    String? name = settings.name;
+    Object? arguments = settings.arguments;
+
+    // ─── Deep Link Parsing ───────────────────────────────────────────────
+    if (name != null && (name.startsWith('http://') || name.startsWith('https://'))) {
+      try {
+        final uri = Uri.parse(name);
+        if (uri.host == 'wreadom.in') {
+          final segments = uri.pathSegments;
+          if (segments.length >= 2) {
+            final type = segments[0];
+            final id = segments[1];
+
+            if (type == 'book' || type == 'b') {
+              name = AppRoutes.bookDetail;
+              arguments = id;
+            } else if (type == 'user' || type == 'u') {
+              name = AppRoutes.publicProfile;
+              arguments = PublicProfileArguments(userId: id);
+            } else if (type == 'feed' || type == 'post' || type == 'posts' || type == 'p') {
+              name = AppRoutes.postDetail;
+              arguments = id;
+            } else if (type == 'writer') {
+               name = AppRoutes.writerDashboard;
+            }
+          } else if (segments.isNotEmpty) {
+            // Handle root types like /discovery or /writer
+            final type = segments[0];
+            if (type == 'discovery' || type == 'search') {
+              name = AppRoutes.discovery;
+            } else if (type == 'writer') {
+               name = AppRoutes.writerDashboard;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error parsing deep link: $e');
+      }
+    }
+
+    switch (name) {
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case AppRoutes.main:
       case AppRoutes.root:
-        final initialIndex = settings.arguments as int? ?? 0;
+        final initialIndex = (arguments ?? settings.arguments) as int? ?? 0;
         return MaterialPageRoute(
           builder: (_) => MainNavigationShell(initialIndex: initialIndex),
         );
       case AppRoutes.bookDetail:
-        final args = settings.arguments;
+        final args = arguments ?? settings.arguments;
         String bookId;
         Book? book;
 
@@ -108,7 +148,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.reader:
-        final args = settings.arguments as ReaderArguments;
+        final args = (arguments ?? settings.arguments) as ReaderArguments;
         return MaterialPageRoute(
           builder: (_) => ReaderScreen(
             book: args.book,
@@ -116,14 +156,14 @@ class AppRouter {
           ),
         );
       case AppRoutes.publicProfile:
-        final args = settings.arguments as PublicProfileArguments;
+        final args = (arguments ?? settings.arguments) as PublicProfileArguments;
         return MaterialPageRoute(
           builder: (_) => PublicProfileScreen(userId: args.userId),
         );
       case AppRoutes.notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());
       case AppRoutes.conversation:
-        final args = settings.arguments as ConversationArguments;
+        final args = (arguments ?? settings.arguments) as ConversationArguments;
         return MaterialPageRoute(
           builder: (_) => ConversationScreen(
             conversationId: args.conversationId,
@@ -134,14 +174,17 @@ class AppRouter {
       case AppRoutes.writerDashboard:
         return MaterialPageRoute(builder: (_) => const WriterDashboardScreen());
       case AppRoutes.discovery:
-        return MaterialPageRoute(builder: (_) => const DiscoveryScreen());
+        return MaterialPageRoute(
+          settings: RouteSettings(name: name, arguments: arguments ?? settings.arguments),
+          builder: (_) => const DiscoveryScreen(),
+        );
       case AppRoutes.writerPad:
-        final args = settings.arguments as WriterPadArguments?;
+        final args = (arguments ?? settings.arguments) as WriterPadArguments?;
         return MaterialPageRoute(
           builder: (_) => WriterPadScreen(book: args?.book),
         );
       case AppRoutes.postDetail:
-        final args = settings.arguments;
+        final args = arguments ?? settings.arguments;
         String postId;
         FeedPost? post;
 

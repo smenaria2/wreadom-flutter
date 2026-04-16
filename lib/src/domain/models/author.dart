@@ -4,6 +4,7 @@ part 'author.freezed.dart';
 part 'author.g.dart';
 
 @freezed
+@JsonSerializable(explicitToJson: true)
 abstract class Author with _$Author {
   const factory Author({
     required String name,

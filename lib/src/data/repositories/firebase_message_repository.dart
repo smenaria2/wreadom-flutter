@@ -107,6 +107,7 @@ class FirebaseMessageRepository implements MessageRepository {
 
   @override
   Stream<List<Message>> watchMessages(String conversationId) {
+    if (conversationId.isEmpty) return Stream.value([]);
     return _firestore
         .collection('conversations')
         .doc(conversationId)

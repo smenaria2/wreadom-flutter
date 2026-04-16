@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../utils/firestore_utils.dart';
@@ -12,7 +12,7 @@ class FirebaseFeedRepository implements FeedRepository {
   @override
   Future<List<FeedPost>> getFeedPosts({int limit = 10, dynamic lastDoc}) async {
     try {
-      print('[FirebaseFeedRepository] Fetching feed posts...');
+      debugPrint('[FirebaseFeedRepository] Fetching feed posts...');
       Query query = _firestore
           .collection(_collection)
           .where('visibility', isEqualTo: 'public')
@@ -25,25 +25,25 @@ class FirebaseFeedRepository implements FeedRepository {
         query = query.startAfterDocument(lastDoc);
       }
 
-      print('[FirebaseFeedRepository] Running query...');
+      debugPrint('[FirebaseFeedRepository] Running query...');
       final snapshot = await query.get();
-      print('[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.');
+      debugPrint('[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.');
 
       final posts = snapshot.docs.map((doc) {
         try {
           final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
           return FeedPost.fromJson(data);
         } catch (e) {
-          print('[FirebaseFeedRepository] ERROR parsing document ${doc.id}: $e');
+          debugPrint('[FirebaseFeedRepository] ERROR parsing document ${doc.id}: $e');
           return null;
         }
       }).whereType<FeedPost>().toList();
 
-      print('[FirebaseFeedRepository] Successfully parsed ${posts.length} posts.');
+      debugPrint('[FirebaseFeedRepository] Successfully parsed ${posts.length} posts.');
       return posts;
     } catch (e, stack) {
-      print('[FirebaseFeedRepository] CRITICAL ERROR: $e');
-      print(stack);
+      debugPrint('[FirebaseFeedRepository] CRITICAL ERROR: $e');
+      debugPrint(stack.toString());
       rethrow;
     }
   }
@@ -92,7 +92,7 @@ class FirebaseFeedRepository implements FeedRepository {
       }
       return allPosts;
     } catch (e) {
-      print('[FirebaseFeedRepository] Error fetching following feed: $e');
+      debugPrint('[FirebaseFeedRepository] Error fetching following feed: $e');
       rethrow;
     }
   }
@@ -118,7 +118,7 @@ class FirebaseFeedRepository implements FeedRepository {
             final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
             return FeedPost.fromJson(data);
           } catch (e) {
-            print('[FirebaseFeedRepository] ERROR parsing user post ${doc.id}: $e');
+            debugPrint('[FirebaseFeedRepository] ERROR parsing user post ${doc.id}: $e');
             return null;
           }
         })
@@ -203,7 +203,7 @@ class FirebaseFeedRepository implements FeedRepository {
       final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
       return FeedPost.fromJson(data);
     } catch (e) {
-      print('[FirebaseFeedRepository] Error fetching single post $postId: $e');
+      debugPrint('[FirebaseFeedRepository] Error fetching single post $postId: $e');
       return null;
     }
   }

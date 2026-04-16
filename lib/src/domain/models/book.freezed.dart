@@ -234,8 +234,8 @@ return $default(_that.id,_that.title,_that.description,_that.coverUrl,_that.auth
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _Book implements Book {
   const _Book({required this.id, required this.title, this.description, this.coverUrl, required final  List<Author> authors, required final  List<String> subjects, required final  List<String> languages, required final  Map<String, String> formats, @JsonKey(name: 'download_count') required this.downloadCount, @JsonKey(name: 'media_type') required this.mediaType, required final  List<String> bookshelves, this.year, this.source, this.isOriginal, this.contentType, this.authorId, final  List<Chapter>? chapters, this.status, this.createdAt, this.updatedAt, this.identifier, this.recommendationCount, this.weightedScore, this.averageRating, this.viewCount, this.ratingsCount, final  List<String>? topics, this.chapterCount}): _authors = authors,_subjects = subjects,_languages = languages,_formats = formats,_bookshelves = bookshelves,_chapters = chapters,_topics = topics;
   factory _Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);

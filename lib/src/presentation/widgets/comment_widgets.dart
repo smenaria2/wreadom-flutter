@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/comment.dart';
 import 'follow_button.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CommentTile extends StatelessWidget {
   final Comment comment;
@@ -24,7 +25,7 @@ class CommentTile extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           leading: CircleAvatar(
             backgroundImage: comment.userPhotoURL != null
-                ? NetworkImage(comment.userPhotoURL!)
+                ? CachedNetworkImageProvider(comment.userPhotoURL!)
                 : null,
             child: comment.userPhotoURL == null
                 ? Text(comment.username[0].toUpperCase())
@@ -106,7 +107,7 @@ class ReplyTile extends StatelessWidget {
       leading: CircleAvatar(
         radius: 14,
         backgroundImage: reply.userPhotoURL != null
-            ? NetworkImage(reply.userPhotoURL!)
+            ? CachedNetworkImageProvider(reply.userPhotoURL!)
             : null,
         child: reply.userPhotoURL == null
             ? Text(reply.username[0].toUpperCase(), style: const TextStyle(fontSize: 10))

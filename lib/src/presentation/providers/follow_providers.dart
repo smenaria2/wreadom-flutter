@@ -10,7 +10,12 @@ final followRepositoryProvider = Provider<FollowRepository>((ref) {
 
 final isFollowingProvider =
     FutureProvider.family<bool, String>((ref, targetUserId) async {
+  final followingList = await ref.watch(followingListProvider.future);
+  return followingList.contains(targetUserId);
+});
+
+final followingListProvider = FutureProvider<List<String>>((ref) async {
   final user = await ref.watch(currentUserProvider.future);
-  if (user == null) return false;
-  return ref.watch(followRepositoryProvider).isFollowing(user.id, targetUserId);
+  if (user == null) return [];
+  return ref.read(followRepositoryProvider).getFollowingList(user.id);
 });

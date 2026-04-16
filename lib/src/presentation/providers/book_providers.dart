@@ -4,10 +4,16 @@ import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
 import 'auth_providers.dart';
+import '../../data/services/offline_service.dart';
 
 
 final bookRepositoryProvider = Provider<BookRepository>((ref) {
   return CompositeBookRepository();
+});
+
+final offlineServiceProvider = Provider<OfflineService>((ref) {
+  final service = OfflineService();
+  return service;
 });
 
 final originalBooksProvider = FutureProvider<List<Book>>((ref) async {

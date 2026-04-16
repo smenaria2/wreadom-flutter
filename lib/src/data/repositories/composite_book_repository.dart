@@ -134,11 +134,8 @@ class CompositeBookRepository implements BookRepository {
     final firebaseResults = results[0];
     final archiveResults = results[1];
     
-    // Filter Archive results by upvotes
-    final filteredArchive = await _filterArchiveBooks(archiveResults);
-
-    // Combine and limit
-    final combined = [...firebaseResults, ...filteredArchive];
+    // Combine and limit - Return all Archive results for searches (no upvote filter)
+    final combined = [...firebaseResults, ...archiveResults];
     return combined.length > limit ? combined.sublist(0, limit) : combined;
   }
 

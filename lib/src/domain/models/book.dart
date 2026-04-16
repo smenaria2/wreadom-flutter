@@ -6,6 +6,7 @@ part 'book.freezed.dart';
 part 'book.g.dart';
 
 @freezed
+@JsonSerializable(explicitToJson: true)
 abstract class Book with _$Book {
   const factory Book({
     required String id,

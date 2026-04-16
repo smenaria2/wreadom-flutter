@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -191,26 +192,41 @@ class FirebaseBookRepository implements BookRepository {
 
   @override
   Future<List<Book>> searchBooks(String query, {int limit = 20}) async {
-    if (query.trim().isEmpty) return [];
+    final term = query.trim();
+    if (term.isEmpty) return [];
+
     try {
-      final term = query.trim();
-      final snapshot = await _firestore
+      Query dbQuery = _firestore
           .collection(_collection)
-          .where('status', isEqualTo: 'published')
-          .where('title', isGreaterThanOrEqualTo: term)
-          .where('title', isLessThanOrEqualTo: '$term\uf8ff')
-          .limit(limit)
-          .get();
+          .where('status', isEqualTo: 'published');
+
+      if (term.startsWith('subject:')) {
+        final genre = term.split(':').last.trim();
+        dbQuery = dbQuery.where('genres', arrayContains: genre);
+      } else if (term.startsWith('topic:')) {
+        final topic = term.split(':').last.trim();
+        // IA uses 'subject', Firebase uses 'subjects' or 'bookshelves'
+        // For localized topics/subject tags, 'subjects' is the model field
+        dbQuery = dbQuery.where('subjects', arrayContains: topic);
+      } else {
+        // Standard title prefix search
+        dbQuery = dbQuery
+            .where('title', isGreaterThanOrEqualTo: term)
+            .where('title', isLessThanOrEqualTo: '$term\uf8ff');
+      }
+
+      final snapshot = await dbQuery.limit(limit).get();
 
       return snapshot.docs.map((doc) {
         try {
-          final data = normalizeBookMapForModel(doc.data(), doc.id);
+          final data = normalizeBookMapForModel(doc.data() as Map<String, dynamic>, doc.id);
           return Book.fromJson(data);
         } catch (_) {
           return null;
         }
       }).whereType<Book>().toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[FirebaseBookRepository] Error searching books: $e');
       return [];
     }
   }
@@ -246,7 +262,7 @@ class FirebaseBookRepository implements BookRepository {
       final idMap = {for (var book in books) book.id: book};
       return ids.map((id) => idMap[id]).whereType<Book>().toList();
     } catch (e) {
-      print('[FirebaseBookRepository] Error in getBooksByIds: $e');
+      debugPrint('[FirebaseBookRepository] Error in getBooksByIds: $e');
       return [];
     }
   }
@@ -281,7 +297,7 @@ class FirebaseBookRepository implements BookRepository {
 
       await userDoc.update({'readingHistory': history});
     } catch (e) {
-      print('[FirebaseBookRepository] Error updating reading history: $e');
+      debugPrint('[FirebaseBookRepository] Error updating reading history: $e');
     }
   }
 
@@ -324,7 +340,7 @@ class FirebaseBookRepository implements BookRepository {
         }
       });
     } catch (e) {
-      print('[FirebaseBookRepository] Error updating reading progress: $e');
+      debugPrint('[FirebaseBookRepository] Error updating reading progress: $e');
     }
   }
 
@@ -350,7 +366,7 @@ class FirebaseBookRepository implements BookRepository {
         return Chapter.fromJson(data);
       }).toList();
     } catch (e) {
-      print('[FirebaseBookRepository] Error getting chapters: $e');
+      debugPrint('[FirebaseBookRepository] Error getting chapters: $e');
       return [];
     }
   }
@@ -361,7 +377,7 @@ class FirebaseBookRepository implements BookRepository {
       final snapshot = await _firestore.collection('ia_upvotes').get();
       return snapshot.docs.map((doc) => doc.id).toList();
     } catch (e) {
-      print('[FirebaseBookRepository] Error getting upvoted IA IDs: $e');
+      debugPrint('[FirebaseBookRepository] Error getting upvoted IA IDs: $e');
       return [];
     }
   }
