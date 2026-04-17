@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -84,9 +85,8 @@ class HomeBooksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ─── Hero Banner (Daily Topics) ───────────────────────────
-              const _HeroBanner(),
-              const SizedBox(height: 12),
+              const _AuthorSpotlight(),
+              const SizedBox(height: 16),
 
               // ─── Saved Books (Local & Remote) ─────────────────────────
               const _SavedBooksSection(),
@@ -115,6 +115,10 @@ class HomeBooksScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 28),
+
+              // ─── Daily Topics (Hero Banner moved here) ────────────────
+              const _HeroBanner(),
               const SizedBox(height: 28),
 
               // ─── Popular Books ────────────────────────────────────────
@@ -819,7 +823,7 @@ class _BookCardSkeleton extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Colors.grey[200] ?? Colors.grey,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -830,6 +834,234 @@ class _BookCardSkeleton extends StatelessWidget {
           Container(height: 10, width: 70, color: Colors.grey[100]),
         ],
       ),
+    );
+  }
+}
+
+// ─── Author Spotlight ────────────────────────────────────────────────────────
+class _AuthorSpotlight extends ConsumerStatefulWidget {
+  const _AuthorSpotlight();
+
+  @override
+  ConsumerState<_AuthorSpotlight> createState() => _AuthorSpotlightState();
+}
+
+class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
+  int? _randomIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final authorsAsync = ref.watch(homepageAuthorsProvider);
+
+    return authorsAsync.when(
+      data: (authors) {
+        if (authors.isEmpty) return const SizedBox.shrink();
+
+        _randomIndex ??= math.Random().nextInt(authors.length);
+        final author = authors[_randomIndex!];
+        final authorBooksAsync = ref.watch(userBooksProvider(author.id));
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.secondary,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 120,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.white24,
+                            backgroundImage: author.photoURL != null && author.photoURL!.isNotEmpty
+                                ? CachedNetworkImageProvider(author.photoURL!)
+                                : null,
+                            child: (author.photoURL == null || author.photoURL!.isEmpty)
+                                ? Text(
+                                    (author.displayName ?? author.username)
+                                        .characters
+                                        .first
+                                        .toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'AUTHOR SPOTLIGHT',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                author.displayName ?? author.penName ?? author.username,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                author.bio ?? 'Featured Wreadom author.',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    authorBooksAsync.when(
+                      data: (books) {
+                        if (books.isEmpty) return const SizedBox.shrink();
+                        // Only show first 5 books
+                        final displayBooks = books.take(5).toList();
+                        return SizedBox(
+                          height: 100,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: displayBooks.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final book = displayBooks[index];
+                              return GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BookDetailScreen(
+                                      bookId: book.id,
+                                      preloadedBook: book,
+                                    ),
+                                  ),
+                                ),
+                                child: Container(
+                                  width: 70,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: book.coverUrl != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: book.coverUrl!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          color: Colors.white24,
+                                          child: Center(
+                                            child: Text(
+                                              book.title,
+                                              textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      loading: () => const SizedBox(
+                        height: 100,
+                        child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pushNamed(
+                          AppRoutes.publicProfile,
+                          arguments: PublicProfileArguments(userId: author.id),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'View Full Profile',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

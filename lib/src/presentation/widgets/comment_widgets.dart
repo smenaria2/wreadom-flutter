@@ -7,6 +7,7 @@ import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../widgets/report_dialog.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -168,6 +169,27 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ] else if (user != null && comment.id != null) ...[
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap:
+                          () => showDialog(
+                            context: context,
+                            builder:
+                                (context) => ReportDialog(
+                                  targetId: comment.id!,
+                                  targetType: 'comment',
+                                ),
+                          ),
+                      child: Text(
+                        'Report',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                     ),
@@ -337,6 +359,26 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                       fontSize: 11,
                       color: Colors.redAccent,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ] else if (user != null) ...[
+                const SizedBox(width: 14),
+                GestureDetector(
+                  onTap:
+                      () => showDialog(
+                        context: context,
+                        builder:
+                            (context) => ReportDialog(
+                              targetId: reply.id ?? reply.timestamp.toString(),
+                              targetType: 'comment_reply',
+                            ),
+                      ),
+                  child: Text(
+                    'Report',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),

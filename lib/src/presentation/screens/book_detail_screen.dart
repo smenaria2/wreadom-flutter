@@ -13,6 +13,7 @@ import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/report_dialog.dart';
 import '../components/book/comment_reply_sheet.dart';
 
 class BookDetailScreen extends ConsumerStatefulWidget {
@@ -89,6 +90,31 @@ class _BookDetailBody extends ConsumerWidget {
                 'Read "${book.title}" on Wreadom: ${AppLinkHelper.book(book.id)}',
                 subject: book.title,
               ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (val) {
+                if (val == 'report') {
+                  showDialog(
+                    context: context,
+                    builder: (context) => ReportDialog(
+                      targetId: book.id,
+                      targetType: 'book',
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'report',
+                  child: Row(
+                    children: [
+                      Icon(Icons.report_problem_outlined),
+                      SizedBox(width: 8),
+                      Text('Report Book'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
           flexibleSpace: FlexibleSpaceBar(

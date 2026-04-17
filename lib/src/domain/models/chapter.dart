@@ -4,7 +4,6 @@ part 'chapter.freezed.dart';
 part 'chapter.g.dart';
 
 @freezed
-@JsonSerializable(explicitToJson: true)
 abstract class ChapterVersion with _$ChapterVersion {
   const factory ChapterVersion({
     required String content,
@@ -16,7 +15,6 @@ abstract class ChapterVersion with _$ChapterVersion {
 }
 
 @freezed
-@JsonSerializable(explicitToJson: true)
 abstract class Chapter with _$Chapter {
   const factory Chapter({
     required String id,

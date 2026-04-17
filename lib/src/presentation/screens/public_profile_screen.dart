@@ -49,12 +49,23 @@ class PublicProfileScreen extends ConsumerWidget {
                   title: Text(user.displayName ?? user.username),
                   background: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.secondary,
+                          Color(0xFF0D0D0D),
+                          Color(0xFF1A1A1A),
+                          Color(0xFF262626),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        stops: [0.0, 0.5, 1.0],
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: SafeArea(
                       child: Center(

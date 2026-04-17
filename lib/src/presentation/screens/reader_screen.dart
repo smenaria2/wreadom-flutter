@@ -49,6 +49,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   String _selectedText = "";
   late BookRepository _bookRepository;
   String? _currentUserId;
+  double _scrollProgress = 0.0;
 
   @override
   void initState() {
@@ -59,6 +60,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _incrementView();
     _saveHistory();
     _restoreScrollPosition();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0) {
+      final progress =
+          _scrollController.offset /
+          _scrollController.position.maxScrollExtent;
+      if ((progress - _scrollProgress).abs() > 0.01) {
+        setState(() {
+          _scrollProgress = progress.clamp(0.0, 1.0);
+        });
+      }
+    }
   }
 
   Future<void> _incrementView() async {
@@ -379,200 +395,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         Text('Failed to load bookmarks: $error'),
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Text(
-                        'Discussion',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: _getTextColor(),
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  commentsAsync.when(
-                    data: (items) {
-                      final chapterId = chapter?.id.toString();
-                      final chapterComments = items.where((comment) {
-                        if (chapterId != null &&
-                            chapterId.isNotEmpty &&
-                            comment.chapterId == chapterId) {
-                          return true;
-                        }
-                        return comment.chapterIndex == _chapterIndex;
-                      }).toList();
-                      if (chapterComments.isEmpty) {
-                        return Text(
-                          'No comments for this chapter yet.',
-                          style: TextStyle(color: _getSecondaryTextColor()),
-                        );
-                      }
-                      return Column(
-                        children: [
-                          for (final comment in chapterComments)
-                            CommentTile(
-                              comment: comment,
-                              textColor: _getTextColor(),
-                              metadataColor: _getSecondaryTextColor(),
-                              onReply: () {
-                                setState(() => _replyingTo = comment);
-                                _commentFocusNode.requestFocus();
-                              },
-                            ),
-                        ],
-                      );
-                    },
-                    loading: () => const LinearProgressIndicator(),
-                    error: (error, _) =>
-                        Text('Failed to load comments: $error'),
-                  ),
-                  if (_selectedQuote != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border(
-                          left: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 4,
-                          ),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.format_quote,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Quote',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: () =>
-                                    setState(() => _selectedQuote = null),
-                                child: const Icon(Icons.close, size: 16),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _selectedQuote!,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              fontSize: 13,
-                              color: _getSecondaryTextColor(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_replyingTo != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
-                              style: TextStyle(
-                                fontStyle: FontStyle.italic,
-                                color: _getSecondaryTextColor(),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () => setState(() => _replyingTo = null),
-                          ),
-                        ],
-                      ),
-                    )
-                  else ...[
-                    // Star Rating bar for new reviews/comments
-                    Row(
-                      children: [
-                        Text(
-                          'Your Rating:',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _getSecondaryTextColor(),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ...List.generate(5, (index) {
-                          final active = index < _chapterRating;
-                          return GestureDetector(
-                            onTap: () => setState(() => _chapterRating = (_chapterRating == index + 1) ? 0 : index + 1),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
-                              child: Icon(
-                                active ? Icons.star_rounded : Icons.star_border_rounded,
-                                color: active ? Colors.amber : _getSecondaryTextColor(),
-                                size: 24,
-                              ),
-                            ),
-                          );
-                        }),
-                        if (_chapterRating > 0)
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () => setState(() => _chapterRating = 0),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  TextField(
-                    controller: _commentController,
-                    focusNode: _commentFocusNode,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: _replyingTo != null
-                          ? 'Add a reply...'
-                          : 'Add a comment about this chapter',
-                      hintStyle: TextStyle(color: _getSecondaryTextColor()),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: _getInputFillColor(),
-                    ),
-                    style: TextStyle(color: _getTextColor()),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton(
-                      onPressed: () => _submitComment(chapter),
-                      child: const Text('Comment'),
-                    ),
-                  ),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: _ReaderBottomBar(
+        progress: _scrollProgress,
+        onSwipeUp: () => _showDiscussion(chapter),
+        onTap: () => _showDiscussion(chapter),
+        theme: _readerTheme,
       ),
     );
   }
@@ -693,6 +527,260 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
+
+  void _showDiscussion(dynamic chapter) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: _getBackgroundColor(),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.all(12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _getSecondaryTextColor().withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    StatefulBuilder(
+                      builder: (context, setModalState) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_selectedQuote != null)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 4,
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.format_quote,
+                                          size: 16,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Text(
+                                          'Quote',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() => _selectedQuote = null);
+                                            setModalState(() {});
+                                          },
+                                          child: const Icon(Icons.close, size: 16),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _selectedQuote!,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        fontSize: 13,
+                                        color: _getSecondaryTextColor(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (_replyingTo != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                                          style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 13,
+                                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() => _replyingTo = null);
+                                          setModalState(() {});
+                                        },
+                                        child: const Icon(Icons.close, size: 16),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else ...[
+                              Row(
+                                children: [
+                                  Text(
+                                    'Your Rating:',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _getSecondaryTextColor(),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ...List.generate(5, (index) {
+                                    final active = index < _chapterRating;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() => _chapterRating = (_chapterRating == index + 1) ? 0 : index + 1);
+                                        setModalState(() {});
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        child: Icon(
+                                          active ? Icons.star_rounded : Icons.star_border_rounded,
+                                          color: active ? Colors.amber : _getSecondaryTextColor(),
+                                          size: 24,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            TextField(
+                              controller: _commentController,
+                              minLines: 2,
+                              maxLines: 4,
+                              decoration: InputDecoration(
+                                hintText: _replyingTo != null
+                                    ? 'Add a reply...'
+                                    : 'Add a comment about this chapter',
+                                hintStyle: TextStyle(color: _getSecondaryTextColor()),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: _getInputFillColor(),
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: IconButton(
+                                    icon: Icon(Icons.send_rounded, color: Theme.of(context).colorScheme.primary),
+                                    onPressed: () async {
+                                      await _submitComment(chapter);
+                                      setModalState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              style: TextStyle(color: _getTextColor()),
+                            ),
+                            const SizedBox(height: 24),
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+                                return commentsAsync.when(
+                                  data: (items) {
+                                    final chapterId = chapter?.id.toString();
+                                    final chapterComments = items.where((comment) {
+                                      if (chapterId != null &&
+                                          chapterId.isNotEmpty &&
+                                          comment.chapterId == chapterId) {
+                                        return true;
+                                      }
+                                      return comment.chapterIndex == _chapterIndex;
+                                    }).toList();
+
+                                    if (chapterComments.isEmpty) {
+                                      return Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(32.0),
+                                          child: Column(
+                                            children: [
+                                              Icon(Icons.chat_bubble_outline_rounded, size: 48, color: _getSecondaryTextColor().withValues(alpha: 0.3)),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'No comments for this chapter yet.',
+                                                style: TextStyle(color: _getSecondaryTextColor()),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+
+                                    return Column(
+                                      children: [
+                                        for (final comment in chapterComments)
+                                          CommentTile(
+                                            comment: comment,
+                                            textColor: _getTextColor(),
+                                            metadataColor: _getSecondaryTextColor(),
+                                            onReply: () {
+                                              setState(() => _replyingTo = comment);
+                                              setModalState(() {});
+                                            },
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                  loading: () => const Center(child: LinearProgressIndicator()),
+                                  error: (error, _) => Text('Error: $error'),
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showSettings() {
     showModalBottomSheet<void>(
@@ -949,6 +1037,68 @@ class _ThemeOption extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReaderBottomBar extends StatelessWidget {
+  const _ReaderBottomBar({
+    required this.progress,
+    required this.onSwipeUp,
+    required this.onTap,
+    required this.theme,
+  });
+
+  final double progress;
+  final VoidCallback onSwipeUp;
+  final VoidCallback onTap;
+  final ReaderTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = theme == ReaderTheme.dark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = theme == ReaderTheme.dark ? Colors.white70 : Colors.black54;
+
+    return GestureDetector(
+      onVerticalDragEnd: (details) {
+        if (details.primaryVelocity != null && details.primaryVelocity! < -100) {
+          onSwipeUp();
+        }
+      },
+      onTap: onTap,
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: bgColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Progress Bar
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: textColor.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+              minHeight: 2,
+            ),
+            Expanded(
+              child: Center(
+                child: Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  size: 24,
+                  color: textColor.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

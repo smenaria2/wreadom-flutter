@@ -208,8 +208,8 @@ return $default(_that.content,_that.timestamp,_that.wordCount);case _:
 }
 
 /// @nodoc
+@JsonSerializable()
 
-@JsonSerializable(explicitToJson: true)
 class _ChapterVersion implements ChapterVersion {
   const _ChapterVersion({required this.content, required this.timestamp, required this.wordCount});
   factory _ChapterVersion.fromJson(Map<String, dynamic> json) => _$ChapterVersionFromJson(json);
@@ -483,8 +483,8 @@ return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_tha
 }
 
 /// @nodoc
+@JsonSerializable()
 
-@JsonSerializable(explicitToJson: true)
 class _Chapter implements Chapter {
   const _Chapter({required this.id, required this.title, required this.content, required this.index, this.status, final  List<ChapterVersion>? versions, this.lastSavedAt, this.isTitleLocked, this.originalBookId}): _versions = versions;
   factory _Chapter.fromJson(Map<String, dynamic> json) => _$ChapterFromJson(json);

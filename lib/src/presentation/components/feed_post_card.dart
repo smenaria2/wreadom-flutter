@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../../utils/format_utils.dart';
+import '../widgets/report_dialog.dart';
 
 
 /// Maps post type → accent colour
@@ -215,6 +216,43 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ],
                       ),
                     ),
+                    if (currentUser != null && post.userId != currentUser.id) ...[
+                      const SizedBox(width: 4),
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          size: 18,
+                          color: Colors.grey[400],
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onSelected: (val) {
+                          if (val == 'report') {
+                            showDialog(
+                              context: context,
+                              builder:
+                                  (context) => ReportDialog(
+                                    targetId: post.id!,
+                                    targetType: 'post',
+                                  ),
+                            );
+                          }
+                        },
+                        itemBuilder:
+                            (context) => [
+                              const PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.report_problem_outlined, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Report Post'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                      ),
+                    ],
                   ],
                 ),
 

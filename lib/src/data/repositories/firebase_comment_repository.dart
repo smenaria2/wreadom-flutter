@@ -12,9 +12,28 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<String> addComment(Comment comment) async {
+    final batch = _firestore.batch();
+    final docRef = _firestore.collection('comments').doc();
     final data = comment.toJson()..remove('id');
-    final doc = await _firestore.collection('comments').add(data);
-    return doc.id;
+    
+    batch.set(docRef, data);
+
+    // Sync counts atomically
+    if (comment.bookId != null) {
+      batch.update(
+        _firestore.collection('books').doc(comment.bookId!),
+        {'commentCount': FieldValue.increment(1)},
+      );
+    }
+    if (comment.feedPostId != null) {
+      batch.update(
+        _firestore.collection('feed').doc(comment.feedPostId!),
+        {'commentCount': FieldValue.increment(1)},
+      );
+    }
+
+    await batch.commit();
+    return docRef.id;
   }
 
   @override
@@ -31,7 +50,27 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<void> deleteComment(String commentId) async {
-    await _firestore.collection('comments').doc(commentId).delete();
+    final docRef = _firestore.collection('comments').doc(commentId);
+    final docSnap = await docRef.get();
+    if (!docSnap.exists) return;
+
+    final comment = Comment.fromJson(mapFirestoreData(docSnap.data()!, docSnap.id));
+    final batch = _firestore.batch();
+    batch.delete(docRef);
+
+    if (comment.bookId != null) {
+      batch.update(
+        _firestore.collection('books').doc(comment.bookId!),
+        {'commentCount': FieldValue.increment(-1)},
+      );
+    }
+    if (comment.feedPostId != null) {
+      batch.update(
+        _firestore.collection('feed').doc(comment.feedPostId!),
+        {'commentCount': FieldValue.increment(-1)},
+      );
+    }
+    await batch.commit();
   }
 
   @override
@@ -59,9 +98,11 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<List<Comment>> getBookComments(String bookId) async {
+    final idAsInt = int.tryParse(bookId);
+    final ids = [bookId, ?idAsInt];
     final snapshot = await _firestore
         .collection('comments')
-        .where('bookId', isEqualTo: bookId)
+        .where('bookId', whereIn: ids)
         .get();
     final items = snapshot.docs.map((doc) {
       final data = mapFirestoreData(doc.data(), doc.id);
@@ -73,9 +114,11 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<List<Comment>> getFeedPostComments(String postId) async {
+    final idAsInt = int.tryParse(postId);
+    final ids = [postId, ?idAsInt];
     final snapshot = await _firestore
         .collection('comments')
-        .where('feedPostId', isEqualTo: postId)
+        .where('feedPostId', whereIn: ids)
         .get();
     final items = snapshot.docs.map((doc) {
       final data = mapFirestoreData(doc.data(), doc.id);

@@ -40,7 +40,7 @@ Map<String, dynamic> _$ChapterToJson(_Chapter instance) => <String, dynamic>{
   'content': instance.content,
   'index': instance.index,
   'status': instance.status,
-  'versions': instance.versions?.map((e) => e.toJson()).toList(),
+  'versions': instance.versions,
   'lastSavedAt': instance.lastSavedAt,
   'isTitleLocked': instance.isTitleLocked,
   'originalBookId': instance.originalBookId,

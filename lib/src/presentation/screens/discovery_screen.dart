@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/book_providers.dart';
 import '../providers/discovery_providers.dart';
+import '../providers/homepage_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import 'book_detail_screen.dart';
@@ -458,3 +460,4 @@ class _MiniPlaceholder extends StatelessWidget {
     );
   }
 }
+
