@@ -28,18 +28,6 @@ class WriterDashboardScreen extends ConsumerWidget {
               elevation: 0,
               backgroundColor: theme.primaryColor,
               title: const Text('Writer Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.print_outlined, color: Colors.white),
-                  onPressed: () {
-                    // Placeholder for Print Book action
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Print service coming soon to mobile!')),
-                    );
-                  },
-                  tooltip: 'Print Book',
-                ),
-              ],
             ),
             const SliverToBoxAdapter(
               child: WriterDashboardHeader(),

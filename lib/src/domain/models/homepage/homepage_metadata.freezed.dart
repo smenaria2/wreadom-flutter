@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HomepageMetadata {
 
- Map<String, BookRecommendationStats> get recommendationStats; List<DailyTopic> get dailyTopics;
+ List<UserModel> get authors; Map<String, BookRecommendationStats> get recommendationStats; List<DailyTopic> get dailyTopics;
 /// Create a copy of HomepageMetadata
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $HomepageMetadataCopyWith<HomepageMetadata> get copyWith => _$HomepageMetadataCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomepageMetadata&&const DeepCollectionEquality().equals(other.recommendationStats, recommendationStats)&&const DeepCollectionEquality().equals(other.dailyTopics, dailyTopics));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomepageMetadata&&const DeepCollectionEquality().equals(other.authors, authors)&&const DeepCollectionEquality().equals(other.recommendationStats, recommendationStats)&&const DeepCollectionEquality().equals(other.dailyTopics, dailyTopics));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(recommendationStats),const DeepCollectionEquality().hash(dailyTopics));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(authors),const DeepCollectionEquality().hash(recommendationStats),const DeepCollectionEquality().hash(dailyTopics));
 
 @override
 String toString() {
-  return 'HomepageMetadata(recommendationStats: $recommendationStats, dailyTopics: $dailyTopics)';
+  return 'HomepageMetadata(authors: $authors, recommendationStats: $recommendationStats, dailyTopics: $dailyTopics)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $HomepageMetadataCopyWith<$Res>  {
   factory $HomepageMetadataCopyWith(HomepageMetadata value, $Res Function(HomepageMetadata) _then) = _$HomepageMetadataCopyWithImpl;
 @useResult
 $Res call({
- Map<String, BookRecommendationStats> recommendationStats, List<DailyTopic> dailyTopics
+ List<UserModel> authors, Map<String, BookRecommendationStats> recommendationStats, List<DailyTopic> dailyTopics
 });
 
 
@@ -65,9 +65,10 @@ class _$HomepageMetadataCopyWithImpl<$Res>
 
 /// Create a copy of HomepageMetadata
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recommendationStats = null,Object? dailyTopics = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? authors = null,Object? recommendationStats = null,Object? dailyTopics = null,}) {
   return _then(_self.copyWith(
-recommendationStats: null == recommendationStats ? _self.recommendationStats : recommendationStats // ignore: cast_nullable_to_non_nullable
+authors: null == authors ? _self.authors : authors // ignore: cast_nullable_to_non_nullable
+as List<UserModel>,recommendationStats: null == recommendationStats ? _self.recommendationStats : recommendationStats // ignore: cast_nullable_to_non_nullable
 as Map<String, BookRecommendationStats>,dailyTopics: null == dailyTopics ? _self.dailyTopics : dailyTopics // ignore: cast_nullable_to_non_nullable
 as List<DailyTopic>,
   ));
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<UserModel> authors,  Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomepageMetadata() when $default != null:
-return $default(_that.recommendationStats,_that.dailyTopics);case _:
+return $default(_that.authors,_that.recommendationStats,_that.dailyTopics);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.recommendationStats,_that.dailyTopics);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<UserModel> authors,  Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)  $default,) {final _that = this;
 switch (_that) {
 case _HomepageMetadata():
-return $default(_that.recommendationStats,_that.dailyTopics);case _:
+return $default(_that.authors,_that.recommendationStats,_that.dailyTopics);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +196,10 @@ return $default(_that.recommendationStats,_that.dailyTopics);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<UserModel> authors,  Map<String, BookRecommendationStats> recommendationStats,  List<DailyTopic> dailyTopics)?  $default,) {final _that = this;
 switch (_that) {
 case _HomepageMetadata() when $default != null:
-return $default(_that.recommendationStats,_that.dailyTopics);case _:
+return $default(_that.authors,_that.recommendationStats,_that.dailyTopics);case _:
   return null;
 
 }
@@ -210,8 +211,15 @@ return $default(_that.recommendationStats,_that.dailyTopics);case _:
 @JsonSerializable()
 
 class _HomepageMetadata implements HomepageMetadata {
-  const _HomepageMetadata({final  Map<String, BookRecommendationStats> recommendationStats = const {}, final  List<DailyTopic> dailyTopics = const []}): _recommendationStats = recommendationStats,_dailyTopics = dailyTopics;
+  const _HomepageMetadata({final  List<UserModel> authors = const [], final  Map<String, BookRecommendationStats> recommendationStats = const {}, final  List<DailyTopic> dailyTopics = const []}): _authors = authors,_recommendationStats = recommendationStats,_dailyTopics = dailyTopics;
   factory _HomepageMetadata.fromJson(Map<String, dynamic> json) => _$HomepageMetadataFromJson(json);
+
+ final  List<UserModel> _authors;
+@override@JsonKey() List<UserModel> get authors {
+  if (_authors is EqualUnmodifiableListView) return _authors;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_authors);
+}
 
  final  Map<String, BookRecommendationStats> _recommendationStats;
 @override@JsonKey() Map<String, BookRecommendationStats> get recommendationStats {
@@ -241,16 +249,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomepageMetadata&&const DeepCollectionEquality().equals(other._recommendationStats, _recommendationStats)&&const DeepCollectionEquality().equals(other._dailyTopics, _dailyTopics));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomepageMetadata&&const DeepCollectionEquality().equals(other._authors, _authors)&&const DeepCollectionEquality().equals(other._recommendationStats, _recommendationStats)&&const DeepCollectionEquality().equals(other._dailyTopics, _dailyTopics));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_recommendationStats),const DeepCollectionEquality().hash(_dailyTopics));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_authors),const DeepCollectionEquality().hash(_recommendationStats),const DeepCollectionEquality().hash(_dailyTopics));
 
 @override
 String toString() {
-  return 'HomepageMetadata(recommendationStats: $recommendationStats, dailyTopics: $dailyTopics)';
+  return 'HomepageMetadata(authors: $authors, recommendationStats: $recommendationStats, dailyTopics: $dailyTopics)';
 }
 
 
@@ -261,7 +269,7 @@ abstract mixin class _$HomepageMetadataCopyWith<$Res> implements $HomepageMetada
   factory _$HomepageMetadataCopyWith(_HomepageMetadata value, $Res Function(_HomepageMetadata) _then) = __$HomepageMetadataCopyWithImpl;
 @override @useResult
 $Res call({
- Map<String, BookRecommendationStats> recommendationStats, List<DailyTopic> dailyTopics
+ List<UserModel> authors, Map<String, BookRecommendationStats> recommendationStats, List<DailyTopic> dailyTopics
 });
 
 
@@ -278,9 +286,10 @@ class __$HomepageMetadataCopyWithImpl<$Res>
 
 /// Create a copy of HomepageMetadata
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recommendationStats = null,Object? dailyTopics = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? authors = null,Object? recommendationStats = null,Object? dailyTopics = null,}) {
   return _then(_HomepageMetadata(
-recommendationStats: null == recommendationStats ? _self._recommendationStats : recommendationStats // ignore: cast_nullable_to_non_nullable
+authors: null == authors ? _self._authors : authors // ignore: cast_nullable_to_non_nullable
+as List<UserModel>,recommendationStats: null == recommendationStats ? _self._recommendationStats : recommendationStats // ignore: cast_nullable_to_non_nullable
 as Map<String, BookRecommendationStats>,dailyTopics: null == dailyTopics ? _self._dailyTopics : dailyTopics // ignore: cast_nullable_to_non_nullable
 as List<DailyTopic>,
   ));

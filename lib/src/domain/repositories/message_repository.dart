@@ -13,4 +13,8 @@ abstract class MessageRepository {
     required UserModel sender,
     required String text,
   });
+  Future<void> deleteConversationForUser({
+    required String conversationId,
+    required String userId,
+  });
 }

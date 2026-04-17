@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../utils/firestore_utils.dart';
+import '../../utils/map_utils.dart';
 
 class FirebaseFeedRepository implements FeedRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,7 +32,7 @@ class FirebaseFeedRepository implements FeedRepository {
 
       final posts = snapshot.docs.map((doc) {
         try {
-          final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+          final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
           return FeedPost.fromJson(data);
         } catch (e) {
           debugPrint('[FirebaseFeedRepository] ERROR parsing document ${doc.id}: $e');
@@ -81,7 +82,7 @@ class FirebaseFeedRepository implements FeedRepository {
         final snapshot = await query.get();
         allPosts.addAll(snapshot.docs.map((doc) {
           final data =
-              mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+              mapFirestoreData(asStringMap(doc.data()), doc.id);
           return FeedPost.fromJson(data);
         }).toList());
       }
@@ -115,7 +116,7 @@ class FirebaseFeedRepository implements FeedRepository {
     return snapshot.docs
         .map((doc) {
           try {
-            final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+            final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
             return FeedPost.fromJson(data);
           } catch (e) {
             debugPrint('[FirebaseFeedRepository] ERROR parsing user post ${doc.id}: $e');
@@ -151,7 +152,7 @@ class FirebaseFeedRepository implements FeedRepository {
 
     if (!doc.exists) return;
 
-    final data = doc.data() as Map<String, dynamic>;
+    final data = asStringMap(doc.data());
     final List<dynamic> likes = data['likes'] ?? [];
 
     if (likes.contains(userId)) {
@@ -200,7 +201,7 @@ class FirebaseFeedRepository implements FeedRepository {
     try {
       final doc = await _firestore.collection(_collection).doc(postId).get();
       if (!doc.exists) return null;
-      final data = mapFirestoreData(doc.data() as Map<String, dynamic>, doc.id);
+      final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
       return FeedPost.fromJson(data);
     } catch (e) {
       debugPrint('[FirebaseFeedRepository] Error fetching single post $postId: $e');

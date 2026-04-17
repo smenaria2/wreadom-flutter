@@ -19,3 +19,13 @@ final followingListProvider = FutureProvider<List<String>>((ref) async {
   if (user == null) return [];
   return ref.read(followRepositoryProvider).getFollowingList(user.id);
 });
+
+final userFollowingListProvider =
+    FutureProvider.family<List<String>, String>((ref, userId) async {
+  return ref.read(followRepositoryProvider).getFollowingList(userId);
+});
+
+final userFollowersListProvider =
+    FutureProvider.family<List<String>, String>((ref, userId) async {
+  return ref.read(followRepositoryProvider).getFollowersList(userId);
+});

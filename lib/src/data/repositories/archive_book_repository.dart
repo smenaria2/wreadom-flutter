@@ -5,7 +5,7 @@ import '../services/archive_book_service.dart';
 
 class ArchiveBookRepository implements BookRepository {
   ArchiveBookRepository({ArchiveBookService? service})
-      : _service = service ?? ArchiveBookService();
+    : _service = service ?? ArchiveBookService();
 
   final ArchiveBookService _service;
 
@@ -25,7 +25,11 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> getBooksByBookshelf(String bookshelf, {int limit = 10, dynamic lastDoc}) async {
+  Future<List<Book>> getBooksByBookshelf(
+    String bookshelf, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) async {
     final result = await _service.searchBooks(subject: bookshelf, rows: limit);
     return result['results'] as List<Book>;
   }
@@ -37,6 +41,14 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
+  Future<List<Book>> getOriginalBooksByTopic(
+    String topic, {
+    int limit = 40,
+  }) async {
+    return [];
+  }
+
+  @override
   Future<List<Book>> getUserBooks(String userId) async {
     // Archive doesn't store per-user books in our sense
     return [];
@@ -44,13 +56,19 @@ class ArchiveBookRepository implements BookRepository {
 
   @override
   Future<List<Book>> getPopularBooks({int limit = 10}) async {
-    final result = await _service.searchBooks(rows: limit, sort: 'downloads desc');
+    final result = await _service.searchBooks(
+      rows: limit,
+      sort: 'downloads desc',
+    );
     return result['results'] as List<Book>;
   }
 
   @override
   Future<List<Book>> getRecentBooks({int limit = 10}) async {
-    final result = await _service.searchBooks(rows: limit, sort: 'publicdate desc');
+    final result = await _service.searchBooks(
+      rows: limit,
+      sort: 'publicdate desc',
+    );
     return result['results'] as List<Book>;
   }
 
@@ -58,6 +76,16 @@ class ArchiveBookRepository implements BookRepository {
   Future<List<Book>> searchBooks(String query, {int limit = 20}) async {
     final result = await _service.searchBooks(query: query, rows: limit);
     return result['results'] as List<Book>;
+  }
+
+  @override
+  Future<List<Book>> searchOriginalBooks(String query, {int limit = 20}) async {
+    return [];
+  }
+
+  @override
+  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20}) async {
+    return searchBooks(query, limit: limit);
   }
 
   @override
@@ -80,13 +108,21 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
-  Future<void> updateReadingProgress(String userId, String bookId,
-      {required int chapterIndex, required double position}) async {
+  Future<void> updateReadingProgress(
+    String userId,
+    String bookId, {
+    required int chapterIndex,
+    required double position,
+  }) async {
     // Handled by Composite/Firebase repository
   }
 
   @override
-  Future<List<Book>> getBooksByGenre(String genre, {int limit = 10, dynamic lastDoc}) async {
+  Future<List<Book>> getBooksByGenre(
+    String genre, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) async {
     // Map genre to archive subjects
     final result = await _service.searchBooks(subject: genre, rows: limit);
     return result['results'] as List<Book>;
@@ -99,4 +135,7 @@ class ArchiveBookRepository implements BookRepository {
 
   @override
   Future<List<String>> getUpvotedIABookIds() async => [];
+
+  @override
+  Future<List<Book>> getUpvotedIABooks({int limit = 20}) async => [];
 }

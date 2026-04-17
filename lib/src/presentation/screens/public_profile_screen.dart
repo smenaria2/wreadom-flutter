@@ -4,17 +4,19 @@ import '../widgets/follow_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../providers/auth_providers.dart';
+import '../providers/book_providers.dart';
+import '../providers/feed_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../components/book_card.dart';
+import '../components/feed_post_card.dart';
+import 'follow_list_screen.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
-  const PublicProfileScreen({
-    super.key,
-    required this.userId,
-  });
+  const PublicProfileScreen({super.key, required this.userId});
 
   final String userId;
 
@@ -31,6 +33,12 @@ class PublicProfileScreen extends ConsumerWidget {
           if (user == null) {
             return const Center(child: Text('User not found'));
           }
+          final level = (user.privacyLevel ?? 'public').toLowerCase();
+          final contentVisible =
+              isSelf ||
+              level == 'public' ||
+              (level != 'private' &&
+                  (user.email.isNotEmpty || user.pinnedWorks != null));
 
           return CustomScrollView(
             slivers: [
@@ -87,10 +95,9 @@ class PublicProfileScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Text(
                           user.bio!,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(height: 1.5),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.5),
                         ),
                       ],
                       const SizedBox(height: 20),
@@ -99,11 +106,27 @@ class PublicProfileScreen extends ConsumerWidget {
                           _StatChip(
                             label: 'Followers',
                             value: '${user.followersCount ?? 0}',
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.followList,
+                              arguments: FollowListArguments(
+                                userId: userId,
+                                mode: FollowListMode.followers,
+                                title: 'Followers',
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           _StatChip(
                             label: 'Following',
                             value: '${user.followingCount ?? 0}',
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.followList,
+                              arguments: FollowListArguments(
+                                userId: userId,
+                                mode: FollowListMode.following,
+                                title: 'Following',
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           _StatChip(
@@ -116,9 +139,10 @@ class PublicProfileScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         followingAsync.when(
                           data: (isFollowing) {
-                            final level =
-                                (user.privacyLevel ?? 'public').toLowerCase();
-                            final followersOnly = level == 'followers' ||
+                            final level = (user.privacyLevel ?? 'public')
+                                .toLowerCase();
+                            final followersOnly =
+                                level == 'followers' ||
                                 level == 'followersonly' ||
                                 level == 'followers_only';
                             if (level == 'private') {
@@ -150,8 +174,9 @@ class PublicProfileScreen extends ConsumerWidget {
                           FollowButton(targetUserId: userId),
                           OutlinedButton.icon(
                             onPressed: () async {
-                              final currentUser =
-                                  await ref.read(currentUserProvider.future);
+                              final currentUser = await ref.read(
+                                currentUserProvider.future,
+                              );
                               if (currentUser == null) return;
                               final conversationId = await ref
                                   .read(messageRepositoryProvider)
@@ -164,8 +189,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                   AppRoutes.conversation,
                                   arguments: ConversationArguments(
                                     conversationId: conversationId,
-                                    title:
-                                        user.displayName ?? user.username,
+                                    title: user.displayName ?? user.username,
                                     subtitle: '@${user.username}',
                                   ),
                                 );
@@ -176,6 +200,10 @@ class PublicProfileScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      if (contentVisible) ...[
+                        const SizedBox(height: 28),
+                        _PublicProfileContentTabs(userId: userId),
+                      ],
                     ],
                   ),
                 ),
@@ -190,11 +218,61 @@ class PublicProfileScreen extends ConsumerWidget {
   }
 }
 
+class _PublicProfileContentTabs extends StatefulWidget {
+  const _PublicProfileContentTabs({required this.userId});
+
+  final String userId;
+
+  @override
+  State<_PublicProfileContentTabs> createState() =>
+      _PublicProfileContentTabsState();
+}
+
+class _PublicProfileContentTabsState extends State<_PublicProfileContentTabs>
+    with SingleTickerProviderStateMixin {
+  late final TabController _controller;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (_index != _controller.index) {
+          setState(() => _index = _controller.index);
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _controller,
+          tabs: const [
+            Tab(text: 'Books'),
+            Tab(text: 'Posts'),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (_index == 0)
+          _PublicBooksSection(userId: widget.userId)
+        else
+          _PublicPostsSection(userId: widget.userId),
+      ],
+    );
+  }
+}
+
 class _PrivacyNoticeCard extends StatelessWidget {
-  const _PrivacyNoticeCard({
-    required this.message,
-    required this.icon,
-  });
+  const _PrivacyNoticeCard({required this.message, required this.icon});
 
   final String message;
   final IconData icon;
@@ -224,21 +302,99 @@ class _PrivacyNoticeCard extends StatelessWidget {
 }
 
 class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.label,
-    required this.value,
-  });
+  const _StatChip({required this.label, required this.value, this.onTap});
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
+    return ActionChip(
       label: Text('$value $label'),
+      onPressed: onTap,
       side: BorderSide.none,
-      backgroundColor:
-          Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+      backgroundColor: Theme.of(
+        context,
+      ).colorScheme.primaryContainer.withValues(alpha: 0.5),
+    );
+  }
+}
+
+class _PublicBooksSection extends ConsumerWidget {
+  const _PublicBooksSection({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final booksAsync = ref.watch(userBooksProvider(userId));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Books',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        booksAsync.when(
+          data: (books) {
+            if (books.isEmpty) {
+              return const Text('No published books yet.');
+            }
+            return SizedBox(
+              height: 210,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: books.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => BookCard(book: books[index]),
+              ),
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => Text('Failed to load books: $error'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PublicPostsSection extends ConsumerWidget {
+  const _PublicPostsSection({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(userFeedPostsProvider(userId));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Posts',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        postsAsync.when(
+          data: (posts) {
+            if (posts.isEmpty) {
+              return const Text('No posts yet.');
+            }
+            return Column(
+              children: [
+                for (final post in posts.take(10)) FeedPostCard(post: post),
+              ],
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => Text('Failed to load posts: $error'),
+        ),
+      ],
     );
   }
 }

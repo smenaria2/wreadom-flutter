@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../user_model.dart';
 
 part 'homepage_metadata.freezed.dart';
 part 'homepage_metadata.g.dart';
@@ -6,6 +7,7 @@ part 'homepage_metadata.g.dart';
 @freezed
 abstract class HomepageMetadata with _$HomepageMetadata {
   const factory HomepageMetadata({
+    @Default([]) List<UserModel> authors,
     @Default({}) Map<String, BookRecommendationStats> recommendationStats,
     @Default([]) List<DailyTopic> dailyTopics,
   }) = _HomepageMetadata;

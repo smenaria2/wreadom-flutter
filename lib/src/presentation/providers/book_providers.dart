@@ -58,10 +58,23 @@ final readingHistoryBooksProvider = FutureProvider<List<Book>>((ref) async {
 
 final savedBooksProvider = FutureProvider<List<Book>>((ref) async {
   final user = await ref.watch(currentUserProvider.future);
-  if (user == null || user.savedBooks.isEmpty) return [];
+  final offlineBooks = ref.watch(offlineServiceProvider).getDownloadedBooks();
+  if (user == null || user.savedBooks.isEmpty) return offlineBooks;
 
   final ids = user.savedBooks.map((id) => id.toString()).toList();
-  return ref.watch(bookRepositoryProvider).getBooksByIds(ids);
+  final remoteBooks = await ref.watch(bookRepositoryProvider).getBooksByIds(ids);
+  final byId = <String, Book>{
+    for (final book in offlineBooks) book.id: book,
+    for (final book in remoteBooks) book.id: book,
+  };
+  return [
+    ...ids.map((id) => byId[id]).whereType<Book>(),
+    ...offlineBooks.where((book) => !ids.contains(book.id)),
+  ];
+});
+
+final downloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
+  return ref.watch(offlineServiceProvider).getDownloadedBooks();
 });
 
 final pinnedBooksProvider = FutureProvider<List<Book>>((ref) async {

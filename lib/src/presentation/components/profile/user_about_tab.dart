@@ -1,95 +1,93 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/book_providers.dart';
-import '../../../domain/models/user_model.dart';
-import '../book_card.dart';
 
-class UserAboutTab extends ConsumerWidget {
-  final UserModel user;
+import '../../../core/constants/gamification_constants.dart';
+import '../../../domain/models/user_model.dart';
+
+class UserAboutTab extends StatelessWidget {
   const UserAboutTab({super.key, required this.user});
 
+  final UserModel user;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final points = user.totalPoints ?? 0;
+    final tier = GamificationConstants.getTier(points);
+    final tierName = tier['name']?.toString() ?? 'Beginner';
+    final tierLevel = user.tier ?? tier['level'] as int? ?? 1;
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       children: [
-        // ─── Bio ──────────────────────────────────────────
         const Text(
           'Bio',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
         Text(
           user.bio ?? 'No bio yet.',
-          style: TextStyle(
-            color: Colors.grey[800],
-            fontSize: 14,
-            height: 1.5,
-          ),
+          style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.5),
         ),
         const SizedBox(height: 24),
-
-        // ─── Pinned Works ─────────────────────────────────
         const Text(
-          'Pinned Works',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          'Progress',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 12),
-        _HorizontalBookSection(
-          provider: pinnedBooksProvider,
+        Row(
+          children: [
+            Expanded(
+              child: _ProgressTile(
+                icon: Icons.stars_rounded,
+                label: 'Points',
+                value: points.toString(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ProgressTile(
+                icon: Icons.military_tech_rounded,
+                label: 'Tier $tierLevel',
+                value: tierName,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _HorizontalBookSection extends ConsumerWidget {
-  final FutureProvider<List<dynamic>> provider;
+class _ProgressTile extends StatelessWidget {
+  const _ProgressTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
-  const _HorizontalBookSection({required this.provider});
+  final IconData icon;
+  final String label;
+  final String value;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final booksAsync = ref.watch(provider);
-
-    return booksAsync.when(
-      data: (books) {
-        if (books.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text(
-                'No pinned books.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ),
-          );
-        }
-
-        return SizedBox(
-          height: 200,
-          child: ListView.separated(
-            padding: EdgeInsets.zero,
-            scrollDirection: Axis.horizontal,
-            itemCount: books.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => BookCard(book: books[i]),
-          ),
-        );
-      },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: CircularProgressIndicator(),
-        ),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }

@@ -1,17 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
-import '../../utils/maintenance_utils.dart';
 import '../../utils/format_utils.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
 import '../components/profile/user_history_tab.dart';
 import '../components/profile/user_saved_tab.dart';
+import 'follow_list_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -58,7 +58,10 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       background: Container(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
                         child: SafeArea(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -66,7 +69,9 @@ class ProfileScreen extends ConsumerWidget {
                               // Avatar
                               CircleAvatar(
                                 radius: 42,
-                                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.1),
                                 backgroundImage: user.photoURL != null
                                     ? CachedNetworkImageProvider(user.photoURL!)
                                     : null,
@@ -77,7 +82,9 @@ class ProfileScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                         ),
                                       )
                                     : null,
@@ -86,18 +93,23 @@ class ProfileScreen extends ConsumerWidget {
                               Text(
                                 user.displayName ?? user.username,
                                 style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '@${user.username}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                              fontSize: 12,
-                            ),
-                          ),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '@${user.username}',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.6),
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -118,15 +130,37 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           _StatItem(
                             label: 'Followers',
-                            value: FormatUtils.formatNumber(user.followersCount ?? 0),
+                            value: FormatUtils.formatNumber(
+                              user.followersCount ?? 0,
+                            ),
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.followList,
+                              arguments: FollowListArguments(
+                                userId: user.id,
+                                mode: FollowListMode.followers,
+                                title: 'Followers',
+                              ),
+                            ),
                           ),
                           _StatItem(
                             label: 'Following',
-                            value: FormatUtils.formatNumber(user.followingCount ?? 0),
+                            value: FormatUtils.formatNumber(
+                              user.followingCount ?? 0,
+                            ),
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.followList,
+                              arguments: FollowListArguments(
+                                userId: user.id,
+                                mode: FollowListMode.following,
+                                title: 'Following',
+                              ),
+                            ),
                           ),
                           _StatItem(
                             label: 'Points',
-                            value: FormatUtils.formatNumber(user.totalPoints ?? 0),
+                            value: FormatUtils.formatNumber(
+                              user.totalPoints ?? 0,
+                            ),
                           ),
                         ],
                       ),
@@ -165,7 +199,8 @@ class ProfileScreen extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(body: Center(child: Text('Error: $err'))),
     );
   }
@@ -180,10 +215,7 @@ class _NotificationAction extends ConsumerWidget {
       icon: const Icon(Icons.notifications_none_rounded),
     );
     if (unread <= 0) return btn;
-    return Badge(
-      label: Text(unread > 99 ? '99+' : '$unread'),
-      child: btn,
-    );
+    return Badge(label: Text(unread > 99 ? '99+' : '$unread'), child: btn);
   }
 }
 
@@ -201,12 +233,16 @@ class _ProfileMenu extends StatelessWidget {
           Navigator.of(context).pushNamed(AppRoutes.profileSettings);
         } else if (val == 'writer') {
           Navigator.of(context).pushNamed(AppRoutes.writerDashboard);
-        } else if (val == 'migrate') {
-          await migrateComments();
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Migration complete!')),
-            );
+        } else if (val == 'publish') {
+          final uri = Uri.parse('https://publish.wreadom.in');
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not launch publishing site')),
+              );
+            }
           }
         }
       },
@@ -231,17 +267,16 @@ class _ProfileMenu extends StatelessWidget {
             ],
           ),
         ),
-        if (kDebugMode)
-          const PopupMenuItem(
-            value: 'migrate',
-            child: Row(
-              children: [
-                Icon(Icons.storage, size: 18),
-                SizedBox(width: 8),
-                Text('Migrate Comments'),
-              ],
-            ),
+        const PopupMenuItem(
+          value: 'publish',
+          child: Row(
+            children: [
+              Icon(Icons.auto_stories_outlined, size: 18),
+              SizedBox(width: 8),
+              Text('Publish Book'),
+            ],
           ),
+        ),
         const PopupMenuItem(
           value: 'logout',
           child: Row(
@@ -261,21 +296,29 @@ class _ProfileMenu extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String label;
   final String value;
-  const _StatItem({required this.label, required this.value});
+  final VoidCallback? onTap;
+  const _StatItem({required this.label, required this.value, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              label,
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+            ),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey[600], fontSize: 11),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -292,7 +335,10 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: _tabBar,

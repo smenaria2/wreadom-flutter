@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
+import '../../utils/app_link_helper.dart';
 import '../screens/book_detail_screen.dart';
+import '../screens/category_books_screen.dart';
 import '../screens/conversation_screen.dart';
+import '../screens/daily_topic_screen.dart';
 import '../screens/discovery_screen.dart';
+import '../screens/follow_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
@@ -12,6 +16,7 @@ import '../screens/post_detail_screen.dart';
 import '../screens/profile_settings_screen.dart';
 import '../screens/public_profile_screen.dart';
 import '../screens/reader_screen.dart';
+import '../screens/saved_books_screen.dart';
 import '../screens/static_info_screen.dart';
 import '../screens/writer_dashboard_screen.dart';
 import '../screens/writer_pad_screen.dart';
@@ -28,9 +33,7 @@ class ReaderArguments {
 }
 
 class PublicProfileArguments {
-  const PublicProfileArguments({
-    required this.userId,
-  });
+  const PublicProfileArguments({required this.userId});
 
   final String userId;
 }
@@ -58,9 +61,7 @@ class ConversationArguments {
 }
 
 class WriterPadArguments {
-  const WriterPadArguments({
-    this.book,
-  });
+  const WriterPadArguments({this.book});
 
   final Book? book;
 }
@@ -80,40 +81,11 @@ class AppRouter {
     String? name = settings.name;
     Object? arguments = settings.arguments;
 
-    // ─── Deep Link Parsing ───────────────────────────────────────────────
     if (name != null && (name.startsWith('http://') || name.startsWith('https://'))) {
-      try {
-        final uri = Uri.parse(name);
-        if (uri.host == 'wreadom.in') {
-          final segments = uri.pathSegments;
-          if (segments.length >= 2) {
-            final type = segments[0];
-            final id = segments[1];
-
-            if (type == 'book' || type == 'b') {
-              name = AppRoutes.bookDetail;
-              arguments = id;
-            } else if (type == 'user' || type == 'u') {
-              name = AppRoutes.publicProfile;
-              arguments = PublicProfileArguments(userId: id);
-            } else if (type == 'feed' || type == 'post' || type == 'posts' || type == 'p') {
-              name = AppRoutes.postDetail;
-              arguments = id;
-            } else if (type == 'writer') {
-               name = AppRoutes.writerDashboard;
-            }
-          } else if (segments.isNotEmpty) {
-            // Handle root types like /discovery or /writer
-            final type = segments[0];
-            if (type == 'discovery' || type == 'search') {
-              name = AppRoutes.discovery;
-            } else if (type == 'writer') {
-               name = AppRoutes.writerDashboard;
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('Error parsing deep link: $e');
+      final resolved = AppLinkHelper.resolve(name);
+      if (resolved != null) {
+        name = resolved.route;
+        arguments = resolved.payload;
       }
     }
 
@@ -156,7 +128,10 @@ class AppRouter {
           ),
         );
       case AppRoutes.publicProfile:
-        final args = (arguments ?? settings.arguments) as PublicProfileArguments;
+        final argsValue = arguments ?? settings.arguments;
+        final args = argsValue is PublicProfileArguments
+            ? argsValue
+            : PublicProfileArguments(userId: argsValue.toString());
         return MaterialPageRoute(
           builder: (_) => PublicProfileScreen(userId: args.userId),
         );
@@ -204,6 +179,23 @@ class AppRouter {
             preloadedPost: post,
           ),
         );
+      case AppRoutes.category:
+        final args = arguments ?? settings.arguments;
+        final category = args is CategoryBooksArguments ? args.category : args.toString();
+        return MaterialPageRoute(
+          builder: (_) => CategoryBooksScreen(category: category),
+        );
+      case AppRoutes.savedBooks:
+        return MaterialPageRoute(builder: (_) => const SavedBooksScreen());
+      case AppRoutes.followList:
+        final args = (arguments ?? settings.arguments) as FollowListArguments;
+        return MaterialPageRoute(
+          builder: (_) => FollowListScreen(
+            userId: args.userId,
+            mode: args.mode,
+            title: args.title,
+          ),
+        );
       case AppRoutes.profileSettings:
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
       case AppRoutes.help:
@@ -235,15 +227,23 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Certificate',
             body:
-                'Participation certificates are supported in the main Librebook experience. This Flutter build now exposes the route and can be expanded to render generated certificates from backend data.',
+                'Participation certificates are supported in the main Librebook experience. This Flutter build exposes the route and can be expanded to render generated certificates from backend data.',
           ),
         );
       case AppRoutes.dailyTopic:
+        final args = arguments ?? settings.arguments;
+        String? topicId;
+        DailyTopicArguments? topicArgs;
+        if (args is DailyTopicArguments) {
+          topicArgs = args;
+          topicId = args.topicId;
+        } else if (args != null && args.toString() != 'null') {
+          topicId = args.toString();
+        }
         return MaterialPageRoute(
-          builder: (_) => const StaticInfoScreen(
-            title: 'Daily Topic',
-            body:
-                'Daily topics can be surfaced from shared homepage metadata. This screen is now reachable and ready for backend-driven topic content.',
+          builder: (_) => DailyTopicScreen(
+            topicId: topicId,
+            preloadedTopic: topicArgs?.topic,
           ),
         );
       case AppRoutes.competition:

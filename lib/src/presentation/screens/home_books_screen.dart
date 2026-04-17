@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
 import 'book_detail_screen.dart';
+import 'category_books_screen.dart';
+import 'daily_topic_screen.dart';
+import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
@@ -15,13 +19,15 @@ class HomeBooksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final originalsAsync = ref.watch(homepageOriginalsProvider);
+    final originalsAsync = ref.watch(originalBooksProvider);
     final popularAsync = ref.watch(homepagePopularProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
+    final iaAsync = ref.watch(homepageIABooksProvider);
+    final authorsAsync = ref.watch(homepageAuthorsProvider);
     final fantasyAsync = ref.watch(homepageGenreProvider('fantasy'));
     final romanceAsync = ref.watch(homepageGenreProvider('romance'));
     final sciFiAsync = ref.watch(homepageGenreProvider('sci-fi'));
-    
+
     // Watch saved books for the new section
 
     return Scaffold(
@@ -57,7 +63,8 @@ class HomeBooksScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Search books',
-            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(AppRoutes.discovery),
           ),
         ],
       ),
@@ -65,6 +72,9 @@ class HomeBooksScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(homepageMetadataProvider);
           ref.invalidate(homepageBooksProvider);
+          ref.invalidate(homepageIABooksProvider);
+          ref.invalidate(homepageAuthorsProvider);
+          ref.invalidate(homepageDownloadedBooksProvider);
           ref.invalidate(originalBooksProvider);
           ref.invalidate(popularBooksProvider);
           ref.invalidate(recentBooksProvider);
@@ -84,41 +94,76 @@ class HomeBooksScreen extends ConsumerWidget {
 
               // ─── Wreadom Originals ────────────────────────────────────
               _BookshelfSection(
-                title: '✨ Wreadom Originals',
+                title: 'Community Classics',
+                booksAsync: iaAsync,
+                onSeeAll: () => Navigator.of(context).pushNamed(
+                  AppRoutes.category,
+                  arguments: const CategoryBooksArguments(
+                    category: 'Community Classics',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              _BookshelfSection(
+                title: 'Wreadom Originals',
                 booksAsync: originalsAsync,
                 onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.discovery,
-                  arguments: {'query': 'originals'},
+                  AppRoutes.category,
+                  arguments: const CategoryBooksArguments(
+                    category: 'Wreadom Originals',
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Popular Books ────────────────────────────────────────
               _BookshelfSection(
-                title: '🔥 Popular Now',
+                title: 'Popular Now',
                 booksAsync: popularAsync,
                 onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.discovery,
-                  arguments: {'query': 'popular'},
+                  AppRoutes.category,
+                  arguments: const CategoryBooksArguments(
+                    category: 'Popular Now',
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Recently Added ───────────────────────────────────────
               _BookshelfSection(
-                title: '🆕 Recently Added',
+                title: 'Recently Added',
                 booksAsync: recentAsync,
                 onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.discovery,
-                  arguments: {'query': 'recent'},
+                  AppRoutes.category,
+                  arguments: const CategoryBooksArguments(
+                    category: 'Recently Added',
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Genre Sections (Filtered) ─────────────────────────────
-              _GenreSection(title: '🧙 Fantasy', booksAsync: fantasyAsync, genre: 'Fantasy', sectionId: 'fantasy'),
-              _GenreSection(title: '💖 Romance', booksAsync: romanceAsync, genre: 'Romance', sectionId: 'romance'),
-              _GenreSection(title: '🚀 Sci-Fi', booksAsync: sciFiAsync, genre: 'Sci-Fi', sectionId: 'sci-fi'),
+              _GenreSection(
+                title: 'Fantasy',
+                booksAsync: fantasyAsync,
+                genre: 'Fantasy',
+                sectionId: 'fantasy',
+              ),
+              _AuthorsSection(authorsAsync: authorsAsync),
+              const SizedBox(height: 28),
+              _GenreSection(
+                title: 'Romance',
+                booksAsync: romanceAsync,
+                genre: 'Romance',
+                sectionId: 'romance',
+              ),
+              _GenreSection(
+                title: 'Sci-Fi',
+                booksAsync: sciFiAsync,
+                genre: 'Sci-Fi',
+                sectionId: 'sci-fi',
+              ),
               const SizedBox(height: 32),
             ],
           ),
@@ -196,7 +241,9 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
     try {
       if (_pageController.hasClients) {
         // Use the actual page index from state/controller
-        isActive = (_pageController.page?.round() ?? _pageController.initialPage) == index;
+        isActive =
+            (_pageController.page?.round() ?? _pageController.initialPage) ==
+            index;
       } else {
         isActive = (index == 0);
       }
@@ -235,7 +282,9 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.35),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -256,27 +305,29 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
           Text(
             'Thousands of free books and original stories, curated for you.',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onPrimary
-                  .withValues(alpha: 0.85),
+              color: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withValues(alpha: 0.85),
               fontSize: 14,
               height: 1.4,
             ),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.discovery),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(AppRoutes.discovery),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.onPrimary,
               foregroundColor: Theme.of(context).colorScheme.primary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text('Explore Now',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Explore Now',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -298,7 +349,9 @@ class _DailyTopicCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.25),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -363,10 +416,12 @@ class _DailyTopicCard extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // Navigate to a filtered view for this topic
                 Navigator.of(context).pushNamed(
-                  AppRoutes.discovery,
-                  arguments: {'query': 'topic:${topic.topicName}'},
+                  AppRoutes.dailyTopic,
+                  arguments: DailyTopicArguments(
+                    topicId: topic.id,
+                    topic: topic,
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -376,7 +431,10 @@ class _DailyTopicCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
               child: const Text(
                 'Read More',
@@ -414,8 +472,8 @@ class _GenreSection extends ConsumerWidget {
               booksAsync: booksAsync,
               sectionId: sectionId,
               onSeeAll: () => Navigator.of(context).pushNamed(
-                AppRoutes.discovery,
-                arguments: {'query': 'subject:$genre'},
+                AppRoutes.category,
+                arguments: CategoryBooksArguments(category: genre),
               ),
             ),
             const SizedBox(height: 28),
@@ -439,19 +497,18 @@ class _SavedBooksSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remoteSavedAsync = ref.watch(savedBooksProvider);
+    final remoteSavedAsync = ref.watch(homepageDownloadedBooksProvider);
 
     return remoteSavedAsync.when(
       data: (books) {
         if (books.isEmpty) return const SizedBox.shrink();
 
         return _BookshelfSection(
-          title: '📚 Your Shelf',
+          title: 'Your Shelf',
           booksAsync: remoteSavedAsync,
           sectionId: 'saved',
           onSeeAll: () {
-            // Navigate to main tab 1 or filtered discovery
-            Navigator.of(context).pushNamed(AppRoutes.main, arguments: 1);
+            Navigator.of(context).pushNamed(AppRoutes.savedBooks);
           },
         );
       },
@@ -462,6 +519,90 @@ class _SavedBooksSection extends ConsumerWidget {
 }
 
 // ─── Bookshelf Row ────────────────────────────────────────────────────────────
+class _AuthorsSection extends StatelessWidget {
+  const _AuthorsSection({required this.authorsAsync});
+
+  final AsyncValue<List<UserModel>> authorsAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return authorsAsync.when(
+      data: (authors) {
+        if (authors.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Writers to Follow',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: authors.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 14),
+                itemBuilder: (context, index) {
+                  final author = authors[index];
+                  final displayName = author.displayName;
+                  final penName = author.penName;
+                  final name = (displayName != null && displayName.isNotEmpty)
+                      ? displayName
+                      : (penName != null && penName.isNotEmpty)
+                          ? penName
+                          : author.username;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.of(context).pushNamed(
+                      AppRoutes.publicProfile,
+                      arguments: PublicProfileArguments(userId: author.id),
+                    ),
+                    child: SizedBox(
+                      width: 86,
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundImage: author.photoURL != null && author.photoURL!.isNotEmpty
+                                ? CachedNetworkImageProvider(author.photoURL!)
+                                : null,
+                            child: (author.photoURL == null || author.photoURL!.isEmpty) && name.isNotEmpty
+                                ? Text(name.characters.first.toUpperCase())
+                                : null,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            name,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
 class _BookshelfSection extends StatelessWidget {
   final String title;
   final AsyncValue<List<Book>> booksAsync;
@@ -498,10 +639,7 @@ class _BookshelfSection extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  TextButton(
-                    onPressed: onSeeAll,
-                    child: const Text('See All'),
-                  ),
+                  TextButton(onPressed: onSeeAll, child: const Text('See All')),
                 ],
               ),
             ),
@@ -513,10 +651,10 @@ class _BookshelfSection extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 itemCount: books.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) =>
-                    _BookCard(
+                itemBuilder: (context, index) => _BookCard(
                   book: books[index],
-                  sectionId: sectionId ?? title.replaceAll(' ', '-').toLowerCase(),
+                  sectionId:
+                      sectionId ?? title.replaceAll(' ', '-').toLowerCase(),
                 ),
               ),
             ),
@@ -598,7 +736,9 @@ class _BookCard extends StatelessWidget {
                               child: SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -615,10 +755,7 @@ class _BookCard extends StatelessWidget {
               book.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
             ),
             // Author
             Text(
@@ -688,8 +825,7 @@ class _BookCardSkeleton extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-              height: 12, width: 100, color: Colors.grey[200]),
+          Container(height: 12, width: 100, color: Colors.grey[200]),
           const SizedBox(height: 4),
           Container(height: 10, width: 70, color: Colors.grey[100]),
         ],

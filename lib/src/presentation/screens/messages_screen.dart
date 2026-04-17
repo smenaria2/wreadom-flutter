@@ -15,9 +15,7 @@ class MessagesScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Messages'),
-      ),
+      appBar: AppBar(title: const Text('Messages')),
       body: conversationsAsync.when(
         data: (conversations) {
           if (conversations.isEmpty) {
@@ -35,7 +33,8 @@ class MessagesScreen extends ConsumerWidget {
                 orElse: () => conversation.participants.first,
               );
               final other = conversation.participantDetails[otherId];
-              final title = conversation.name ??
+              final title =
+                  conversation.name ??
                   other?.displayName ??
                   other?.username ??
                   'Conversation';
@@ -48,6 +47,43 @@ class MessagesScreen extends ConsumerWidget {
                   conversation.lastMessage?.text ?? 'No messages yet',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  tooltip: 'Delete chat',
+                  onPressed: currentUser == null
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete chat?'),
+                              content: const Text(
+                                'This removes the conversation from your messages.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed != true) return;
+                          await ref
+                              .read(messageRepositoryProvider)
+                              .deleteConversationForUser(
+                                conversationId: conversation.id,
+                                userId: currentUser.id,
+                              );
+                          ref.invalidate(conversationsProvider);
+                        },
                 ),
                 onTap: () {
                   Navigator.of(context).pushNamed(

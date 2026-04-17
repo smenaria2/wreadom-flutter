@@ -7,12 +7,21 @@ import '../providers/notification_providers.dart';
 import '../providers/navigation_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
+import '../../utils/notification_target_resolver.dart';
 
-class NotificationsScreen extends ConsumerWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  int _limit = 25;
+  static const int _increment = 25;
+
+  @override
+  Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
@@ -36,10 +45,26 @@ class NotificationsScreen extends ConsumerWidget {
           if (items.isEmpty) {
             return const Center(child: Text('No notifications yet'));
           }
+
+          final displayCount = (_limit < items.length) ? _limit : items.length;
+          final hasMore = _limit < items.length;
+
           return ListView.separated(
-            itemCount: items.length,
+            itemCount: displayCount + (hasMore ? 1 : 0),
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
+              if (index == displayCount && hasMore) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _limit += _increment),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Load More'),
+                    ),
+                  ),
+                );
+              }
               final item = items[index];
               return ListTile(
                 leading: CircleAvatar(
@@ -66,92 +91,11 @@ class NotificationsScreen extends ConsumerWidget {
 
                   if (!context.mounted) return;
 
-                  // Navigation debug
-                  debugPrint('Notification tapped: ID=${item.id}, Type=${item.type}, TargetId=${item.targetId}');
-                  debugPrint('Metadata: ${item.metadata}');
-                  debugPrint('Link: ${item.link}');
-
-                  // Navigation logic
                   final metadata = item.metadata ?? {};
-                  final link = item.link;
-                  final targetId = item.targetId;
-                  
-                  // Priority check for bookId in metadata or link
-                  final bookIdFromMeta = metadata['bookId']?.toString();
-                  String? bookIdFromLink;
-                  if (link.contains('/book/')) {
-                    bookIdFromLink = link.split('/book/').last.split('?').first;
-                  } else if (link.contains('/b/')) {
-                    bookIdFromLink = link.split('/b/').last.split('?').first;
-                  }
-                  
-                  final effectiveBookId = bookIdFromMeta ?? bookIdFromLink;
-
-                  final isBookRelated = effectiveBookId != null || 
-                                      ['chapter', 'book_review', 'book_quote', 'published'].contains(item.type);
-
-                  switch (item.type) {
-                    case 'post':
-                    case 'feedPost':
-                    case 'like':
-                    case 'comment':
-                    case 'reply':
-                      // Prioritize post detail if we have a targetId (the post ID)
-                      // unless it's explicitly a book-only notification
-                      if (targetId != null && targetId.isNotEmpty && targetId != 'null') {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.postDetail,
-                          arguments: targetId,
-                        );
-                      } else if (isBookRelated && effectiveBookId != null) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.bookDetail,
-                          arguments: effectiveBookId,
-                        );
-                      } else {
-                        // Fallback to Feed tab (index 1) without pushing new shell
-                        ref.read(selectedTabProvider.notifier).setTab(1);
-                        Navigator.of(context).popUntil((route) => 
-                          route.settings.name == AppRoutes.main || route.isFirst);
-                      }
-                      break;
-                    case 'published':
-                    case 'chapter':
-                      final id = effectiveBookId ?? targetId;
-                      if (id != null && id.isNotEmpty) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.bookDetail,
-                          arguments: id,
-                        );
-                      }
-                      break;
-                    case 'follow':
-                    case 'following':
-                      String? followerId = item.actorId.isNotEmpty ? item.actorId : null;
-                      
-                      // Fallback: check link for userId if actorId is missing
-                      if (followerId == null || followerId.isEmpty) {
-                        if (link.contains('/user/')) {
-                          followerId = link.split('/user/').last.split('?').first;
-                        } else if (link.contains('/u/')) {
-                          followerId = link.split('/u/').last.split('?').first;
-                        }
-                      }
-                      
-                      // Last resort: targetId if it's a valid ID
-                      followerId ??= (targetId != null && targetId.isNotEmpty && targetId != 'null') ? targetId : null;
-
-                      if (followerId != null && followerId.isNotEmpty) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.publicProfile,
-                          arguments: PublicProfileArguments(userId: followerId),
-                        );
-                      }
-                      break;
-                    case 'message':
-                      final convId = metadata['conversationId']?.toString() ?? 
-                                   metadata['id']?.toString() ?? 
-                                   (targetId != null && targetId.isNotEmpty ? targetId : null) ??
+                  if (item.type == 'message') {
+                      final convId = metadata['conversationId']?.toString() ??
+                                   metadata['id']?.toString() ??
+                                   (item.targetId != null && item.targetId!.isNotEmpty ? item.targetId : null) ??
                                    '';
                       
                       // Robust check to avoid "Invalid document path"
@@ -170,23 +114,20 @@ class NotificationsScreen extends ConsumerWidget {
                       } else {
                         debugPrint('Invalid conversationId in notification: $convId');
                       }
-                      break;
-                    case 'book_review':
-                    case 'book_quote':
-                      final id = effectiveBookId ?? targetId;
-                      if (id != null && id.isNotEmpty) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.bookDetail,
-                          arguments: id,
-                        );
-                      }
-                      break;
-                    default:
-                      if (link.isNotEmpty) {
-                        // Optional: hande as deep link if nothing else matches
-                        Navigator.of(context).pushNamed(link);
-                      }
-                      break;
+                      return;
+                  }
+
+                  final target = NotificationTargetResolver.resolve(item);
+                  if (target != null) {
+                    final routeArgs = target.route == AppRoutes.publicProfile
+                        ? PublicProfileArguments(userId: target.payload)
+                        : target.payload;
+                    Navigator.of(context).pushNamed(target.route, arguments: routeArgs);
+                  } else {
+                    ref.read(selectedTabProvider.notifier).setTab(1);
+                    Navigator.of(context).popUntil(
+                      (route) => route.settings.name == AppRoutes.main || route.isFirst,
+                    );
                   }
                 },
               );

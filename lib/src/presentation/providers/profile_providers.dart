@@ -9,11 +9,20 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return FirebaseProfileRepository();
 });
 
-final publicProfileProvider =
-    FutureProvider.family<UserModel?, String>((ref, userId) async {
+final publicProfileProvider = FutureProvider.family<UserModel?, String>((
+  ref,
+  userId,
+) async {
   final viewer = await ref.watch(currentUserProvider.future);
-  return ref.watch(profileRepositoryProvider).getPublicProfile(
-        userId,
-        viewerUserId: viewer?.id,
-      );
+  return ref
+      .watch(profileRepositoryProvider)
+      .getPublicProfile(userId, viewerUserId: viewer?.id);
+});
+
+final profileSearchProvider = FutureProvider.family<List<UserModel>, String>((
+  ref,
+  query,
+) async {
+  if (query.trim().isEmpty) return [];
+  return ref.watch(profileRepositoryProvider).searchProfiles(query);
 });

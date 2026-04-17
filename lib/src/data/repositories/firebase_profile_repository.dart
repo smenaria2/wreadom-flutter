@@ -6,7 +6,7 @@ import '../utils/firestore_utils.dart';
 
 class FirebaseProfileRepository implements ProfileRepository {
   FirebaseProfileRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -67,7 +67,8 @@ class FirebaseProfileRepository implements ProfileRepository {
       return _stripPrivateFields(user);
     }
 
-    final followersOnly = level == 'followers' ||
+    final followersOnly =
+        level == 'followers' ||
         level == 'followersonly' ||
         level == 'followers_only';
     if (followersOnly) {
@@ -81,6 +82,60 @@ class FirebaseProfileRepository implements ProfileRepository {
     }
 
     return user;
+  }
+
+  @override
+  Future<List<UserModel>> searchProfiles(String query, {int limit = 10}) async {
+    final term = query.trim();
+    if (term.isEmpty) return [];
+
+    final searches = <Query<Map<String, dynamic>>>[
+      _firestore
+          .collection('users')
+          .where('username', isGreaterThanOrEqualTo: term.toLowerCase())
+          .where('username', isLessThanOrEqualTo: '${term.toLowerCase()}\uf8ff')
+          .limit(limit),
+      _firestore
+          .collection('users')
+          .where('displayName', isGreaterThanOrEqualTo: term)
+          .where('displayName', isLessThanOrEqualTo: '$term\uf8ff')
+          .limit(limit),
+      _firestore
+          .collection('users')
+          .where('penName', isGreaterThanOrEqualTo: term)
+          .where('penName', isLessThanOrEqualTo: '$term\uf8ff')
+          .limit(limit),
+    ];
+
+    final byId = <String, UserModel>{};
+    for (final search in searches) {
+      try {
+        final snapshot = await search.get();
+        for (final doc in snapshot.docs) {
+          final normalized = normalizeUserMapForModel(doc.data(), doc.id);
+          final user = UserModel.fromJson(normalized);
+          if (user.isDeactivated == true) {
+            continue;
+          }
+          if ((user.privacyLevel ?? 'public').toLowerCase() == 'private') {
+            continue;
+          }
+          byId[user.id] = user;
+        }
+      } catch (_) {}
+    }
+
+    final results = byId.values.toList()
+      ..sort((a, b) {
+        final aName = (a.displayName ?? a.username).toLowerCase();
+        final bName = (b.displayName ?? b.username).toLowerCase();
+        final q = term.toLowerCase();
+        final aStarts = aName.startsWith(q);
+        final bStarts = bName.startsWith(q);
+        if (aStarts != bStarts) return aStarts ? -1 : 1;
+        return aName.compareTo(bName);
+      });
+    return results.take(limit).toList();
   }
 
   @override

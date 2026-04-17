@@ -8,8 +8,8 @@ class CompositeBookRepository implements BookRepository {
   CompositeBookRepository({
     FirebaseBookRepository? firebaseRepo,
     ArchiveBookRepository? archiveRepo,
-  })  : _firebaseRepo = firebaseRepo ?? FirebaseBookRepository(),
-        _archiveRepo = archiveRepo ?? ArchiveBookRepository();
+  }) : _firebaseRepo = firebaseRepo ?? FirebaseBookRepository(),
+       _archiveRepo = archiveRepo ?? ArchiveBookRepository();
 
   final FirebaseBookRepository _firebaseRepo;
   final ArchiveBookRepository _archiveRepo;
@@ -50,7 +50,7 @@ class CompositeBookRepository implements BookRepository {
     } catch (_) {
       // Firebase lookup failed, try Archive
     }
-    
+
     // Fall back to Internet Archive
     try {
       return await _archiveRepo.getBook(bookId);
@@ -65,14 +65,27 @@ class CompositeBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> getBooksByBookshelf(String bookshelf, {int limit = 10, dynamic lastDoc}) {
+  Future<List<Book>> getBooksByBookshelf(
+    String bookshelf, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) {
     // Bookshelves are common in Firebase, Archive is handled by subject
-    return _firebaseRepo.getBooksByBookshelf(bookshelf, limit: limit, lastDoc: lastDoc);
+    return _firebaseRepo.getBooksByBookshelf(
+      bookshelf,
+      limit: limit,
+      lastDoc: lastDoc,
+    );
   }
 
   @override
   Future<List<Book>> getOriginalBooks({int limit = 10}) {
     return _firebaseRepo.getOriginalBooks(limit: limit);
+  }
+
+  @override
+  Future<List<Book>> getOriginalBooksByTopic(String topic, {int limit = 40}) {
+    return _firebaseRepo.getOriginalBooksByTopic(topic, limit: limit);
   }
 
   @override
@@ -84,9 +97,11 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> getPopularBooks({int limit = 10}) async {
     final firebaseResults = await _firebaseRepo.getPopularBooks(limit: limit);
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getPopularBooks(limit: limit * 2);
+      final archiveResults = await _archiveRepo.getPopularBooks(
+        limit: limit * 2,
+      );
       final filteredArchive = await _filterArchiveBooks(archiveResults);
-      
+
       final combined = [...firebaseResults, ...filteredArchive];
       return combined.length > limit ? combined.sublist(0, limit) : combined;
     }
@@ -97,9 +112,11 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> getRecentBooks({int limit = 10}) async {
     final firebaseResults = await _firebaseRepo.getRecentBooks(limit: limit);
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getRecentBooks(limit: limit * 2); // Fetch more for filtering
+      final archiveResults = await _archiveRepo.getRecentBooks(
+        limit: limit * 2,
+      ); // Fetch more for filtering
       final filteredArchive = await _filterArchiveBooks(archiveResults);
-      
+
       final combined = [...firebaseResults, ...filteredArchive];
       return combined.length > limit ? combined.sublist(0, limit) : combined;
     }
@@ -107,19 +124,30 @@ class CompositeBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> getBooksByGenre(String genre, {int limit = 10, dynamic lastDoc}) async {
+  Future<List<Book>> getBooksByGenre(
+    String genre, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) async {
     // Try Firebase first
-    final firebaseResults = await _firebaseRepo.getBooksByGenre(genre, limit: limit, lastDoc: lastDoc);
-    
+    final firebaseResults = await _firebaseRepo.getBooksByGenre(
+      genre,
+      limit: limit,
+      lastDoc: lastDoc,
+    );
+
     // If we want more or have none, Archive is great for genre (subject) browsing
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getBooksByGenre(genre, limit: limit * 2); // Fetch more for filtering
+      final archiveResults = await _archiveRepo.getBooksByGenre(
+        genre,
+        limit: limit * 2,
+      ); // Fetch more for filtering
       final filteredArchive = await _filterArchiveBooks(archiveResults);
-      
+
       final combined = [...firebaseResults, ...filteredArchive];
       return combined.length > limit ? combined.sublist(0, limit) : combined;
     }
-    
+
     return firebaseResults;
   }
 
@@ -133,10 +161,25 @@ class CompositeBookRepository implements BookRepository {
 
     final firebaseResults = results[0];
     final archiveResults = results[1];
-    
+
     // Combine and limit - Return all Archive results for searches (no upvote filter)
     final combined = [...firebaseResults, ...archiveResults];
     return combined.length > limit ? combined.sublist(0, limit) : combined;
+  }
+
+  @override
+  Future<List<Book>> searchOriginalBooks(String query, {int limit = 20}) {
+    return _firebaseRepo.searchOriginalBooks(query, limit: limit);
+  }
+
+  @override
+  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20}) async {
+    final archiveResults = await _archiveRepo.searchArchiveBooks(
+      query,
+      limit: limit * 2,
+    );
+    final filtered = await _filterArchiveBooks(archiveResults);
+    return filtered.length > limit ? filtered.sublist(0, limit) : filtered;
   }
 
   @override
@@ -189,16 +232,31 @@ class CompositeBookRepository implements BookRepository {
   }
 
   @override
+  Future<List<Book>> getUpvotedIABooks({int limit = 20}) async {
+    final ids = (await _getUpvotedIds()).take(limit).toList();
+    if (ids.isEmpty) return [];
+    return _archiveRepo.getBooksByIds(ids);
+  }
+
+  @override
   Future<void> updateReadingHistory(String userId, String bookId) async {
     // History is tracked in Firebase regardless of book source
     await _firebaseRepo.updateReadingHistory(userId, bookId);
   }
 
   @override
-  Future<void> updateReadingProgress(String userId, String bookId,
-      {required int chapterIndex, required double position}) async {
+  Future<void> updateReadingProgress(
+    String userId,
+    String bookId, {
+    required int chapterIndex,
+    required double position,
+  }) async {
     // Progress is tracked in Firebase regardless of book source
-    await _firebaseRepo.updateReadingProgress(userId, bookId,
-        chapterIndex: chapterIndex, position: position);
+    await _firebaseRepo.updateReadingProgress(
+      userId,
+      bookId,
+      chapterIndex: chapterIndex,
+      position: position,
+    );
   }
 }

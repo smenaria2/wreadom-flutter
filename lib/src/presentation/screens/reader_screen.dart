@@ -4,16 +4,21 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
+import '../../domain/models/feed_post.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/bookmark_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/feed_providers.dart';
 import '../widgets/comment_widgets.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../utils/app_link_helper.dart';
 
 enum ReaderTheme { light, sepia, dark }
+
 enum ReaderFont { sans, serif }
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -37,7 +42,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   ReaderFont _readerFont = ReaderFont.serif;
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
+  int _chapterRating = 0;
   String? _selectedQuote;
   String _selectedText = "";
   late BookRepository _bookRepository;
@@ -86,8 +93,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   Future<void> _restoreScrollPosition() async {
     final user = ref.read(currentUserProvider).value;
-    if (user != null && user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
-      final progress = user.readingProgress![widget.book.id.toString()] as Map<String, dynamic>;
+    if (user != null &&
+        user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
+      final progress =
+          user.readingProgress![widget.book.id.toString()]
+              as Map<String, dynamic>;
       final savedChapterIndex = progress['chapterIndex'] as int? ?? 0;
       final savedPosition = progress['position'] as double? ?? 0.0;
 
@@ -110,27 +120,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final user = ref.read(currentUserProvider).value;
     if (user != null) {
       _currentUserId = user.id;
-      await _bookRepository.updateReadingHistory(user.id, widget.book.id.toString());
+      await _bookRepository.updateReadingHistory(
+        user.id,
+        widget.book.id.toString(),
+      );
     }
   }
 
   Future<void> _saveProgress() async {
     final user = ref.read(currentUserProvider).value;
     final userId = user?.id ?? _currentUserId;
-    
+
     if (userId != null) {
       _currentUserId = userId;
       double position = 0.0;
-      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
-        position = _scrollController.offset / _scrollController.position.maxScrollExtent;
+      if (_scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0) {
+        position =
+            _scrollController.offset /
+            _scrollController.position.maxScrollExtent;
       }
 
       await _bookRepository.updateReadingProgress(
-            userId,
-            widget.book.id.toString(),
-            chapterIndex: _chapterIndex,
-            position: position,
-          );
+        userId,
+        widget.book.id.toString(),
+        chapterIndex: _chapterIndex,
+        position: position,
+      );
     }
   }
 
@@ -139,6 +155,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _saveProgress();
     _commentController.dispose();
     _scrollController.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -160,15 +177,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       future: offline.getDownloadedChapters(widget.book.id.toString()),
       builder: (context, snapshot) {
         final offlineChapters = snapshot.data;
-        
+
         // If we have offline chapters, use them immediately
         if (offlineChapters != null && offlineChapters.isNotEmpty) {
-          return _buildReader(context, offlineChapters, bookmarksAsync, commentsAsync, isOffline: true);
+          return _buildReader(
+            context,
+            offlineChapters,
+            bookmarksAsync,
+            commentsAsync,
+            isOffline: true,
+          );
         }
 
         // Otherwise, fallback to network provider
         return chaptersAsync.when(
-          data: (chapters) => _buildReader(context, chapters, bookmarksAsync, commentsAsync, isOffline: false),
+          data: (chapters) => _buildReader(
+            context,
+            chapters,
+            bookmarksAsync,
+            commentsAsync,
+            isOffline: false,
+          ),
           loading: () => Scaffold(
             appBar: AppBar(title: Text(widget.book.title)),
             body: const Center(child: CircularProgressIndicator()),
@@ -195,13 +224,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          widget.book.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (isOffline)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: Chip(
-                label: const Text('Offline', style: TextStyle(fontSize: 10, color: Colors.white)),
+                label: const Text(
+                  'Offline',
+                  style: TextStyle(fontSize: 10, color: Colors.white),
+                ),
                 backgroundColor: Colors.green.withValues(alpha: 0.7),
                 padding: EdgeInsets.zero,
                 side: BorderSide.none,
@@ -241,8 +277,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   Text(
                     chapter?.title ?? widget.book.title,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   SelectionArea(
@@ -252,40 +288,51 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       });
                     },
                     contextMenuBuilder: (context, selectableRegionState) {
-                      final List<ContextMenuButtonItem> buttonItems =
-                          selectableRegionState.contextMenuButtonItems;
-                      buttonItems.insert(
-                        0,
+                      final selected = _selectedText.trim();
+                      final buttonItems = <ContextMenuButtonItem>[
                         ContextMenuButtonItem(
                           label: 'Quote & Comment',
-                          onPressed: () {
-                            setState(() {
-                              _selectedQuote = _selectedText;
-                              _replyingTo = null;
-                            });
-                            // Close menu
-                            selectableRegionState.hideToolbar();
-                            // Scroll to comment section
-                            _scrollController.animateTo(
-                              _scrollController.position.maxScrollExtent,
-                              duration: const Duration(milliseconds: 500),
-                              curve: Curves.easeOut,
-                            );
-                          },
+                          onPressed: selected.isEmpty
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _selectedQuote = selected;
+                                    _replyingTo = null;
+                                  });
+                                  selectableRegionState.hideToolbar();
+                                  _scrollController.animateTo(
+                                    _scrollController.position.maxScrollExtent,
+                                    duration: const Duration(milliseconds: 500),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
                         ),
-                      );
+                        ContextMenuButtonItem(
+                          label: 'Share Quote',
+                          onPressed: selected.isEmpty
+                              ? null
+                              : () {
+                                  selectableRegionState.hideToolbar();
+                                  _shareSelectedQuote(chapter, selected);
+                                },
+                        ),
+                      ];
                       return AdaptiveTextSelectionToolbar.buttonItems(
                         anchors: selectableRegionState.contextMenuAnchors,
                         buttonItems: buttonItems,
                       );
                     },
                     child: HtmlWidget(
-                      chapter?.content ?? widget.book.description ?? 'No readable content available yet.',
+                      chapter?.content ??
+                          widget.book.description ??
+                          'No readable content available yet.',
                       textStyle: TextStyle(
                         fontSize: _fontSize,
                         height: 1.8,
                         color: _getTextColor(),
-                        fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
+                        fontFamily: _readerFont == ReaderFont.serif
+                            ? 'Serif'
+                            : null,
                       ),
                       // Custom styles for images and links if needed
                     ),
@@ -303,53 +350,92 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       children: items.isEmpty
                           ? const [Text('No bookmarks yet')]
                           : items
-                              .map(
-                                (item) => InputChip(
-                                  label: Text(item.label),
-                                  onDeleted: item.id == null
-                                      ? null
-                                      : () async {
-                                          await ref
-                                              .read(bookmarkRepositoryProvider)
-                                              .removeBookmark(item.id!);
-                                          ref.invalidate(bookBookmarksProvider(widget.book.id));
-                                          ref.invalidate(userBookmarksProvider);
-                                        },
-                                ),
-                              )
-                              .toList(),
+                                .map(
+                                  (item) => InputChip(
+                                    label: Text(item.label),
+                                    onDeleted: item.id == null
+                                        ? null
+                                        : () async {
+                                            await ref
+                                                .read(
+                                                  bookmarkRepositoryProvider,
+                                                )
+                                                .removeBookmark(item.id!);
+                                            ref.invalidate(
+                                              bookBookmarksProvider(
+                                                widget.book.id,
+                                              ),
+                                            );
+                                            ref.invalidate(
+                                              userBookmarksProvider,
+                                            );
+                                          },
+                                  ),
+                                )
+                                .toList(),
                     ),
                     loading: () => const LinearProgressIndicator(),
-                    error: (error, _) => Text('Failed to load bookmarks: $error'),
+                    error: (error, _) =>
+                        Text('Failed to load bookmarks: $error'),
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'Discussion',
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    children: [
+                      Text(
+                        'Discussion',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: _getTextColor(),
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   commentsAsync.when(
-                    data: (items) => Column(
-                      children: [
-                        for (final comment in items)
-                          CommentTile(
-                            comment: comment,
-                            onReply: () {
-                              setState(() => _replyingTo = comment);
-                              FocusScope.of(context).requestFocus();
-                            },
-                          ),
-                      ],
-                    ),
+                    data: (items) {
+                      final chapterId = chapter?.id.toString();
+                      final chapterComments = items.where((comment) {
+                        if (chapterId != null &&
+                            chapterId.isNotEmpty &&
+                            comment.chapterId == chapterId) {
+                          return true;
+                        }
+                        return comment.chapterIndex == _chapterIndex;
+                      }).toList();
+                      if (chapterComments.isEmpty) {
+                        return Text(
+                          'No comments for this chapter yet.',
+                          style: TextStyle(color: _getSecondaryTextColor()),
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (final comment in chapterComments)
+                            CommentTile(
+                              comment: comment,
+                              textColor: _getTextColor(),
+                              metadataColor: _getSecondaryTextColor(),
+                              onReply: () {
+                                setState(() => _replyingTo = comment);
+                                _commentFocusNode.requestFocus();
+                              },
+                            ),
+                        ],
+                      );
+                    },
                     loading: () => const LinearProgressIndicator(),
-                    error: (error, _) => Text('Failed to load comments: $error'),
+                    error: (error, _) =>
+                        Text('Failed to load comments: $error'),
                   ),
                   if (_selectedQuote != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                         border: Border(
                           left: BorderSide(
@@ -363,12 +449,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.format_quote, size: 16, color: Theme.of(context).colorScheme.primary),
+                              Icon(
+                                Icons.format_quote,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                               const SizedBox(width: 4),
-                              const Text('Quote', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              const Text(
+                                'Quote',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                               const Spacer(),
                               GestureDetector(
-                                onTap: () => setState(() => _selectedQuote = null),
+                                onTap: () =>
+                                    setState(() => _selectedQuote = null),
                                 child: const Icon(Icons.close, size: 16),
                               ),
                             ],
@@ -381,7 +478,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             style: TextStyle(
                               fontStyle: FontStyle.italic,
                               fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              color: _getSecondaryTextColor(),
                             ),
                           ),
                         ],
@@ -395,7 +492,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                           Expanded(
                             child: Text(
                               'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
-                              style: const TextStyle(fontStyle: FontStyle.italic),
+                              style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                color: _getSecondaryTextColor(),
+                              ),
                             ),
                           ),
                           IconButton(
@@ -404,19 +504,61 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                           ),
                         ],
                       ),
+                    )
+                  else ...[
+                    // Star Rating bar for new reviews/comments
+                    Row(
+                      children: [
+                        Text(
+                          'Your Rating:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _getSecondaryTextColor(),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ...List.generate(5, (index) {
+                          final active = index < _chapterRating;
+                          return GestureDetector(
+                            onTap: () => setState(() => _chapterRating = (_chapterRating == index + 1) ? 0 : index + 1),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: Icon(
+                                active ? Icons.star_rounded : Icons.star_border_rounded,
+                                color: active ? Colors.amber : _getSecondaryTextColor(),
+                                size: 24,
+                              ),
+                            ),
+                          );
+                        }),
+                        if (_chapterRating > 0)
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            onPressed: () => setState(() => _chapterRating = 0),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                  ],
                   TextField(
                     controller: _commentController,
+                    focusNode: _commentFocusNode,
                     minLines: 2,
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: _replyingTo != null
                           ? 'Add a reply...'
                           : 'Add a comment about this chapter',
+                      hintStyle: TextStyle(color: _getSecondaryTextColor()),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      filled: true,
+                      fillColor: _getInputFillColor(),
                     ),
+                    style: TextStyle(color: _getTextColor()),
                   ),
                   const SizedBox(height: 8),
                   Align(
@@ -439,7 +581,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final user = await ref.read(currentUserProvider.future);
     if (user == null) return;
     final label = chapter?.title ?? widget.book.title;
-    await ref.read(bookmarkRepositoryProvider).addBookmark(
+    await ref
+        .read(bookmarkRepositoryProvider)
+        .addBookmark(
           Bookmark(
             userId: user.id,
             bookId: widget.book.id,
@@ -454,47 +598,101 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref.invalidate(userBookmarksProvider);
   }
 
+  Future<void> _shareSelectedQuote(dynamic chapter, String selected) async {
+    final authors = widget.book.authors
+        .map((a) => a.name)
+        .where((n) => n.isNotEmpty)
+        .join(', ');
+    final chapterTitle = chapter?.title?.toString();
+    final parts = [
+      '"$selected"',
+      '',
+      'From ${widget.book.title}${chapterTitle != null && chapterTitle.isNotEmpty ? ', $chapterTitle' : ''}',
+      if (authors.isNotEmpty) 'by $authors',
+      AppLinkHelper.book(widget.book.id),
+    ];
+    await Share.share(
+      parts.join('\n'),
+      subject: 'Quote from ${widget.book.title}',
+    );
+  }
+
   Future<void> _submitComment(dynamic chapter) async {
     final text = _commentController.text.trim();
     final user = await ref.read(currentUserProvider.future);
     if (text.isEmpty || user == null) return;
 
+    final now = DateTime.now().millisecondsSinceEpoch;
+
     if (_replyingTo != null) {
       await ref.read(commentRepositoryProvider).addReply(
-            _replyingTo!.id!,
-            CommentReply(
-              userId: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              penName: user.penName,
-              text: text,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-              userPhotoURL: user.photoURL,
-            ),
-          );
+        _replyingTo!.id!,
+        CommentReply(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          penName: user.penName,
+          text: text,
+          timestamp: now,
+          userPhotoURL: user.photoURL,
+        ),
+      );
       setState(() => _replyingTo = null);
     } else {
-      await ref.read(commentRepositoryProvider).addComment(
-            Comment(
-              bookId: widget.book.id,
-              bookTitle: widget.book.title,
-              userId: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              penName: user.penName,
-              text: text,
-              quote: _selectedQuote,
-              chapterTitle: chapter?.title,
-              chapterIndex: _chapterIndex,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-              userPhotoURL: user.photoURL,
-            ),
-          );
-      setState(() => _selectedQuote = null);
+      final comment = Comment(
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        penName: user.penName,
+        text: text,
+        rating: _chapterRating > 0 ? _chapterRating : null,
+        quote: _selectedQuote,
+        chapterTitle: chapter?.title,
+        chapterIndex: _chapterIndex,
+        chapterId: chapter?.id?.toString(),
+        timestamp: now,
+        userPhotoURL: user.photoURL,
+      );
+
+      await ref.read(commentRepositoryProvider).addComment(comment);
+
+      // If it's a review (has rating), also cross-post to feed
+      if (_chapterRating > 0) {
+        await ref.read(feedRepositoryProvider).createFeedPost(
+          FeedPost(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            type: 'review',
+            text: text,
+            rating: _chapterRating,
+            bookId: widget.book.id,
+            bookTitle: widget.book.title,
+            bookCover: widget.book.coverUrl,
+            chapterTitle: chapter?.title,
+            chapterId: chapter?.id?.toString(),
+            timestamp: now,
+            likes: const [],
+            visibility: 'public',
+            privacy: 'public',
+          ),
+        );
+        ref.invalidate(feedPostsProvider);
+      }
+
+      setState(() {
+        _selectedQuote = null;
+        _chapterRating = 0;
+      });
     }
     _commentController.clear();
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
+
 
   void _showSettings() {
     showModalBottomSheet<void>(
@@ -507,7 +705,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Reader Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Reader Settings',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
                 Text('Font Size: ${_fontSize.toStringAsFixed(0)}'),
                 Slider(
@@ -525,13 +726,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Serif Font'),
                   onChanged: (value) {
-                    setState(() => _readerFont = value ? ReaderFont.serif : ReaderFont.sans);
+                    setState(
+                      () => _readerFont = value
+                          ? ReaderFont.serif
+                          : ReaderFont.sans,
+                    );
                     _saveReaderSettings();
                     setModalState(() {});
                   },
                 ),
                 const SizedBox(height: 8),
-                const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Theme',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -597,6 +805,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         return const Color(0xFFE0E0E0);
     }
   }
+
+  Color _getSecondaryTextColor() {
+    switch (_readerTheme) {
+      case ReaderTheme.light:
+      case ReaderTheme.sepia:
+        return const Color(0xFF5F5447);
+      case ReaderTheme.dark:
+        return const Color(0xFFB8B8B8);
+    }
+  }
+
+  Color _getInputFillColor() {
+    switch (_readerTheme) {
+      case ReaderTheme.light:
+        return const Color(0xFFF4F4F4);
+      case ReaderTheme.sepia:
+        return const Color(0xFFE9DCC0);
+      case ReaderTheme.dark:
+        return const Color(0xFF1F1F1F);
+    }
+  }
 }
 
 class _ChapterDrawer extends StatelessWidget {
@@ -648,7 +877,9 @@ class _ChapterDrawer extends StatelessWidget {
                   title: Text(
                     'Chapter ${index + 1}',
                     style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   selected: isSelected,
@@ -691,7 +922,9 @@ class _ThemeOption extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
+                color: selected
+                    ? Colors.blue
+                    : Colors.grey.withValues(alpha: 0.5),
                 width: selected ? 3 : 1,
               ),
               boxShadow: [

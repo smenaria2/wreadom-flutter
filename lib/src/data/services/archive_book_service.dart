@@ -28,16 +28,16 @@ class ArchiveBookService {
     if (query != null && query.isNotEmpty) {
       if (query.contains(':') &&
           RegExp(r'^[a-z]+:', caseSensitive: false).hasMatch(query)) {
-        // Map 'topic:' to 'subject:' for Archive.org
-        if (query.toLowerCase().startsWith('topic:')) {
-          final term = query.split(':').last;
+        final lower = query.toLowerCase();
+        if (lower.startsWith('topic:') || lower.startsWith('subject:')) {
+          final term = query.substring(query.indexOf(':') + 1).trim();
           queryParts.add('subject:("$term")');
         } else {
           queryParts.add(query);
         }
       } else {
-        final cleanSearch = Uri.encodeComponent(query);
-        queryParts.add('(title:(*$cleanSearch*) OR creator:(*$cleanSearch*))');
+        final cleanSearch = query.replaceAll('"', '').trim();
+        queryParts.add('(title:("$cleanSearch") OR creator:("$cleanSearch") OR subject:("$cleanSearch"))');
       }
     }
 
@@ -151,15 +151,7 @@ class ArchiveBookService {
     final chapters = <Chapter>[];
 
     if (matches.isEmpty) {
-      // No chapters detected, split by length or just return as one
-      return [
-        Chapter(
-          id: '1',
-          title: 'Full Content',
-          content: cleanedText,
-          index: 0,
-        )
-      ];
+      return _splitIntoReadableChunks(cleanedText);
     }
 
     for (int i = 0; i < matches.length; i++) {
@@ -184,6 +176,27 @@ class ArchiveBookService {
        return [Chapter(id: '1', title: 'Content', content: cleanedText, index: 0)];
     }
 
+    return chapters;
+  }
+
+  List<Chapter> _splitIntoReadableChunks(String text) {
+    final words = text.split(RegExp(r'\s+')).where((word) => word.trim().isNotEmpty).toList();
+    if (words.isEmpty) return [];
+
+    const wordsPerChunk = 2000;
+    final chapters = <Chapter>[];
+    for (var start = 0; start < words.length; start += wordsPerChunk) {
+      final end = (start + wordsPerChunk).clamp(0, words.length);
+      final index = chapters.length;
+      chapters.add(
+        Chapter(
+          id: '${index + 1}',
+          title: index == 0 ? 'First Chapter' : 'Part ${index + 1}',
+          content: words.sublist(start, end).join(' '),
+          index: index,
+        ),
+      );
+    }
     return chapters;
   }
 

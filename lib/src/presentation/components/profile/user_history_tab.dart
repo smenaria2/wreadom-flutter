@@ -3,11 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/book_providers.dart';
 import '../book_card.dart';
 
-class UserHistoryTab extends ConsumerWidget {
+class UserHistoryTab extends ConsumerStatefulWidget {
   const UserHistoryTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UserHistoryTab> createState() => _UserHistoryTabState();
+}
+
+class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
+  int _limit = 12;
+  static const int _increment = 12;
+
+  @override
+  Widget build(BuildContext context) {
     final booksAsync = ref.watch(readingHistoryBooksProvider);
 
     return booksAsync.when(
@@ -24,16 +32,42 @@ class UserHistoryTab extends ConsumerWidget {
             ),
           );
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.65,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
-          ),
-          itemBuilder: (context, index) => BookCard(book: books[index]),
-          itemCount: books.length,
+
+        final displayCount = (_limit < books.length) ? _limit : books.length;
+        final hasMore = _limit < books.length;
+
+        return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 16,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => BookCard(book: books[index]),
+                  childCount: displayCount,
+                ),
+              ),
+            ),
+            if (hasMore)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Center(
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _limit += _increment),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Load More'),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

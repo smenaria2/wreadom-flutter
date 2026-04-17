@@ -18,4 +18,7 @@ class AppRoutes {
   static const competition = '/competition';
   static const discovery = '/discovery';
   static const postDetail = '/post-detail';
+  static const category = '/category';
+  static const savedBooks = '/saved-books';
+  static const followList = '/follow-list';
 }

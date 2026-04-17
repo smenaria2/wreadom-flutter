@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +29,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
-    webProvider: ReCaptchaV3Provider('6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1'),
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple:
+        kDebugMode ? const AppleDebugProvider() : const AppleDeviceCheckProvider(),
+    providerWeb: ReCaptchaV3Provider('6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1'),
   );
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(
@@ -43,8 +48,60 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        // Delay navigation slightly to ensure the app is ready
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _handleUri(initialUri);
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to get initial deep link: $e');
+    }
+
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleUri(uri);
+    }, onError: (err) {
+      debugPrint('Error handling deep link: $err');
+    });
+  }
+
+  void _handleUri(Uri uri) {
+    debugPrint('Handling deep link: $uri');
+    // We pass the full string to pushNamed, as AppRouter will resolve it
+    // using AppLinkHelper. This works for both http/https and custom schemes.
+    _navigatorKey.currentState?.pushNamed(uri.toString());
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +111,7 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'Wreadom',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(

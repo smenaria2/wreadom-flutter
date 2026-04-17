@@ -8,6 +8,11 @@ part of 'homepage_metadata.dart';
 
 _HomepageMetadata _$HomepageMetadataFromJson(Map<String, dynamic> json) =>
     _HomepageMetadata(
+      authors:
+          (json['authors'] as List<dynamic>?)
+              ?.map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       recommendationStats:
           (json['recommendationStats'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(
@@ -25,6 +30,7 @@ _HomepageMetadata _$HomepageMetadataFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$HomepageMetadataToJson(_HomepageMetadata instance) =>
     <String, dynamic>{
+      'authors': instance.authors,
       'recommendationStats': instance.recommendationStats,
       'dailyTopics': instance.dailyTopics,
     };

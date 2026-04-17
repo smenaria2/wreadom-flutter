@@ -24,5 +24,19 @@ void main() {
       
       expect(route, isA<MaterialPageRoute>());
     });
+
+    test('parses daily topic deep link correctly', () {
+      const settings = RouteSettings(name: 'https://wreadom.in/daily-topic?id=today');
+      final route = AppRouter.onGenerateRoute(settings);
+
+      expect(route, isA<MaterialPageRoute>());
+    });
+
+    test('parses category deep link correctly', () {
+      const settings = RouteSettings(name: 'https://wreadom.in/category/Fantasy');
+      final route = AppRouter.onGenerateRoute(settings);
+
+      expect(route, isA<MaterialPageRoute>());
+    });
   });
 }

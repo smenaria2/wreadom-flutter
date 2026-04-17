@@ -43,7 +43,12 @@ IconData _typeIcon(String type) {
 
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
-  const FeedPostCard({super.key, required this.post});
+  final bool openOnTap;
+  const FeedPostCard({
+    super.key,
+    required this.post,
+    this.openOnTap = true,
+  });
 
   @override
   ConsumerState<FeedPostCard> createState() => _FeedPostCardState();
@@ -100,7 +105,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final liked = _optimisticLiked ?? (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
 
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -378,6 +383,15 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
           ),
         ],
       ),
+    );
+
+    if (!widget.openOnTap || post.id == null) return card;
+    return InkWell(
+      onTap: () => Navigator.of(context).pushNamed(
+        AppRoutes.postDetail,
+        arguments: PostDetailArguments(postId: post.id!, post: post),
+      ),
+      child: card,
     );
   }
 

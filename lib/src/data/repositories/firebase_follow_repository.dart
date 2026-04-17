@@ -66,6 +66,15 @@ class FirebaseFollowRepository implements FollowRepository {
   }
 
   @override
+  Future<List<String>> getFollowersList(String followingId) async {
+    final snapshot = await _firestore
+        .collection('follows')
+        .where('followingId', isEqualTo: followingId)
+        .get();
+    return snapshot.docs.map((doc) => doc.data()['followerId'] as String).toList();
+  }
+
+  @override
   Future<void> unfollowUser({
     required String followerId,
     required String followingId,
