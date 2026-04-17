@@ -18,6 +18,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final feedAsync = ref.watch(filteredFeedPostsProvider(_selectedFilter));
 
     return Scaffold(
@@ -41,6 +42,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               ),
               actions: [
                 IconButton(
+                  tooltip: 'Notifications',
                   icon: Consumer(
                     builder: (context, ref, _) {
                       final unreadCount = ref.watch(
@@ -104,7 +106,9 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                           Icon(
                             Icons.feed_outlined,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.35,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -112,7 +116,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                                 ? 'No posts from people you follow yet'
                                 : 'No posts yet',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -120,7 +124,11 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Be the first to post something!',
-                            style: TextStyle(color: Colors.grey[400]),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.75,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
                           FilledButton.icon(
@@ -133,10 +141,13 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                     ),
                   );
                 }
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => FeedPostCard(post: posts[index]),
-                    childCount: posts.length,
+                return SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 132),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => FeedPostCard(post: posts[index]),
+                      childCount: posts.length,
+                    ),
                   ),
                 );
               },
@@ -161,14 +172,14 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           err.toString(),
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(

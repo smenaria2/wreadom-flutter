@@ -23,10 +23,7 @@ import '../screens/writer_pad_screen.dart';
 import 'app_routes.dart';
 
 class ReaderArguments {
-  const ReaderArguments({
-    required this.book,
-    this.initialChapterIndex = 0,
-  });
+  const ReaderArguments({required this.book, this.initialChapterIndex = 0});
 
   final Book book;
   final int initialChapterIndex;
@@ -39,10 +36,7 @@ class PublicProfileArguments {
 }
 
 class BookDetailArguments {
-  const BookDetailArguments({
-    required this.bookId,
-    this.book,
-  });
+  const BookDetailArguments({required this.bookId, this.book});
 
   final String bookId;
   final Book? book;
@@ -67,21 +61,28 @@ class WriterPadArguments {
 }
 
 class PostDetailArguments {
-  const PostDetailArguments({
-    required this.postId,
-    this.post,
-  });
+  const PostDetailArguments({required this.postId, this.post});
 
   final String postId;
   final FeedPost? post;
 }
 
 class AppRouter {
+  static MaterialPageRoute _notFound([String? message]) {
+    return MaterialPageRoute(
+      builder: (_) => StaticInfoScreen(
+        title: 'Not Found',
+        body: message ?? 'The requested page could not be found.',
+      ),
+    );
+  }
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     String? name = settings.name;
     Object? arguments = settings.arguments;
 
-    if (name != null && (name.startsWith('http://') || name.startsWith('https://'))) {
+    if (name != null &&
+        (name.startsWith('http://') || name.startsWith('https://'))) {
       final resolved = AppLinkHelper.resolve(name);
       if (resolved != null) {
         name = resolved.route;
@@ -109,18 +110,23 @@ class AppRouter {
         } else if (args is BookDetailArguments) {
           bookId = args.bookId;
           book = args.book;
+        } else if (args == null ||
+            args.toString().trim().isEmpty ||
+            args.toString() == 'null') {
+          return _notFound('Book details are missing.');
         } else {
           bookId = args.toString();
         }
 
         return MaterialPageRoute(
-          builder: (_) => BookDetailScreen(
-            bookId: bookId,
-            preloadedBook: book,
-          ),
+          builder: (_) => BookDetailScreen(bookId: bookId, preloadedBook: book),
         );
       case AppRoutes.reader:
-        final args = (arguments ?? settings.arguments) as ReaderArguments;
+        final argsValue = arguments ?? settings.arguments;
+        if (argsValue is! ReaderArguments) {
+          return _notFound('Reader details are missing.');
+        }
+        final args = argsValue;
         return MaterialPageRoute(
           builder: (_) => ReaderScreen(
             book: args.book,
@@ -138,7 +144,11 @@ class AppRouter {
       case AppRoutes.notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());
       case AppRoutes.conversation:
-        final args = (arguments ?? settings.arguments) as ConversationArguments;
+        final argsValue = arguments ?? settings.arguments;
+        if (argsValue is! ConversationArguments) {
+          return _notFound('Conversation details are missing.');
+        }
+        final args = argsValue;
         return MaterialPageRoute(
           builder: (_) => ConversationScreen(
             conversationId: args.conversationId,
@@ -150,11 +160,18 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const WriterDashboardScreen());
       case AppRoutes.discovery:
         return MaterialPageRoute(
-          settings: RouteSettings(name: name, arguments: arguments ?? settings.arguments),
+          settings: RouteSettings(
+            name: name,
+            arguments: arguments ?? settings.arguments,
+          ),
           builder: (_) => const DiscoveryScreen(),
         );
       case AppRoutes.writerPad:
-        final args = (arguments ?? settings.arguments) as WriterPadArguments?;
+        final argsValue = arguments ?? settings.arguments;
+        if (argsValue != null && argsValue is! WriterPadArguments) {
+          return _notFound('Writer details are missing.');
+        }
+        final args = argsValue as WriterPadArguments?;
         return MaterialPageRoute(
           builder: (_) => WriterPadScreen(book: args?.book),
         );
@@ -169,26 +186,33 @@ class AppRouter {
         } else if (args is PostDetailArguments) {
           postId = args.postId;
           post = args.post;
+        } else if (args == null ||
+            args.toString().trim().isEmpty ||
+            args.toString() == 'null') {
+          return _notFound('Post details are missing.');
         } else {
           postId = args.toString();
         }
 
         return MaterialPageRoute(
-          builder: (_) => PostDetailScreen(
-            postId: postId,
-            preloadedPost: post,
-          ),
+          builder: (_) => PostDetailScreen(postId: postId, preloadedPost: post),
         );
       case AppRoutes.category:
         final args = arguments ?? settings.arguments;
-        final category = args is CategoryBooksArguments ? args.category : args.toString();
+        final category = args is CategoryBooksArguments
+            ? args.category
+            : args.toString();
         return MaterialPageRoute(
           builder: (_) => CategoryBooksScreen(category: category),
         );
       case AppRoutes.savedBooks:
         return MaterialPageRoute(builder: (_) => const SavedBooksScreen());
       case AppRoutes.followList:
-        final args = (arguments ?? settings.arguments) as FollowListArguments;
+        final argsValue = arguments ?? settings.arguments;
+        if (argsValue is! FollowListArguments) {
+          return _notFound('Follow list details are missing.');
+        }
+        final args = argsValue;
         return MaterialPageRoute(
           builder: (_) => FollowListScreen(
             userId: args.userId,
@@ -255,12 +279,7 @@ class AppRouter {
           ),
         );
       default:
-        return MaterialPageRoute(
-          builder: (_) => const StaticInfoScreen(
-            title: 'Not Found',
-            body: 'The requested page could not be found.',
-          ),
-        );
+        return _notFound();
     }
   }
 }

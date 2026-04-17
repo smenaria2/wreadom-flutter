@@ -45,8 +45,50 @@ class PublicProfileScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 220,
                 pinned: true,
+                actions: [
+                  if (!isSelf) ...[
+                    FollowButton(targetUserId: userId, compact: true),
+                    followingAsync.when(
+                      data: (isFollowing) {
+                        if (isFollowing) {
+                          return IconButton(
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            onPressed: () async {
+                              final currentUser = await ref.read(
+                                currentUserProvider.future,
+                              );
+                              if (currentUser == null) return;
+                              final conversationId = await ref
+                                  .read(messageRepositoryProvider)
+                                  .getOrCreateDirectConversation(
+                                    currentUser: currentUser,
+                                    otherUser: user,
+                                  );
+                              if (context.mounted) {
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.conversation,
+                                  arguments: ConversationArguments(
+                                    conversationId: conversationId,
+                                    title: user.displayName ?? user.username,
+                                    subtitle: '@${user.username}',
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(user.displayName ?? user.username),
+                  title: Text(
+                    user.displayName ?? user.username,
+                    style: const TextStyle(shadows: [Shadow(blurRadius: 10, color: Colors.black)]),
+                  ),
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -177,40 +219,6 @@ class PublicProfileScreen extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          FollowButton(targetUserId: userId),
-                          OutlinedButton.icon(
-                            onPressed: () async {
-                              final currentUser = await ref.read(
-                                currentUserProvider.future,
-                              );
-                              if (currentUser == null) return;
-                              final conversationId = await ref
-                                  .read(messageRepositoryProvider)
-                                  .getOrCreateDirectConversation(
-                                    currentUser: currentUser,
-                                    otherUser: user,
-                                  );
-                              if (context.mounted) {
-                                Navigator.of(context).pushNamed(
-                                  AppRoutes.conversation,
-                                  arguments: ConversationArguments(
-                                    conversationId: conversationId,
-                                    title: user.displayName ?? user.username,
-                                    subtitle: '@${user.username}',
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.chat_bubble_outline),
-                            label: const Text('Message'),
-                          ),
-                        ],
-                      ),
                       if (contentVisible) ...[
                         const SizedBox(height: 28),
                         _PublicProfileContentTabs(userId: userId),
@@ -343,29 +351,32 @@ class _PublicBooksSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Books',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
         booksAsync.when(
           data: (books) {
             if (books.isEmpty) {
               return const Text('No published books yet.');
             }
-            return SizedBox(
-              height: 210,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: books.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => BookCard(book: books[index]),
+            return GridView.builder(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(top: 8),
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 0.44,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 28,
               ),
+              itemCount: books.length,
+              itemBuilder: (context, index) =>
+                  BookCard(book: books[index], width: double.infinity),
             );
           },
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          ),
           error: (error, _) => Text('Failed to load books: $error'),
         ),
       ],

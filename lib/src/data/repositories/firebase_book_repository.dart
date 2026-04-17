@@ -37,8 +37,9 @@ class FirebaseBookRepository implements BookRepository {
           })
           .whereType<Book>()
           .toList();
-    } catch (_) {
-      return [];
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting books: $e');
+      Error.throwWithStackTrace(e, stack);
     }
   }
 
@@ -74,8 +75,9 @@ class FirebaseBookRepository implements BookRepository {
           })
           .whereType<Book>()
           .toList();
-    } catch (_) {
-      return [];
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting bookshelf books: $e');
+      Error.throwWithStackTrace(e, stack);
     }
   }
 
@@ -93,7 +95,10 @@ class FirebaseBookRepository implements BookRepository {
       return snapshot.docs
           .map((doc) {
             try {
-              final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+              final data = normalizeBookMapForModel(
+                asStringMap(doc.data()),
+                doc.id,
+              );
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -101,8 +106,9 @@ class FirebaseBookRepository implements BookRepository {
           })
           .whereType<Book>()
           .toList();
-    } catch (_) {
-      return [];
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting original books: $e');
+      Error.throwWithStackTrace(e, stack);
     }
   }
 
@@ -129,7 +135,10 @@ class FirebaseBookRepository implements BookRepository {
 
         for (final doc in snapshot.docs) {
           try {
-            final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+            final data = normalizeBookMapForModel(
+              asStringMap(doc.data()),
+              doc.id,
+            );
             final book = Book.fromJson(data);
             byId[book.id] = book;
           } catch (_) {}
@@ -162,7 +171,10 @@ class FirebaseBookRepository implements BookRepository {
       return snapshot.docs
           .map((doc) {
             try {
-              final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+              final data = normalizeBookMapForModel(
+                asStringMap(doc.data()),
+                doc.id,
+              );
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -170,8 +182,9 @@ class FirebaseBookRepository implements BookRepository {
           })
           .whereType<Book>()
           .toList();
-    } catch (_) {
-      return [];
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting user books: $e');
+      Error.throwWithStackTrace(e, stack);
     }
   }
 
@@ -182,8 +195,9 @@ class FirebaseBookRepository implements BookRepository {
       if (!doc.exists) return null;
       final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
       return Book.fromJson(data);
-    } catch (_) {
-      return null;
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting book $bookId: $e');
+      Error.throwWithStackTrace(e, stack);
     }
   }
 
@@ -203,7 +217,10 @@ class FirebaseBookRepository implements BookRepository {
           return snapshot.docs
               .map((doc) {
                 try {
-                  final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+                  final data = normalizeBookMapForModel(
+                    asStringMap(doc.data()),
+                    doc.id,
+                  );
                   return Book.fromJson(data);
                 } catch (_) {
                   return null;
@@ -225,7 +242,10 @@ class FirebaseBookRepository implements BookRepository {
       return fallback.docs
           .map((doc) {
             try {
-              final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+              final data = normalizeBookMapForModel(
+                asStringMap(doc.data()),
+                doc.id,
+              );
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -251,7 +271,10 @@ class FirebaseBookRepository implements BookRepository {
       return snapshot.docs
           .map((doc) {
             try {
-              final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+              final data = normalizeBookMapForModel(
+                asStringMap(doc.data()),
+                doc.id,
+              );
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -290,25 +313,12 @@ class FirebaseBookRepository implements BookRepository {
       }
 
       final snapshot = await dbQuery.limit(limit).get();
-
-      return snapshot.docs
-          .map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<Book>()
-          .toList();
+      final books = _booksFromDocs(snapshot.docs);
+      if (books.isNotEmpty) return books;
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error searching books: $e');
-      return [];
     }
+    return _fallbackSearchBooks(term, limit: limit, originalsOnly: false);
   }
 
   @override
@@ -339,24 +349,12 @@ class FirebaseBookRepository implements BookRepository {
       }
 
       final snapshot = await dbQuery.limit(limit).get();
-      return snapshot.docs
-          .map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<Book>()
-          .toList();
+      final books = _booksFromDocs(snapshot.docs);
+      if (books.isNotEmpty) return books;
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error searching originals: $e');
-      return [];
     }
+    return _fallbackSearchBooks(term, limit: limit, originalsOnly: true);
   }
 
   @override
@@ -383,7 +381,10 @@ class FirebaseBookRepository implements BookRepository {
         books.addAll(
           snapshot.docs.map((doc) {
             try {
-              final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+              final data = normalizeBookMapForModel(
+                asStringMap(doc.data()),
+                doc.id,
+              );
               return Book.fromJson(data);
             } catch (_) {
               return null;
@@ -441,35 +442,137 @@ class FirebaseBookRepository implements BookRepository {
     int limit = 10,
     dynamic lastDoc,
   }) async {
-    try {
-      Query query = _firestore
-          .collection(_collection)
-          .where('genres', arrayContains: genre)
-          .where('status', isEqualTo: 'published')
-          .limit(limit);
+    final term = genre.trim();
+    if (term.isEmpty) return [];
 
-      if (lastDoc != null && lastDoc is DocumentSnapshot) {
-        query = query.startAfterDocument(lastDoc);
+    try {
+      final byId = <String, Book>{};
+      final values = _searchTerms(term);
+
+      for (final field in const [
+        'genres',
+        'subjects',
+        'topics',
+        'bookshelves',
+      ]) {
+        for (final value in values) {
+          Query query = _firestore
+              .collection(_collection)
+              .where(field, arrayContains: value)
+              .where('status', isEqualTo: 'published')
+              .limit(limit);
+
+          if (lastDoc != null && lastDoc is DocumentSnapshot) {
+            query = query.startAfterDocument(lastDoc);
+          }
+
+          try {
+            final snapshot = await query.get();
+            for (final book in _booksFromDocs(snapshot.docs)) {
+              byId[book.id] = book;
+            }
+          } catch (_) {}
+
+          if (byId.length >= limit) {
+            return byId.values.take(limit).toList();
+          }
+        }
       }
 
-      final snapshot = await query.get();
-      return snapshot.docs
-          .map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<Book>()
-          .toList();
-    } catch (_) {
-      return [];
+      if (byId.isNotEmpty) return byId.values.take(limit).toList();
+    } catch (e) {
+      debugPrint('[FirebaseBookRepository] Error getting genre books: $e');
     }
+    return _fallbackSearchBooks(
+      'subject:$term',
+      limit: limit,
+      originalsOnly: false,
+    );
+  }
+
+  List<Book> _booksFromDocs(Iterable<QueryDocumentSnapshot> docs) {
+    return docs
+        .map((doc) {
+          try {
+            final data = normalizeBookMapForModel(
+              asStringMap(doc.data()),
+              doc.id,
+            );
+            return Book.fromJson(data);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Book>()
+        .toList();
+  }
+
+  List<String> _searchTerms(String term) {
+    final trimmed = term.trim();
+    final lower = trimmed.toLowerCase();
+    final title = trimmed
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
+    return {trimmed, lower, title, trimmed.replaceAll(' ', '_')}.toList();
+  }
+
+  bool _matchesBook(Book book, String query) {
+    final term = query.contains(':') ? query.split(':').last.trim() : query;
+    final normalized = term.toLowerCase();
+    if (normalized.isEmpty) return false;
+
+    bool hasMatch(Iterable<String> values) {
+      return values.any((value) => value.toLowerCase().contains(normalized));
+    }
+
+    return book.title.toLowerCase().contains(normalized) ||
+        hasMatch(book.authors.map((author) => author.name)) ||
+        hasMatch(book.subjects) ||
+        hasMatch(book.bookshelves) ||
+        hasMatch(book.topics ?? const <String>[]);
+  }
+
+  Future<List<Book>> _fallbackSearchBooks(
+    String query, {
+    required int limit,
+    required bool originalsOnly,
+  }) async {
+    final candidates = <String, Book>{};
+
+    Future<void> addBooks(Future<List<Book>> future) async {
+      try {
+        for (final book in await future) {
+          candidates[book.id] = book;
+        }
+      } catch (_) {}
+    }
+
+    if (originalsOnly) {
+      await addBooks(getOriginalBooks(limit: 100));
+    } else {
+      await addBooks(getBooks(limit: 100));
+      await addBooks(getOriginalBooks(limit: 100));
+      await addBooks(getPopularBooks(limit: 100));
+      await addBooks(getRecentBooks(limit: 100));
+    }
+
+    final results =
+        candidates.values.where((book) => _matchesBook(book, query)).toList()
+          ..sort((a, b) {
+            final aStarts = a.title.toLowerCase().startsWith(
+              query.toLowerCase(),
+            );
+            final bStarts = b.title.toLowerCase().startsWith(
+              query.toLowerCase(),
+            );
+            if (aStarts != bStarts) return aStarts ? -1 : 1;
+            return (b.updatedAt ?? b.createdAt ?? 0).compareTo(
+              a.updatedAt ?? a.createdAt ?? 0,
+            );
+          });
+    return results.take(limit).toList();
   }
 
   @override
@@ -514,6 +617,19 @@ class FirebaseBookRepository implements BookRepository {
       return snapshot.docs.map((doc) {
         final data = asStringMap(doc.data());
         data['id'] = doc.id;
+        data['title'] = data['title']?.toString() ?? 'Chapter';
+        data['content'] = data['content']?.toString() ?? '';
+        data['index'] = data['index'] is num
+            ? (data['index'] as num).toInt()
+            : data['order'] is num
+            ? (data['order'] as num).toInt()
+            : int.tryParse(data['index']?.toString() ?? '') ??
+                  int.tryParse(data['order']?.toString() ?? '') ??
+                  0;
+        if (data['lastSavedAt'] is Timestamp) {
+          data['lastSavedAt'] =
+              (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
+        }
         return Chapter.fromJson(data);
       }).toList();
     } catch (e) {

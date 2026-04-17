@@ -25,7 +25,11 @@ class UserAboutTab extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           user.bio ?? 'No bio yet.',
-          style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.5),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 24),
         const Text(

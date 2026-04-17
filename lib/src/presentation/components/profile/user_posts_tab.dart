@@ -26,7 +26,7 @@ class UserPostsTab extends ConsumerWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 120),
           itemBuilder: (context, index) => FeedPostCard(post: posts[index]),
           itemCount: posts.length,
         );

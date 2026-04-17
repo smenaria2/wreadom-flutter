@@ -7,11 +7,7 @@ class BookCard extends StatelessWidget {
   final Book book;
   final double width;
 
-  const BookCard({
-    super.key,
-    required this.book,
-    this.width = 120,
-  });
+  const BookCard({super.key, required this.book, this.width = 120});
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +16,8 @@ class BookCard extends StatelessWidget {
       child: InkWell(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => BookDetailScreen(
-              bookId: book.id,
-              preloadedBook: book,
-            ),
+            builder: (_) =>
+                BookDetailScreen(bookId: book.id, preloadedBook: book),
           ),
         ),
         child: Column(
@@ -38,7 +32,10 @@ class BookCard extends StatelessWidget {
                         imageUrl: book.coverUrl!,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.3),
                           child: const Center(
                             child: SizedBox(
                               width: 20,
@@ -47,7 +44,8 @@ class BookCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => _Placeholder(title: book.title),
+                        errorWidget: (context, url, error) =>
+                            _Placeholder(title: book.title),
                       )
                     : _Placeholder(title: book.title),
               ),
@@ -57,10 +55,7 @@ class BookCard extends StatelessWidget {
               book.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 2),
             Text(
@@ -68,7 +63,7 @@ class BookCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
               ),
             ),

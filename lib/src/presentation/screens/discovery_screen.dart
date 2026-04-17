@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +8,6 @@ import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/book_providers.dart';
 import '../providers/discovery_providers.dart';
-import '../providers/homepage_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import 'book_detail_screen.dart';
@@ -101,6 +99,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: TextField(
                   controller: _searchController,
+                  textInputAction: TextInputAction.search,
                   onChanged: (value) {
                     _debounce?.cancel();
                     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -111,6 +110,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     });
                   },
                   decoration: InputDecoration(
+                    labelText: 'Search books and authors',
                     hintText: 'Search books, authors...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _query.isNotEmpty
@@ -136,30 +136,31 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final genre in _genres)
-                    FilterChip(
-                      label: Text(genre),
-                      selected: _activeGenre == genre,
-                      showCheckmark: false,
-                      onSelected: (_) {
-                        setState(() {
-                          _activeGenre = _activeGenre == genre ? null : genre;
-                          _query = '';
-                          _searchController.clear();
-                        });
-                      },
-                    ),
-                ],
+          if (_query.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final genre in _genres)
+                      FilterChip(
+                        label: Text(genre),
+                        selected: _activeGenre == genre,
+                        showCheckmark: false,
+                        onSelected: (_) {
+                          setState(() {
+                            _activeGenre = _activeGenre == genre ? null : genre;
+                            _query = '';
+                            _searchController.clear();
+                          });
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
           if (_query.isEmpty && !hasGenre)
             defaultAsync.when(
               data: (books) => _BookListSliver(
@@ -205,13 +206,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 }
                 return SliverList(
                   delegate: SliverChildListDelegate([
+                    if (results.authors.isNotEmpty)
+                      _AuthorResultSection(authors: results.authors),
                     if (results.originals.isNotEmpty)
                       _ResultSection(
                         title: 'Original Books',
                         books: results.originals,
                       ),
-                    if (results.authors.isNotEmpty)
-                      _AuthorResultSection(authors: results.authors),
                     if (results.archiveBooks.isNotEmpty)
                       _ResultSection(
                         title: 'More Books',
@@ -297,48 +298,102 @@ class _AuthorResultSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 0, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Authors',
+            'Profiles',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 10),
-          for (final author in authors)
-            Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey[200]!),
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: author.photoURL != null
+          SizedBox(
+            height: 132,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 16),
+              itemCount: authors.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) =>
+                  _AuthorProfileCard(author: authors[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthorProfileCard extends StatelessWidget {
+  const _AuthorProfileCard({required this.author});
+
+  final UserModel author;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final displayName = author.displayName ?? author.penName ?? author.username;
+    final initial = displayName.trim().isNotEmpty
+        ? displayName.trim().characters.first.toUpperCase()
+        : '?';
+
+    return SizedBox(
+      width: 128,
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: theme.colorScheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.of(context).pushNamed(
+            AppRoutes.publicProfile,
+            arguments: PublicProfileArguments(userId: author.id),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundImage:
+                      author.photoURL != null && author.photoURL!.isNotEmpty
                       ? CachedNetworkImageProvider(author.photoURL!)
                       : null,
-                  child: author.photoURL == null
-                      ? Text(
-                          (author.displayName ?? author.username)
-                              .characters
-                              .first
-                              .toUpperCase(),
-                        )
+                  child: author.photoURL == null || author.photoURL!.isEmpty
+                      ? Text(initial)
                       : null,
                 ),
-                title: Text(
-                  author.displayName ?? author.penName ?? author.username,
+                const SizedBox(height: 10),
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                subtitle: Text('@${author.username}'),
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppRoutes.publicProfile,
-                  arguments: PublicProfileArguments(userId: author.id),
+                const SizedBox(height: 2),
+                Text(
+                  '@${author.username}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -354,74 +409,86 @@ class _SearchResultTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) =>
-                BookDetailScreen(bookId: book.id, preloadedBook: book),
+      child: Semantics(
+        button: true,
+        label:
+            '${book.title} by ${book.authors.isNotEmpty ? book.authors.map((a) => a.name).join(', ') : 'Unknown Author'}',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  BookDetailScreen(bookId: book.id, preloadedBook: book),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: book.coverUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: book.coverUrl!,
-                        width: 56,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) =>
-                            _MiniPlaceholder(title: book.title),
-                      )
-                    : _MiniPlaceholder(title: book.title),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      book.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      book.authors.isNotEmpty
-                          ? book.authors.map((a) => a.name).join(', ')
-                          : 'Unknown Author',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                    if (book.source == 'archive') ...[
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Internet Archive',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: book.coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: book.coverUrl!,
+                          width: 56,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              _MiniPlaceholder(title: book.title),
+                        )
+                      : _MiniPlaceholder(title: book.title),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        book.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        book.authors.isNotEmpty
+                            ? book.authors.map((a) => a.name).join(', ')
+                            : 'Unknown Author',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (book.source == 'archive') ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Internet Archive',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -460,4 +527,3 @@ class _MiniPlaceholder extends StatelessWidget {
     );
   }
 }
-

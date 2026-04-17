@@ -27,28 +27,37 @@ class WriterDashboardScreen extends ConsumerWidget {
               pinned: true,
               elevation: 0,
               backgroundColor: theme.primaryColor,
-              title: const Text('Writer Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              title: const Text(
+                'Writer Dashboard',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            const SliverToBoxAdapter(
-              child: WriterDashboardHeader(),
-            ),
+            const SliverToBoxAdapter(child: WriterDashboardHeader()),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: Row(
-                  children: [
-                    _TabButton(
-                      label: 'Published',
-                      isActive: activeTab == 'published',
-                      onTap: () => ref.read(writerDashboardTabProvider.notifier).setTab('published'),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'published',
+                      label: Text('Published'),
+                      icon: Icon(Icons.public_rounded),
                     ),
-                    const SizedBox(width: 12),
-                    _TabButton(
-                      label: 'Drafts',
-                      isActive: activeTab == 'draft',
-                      onTap: () => ref.read(writerDashboardTabProvider.notifier).setTab('draft'),
+                    ButtonSegment(
+                      value: 'draft',
+                      label: Text('Drafts'),
+                      icon: Icon(Icons.edit_note_rounded),
                     ),
                   ],
+                  selected: {activeTab},
+                  onSelectionChanged: (selection) {
+                    ref
+                        .read(writerDashboardTabProvider.notifier)
+                        .setTab(selection.first);
+                  },
                 ),
               ),
             ),
@@ -61,10 +70,16 @@ class WriterDashboardScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.auto_stories_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
+                          Icon(
+                            Icons.auto_stories_outlined,
+                            size: 64,
+                            color: Colors.grey.withValues(alpha: 0.5),
+                          ),
                           const SizedBox(height: 16),
                           Text(
-                            'No status ${activeTab}s',
+                            activeTab == 'published'
+                                ? 'No published stories yet'
+                                : 'No drafts yet',
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.grey,
                               fontWeight: FontWeight.bold,
@@ -76,23 +91,20 @@ class WriterDashboardScreen extends ConsumerWidget {
                   );
                 }
                 return SliverPadding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 100),
+                  padding: const EdgeInsets.only(top: 8, bottom: 132),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final book = books[index];
-                        return WriterBookCard(
-                          book: book,
-                          onTap: () {
-                            Navigator.of(context).pushNamed(
-                              AppRoutes.writerPad,
-                              arguments: WriterPadArguments(book: book),
-                            );
-                          },
-                        );
-                      },
-                      childCount: books.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final book = books[index];
+                      return WriterBookCard(
+                        book: book,
+                        onTap: () {
+                          Navigator.of(context).pushNamed(
+                            AppRoutes.writerPad,
+                            arguments: WriterPadArguments(book: book),
+                          );
+                        },
+                      );
+                    }, childCount: books.length),
                   ),
                 );
               },
@@ -114,47 +126,11 @@ class WriterDashboardScreen extends ConsumerWidget {
           );
         },
         icon: const Icon(Icons.edit_note, color: Colors.white),
-        label: const Text('Create Story', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        label: const Text(
+          'Create Story',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: theme.primaryColor,
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _TabButton({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isActive ? theme.primaryColor : theme.dividerColor.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : theme.primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
     );
   }

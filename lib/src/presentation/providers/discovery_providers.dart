@@ -31,16 +31,20 @@ final discoverySearchProvider =
         );
       }
       final repo = ref.watch(bookRepositoryProvider);
-      final results = await Future.wait([
-        repo.searchOriginalBooks(term, limit: 20),
-        ref.watch(profileSearchProvider(term).future),
-        repo.searchArchiveBooks(term, limit: 20),
-      ]);
+      final originals = await repo
+          .searchOriginalBooks(term, limit: 20)
+          .catchError((_) => <Book>[]);
+      final authors = await ref
+          .watch(profileSearchProvider(term).future)
+          .catchError((_) => <UserModel>[]);
+      final archiveBooks = await repo
+          .searchArchiveBooks(term, limit: 20)
+          .catchError((_) => <Book>[]);
 
       return DiscoverySearchResults(
-        originals: results[0] as List<Book>,
-        authors: results[1] as List<UserModel>,
-        archiveBooks: results[2] as List<Book>,
+        originals: originals,
+        authors: authors,
+        archiveBooks: archiveBooks,
       );
     });
 

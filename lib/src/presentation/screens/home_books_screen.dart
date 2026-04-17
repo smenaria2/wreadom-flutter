@@ -85,7 +85,7 @@ class HomeBooksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _AuthorSpotlight(),
+              _AuthorSpotlight(recentBooksAsync: recentAsync),
               const SizedBox(height: 16),
 
               // ─── Saved Books (Local & Remote) ─────────────────────────
@@ -558,8 +558,8 @@ class _AuthorsSection extends StatelessWidget {
                   final name = (displayName != null && displayName.isNotEmpty)
                       ? displayName
                       : (penName != null && penName.isNotEmpty)
-                          ? penName
-                          : author.username;
+                      ? penName
+                      : author.username;
                   return InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => Navigator.of(context).pushNamed(
@@ -572,10 +572,15 @@ class _AuthorsSection extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 30,
-                            backgroundImage: author.photoURL != null && author.photoURL!.isNotEmpty
+                            backgroundImage:
+                                author.photoURL != null &&
+                                    author.photoURL!.isNotEmpty
                                 ? CachedNetworkImageProvider(author.photoURL!)
                                 : null,
-                            child: (author.photoURL == null || author.photoURL!.isEmpty) && name.isNotEmpty
+                            child:
+                                (author.photoURL == null ||
+                                        author.photoURL!.isEmpty) &&
+                                    name.isNotEmpty
                                 ? Text(name.characters.first.toUpperCase())
                                 : null,
                           ),
@@ -655,11 +660,15 @@ class _BookshelfSection extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 itemCount: books.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) => _BookCard(
-                  book: books[index],
-                  sectionId:
-                      sectionId ?? title.replaceAll(' ', '-').toLowerCase(),
-                ),
+                itemBuilder: (context, index) {
+                  final book = books[index];
+                  final shelfId =
+                      sectionId ?? title.replaceAll(' ', '-').toLowerCase();
+                  return _BookCard(
+                    book: book,
+                    heroTag: 'book-cover-$shelfId-${book.id}-$index',
+                  );
+                },
               ),
             ),
           ],
@@ -674,7 +683,7 @@ class _BookshelfSection extends StatelessWidget {
               height: 24,
               width: 140,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -700,77 +709,89 @@ class _BookshelfSection extends StatelessWidget {
 // ─── Book Card ────────────────────────────────────────────────────────────────
 class _BookCard extends StatelessWidget {
   final Book book;
-  final String sectionId;
-  const _BookCard({required this.book, required this.sectionId});
+  final String heroTag;
+  const _BookCard({required this.book, required this.heroTag});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        final tag = 'book-cover-$sectionId-${book.id}';
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => BookDetailScreen(
-              bookId: book.id,
-              preloadedBook: book,
-              heroTag: tag,
+    return Semantics(
+      button: true,
+      label:
+          '${book.title} by ${book.authors.isNotEmpty ? book.authors.first.name : 'Unknown Author'}',
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BookDetailScreen(
+                bookId: book.id,
+                preloadedBook: book,
+                heroTag: heroTag,
+              ),
             ),
-          ),
-        );
-      },
-      child: SizedBox(
-        width: 120,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: book.coverUrl != null
-                    ? Hero(
-                        tag: 'book-cover-$sectionId-${book.id}',
-                        child: CachedNetworkImage(
-                          imageUrl: book.coverUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+          );
+        },
+        child: SizedBox(
+          width: 120,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: book.coverUrl != null
+                      ? Hero(
+                          tag: heroTag,
+                          child: CachedNetworkImage(
+                            imageUrl: book.coverUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            placeholder: (context, url) => Container(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                             ),
+                            errorWidget: (context, url, error) =>
+                                _CoverPlaceholder(title: book.title),
                           ),
-                          errorWidget: (context, url, error) =>
-                              _CoverPlaceholder(title: book.title),
-                        ),
-                      )
-                    : _CoverPlaceholder(title: book.title),
+                        )
+                      : _CoverPlaceholder(title: book.title),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            // Title
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-            ),
-            // Author
-            Text(
-              book.authors.isNotEmpty
-                  ? book.authors.first.name
-                  : 'Unknown Author',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.grey[600], fontSize: 11),
-            ),
-          ],
+              const SizedBox(height: 8),
+              // Title
+              Text(
+                book.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+              // Author
+              Text(
+                book.authors.isNotEmpty
+                    ? book.authors.first.name
+                    : 'Unknown Author',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -823,15 +844,23 @@ class _BookCardSkeleton extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey[200] ?? Colors.grey,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Container(height: 12, width: 100, color: Colors.grey[200]),
+          Container(
+            height: 12,
+            width: 100,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
           const SizedBox(height: 4),
-          Container(height: 10, width: 70, color: Colors.grey[100]),
+          Container(
+            height: 10,
+            width: 70,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          ),
         ],
       ),
     );
@@ -840,7 +869,9 @@ class _BookCardSkeleton extends StatelessWidget {
 
 // ─── Author Spotlight ────────────────────────────────────────────────────────
 class _AuthorSpotlight extends ConsumerStatefulWidget {
-  const _AuthorSpotlight();
+  const _AuthorSpotlight({required this.recentBooksAsync});
+
+  final AsyncValue<List<Book>> recentBooksAsync;
 
   @override
   ConsumerState<_AuthorSpotlight> createState() => _AuthorSpotlightState();
@@ -849,219 +880,291 @@ class _AuthorSpotlight extends ConsumerStatefulWidget {
 class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
   int? _randomIndex;
 
+  String _authorName(UserModel author) {
+    final displayName = author.displayName;
+    if (displayName != null && displayName.trim().isNotEmpty) {
+      return displayName.trim();
+    }
+
+    final penName = author.penName;
+    if (penName != null && penName.trim().isNotEmpty) {
+      return penName.trim();
+    }
+
+    return author.username;
+  }
+
+  void _openAuthorProfile(BuildContext context, UserModel author) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.publicProfile,
+      arguments: PublicProfileArguments(userId: author.id),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authorsAsync = ref.watch(homepageAuthorsProvider);
 
     return authorsAsync.when(
-      data: (authors) {
-        if (authors.isEmpty) return const SizedBox.shrink();
+      data: (authors) => widget.recentBooksAsync.when(
+        data: (recentBooks) {
+          final recentAuthorIds = recentBooks
+              .map((book) => book.authorId)
+              .whereType<String>()
+              .where((id) => id.trim().isNotEmpty)
+              .toSet();
+          final eligibleAuthors = authors
+              .where((author) => recentAuthorIds.contains(author.id))
+              .toList();
 
-        _randomIndex ??= math.Random().nextInt(authors.length);
-        final author = authors[_randomIndex!];
-        final authorBooksAsync = ref.watch(userBooksProvider(author.id));
+          if (eligibleAuthors.isEmpty) return const SizedBox.shrink();
 
-        return Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+          _randomIndex ??= math.Random().nextInt(eligibleAuthors.length);
+          if (_randomIndex! >= eligibleAuthors.length) _randomIndex = 0;
+          final author = eligibleAuthors[_randomIndex!];
+          final authorBooksAsync = ref.watch(userBooksProvider(author.id));
+          final authorName = _authorName(author);
+
+          return Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF0A0A0F),
+                  const Color(0xFF16131D),
+                  const Color(0xFF241D16),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                top: -20,
-                child: Icon(
-                  Icons.star_rounded,
-                  size: 120,
-                  color: Colors.white.withValues(alpha: 0.1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.white24,
-                            backgroundImage: author.photoURL != null && author.photoURL!.isNotEmpty
-                                ? CachedNetworkImageProvider(author.photoURL!)
-                                : null,
-                            child: (author.photoURL == null || author.photoURL!.isEmpty)
-                                ? Text(
-                                    (author.displayName ?? author.username)
-                                        .characters
-                                        .first
-                                        .toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'AUTHOR SPOTLIGHT',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -20,
+                  top: -20,
+                  child: Icon(
+                    Icons.star_rounded,
+                    size: 120,
+                    color: const Color(0xFFFFD166).withValues(alpha: 0.08),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => _openAuthorProfile(context, author),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFFFD166),
+                                  width: 2,
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                author.displayName ?? author.penName ?? author.username,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                author.bio ?? 'Featured Wreadom author.',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    authorBooksAsync.when(
-                      data: (books) {
-                        if (books.isEmpty) return const SizedBox.shrink();
-                        // Only show first 5 books
-                        final displayBooks = books.take(5).toList();
-                        return SizedBox(
-                          height: 100,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: displayBooks.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final book = displayBooks[index];
-                              return GestureDetector(
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => BookDetailScreen(
-                                      bookId: book.id,
-                                      preloadedBook: book,
-                                    ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFFFD166,
+                                    ).withValues(alpha: 0.22),
+                                    blurRadius: 18,
+                                    spreadRadius: 1,
                                   ),
-                                ),
-                                child: Container(
-                                  width: 70,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: const Color(0xFF2D2A35),
+                                backgroundImage:
+                                    author.photoURL != null &&
+                                        author.photoURL!.isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                        author.photoURL!,
+                                      )
+                                    : null,
+                                child:
+                                    (author.photoURL == null ||
+                                        author.photoURL!.isEmpty)
+                                    ? Text(
+                                        authorName.characters.first
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFFD166),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () =>
+                                      _openAuthorProfile(context, author),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2,
+                                    ),
+                                    child: Text(
+                                      authorName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFD166),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.8,
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: book.coverUrl != null
-                                      ? CachedNetworkImage(
-                                          imageUrl: book.coverUrl!,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          color: Colors.white24,
-                                          child: Center(
-                                            child: Text(
-                                              book.title,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                              ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  author.bio ?? 'Featured Wreadom author.',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    fontSize: 14,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      authorBooksAsync.when(
+                        data: (books) {
+                          if (books.isEmpty) return const SizedBox.shrink();
+                          // Only show first 5 books
+                          final displayBooks = books.take(5).toList();
+                          return SizedBox(
+                            height: 132,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: displayBooks.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final book = displayBooks[index];
+                                return GestureDetector(
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => BookDetailScreen(
+                                        bookId: book.id,
+                                        preloadedBook: book,
+                                      ),
+                                    ),
+                                  ),
+                                  child: SizedBox(
+                                    width: 76,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.28),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
                                             ),
+                                            clipBehavior: Clip.antiAlias,
+                                            child: book.coverUrl != null
+                                                ? CachedNetworkImage(
+                                                    imageUrl: book.coverUrl!,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                  )
+                                                : Container(
+                                                    color: Colors.white12,
+                                                    child: Center(
+                                                      child: Text(
+                                                        book.title,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        maxLines: 2,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
                                           ),
                                         ),
-                                ),
-                              );
-                            },
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          book.title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.92,
+                                            ),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.15,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(
+                          height: 100,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           ),
-                        );
-                      },
-                      loading: () => const SizedBox(
-                        height: 100,
-                        child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                        ),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pushNamed(
-                          AppRoutes.publicProfile,
-                          arguments: PublicProfileArguments(userId: author.id),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          'View Full Profile',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
+      ),
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

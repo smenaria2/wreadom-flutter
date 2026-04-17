@@ -96,10 +96,8 @@ class _BookDetailBody extends ConsumerWidget {
                 if (val == 'report') {
                   showDialog(
                     context: context,
-                    builder: (context) => ReportDialog(
-                      targetId: book.id,
-                      targetType: 'book',
-                    ),
+                    builder: (context) =>
+                        ReportDialog(targetId: book.id, targetType: 'book'),
                   );
                 }
               },
@@ -136,30 +134,12 @@ class _BookDetailBody extends ConsumerWidget {
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Hero(
-                      tag: heroTag ?? 'book-cover-${book.id}',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: book.coverUrl != null
-                            ? CachedNetworkImage(
-                                imageUrl: book.coverUrl!,
-                                height: 220,
-                                width: 150,
-                                fit: BoxFit.cover,
-                                placeholder: (_, _) => Container(
-                                  height: 220,
-                                  width: 150,
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                                errorWidget: (_, _, _) =>
-                                    _PlaceholderCover(title: book.title),
-                              )
-                            : _PlaceholderCover(title: book.title),
-                      ),
-                    ),
+                    child: heroTag == null
+                        ? _DetailCover(book: book)
+                        : Hero(
+                            tag: heroTag!,
+                            child: _DetailCover(book: book),
+                          ),
                   ),
                 ),
               ],
@@ -278,7 +258,7 @@ class _BookDetailBody extends ConsumerWidget {
     );
     var startChapter = 0;
     if (progress is Map) {
-      startChapter = (progress['chapterIndex'] as int?) ?? 0;
+      startChapter = (progress['chapterIndex'] as num?)?.toInt() ?? 0;
     }
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
@@ -380,10 +360,8 @@ class _LatestDiscussionSectionState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => CommentReplySheet(
-        comment: comment,
-        bookId: widget.bookId,
-      ),
+      builder: (context) =>
+          CommentReplySheet(comment: comment, bookId: widget.bookId),
     );
   }
 }
@@ -476,6 +454,34 @@ class _PlaceholderCover extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetailCover extends StatelessWidget {
+  const _DetailCover({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: book.coverUrl != null
+          ? CachedNetworkImage(
+              imageUrl: book.coverUrl!,
+              height: 220,
+              width: 150,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => Container(
+                height: 220,
+                width: 150,
+                color: Colors.grey[200],
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (_, _, _) => _PlaceholderCover(title: book.title),
+            )
+          : _PlaceholderCover(title: book.title),
     );
   }
 }

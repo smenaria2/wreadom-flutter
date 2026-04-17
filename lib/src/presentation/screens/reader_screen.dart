@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../../domain/models/book.dart';
@@ -50,6 +51,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late BookRepository _bookRepository;
   String? _currentUserId;
   double _scrollProgress = 0.0;
+  double _lastScrollOffset = 0.0;
+  bool _showReaderChrome = true;
+  bool _isDiscussionOpen = false;
 
   @override
   void initState() {
@@ -64,14 +68,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.hasClients &&
-        _scrollController.position.maxScrollExtent > 0) {
-      final progress =
-          _scrollController.offset /
-          _scrollController.position.maxScrollExtent;
-      if ((progress - _scrollProgress).abs() > 0.01) {
+    if (_scrollController.hasClients) {
+      final position = _scrollController.position;
+      final currentOffset = _scrollController.offset;
+      final direction = position.userScrollDirection;
+      final shouldShowChrome = direction == ScrollDirection.reverse
+          ? false
+          : direction == ScrollDirection.forward
+          ? true
+          : _showReaderChrome;
+      final hasScrollableContent = position.maxScrollExtent > 0;
+      final progress = hasScrollableContent
+          ? currentOffset / position.maxScrollExtent
+          : 0.0;
+      if ((progress - _scrollProgress).abs() > 0.01 ||
+          shouldShowChrome != _showReaderChrome ||
+          (currentOffset - _lastScrollOffset).abs() > 0.5) {
         setState(() {
           _scrollProgress = progress.clamp(0.0, 1.0);
+          _showReaderChrome = shouldShowChrome;
+          _lastScrollOffset = currentOffset;
         });
       }
     }
@@ -111,11 +127,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final user = ref.read(currentUserProvider).value;
     if (user != null &&
         user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
-      final progress =
-          user.readingProgress![widget.book.id.toString()]
-              as Map<String, dynamic>;
-      final savedChapterIndex = progress['chapterIndex'] as int? ?? 0;
-      final savedPosition = progress['position'] as double? ?? 0.0;
+      final rawProgress = user.readingProgress![widget.book.id.toString()];
+      if (rawProgress is! Map) return;
+
+      final progress = Map<String, dynamic>.from(rawProgress);
+      final savedChapterIndex =
+          (progress['chapterIndex'] as num?)?.toInt() ?? 0;
+      final savedPosition = (progress['position'] as num?)?.toDouble() ?? 0.0;
 
       if (savedChapterIndex == _chapterIndex && savedPosition > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -230,8 +248,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget _buildReader(
     BuildContext context,
     List<Chapter> chapters,
-    AsyncValue<dynamic> bookmarksAsync,
-    AsyncValue<dynamic> commentsAsync, {
+    AsyncValue<List<Bookmark>> bookmarksAsync,
+    AsyncValue<List<Comment>> commentsAsync, {
     required bool isOffline,
   }) {
     final chapter = chapters.isEmpty
@@ -239,37 +257,47 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         : chapters[_chapterIndex.clamp(0, chapters.length - 1)];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.book.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          if (isOffline)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: Chip(
-                label: const Text(
-                  'Offline',
-                  style: TextStyle(fontSize: 10, color: Colors.white),
-                ),
-                backgroundColor: Colors.green.withValues(alpha: 0.7),
-                padding: EdgeInsets.zero,
-                side: BorderSide.none,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(_showReaderChrome ? kToolbarHeight : 0),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          height: _showReaderChrome ? kToolbarHeight : 0,
+          child: ClipRect(
+            child: AppBar(
+              title: Text(
+                widget.book.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              actions: [
+                if (isOffline)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Chip(
+                      label: const Text(
+                        'Offline',
+                        style: TextStyle(fontSize: 10, color: Colors.white),
+                      ),
+                      backgroundColor: Colors.green.withValues(alpha: 0.7),
+                      padding: EdgeInsets.zero,
+                      side: BorderSide.none,
+                    ),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.format_size_rounded),
+                  onPressed: _showSettings,
+                  tooltip: 'Reader Settings',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                  onPressed: () => _addBookmark(chapter),
+                  tooltip: 'Add Bookmark',
+                ),
+              ],
             ),
-          IconButton(
-            icon: const Icon(Icons.format_size_rounded),
-            onPressed: _showSettings,
-            tooltip: 'Reader Settings',
           ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_add_outlined),
-            onPressed: () => _addBookmark(chapter),
-            tooltip: 'Add Bookmark',
-          ),
-        ],
+        ),
       ),
       drawer: _ChapterDrawer(
         chapters: chapters,
@@ -286,117 +314,128 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           children: [
             // Removed horizontal chips - now in Drawer
             Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text(
-                    chapter?.title ?? widget.book.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_isDiscussionOpen) {
+                    Navigator.of(context).maybePop();
+                  }
+                },
+                child: ListView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Text(
+                      chapter?.title ?? widget.book.title,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SelectionArea(
-                    onSelectionChanged: (content) {
-                      setState(() {
-                        _selectedText = content?.plainText ?? "";
-                      });
-                    },
-                    contextMenuBuilder: (context, selectableRegionState) {
-                      final selected = _selectedText.trim();
-                      final buttonItems = <ContextMenuButtonItem>[
-                        ContextMenuButtonItem(
-                          label: 'Quote & Comment',
-                          onPressed: selected.isEmpty
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _selectedQuote = selected;
-                                    _replyingTo = null;
-                                  });
-                                  selectableRegionState.hideToolbar();
-                                  _scrollController.animateTo(
-                                    _scrollController.position.maxScrollExtent,
-                                    duration: const Duration(milliseconds: 500),
-                                    curve: Curves.easeOut,
-                                  );
-                                },
+                    const SizedBox(height: 16),
+                    SelectionArea(
+                      onSelectionChanged: (content) {
+                        setState(() {
+                          _selectedText = content?.plainText ?? "";
+                        });
+                      },
+                      contextMenuBuilder: (context, selectableRegionState) {
+                        final selected = _selectedText.trim();
+                        final buttonItems = <ContextMenuButtonItem>[
+                          ContextMenuButtonItem(
+                            label: 'Quote & Comment',
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _selectedQuote = selected;
+                                      _replyingTo = null;
+                                    });
+                                    selectableRegionState.hideToolbar();
+                                    _scrollController.animateTo(
+                                      _scrollController
+                                          .position
+                                          .maxScrollExtent,
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      curve: Curves.easeOut,
+                                    );
+                                  },
+                          ),
+                          ContextMenuButtonItem(
+                            label: 'Share Quote',
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () {
+                                    selectableRegionState.hideToolbar();
+                                    _shareSelectedQuote(chapter, selected);
+                                  },
+                          ),
+                        ];
+                        return AdaptiveTextSelectionToolbar.buttonItems(
+                          anchors: selectableRegionState.contextMenuAnchors,
+                          buttonItems: buttonItems,
+                        );
+                      },
+                      child: HtmlWidget(
+                        chapter?.content ??
+                            widget.book.description ??
+                            'No readable content available yet.',
+                        textStyle: TextStyle(
+                          fontSize: _fontSize,
+                          height: 1.8,
+                          color: _getTextColor(),
+                          fontFamily: _readerFont == ReaderFont.serif
+                              ? 'Serif'
+                              : null,
                         ),
-                        ContextMenuButtonItem(
-                          label: 'Share Quote',
-                          onPressed: selected.isEmpty
-                              ? null
-                              : () {
-                                  selectableRegionState.hideToolbar();
-                                  _shareSelectedQuote(chapter, selected);
-                                },
-                        ),
-                      ];
-                      return AdaptiveTextSelectionToolbar.buttonItems(
-                        anchors: selectableRegionState.contextMenuAnchors,
-                        buttonItems: buttonItems,
-                      );
-                    },
-                    child: HtmlWidget(
-                      chapter?.content ??
-                          widget.book.description ??
-                          'No readable content available yet.',
-                      textStyle: TextStyle(
-                        fontSize: _fontSize,
-                        height: 1.8,
-                        color: _getTextColor(),
-                        fontFamily: _readerFont == ReaderFont.serif
-                            ? 'Serif'
-                            : null,
+                        // Custom styles for images and links if needed
                       ),
-                      // Custom styles for images and links if needed
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Bookmarks',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  bookmarksAsync.when(
-                    data: (items) => Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: items.isEmpty
-                          ? const [Text('No bookmarks yet')]
-                          : items
-                                .map(
-                                  (item) => InputChip(
-                                    label: Text(item.label),
-                                    onDeleted: item.id == null
-                                        ? null
-                                        : () async {
-                                            await ref
-                                                .read(
-                                                  bookmarkRepositoryProvider,
-                                                )
-                                                .removeBookmark(item.id!);
-                                            ref.invalidate(
-                                              bookBookmarksProvider(
-                                                widget.book.id,
-                                              ),
-                                            );
-                                            ref.invalidate(
-                                              userBookmarksProvider,
-                                            );
-                                          },
-                                  ),
-                                )
-                                .toList(),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Bookmarks',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    loading: () => const LinearProgressIndicator(),
-                    error: (error, _) =>
-                        Text('Failed to load bookmarks: $error'),
-                  ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 8),
+                    bookmarksAsync.when(
+                      data: (items) => Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: items.isEmpty
+                            ? const [Text('No bookmarks yet')]
+                            : items
+                                  .map<Widget>(
+                                    (item) => InputChip(
+                                      label: Text(item.label),
+                                      onDeleted: item.id == null
+                                          ? null
+                                          : () async {
+                                              await ref
+                                                  .read(
+                                                    bookmarkRepositoryProvider,
+                                                  )
+                                                  .removeBookmark(item.id!);
+                                              ref.invalidate(
+                                                bookBookmarksProvider(
+                                                  widget.book.id,
+                                                ),
+                                              );
+                                              ref.invalidate(
+                                                userBookmarksProvider,
+                                              );
+                                            },
+                                    ),
+                                  )
+                                  .toList(),
+                      ),
+                      loading: () => const LinearProgressIndicator(),
+                      error: (error, _) =>
+                          Text('Failed to load bookmarks: $error'),
+                    ),
+                    const SizedBox(height: 24),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
           ],
@@ -404,6 +443,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       ),
       bottomNavigationBar: _ReaderBottomBar(
         progress: _scrollProgress,
+        visible: _showReaderChrome,
         onSwipeUp: () => _showDiscussion(chapter),
         onTap: () => _showDiscussion(chapter),
         theme: _readerTheme,
@@ -459,18 +499,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     if (_replyingTo != null) {
-      await ref.read(commentRepositoryProvider).addReply(
-        _replyingTo!.id!,
-        CommentReply(
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          penName: user.penName,
-          text: text,
-          timestamp: now,
-          userPhotoURL: user.photoURL,
-        ),
-      );
+      await ref
+          .read(commentRepositoryProvider)
+          .addReply(
+            _replyingTo!.id!,
+            CommentReply(
+              userId: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              penName: user.penName,
+              text: text,
+              timestamp: now,
+              userPhotoURL: user.photoURL,
+            ),
+          );
       setState(() => _replyingTo = null);
     } else {
       final comment = Comment(
@@ -494,27 +536,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
       // If it's a review (has rating), also cross-post to feed
       if (_chapterRating > 0) {
-        await ref.read(feedRepositoryProvider).createFeedPost(
-          FeedPost(
-            userId: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            penName: user.penName,
-            userPhotoURL: user.photoURL,
-            type: 'review',
-            text: text,
-            rating: _chapterRating,
-            bookId: widget.book.id,
-            bookTitle: widget.book.title,
-            bookCover: widget.book.coverUrl,
-            chapterTitle: chapter?.title,
-            chapterId: chapter?.id?.toString(),
-            timestamp: now,
-            likes: const [],
-            visibility: 'public',
-            privacy: 'public',
-          ),
-        );
+        await ref
+            .read(feedRepositoryProvider)
+            .createFeedPost(
+              FeedPost(
+                userId: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                penName: user.penName,
+                userPhotoURL: user.photoURL,
+                type: 'review',
+                text: text,
+                rating: _chapterRating,
+                bookId: widget.book.id,
+                bookTitle: widget.book.title,
+                bookCover: widget.book.coverUrl,
+                chapterTitle: chapter?.title,
+                chapterId: chapter?.id?.toString(),
+                timestamp: now,
+                likes: const [],
+                visibility: 'public',
+                privacy: 'public',
+              ),
+            );
         ref.invalidate(feedPostsProvider);
       }
 
@@ -527,11 +571,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
-
   void _showDiscussion(dynamic chapter) {
+    if (_isDiscussionOpen) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+
+    _isDiscussionOpen = true;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      barrierColor: Colors.black.withValues(alpha: 0.01),
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.6,
@@ -575,7 +627,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border(
                                     left: BorderSide(
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                       width: 4,
                                     ),
                                   ),
@@ -588,7 +642,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                         Icon(
                                           Icons.format_quote,
                                           size: 16,
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                         ),
                                         const SizedBox(width: 4),
                                         const Text(
@@ -601,10 +657,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                         const Spacer(),
                                         GestureDetector(
                                           onTap: () {
-                                            setState(() => _selectedQuote = null);
+                                            setState(
+                                              () => _selectedQuote = null,
+                                            );
                                             setModalState(() {});
                                           },
-                                          child: const Icon(Icons.close, size: 16),
+                                          child: const Icon(
+                                            Icons.close,
+                                            size: 16,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -626,9 +687,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 12.0),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                        .withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -639,7 +706,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                           style: TextStyle(
                                             fontStyle: FontStyle.italic,
                                             fontSize: 13,
-                                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimaryContainer,
                                           ),
                                         ),
                                       ),
@@ -648,7 +717,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                           setState(() => _replyingTo = null);
                                           setModalState(() {});
                                         },
-                                        child: const Icon(Icons.close, size: 16),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -670,14 +742,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                     final active = index < _chapterRating;
                                     return GestureDetector(
                                       onTap: () {
-                                        setState(() => _chapterRating = (_chapterRating == index + 1) ? 0 : index + 1);
+                                        setState(
+                                          () => _chapterRating =
+                                              (_chapterRating == index + 1)
+                                              ? 0
+                                              : index + 1,
+                                        );
                                         setModalState(() {});
                                       },
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 2,
+                                        ),
                                         child: Icon(
-                                          active ? Icons.star_rounded : Icons.star_border_rounded,
-                                          color: active ? Colors.amber : _getSecondaryTextColor(),
+                                          active
+                                              ? Icons.star_rounded
+                                              : Icons.star_border_rounded,
+                                          color: active
+                                              ? Colors.amber
+                                              : _getSecondaryTextColor(),
                                           size: 24,
                                         ),
                                       ),
@@ -695,7 +778,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 hintText: _replyingTo != null
                                     ? 'Add a reply...'
                                     : 'Add a comment about this chapter',
-                                hintStyle: TextStyle(color: _getSecondaryTextColor()),
+                                hintStyle: TextStyle(
+                                  color: _getSecondaryTextColor(),
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -704,7 +789,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 suffixIcon: Padding(
                                   padding: const EdgeInsets.only(right: 8.0),
                                   child: IconButton(
-                                    icon: Icon(Icons.send_rounded, color: Theme.of(context).colorScheme.primary),
+                                    icon: Icon(
+                                      Icons.send_rounded,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
                                     onPressed: () async {
                                       await _submitComment(chapter);
                                       setModalState(() {});
@@ -717,17 +807,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             const SizedBox(height: 24),
                             Consumer(
                               builder: (context, ref, _) {
-                                final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+                                final commentsAsync = ref.watch(
+                                  bookCommentsProvider(widget.book.id),
+                                );
                                 return commentsAsync.when(
                                   data: (items) {
                                     final chapterId = chapter?.id.toString();
-                                    final chapterComments = items.where((comment) {
+                                    final chapterComments = items.where((
+                                      comment,
+                                    ) {
                                       if (chapterId != null &&
                                           chapterId.isNotEmpty &&
                                           comment.chapterId == chapterId) {
                                         return true;
                                       }
-                                      return comment.chapterIndex == _chapterIndex;
+                                      return comment.chapterIndex ==
+                                          _chapterIndex;
                                     }).toList();
 
                                     if (chapterComments.isEmpty) {
@@ -736,11 +831,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                           padding: const EdgeInsets.all(32.0),
                                           child: Column(
                                             children: [
-                                              Icon(Icons.chat_bubble_outline_rounded, size: 48, color: _getSecondaryTextColor().withValues(alpha: 0.3)),
+                                              Icon(
+                                                Icons
+                                                    .chat_bubble_outline_rounded,
+                                                size: 48,
+                                                color: _getSecondaryTextColor()
+                                                    .withValues(alpha: 0.3),
+                                              ),
                                               const SizedBox(height: 16),
                                               Text(
                                                 'No comments for this chapter yet.',
-                                                style: TextStyle(color: _getSecondaryTextColor()),
+                                                style: TextStyle(
+                                                  color:
+                                                      _getSecondaryTextColor(),
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -754,16 +858,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                           CommentTile(
                                             comment: comment,
                                             textColor: _getTextColor(),
-                                            metadataColor: _getSecondaryTextColor(),
+                                            metadataColor:
+                                                _getSecondaryTextColor(),
                                             onReply: () {
-                                              setState(() => _replyingTo = comment);
+                                              setState(
+                                                () => _replyingTo = comment,
+                                              );
                                               setModalState(() {});
                                             },
                                           ),
                                       ],
                                     );
                                   },
-                                  loading: () => const Center(child: LinearProgressIndicator()),
+                                  loading: () => const Center(
+                                    child: LinearProgressIndicator(),
+                                  ),
                                   error: (error, _) => Text('Error: $error'),
                                 );
                               },
@@ -779,7 +888,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      _isDiscussionOpen = false;
+      _commentFocusNode.unfocus();
+    });
   }
 
   void _showSettings() {
@@ -1045,59 +1157,73 @@ class _ThemeOption extends StatelessWidget {
 class _ReaderBottomBar extends StatelessWidget {
   const _ReaderBottomBar({
     required this.progress,
+    required this.visible,
     required this.onSwipeUp,
     required this.onTap,
     required this.theme,
   });
 
   final double progress;
+  final bool visible;
   final VoidCallback onSwipeUp;
   final VoidCallback onTap;
   final ReaderTheme theme;
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = theme == ReaderTheme.dark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = theme == ReaderTheme.dark ? Colors.white70 : Colors.black54;
+    final bgColor = theme == ReaderTheme.dark
+        ? const Color(0xFF1E1E1E)
+        : Colors.white;
+    final textColor = theme == ReaderTheme.dark
+        ? Colors.white70
+        : Colors.black54;
 
-    return GestureDetector(
-      onVerticalDragEnd: (details) {
-        if (details.primaryVelocity != null && details.primaryVelocity! < -100) {
-          onSwipeUp();
-        }
-      },
-      onTap: onTap,
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: bgColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Progress Bar
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: textColor.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-              minHeight: 2,
-            ),
-            Expanded(
-              child: Center(
-                child: Icon(
-                  Icons.keyboard_arrow_up_rounded,
-                  size: 24,
-                  color: textColor.withValues(alpha: 0.5),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      height: visible ? 50 : 0,
+      child: ClipRect(
+        child: GestureDetector(
+          onVerticalDragEnd: (details) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! < -100) {
+              onSwipeUp();
+            }
+          },
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
                 ),
-              ),
+              ],
             ),
-          ],
+            child: Column(
+              children: [
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: textColor.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                  minHeight: 2,
+                ),
+                Expanded(
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      size: 24,
+                      color: textColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

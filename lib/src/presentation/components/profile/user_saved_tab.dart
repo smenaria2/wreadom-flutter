@@ -25,14 +25,15 @@ class UserSavedTab extends ConsumerWidget {
           );
         }
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 0.65,
+            childAspectRatio: 0.44,
             crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
+            mainAxisSpacing: 28,
           ),
-          itemBuilder: (context, index) => BookCard(book: books[index]),
+          itemBuilder: (context, index) =>
+              BookCard(book: books[index], width: double.infinity),
           itemCount: books.length,
         );
       },

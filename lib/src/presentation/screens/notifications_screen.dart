@@ -8,6 +8,7 @@ import '../providers/navigation_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../../utils/notification_target_resolver.dart';
+import '../../utils/format_utils.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -78,7 +79,19 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       : null,
                 ),
                 title: Text(item.actorName),
-                subtitle: Text(item.text),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.text),
+                    Text(
+                      '${FormatUtils.relativeTime(item.timestamp)} ago',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                    ),
+                  ],
+                ),
                 trailing: item.isRead
                     ? null
                     : const Icon(Icons.circle, size: 10, color: Colors.blue),

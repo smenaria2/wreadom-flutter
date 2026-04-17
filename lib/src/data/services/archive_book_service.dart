@@ -37,7 +37,9 @@ class ArchiveBookService {
         }
       } else {
         final cleanSearch = query.replaceAll('"', '').trim();
-        queryParts.add('(title:("$cleanSearch") OR creator:("$cleanSearch") OR subject:("$cleanSearch"))');
+        queryParts.add(
+          '(title:("$cleanSearch") OR creator:("$cleanSearch") OR subject:("$cleanSearch"))',
+        );
       }
     }
 
@@ -49,7 +51,9 @@ class ArchiveBookService {
       }
     }
 
-    if (subject != null) queryParts.add('subject:${Uri.encodeComponent(subject)}');
+    if (subject != null) {
+      queryParts.add('subject:${Uri.encodeComponent(subject)}');
+    }
 
     final q = queryParts.join(' AND ');
     final url = Uri.parse(
@@ -67,10 +71,7 @@ class ArchiveBookService {
     final docs = (data['response']['docs'] as List? ?? []);
     final results = docs.map((doc) => _archiveDocToBook(doc)).toList();
 
-    return {
-      'count': data['response']['numFound'] ?? 0,
-      'results': results,
-    };
+    return {'count': data['response']['numFound'] ?? 0, 'results': results};
   }
 
   Future<Book> getBookMetadata(String identifier) async {
@@ -89,7 +90,7 @@ class ArchiveBookService {
 
     // Construct a query for multiple identifiers: identifier:(id1 OR id2 OR ...)
     final identifiersQuery = ids.map((id) => '"$id"').join(' OR ');
-    
+
     // We use searchBooks logic but specifically for these IDs
     final result = await searchBooks(
       identifier: identifiersQuery,
@@ -103,14 +104,17 @@ class ArchiveBookService {
     // 1. Get metadata to find the right text file
     final metaUrl = Uri.parse('$metadataUrl/$identifier');
     final metaResponse = await http.get(metaUrl);
-    if (metaResponse.statusCode != 200) throw Exception('Metadata fetch failed');
+    if (metaResponse.statusCode != 200) {
+      throw Exception('Metadata fetch failed');
+    }
     final metaData = jsonDecode(metaResponse.body);
-    
+
     final files = (metaData['files'] as List? ?? []);
     String? textFile;
 
     for (final file in files) {
-      final name = file['name'] as String;
+      if (file is! Map) continue;
+      final name = file['name']?.toString() ?? '';
       if (name.endsWith('_djvu.txt')) {
         textFile = name;
         break;
@@ -128,8 +132,10 @@ class ArchiveBookService {
 
     // 2. Fetch content (initial implementation: full fetch, optimized later with Range if needed)
     final response = await http.get(contentUrl);
-    if (response.statusCode != 200) throw Exception('Failed to fetch book content');
-    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch book content');
+    }
+
     final text = response.body;
     return _parseTextToChapters(text);
   }
@@ -138,7 +144,9 @@ class ArchiveBookService {
     if (text.isEmpty) return [];
 
     // Clean text: remove excessive whitespace
-    final cleanedText = text.replaceAll(RegExp(r'\r\n'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    final cleanedText = text
+        .replaceAll(RegExp(r'\r\n'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n');
 
     // Regex for chapter detection (English, Hindi, Bengali)
     final chapterRegex = RegExp(
@@ -156,31 +164,41 @@ class ArchiveBookService {
 
     for (int i = 0; i < matches.length; i++) {
       final start = matches[i].start;
-      final end = (i + 1 < matches.length) ? matches[i + 1].start : cleanedText.length;
-      
+      final end = (i + 1 < matches.length)
+          ? matches[i + 1].start
+          : cleanedText.length;
+
       final titleLine = matches[i].group(0) ?? 'Chapter ${i + 1}';
       final content = cleanedText.substring(start, end).trim();
 
-      if (content.length > 50) { // Filter out very small fragments
-        chapters.add(Chapter(
-          id: (i + 1).toString(),
-          title: titleLine.trim(),
-          content: content,
-          index: i,
-        ));
+      if (content.length > 50) {
+        // Filter out very small fragments
+        chapters.add(
+          Chapter(
+            id: (i + 1).toString(),
+            title: titleLine.trim(),
+            content: content,
+            index: i,
+          ),
+        );
       }
     }
 
     // If parsing produced very few chapters or failed to capture most of the text
     if (chapters.isEmpty) {
-       return [Chapter(id: '1', title: 'Content', content: cleanedText, index: 0)];
+      return [
+        Chapter(id: '1', title: 'Content', content: cleanedText, index: 0),
+      ];
     }
 
     return chapters;
   }
 
   List<Chapter> _splitIntoReadableChunks(String text) {
-    final words = text.split(RegExp(r'\s+')).where((word) => word.trim().isNotEmpty).toList();
+    final words = text
+        .split(RegExp(r'\s+'))
+        .where((word) => word.trim().isNotEmpty)
+        .toList();
     if (words.isEmpty) return [];
 
     const wordsPerChunk = 2000;
@@ -200,13 +218,40 @@ class ArchiveBookService {
     return chapters;
   }
 
+  String _stringValue(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    if (value is List) {
+      return value
+          .map((e) => e?.toString() ?? '')
+          .where((e) => e.isNotEmpty)
+          .join(', ');
+    }
+    if (value is Map) {
+      final text = value['value'] ?? value['text'] ?? value['name'];
+      return text?.toString() ?? fallback;
+    }
+    return value.toString();
+  }
+
+  List<String> _stringList(dynamic value) {
+    if (value == null) return <String>[];
+    if (value is List) {
+      return value
+          .map((e) => _stringValue(e).trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    final text = _stringValue(value).trim();
+    return text.isEmpty ? <String>[] : <String>[text];
+  }
+
   Book _archiveDocToBook(Map<String, dynamic> doc) {
-    final identifier = doc['identifier'] as String;
-    final title = doc['title'] ?? 'Untitled';
-    final creators = doc['creator'] is List ? List<String>.from(doc['creator']) : (doc['creator'] != null ? [doc['creator'].toString()] : <String>[]);
-    final subjects = doc['subject'] is List ? List<String>.from(doc['subject']) : (doc['subject'] != null ? [doc['subject'].toString()] : <String>[]);
-    final languages = doc['language'] is List ? List<String>.from(doc['language']) : (doc['language'] != null ? [doc['language'].toString()] : <String>[]);
-    final collections = doc['collection'] is List ? List<String>.from(doc['collection']) : (doc['collection'] != null ? [doc['collection'].toString()] : <String>[]);
+    final identifier = _stringValue(doc['identifier']);
+    final title = _stringValue(doc['title'], fallback: 'Untitled');
+    final creators = _stringList(doc['creator']);
+    final subjects = _stringList(doc['subject']);
+    final languages = _stringList(doc['language']);
+    final collections = _stringList(doc['collection']);
 
     final authors = creators.map((name) => Author(name: name)).toList();
     final baseDownloadUrl = 'https://archive.org/download/$identifier';
@@ -222,8 +267,8 @@ class ArchiveBookService {
         'text/plain; charset=utf-8': '$baseDownloadUrl/${identifier}_djvu.txt',
         'text/plain': '$baseDownloadUrl/${identifier}_djvu.txt',
       },
-      downloadCount: doc['downloads'] ?? 0,
-      mediaType: doc['mediatype'] ?? 'texts',
+      downloadCount: (doc['downloads'] as num?)?.toInt() ?? 0,
+      mediaType: _stringValue(doc['mediatype'], fallback: 'texts'),
       bookshelves: collections,
       source: 'archive',
       coverUrl: 'https://archive.org/services/img/$identifier',
@@ -236,11 +281,11 @@ class ArchiveBookService {
     final meta = data['metadata'];
     if (meta == null) throw Exception('Metadata missing');
 
-    final identifier = meta['identifier'] as String;
-    final creators = meta['creator'] is List ? List<String>.from(meta['creator']) : (meta['creator'] != null ? [meta['creator'].toString()] : <String>[]);
-    final subjects = meta['subject'] is List ? List<String>.from(meta['subject']) : (meta['subject'] != null ? [meta['subject'].toString()] : <String>[]);
-    final languages = meta['language'] is List ? List<String>.from(meta['language']) : (meta['language'] != null ? [meta['language'].toString()] : <String>[]);
-    final collections = meta['collection'] is List ? List<String>.from(meta['collection']) : (meta['collection'] != null ? [meta['collection'].toString()] : <String>[]);
+    final identifier = _stringValue(meta['identifier']);
+    final creators = _stringList(meta['creator']);
+    final subjects = _stringList(meta['subject']);
+    final languages = _stringList(meta['language']);
+    final collections = _stringList(meta['collection']);
 
     final formats = <String, String>{};
     final baseUrl = 'https://archive.org/download/$identifier';
@@ -250,22 +295,25 @@ class ArchiveBookService {
     String? pdfFile;
 
     for (final file in files) {
-      final name = (file['name'] as String? ?? '').toLowerCase();
-      final format = (file['format'] as String? ?? '').toLowerCase();
+      if (file is! Map) continue;
+      final rawName = file['name']?.toString() ?? '';
+      final name = rawName.toLowerCase();
+      final format = (file['format']?.toString() ?? '').toLowerCase();
 
       if (name.endsWith('_djvu.txt')) {
-        textFile = file['name'];
+        textFile = rawName;
         break;
       } else if (format.contains('text') || name.endsWith('.txt')) {
-        textFile ??= file['name'];
+        textFile ??= rawName;
       }
       if (format.contains('pdf') || name.endsWith('.pdf')) {
-        pdfFile ??= file['name'];
+        pdfFile ??= rawName;
       }
     }
 
     if (textFile != null) {
-      formats['text/plain; charset=utf-8'] = '$baseUrl/${Uri.encodeComponent(textFile)}';
+      formats['text/plain; charset=utf-8'] =
+          '$baseUrl/${Uri.encodeComponent(textFile)}';
       formats['text/plain'] = '$baseUrl/${Uri.encodeComponent(textFile)}';
     }
     if (pdfFile != null) {
@@ -279,18 +327,18 @@ class ArchiveBookService {
     return Book(
       id: identifier,
       identifier: identifier,
-      title: meta['title'] ?? 'Untitled',
+      title: _stringValue(meta['title'], fallback: 'Untitled'),
       authors: creators.map((name) => Author(name: name)).toList(),
       subjects: subjects.take(10).toList(),
       languages: languages.map(_normalizeLanguage).toList(),
       formats: formats,
       downloadCount: 0,
-      mediaType: meta['mediatype'] ?? 'texts',
+      mediaType: _stringValue(meta['mediatype'], fallback: 'texts'),
       bookshelves: collections,
       source: 'archive',
       coverUrl: 'https://archive.org/services/img/$identifier',
       year: meta['year'],
-      description: meta['description'] ?? '',
+      description: _stringValue(meta['description']),
     );
   }
 

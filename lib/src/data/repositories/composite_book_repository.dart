@@ -136,15 +136,16 @@ class CompositeBookRepository implements BookRepository {
       lastDoc: lastDoc,
     );
 
-    // If we want more or have none, Archive is great for genre (subject) browsing
+    // If we want more or have none, Archive is great for genre (subject) browsing.
+    // Genre browsing should show matching IA content directly; upvote filtering is
+    // reserved for curated homepage shelves.
     if (firebaseResults.length < limit) {
       final archiveResults = await _archiveRepo.getBooksByGenre(
         genre,
         limit: limit * 2,
-      ); // Fetch more for filtering
-      final filteredArchive = await _filterArchiveBooks(archiveResults);
+      );
 
-      final combined = [...firebaseResults, ...filteredArchive];
+      final combined = [...firebaseResults, ...archiveResults];
       return combined.length > limit ? combined.sublist(0, limit) : combined;
     }
 
@@ -178,8 +179,9 @@ class CompositeBookRepository implements BookRepository {
       query,
       limit: limit * 2,
     );
-    final filtered = await _filterArchiveBooks(archiveResults);
-    return filtered.length > limit ? filtered.sublist(0, limit) : filtered;
+    return archiveResults.length > limit
+        ? archiveResults.sublist(0, limit)
+        : archiveResults;
   }
 
   @override

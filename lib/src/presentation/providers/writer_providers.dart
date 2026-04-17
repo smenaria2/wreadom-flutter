@@ -13,24 +13,28 @@ final writerRepositoryProvider = Provider<WriterRepository>((ref) {
 class WriterDashboardTab extends Notifier<String> {
   @override
   String build() => 'published';
-  
+
   void setTab(String tab) => state = tab;
 }
 
-final writerDashboardTabProvider = NotifierProvider<WriterDashboardTab, String>(WriterDashboardTab.new);
+final writerDashboardTabProvider = NotifierProvider<WriterDashboardTab, String>(
+  WriterDashboardTab.new,
+);
+
+bool writerBookMatchesTab(Book book, String activeTab) {
+  final status = book.status?.trim().toLowerCase();
+  if (activeTab == 'published') return status == 'published';
+  return status != 'published' && status != 'deleted';
+}
 
 /// Fetches books for the current user based on status
 final filteredMyBooksProvider = FutureProvider<List<Book>>((ref) async {
   final user = await ref.watch(currentUserProvider.future);
   if (user == null) return [];
-  
+
   final activeTab = ref.watch(writerDashboardTabProvider);
-  // 'published' tab shows 'published' status
-  // 'draft' tab shows everything else (drafts, pending, etc.)
-  final status = activeTab == 'published' ? 'published' : 'draft';
-  
-  // Note: FirebaseWriterRepository.getUserBooks handles filtering
-  return ref.watch(writerRepositoryProvider).getUserBooks(user.id, status: status);
+  final books = await ref.watch(writerRepositoryProvider).getUserBooks(user.id);
+  return books.where((book) => writerBookMatchesTab(book, activeTab)).toList();
 });
 
 /// Keep myBooksProvider for backwards compatibility if needed, but pointing to 'all'

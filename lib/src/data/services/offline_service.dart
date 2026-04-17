@@ -48,8 +48,10 @@ class OfflineService {
       // 3. Download related files if any (e.g. cover or epub for local storage)
       // For now, we mainly cache the text content in Hive for simplicity
       // but we could also download the physical file.
-      
-      debugPrint('[OfflineService] Book ${book.title} downloaded successfully.');
+
+      debugPrint(
+        '[OfflineService] Book ${book.title} downloaded successfully.',
+      );
     } catch (e) {
       debugPrint('[OfflineService] Error downloading book: $e');
       rethrow;
@@ -58,11 +60,14 @@ class OfflineService {
 
   List<Book> getDownloadedBooks() {
     if (!Hive.isBoxOpen(_booksBoxName)) return [];
-    return _booksBox.values.map((json) {
-      final map = asStringMap(json);
-      final bookJson = map['book'] is Map ? map['book'] : map;
-      return Book.fromJson(asStringMap(bookJson));
-    }).whereType<Book>().toList();
+    return _booksBox.values
+        .map((json) {
+          final map = asStringMap(json);
+          final bookJson = map['book'] is Map ? map['book'] : map;
+          return Book.fromJson(asStringMap(bookJson));
+        })
+        .whereType<Book>()
+        .toList();
   }
 
   // Removed local _ensureStringMap in favor of map_utils.dart
@@ -71,9 +76,16 @@ class OfflineService {
     await init();
     final chaptersJson = _chaptersBox.get(bookId);
     if (chaptersJson == null) return [];
-    
+
     return (chaptersJson as List).map((json) {
-      return Chapter.fromJson(Map<String, dynamic>.from(json));
+      final map = asStringMap(json);
+      map['id'] = map['id']?.toString() ?? '';
+      map['title'] = map['title']?.toString() ?? 'Chapter';
+      map['content'] = map['content']?.toString() ?? '';
+      map['index'] = map['index'] is num
+          ? (map['index'] as num).toInt()
+          : int.tryParse(map['index']?.toString() ?? '') ?? 0;
+      return Chapter.fromJson(map);
     }).toList();
   }
 

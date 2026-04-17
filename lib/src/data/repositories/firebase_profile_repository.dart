@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/profile_repository.dart';
@@ -89,11 +90,12 @@ class FirebaseProfileRepository implements ProfileRepository {
     final term = query.trim();
     if (term.isEmpty) return [];
 
+    final lowerTerm = term.toLowerCase();
     final searches = <Query<Map<String, dynamic>>>[
       _firestore
           .collection('users')
-          .where('username', isGreaterThanOrEqualTo: term.toLowerCase())
-          .where('username', isLessThanOrEqualTo: '${term.toLowerCase()}\uf8ff')
+          .where('username', isGreaterThanOrEqualTo: lowerTerm)
+          .where('username', isLessThanOrEqualTo: '$lowerTerm\uf8ff')
           .limit(limit),
       _firestore
           .collection('users')
@@ -112,17 +114,23 @@ class FirebaseProfileRepository implements ProfileRepository {
       try {
         final snapshot = await search.get();
         for (final doc in snapshot.docs) {
-          final normalized = normalizeUserMapForModel(doc.data(), doc.id);
-          final user = UserModel.fromJson(normalized);
-          if (user.isDeactivated == true) {
-            continue;
+          final user = _userFromDoc(doc);
+          if (user != null && _isSearchableUser(user)) {
+            byId[user.id] = user;
           }
-          if ((user.privacyLevel ?? 'public').toLowerCase() == 'private') {
-            continue;
-          }
-          byId[user.id] = user;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint(
+          '[FirebaseProfileRepository] Profile prefix search failed: $e',
+        );
+      }
+    }
+
+    if (byId.length < limit) {
+      for (final user in await _fallbackSearchProfiles(term, limit: 100)) {
+        byId[user.id] = user;
+        if (byId.length >= limit) break;
+      }
     }
 
     final results = byId.values.toList()
@@ -136,6 +144,60 @@ class FirebaseProfileRepository implements ProfileRepository {
         return aName.compareTo(bName);
       });
     return results.take(limit).toList();
+  }
+
+  UserModel? _userFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    try {
+      final normalized = normalizeUserMapForModel(doc.data(), doc.id);
+      return UserModel.fromJson(normalized);
+    } catch (e) {
+      debugPrint(
+        '[FirebaseProfileRepository] Error parsing user ${doc.id}: $e',
+      );
+      return null;
+    }
+  }
+
+  bool _isSearchableUser(UserModel user) {
+    if (user.isDeactivated == true) return false;
+    return (user.privacyLevel ?? 'public').toLowerCase() != 'private';
+  }
+
+  bool _matchesProfile(UserModel user, String query) {
+    final term = query.toLowerCase();
+    if (term.isEmpty) return false;
+    final values = [
+      user.username,
+      user.displayName,
+      user.penName,
+      user.bio,
+    ].whereType<String>();
+    return values.any((value) => value.toLowerCase().contains(term));
+  }
+
+  Future<List<UserModel>> _fallbackSearchProfiles(
+    String query, {
+    required int limit,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .orderBy('username')
+          .limit(limit)
+          .get();
+
+      return snapshot.docs
+          .map(_userFromDoc)
+          .whereType<UserModel>()
+          .where(_isSearchableUser)
+          .where((user) => _matchesProfile(user, query))
+          .toList();
+    } catch (e) {
+      debugPrint(
+        '[FirebaseProfileRepository] Profile fallback search failed: $e',
+      );
+      return [];
+    }
   }
 
   @override

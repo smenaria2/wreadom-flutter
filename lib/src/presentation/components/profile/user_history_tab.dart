@@ -40,16 +40,17 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.44,
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 16,
+                  mainAxisSpacing: 28,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => BookCard(book: books[index]),
+                  (context, index) =>
+                      BookCard(book: books[index], width: double.infinity),
                   childCount: displayCount,
                 ),
               ),

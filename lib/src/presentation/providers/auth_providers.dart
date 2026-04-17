@@ -25,14 +25,8 @@ Stream<fb_auth.User?> authState(Ref ref) {
 }
 
 @riverpod
-Future<UserModel?> currentUser(Ref ref) {
-  final authState = ref.watch(authStateProvider);
-  return authState.when(
-    data: (user) {
-      if (user == null) return Future.value(null);
-      return ref.read(authRepositoryProvider).getUser(user.uid);
-    },
-    loading: () => Future.value(null),
-    error: (_, _) => Future.value(null),
-  );
+Future<UserModel?> currentUser(Ref ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return null;
+  return ref.read(authRepositoryProvider).getUser(user.uid);
 }

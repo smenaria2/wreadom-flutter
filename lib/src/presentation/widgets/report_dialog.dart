@@ -48,13 +48,17 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
       if (user == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You must be logged in to report content.')),
+            const SnackBar(
+              content: Text('You must be logged in to report content.'),
+            ),
           );
         }
         return;
       }
 
-      await ref.read(reportRepositoryProvider).submitReport(
+      await ref
+          .read(reportRepositoryProvider)
+          .submitReport(
             Report(
               reporterId: user.id,
               targetId: widget.targetId,
@@ -71,16 +75,18 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Thank you for your report. We will review it shortly.'),
+            content: Text(
+              'Thank you for your report. We will review it shortly.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit report: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -98,14 +104,24 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
           children: [
             const Text('Why are you reporting this content?'),
             const SizedBox(height: 12),
-            ..._reasons.map((reason) => RadioListTile<String>(
-                  title: Text(reason),
-                  value: reason,
-                  groupValue: _selectedReason,
-                  onChanged: (val) => setState(() => _selectedReason = val),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                )),
+            RadioGroup<String>(
+              groupValue: _selectedReason,
+              onChanged: (val) => setState(() => _selectedReason = val),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ..._reasons.map(
+                    (reason) => RadioListTile<String>(
+                      title: Text(reason),
+                      value: reason,
+                      selected: reason == _selectedReason,
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _detailsController,
@@ -134,7 +150,10 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Submit Report'),
         ),

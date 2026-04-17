@@ -28,19 +28,28 @@ class FirebaseFeedRepository implements FeedRepository {
 
       debugPrint('[FirebaseFeedRepository] Running query...');
       final snapshot = await query.get();
-      debugPrint('[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.');
+      debugPrint(
+        '[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.',
+      );
 
-      final posts = snapshot.docs.map((doc) {
-        try {
-          final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
-          return FeedPost.fromJson(data);
-        } catch (e) {
-          debugPrint('[FirebaseFeedRepository] ERROR parsing document ${doc.id}: $e');
-          return null;
-        }
-      }).whereType<FeedPost>().toList();
+      final posts = snapshot.docs
+          .map((doc) {
+            try {
+              final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+              return FeedPost.fromJson(data);
+            } catch (e) {
+              debugPrint(
+                '[FirebaseFeedRepository] ERROR parsing document ${doc.id}: $e',
+              );
+              return null;
+            }
+          })
+          .whereType<FeedPost>()
+          .toList();
 
-      debugPrint('[FirebaseFeedRepository] Successfully parsed ${posts.length} posts.');
+      debugPrint(
+        '[FirebaseFeedRepository] Successfully parsed ${posts.length} posts.',
+      );
       return posts;
     } catch (e, stack) {
       debugPrint('[FirebaseFeedRepository] CRITICAL ERROR: $e');
@@ -50,18 +59,22 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<List<FeedPost>> getFollowingFeed(List<String> followedUserIds,
-      {int limit = 10, dynamic lastDoc}) async {
+  Future<List<FeedPost>> getFollowingFeed(
+    List<String> followedUserIds, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) async {
     if (followedUserIds.isEmpty) return [];
 
     try {
       final chunks = [];
       for (var i = 0; i < followedUserIds.length; i += 10) {
-        chunks.add(followedUserIds.sublist(
+        chunks.add(
+          followedUserIds.sublist(
             i,
-            i + 10 > followedUserIds.length
-                ? followedUserIds.length
-                : i + 10));
+            i + 10 > followedUserIds.length ? followedUserIds.length : i + 10,
+          ),
+        );
       }
 
       final List<FeedPost> allPosts = [];
@@ -80,11 +93,12 @@ class FirebaseFeedRepository implements FeedRepository {
         }
 
         final snapshot = await query.get();
-        allPosts.addAll(snapshot.docs.map((doc) {
-          final data =
-              mapFirestoreData(asStringMap(doc.data()), doc.id);
-          return FeedPost.fromJson(data);
-        }).toList());
+        allPosts.addAll(
+          snapshot.docs.map((doc) {
+            final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+            return FeedPost.fromJson(data);
+          }).toList(),
+        );
       }
 
       allPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -99,9 +113,11 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<List<FeedPost>> getUserFeedPosts(String userId,
-      {int limit = 10, dynamic lastDoc}) async {
-
+  Future<List<FeedPost>> getUserFeedPosts(
+    String userId, {
+    int limit = 10,
+    dynamic lastDoc,
+  }) async {
     Query query = _firestore
         .collection(_collection)
         .where('userId', isEqualTo: userId)
@@ -119,7 +135,9 @@ class FirebaseFeedRepository implements FeedRepository {
             final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
             return FeedPost.fromJson(data);
           } catch (e) {
-            debugPrint('[FirebaseFeedRepository] ERROR parsing user post ${doc.id}: $e');
+            debugPrint(
+              '[FirebaseFeedRepository] ERROR parsing user post ${doc.id}: $e',
+            );
             return null;
           }
         })
@@ -136,13 +154,27 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
-  Future<void> updateFeedPost(String postId, Map<String, dynamic> updates) async {
+  Future<void> updateFeedPost(
+    String postId,
+    Map<String, dynamic> updates,
+  ) async {
     await _firestore.collection(_collection).doc(postId).update(updates);
   }
 
   @override
   Future<void> deleteFeedPost(String postId) async {
-    await _firestore.collection(_collection).doc(postId).delete();
+    final batch = _firestore.batch();
+    batch.delete(_firestore.collection(_collection).doc(postId));
+
+    final comments = await _firestore
+        .collection('comments')
+        .where('feedPostId', isEqualTo: postId)
+        .get();
+    for (final comment in comments.docs) {
+      batch.delete(comment.reference);
+    }
+
+    await batch.commit();
   }
 
   @override
@@ -157,11 +189,11 @@ class FirebaseFeedRepository implements FeedRepository {
 
     if (likes.contains(userId)) {
       await docRef.update({
-        'likes': FieldValue.arrayRemove([userId])
+        'likes': FieldValue.arrayRemove([userId]),
       });
     } else {
       await docRef.update({
-        'likes': FieldValue.arrayUnion([userId])
+        'likes': FieldValue.arrayUnion([userId]),
       });
     }
   }
@@ -187,12 +219,12 @@ class FirebaseFeedRepository implements FeedRepository {
         .ref()
         .child('feed_images')
         .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
-    
+
     final uploadTask = await storageRef.putData(
       bytes,
       SettableMetadata(contentType: 'image/jpeg'),
     );
-    
+
     return await uploadTask.ref.getDownloadURL();
   }
 
@@ -204,7 +236,9 @@ class FirebaseFeedRepository implements FeedRepository {
       final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
       return FeedPost.fromJson(data);
     } catch (e) {
-      debugPrint('[FirebaseFeedRepository] Error fetching single post $postId: $e');
+      debugPrint(
+        '[FirebaseFeedRepository] Error fetching single post $postId: $e',
+      );
       return null;
     }
   }

@@ -211,6 +211,7 @@ class _NotificationAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationCountProvider);
     final btn = IconButton(
+      tooltip: 'Notifications',
       onPressed: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
       icon: const Icon(Icons.notifications_none_rounded),
     );
@@ -240,7 +241,9 @@ class _ProfileMenu extends StatelessWidget {
           } else {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not launch publishing site')),
+                const SnackBar(
+                  content: Text('Could not launch publishing site'),
+                ),
               );
             }
           }

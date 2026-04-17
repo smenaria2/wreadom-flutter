@@ -13,7 +13,6 @@ import '../routing/app_routes.dart';
 import '../../utils/format_utils.dart';
 import '../widgets/report_dialog.dart';
 
-
 /// Maps post type → accent colour
 Color _typeColor(String type) {
   switch (type.toLowerCase()) {
@@ -45,11 +44,7 @@ IconData _typeIcon(String type) {
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
   final bool openOnTap;
-  const FeedPostCard({
-    super.key,
-    required this.post,
-    this.openOnTap = true,
-  });
+  const FeedPostCard({super.key, required this.post, this.openOnTap = true});
 
   @override
   ConsumerState<FeedPostCard> createState() => _FeedPostCardState();
@@ -57,6 +52,7 @@ class FeedPostCard extends ConsumerStatefulWidget {
 
 class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   bool _liking = false;
+  bool _deleting = false;
   bool? _optimisticLiked;
   int? _optimisticLikesCount;
 
@@ -86,32 +82,88 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
           _optimisticLiked = wasLiked;
           _optimisticLikesCount = prevCount;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _liking = false);
     }
   }
 
+  Future<void> _deletePost() async {
+    if (_deleting || widget.post.id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete post?'),
+        content: const Text('This will remove the post and its comments.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref.read(feedRepositoryProvider).deleteFeedPost(widget.post.id!);
+      ref.invalidate(feedPostsProvider);
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(userFeedPostsProvider(widget.post.userId));
+      ref.invalidate(singlePostProvider(widget.post.id!));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+      if (!widget.openOnTap) {
+        Navigator.of(context).maybePop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _deleting = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not delete post: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final colorScheme = Theme.of(context).colorScheme;
     final accentColor = _typeColor(post.type);
     final typeLabel = post.type[0].toUpperCase() + post.type.substring(1);
 
     // Check if current user liked this post (with optimistic override)
     final currentUser = ref.watch(currentUserProvider).asData?.value;
-    final liked = _optimisticLiked ?? (currentUser != null && post.likes.contains(currentUser.id));
+    final isOwner = currentUser?.id == post.userId;
+    final liked =
+        _optimisticLiked ??
+        (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 0,
+      color: colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(color: colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -120,8 +172,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             height: 3,
             decoration: BoxDecoration(
               color: accentColor,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
             ),
           ),
 
@@ -138,8 +191,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         onTap: () {
                           Navigator.of(context).pushNamed(
                             AppRoutes.publicProfile,
-                            arguments:
-                                PublicProfileArguments(userId: post.userId),
+                            arguments: PublicProfileArguments(
+                              userId: post.userId,
+                            ),
                           );
                         },
                         child: Row(
@@ -147,19 +201,22 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             CircleAvatar(
                               radius: 20,
                               backgroundImage: post.userPhotoURL != null
-                                  ? CachedNetworkImageProvider(post.userPhotoURL!)
+                                  ? CachedNetworkImageProvider(
+                                      post.userPhotoURL!,
+                                    )
                                   : null,
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.primaryContainer,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
                               child: post.userPhotoURL == null
                                   ? Text(
                                       post.username.isNotEmpty
                                           ? post.username[0].toUpperCase()
                                           : '?',
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimaryContainer,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     )
@@ -194,7 +251,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     // Post type badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: accentColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
@@ -202,8 +261,11 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(_typeIcon(post.type),
-                              size: 12, color: accentColor),
+                          Icon(
+                            _typeIcon(post.type),
+                            size: 12,
+                            color: accentColor,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             typeLabel,
@@ -216,41 +278,65 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ],
                       ),
                     ),
-                    if (currentUser != null && post.userId != currentUser.id) ...[
+                    if (currentUser != null) ...[
                       const SizedBox(width: 4),
                       PopupMenuButton<String>(
-                        icon: Icon(
-                          Icons.more_vert_rounded,
-                          size: 18,
-                          color: Colors.grey[400],
-                        ),
+                        icon: _deleting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                Icons.more_vert_rounded,
+                                size: 18,
+                                color: Colors.grey[400],
+                              ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         onSelected: (val) {
                           if (val == 'report') {
                             showDialog(
                               context: context,
-                              builder:
-                                  (context) => ReportDialog(
-                                    targetId: post.id!,
-                                    targetType: 'post',
-                                  ),
+                              builder: (context) => ReportDialog(
+                                targetId: post.id!,
+                                targetType: 'post',
+                              ),
                             );
+                          } else if (val == 'delete') {
+                            _deletePost();
                           }
                         },
-                        itemBuilder:
-                            (context) => [
-                              const PopupMenuItem(
-                                value: 'report',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.report_problem_outlined, size: 20),
-                                    SizedBox(width: 8),
-                                    Text('Report Post'),
-                                  ],
-                                ),
+                        itemBuilder: (context) => [
+                          if (isOwner)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 20,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Delete Post'),
+                                ],
                               ),
-                            ],
+                            )
+                          else
+                            const PopupMenuItem(
+                              value: 'report',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.report_problem_outlined, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Report Post'),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ],
@@ -291,10 +377,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer
-                            .withValues(alpha: 0.35),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -310,7 +395,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                                 placeholder: (context, url) => Container(
                                   width: 36,
                                   height: 52,
-                                  color: Colors.grey[200],
+                                  color: colorScheme.surfaceContainerHighest,
                                 ),
                                 errorWidget: (_, _, _) => const SizedBox(),
                               ),
@@ -324,7 +409,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                                   'Regarding',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 ),
                                 Text(
@@ -367,7 +454,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       imageUrl: post.imageUrl!,
                       placeholder: (context, url) => Container(
                         height: 200,
-                        color: Colors.grey[100],
+                        color: colorScheme.surfaceContainerHighest,
                         child: const Center(child: CircularProgressIndicator()),
                       ),
                       errorWidget: (context, url, error) => const SizedBox(),
@@ -388,6 +475,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           : Icons.favorite_border_rounded,
                       iconColor: liked ? Colors.red : null,
                       label: likesCount.toString(),
+                      semanticLabel: liked ? 'Unlike post' : 'Like post',
                       loading: _liking,
                       onTap: _toggleLike,
                     ),
@@ -395,15 +483,16 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     // Comment
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
-                      label:
-                          (post.commentCount ?? 0).toString(),
+                      label: (post.commentCount ?? 0).toString(),
+                      semanticLabel: 'Show comments',
                       onTap: () => _showComments(context),
                     ),
                     const Spacer(),
                     // Share
                     IconButton(
                       icon: const Icon(Icons.share_outlined, size: 18),
-                      color: Colors.grey[600],
+                      tooltip: 'Share post',
+                      color: colorScheme.onSurfaceVariant,
                       onPressed: () {
                         if (post.id != null) {
                           Share.share(
@@ -453,14 +542,12 @@ class _QuoteBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         border: Border(
-          left: BorderSide(
-            color: Colors.teal.withValues(alpha: 0.6),
-            width: 3,
-          ),
+          left: BorderSide(color: Colors.teal.withValues(alpha: 0.6), width: 3),
         ),
       ),
       child: Text(
@@ -469,7 +556,7 @@ class _QuoteBlock extends StatelessWidget {
           fontSize: 14,
           height: 1.5,
           fontStyle: FontStyle.italic,
-          color: Colors.grey[800],
+          color: colorScheme.onSurface,
         ),
       ),
     );
@@ -483,42 +570,54 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool loading;
+  final String semanticLabel;
 
   const _ActionButton({
     required this.icon,
     this.iconColor,
     required this.label,
     required this.onTap,
+    required this.semanticLabel,
     this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: loading ? null : onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          children: [
-            if (loading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              Icon(icon, size: 18, color: iconColor ?? Colors.grey[600]),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      value: label,
+      child: InkWell(
+        onTap: loading ? null : onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor ?? colorScheme.onSurfaceVariant,
+                ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -555,17 +654,19 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
     try {
       if (_replyingTo != null) {
         // Submit a reply
-        await ref.read(commentRepositoryProvider).addReply(
-          _replyingTo!.id!,
-          CommentReply(
-            userId: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            userPhotoURL: user.photoURL,
-            text: text,
-            timestamp: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
+        await ref
+            .read(commentRepositoryProvider)
+            .addReply(
+              _replyingTo!.id!,
+              CommentReply(
+                userId: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                userPhotoURL: user.photoURL,
+                text: text,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
       } else {
         // Submit a top-level comment
         await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
@@ -576,15 +677,15 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
           'text': text,
         });
       }
-      
+
       ref.invalidate(feedPostCommentsProvider(widget.post.id!));
       _ctrl.clear();
       setState(() => _replyingTo = null);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error subitting comment: $e'))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error submitting comment: $e')));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -607,8 +708,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2)),
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -631,8 +733,10 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: Text('No comments yet. Be the first!',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(
+                        'No comments yet. Be the first!',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   );
                 }
@@ -663,7 +767,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
           if (_replyingTo != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey[100],
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Row(
                 children: [
                   Expanded(
@@ -689,15 +793,21 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                   child: TextField(
                     controller: _ctrl,
                     decoration: InputDecoration(
-                      hintText: _replyingTo != null ? 'Add a reply…' : 'Add a comment…',
+                      hintText: _replyingTo != null
+                          ? 'Add a reply…'
+                          : 'Add a comment…',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[100],
+                      fillColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                     ),
                   ),
                 ),
@@ -707,7 +817,8 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.send_rounded),
                   onPressed: _submitting ? null : _submitComment,
                   color: Theme.of(context).colorScheme.primary,
