@@ -103,7 +103,7 @@ class WriterDashboardScreen extends ConsumerWidget {
                             arguments: WriterPadArguments(book: book),
                           );
                         },
-                        onOpenStory: book.status == 'published'
+                        onViewStory: book.status == 'published'
                             ? () {
                                 Navigator.of(context).pushNamed(
                                   AppRoutes.bookDetail,

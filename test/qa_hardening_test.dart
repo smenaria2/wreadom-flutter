@@ -145,24 +145,99 @@ void main() {
     expect(source, isNot(contains('Check out this post on Librebook')));
   });
 
-  test('profile side menu exposes expanded navigation items', () {
+  test('profile side menu exposes requested navigation items only', () {
     final source = File(
       'lib/src/presentation/screens/profile_screen.dart',
     ).readAsStringSync();
 
     for (final label in [
+      'Edit Profile',
       'Theme',
       'Help',
       'Privacy Policy',
-      'Terms of Service',
-      'Competition',
-      'Writer Dashboard',
-      'Publish Book',
+      'Terms of Use',
       'Logout',
     ]) {
       expect(source, contains(label));
     }
+    for (final label in ['Competition', 'Writer Dashboard', 'Publish Book']) {
+      expect(source, isNot(contains(label)));
+    }
+    expect(source, isNot(contains("title: 'Settings'")));
+    expect(source, contains('Icons.manage_accounts_outlined'));
     expect(source, contains('Icons.menu_rounded'));
     expect(source, isNot(contains('Icons.more_vert')));
+  });
+
+  test('Flutter legal pages include copied web policy content', () {
+    final source = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('Last Updated: February 20, 2026'));
+    expect(source, contains('Digital Personal Data Protection Act, 2023'));
+    expect(source, contains('Indian Contract Act, 1872'));
+    expect(source, contains('Terms of Use'));
+    expect(source, contains('Grievance Officer'));
+  });
+
+  test('book detail exposes original author profile and follow actions', () {
+    final source = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('book.isOriginal'));
+    expect(source, contains('AppRoutes.publicProfile'));
+    expect(source, contains('PublicProfileArguments'));
+    expect(source, contains('FollowButton'));
+  });
+
+  testWidgets('writer card exposes view and edit icon buttons', (tester) async {
+    var viewed = 0;
+    var edited = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WriterBookCard(
+            book: book(
+              id: 'published',
+              title: 'Published',
+              status: 'published',
+            ),
+            onTap: () => edited++,
+            onViewStory: () => viewed++,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+
+    expect(viewed, 1);
+    expect(edited, 1);
+  });
+
+  testWidgets('writer draft card disables public view action', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WriterBookCard(
+            book: book(id: 'draft', title: 'Draft', status: 'draft'),
+            onTap: () {},
+          ),
+        ),
+      ),
+    );
+
+    final viewButton = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.visibility_outlined),
+    );
+    expect(viewButton.onPressed, isNull);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
   });
 }

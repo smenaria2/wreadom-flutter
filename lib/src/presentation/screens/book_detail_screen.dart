@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/comment.dart';
+import '../../domain/models/user_model.dart';
 import '../../utils/app_link_helper.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -13,6 +14,7 @@ import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
 import '../components/book/comment_reply_sheet.dart';
 
@@ -74,9 +76,10 @@ class _BookDetailBody extends ConsumerWidget {
         .where((n) => n.isNotEmpty)
         .join(', ');
     final userAsync = ref.watch(currentUserProvider);
-    final authorAsync = book.authorId == null
+    final authorId = (book.isOriginal ?? false) ? book.authorId?.trim() : null;
+    final authorAsync = authorId == null || authorId.isEmpty
         ? null
-        : ref.watch(publicProfileProvider(book.authorId!));
+        : ref.watch(publicProfileProvider(authorId));
 
     return CustomScrollView(
       slivers: [
@@ -160,6 +163,7 @@ class _BookDetailBody extends ConsumerWidget {
               _AuthorLine(
                 authors: authors.isNotEmpty ? authors : 'Unknown Author',
                 authorAsync: authorAsync,
+                authorId: authorId,
               ),
               const SizedBox(height: 16),
               _StatsRow(book: book),
@@ -268,34 +272,91 @@ class _BookDetailBody extends ConsumerWidget {
 }
 
 class _AuthorLine extends StatelessWidget {
-  const _AuthorLine({required this.authors, required this.authorAsync});
+  const _AuthorLine({
+    required this.authors,
+    required this.authorAsync,
+    required this.authorId,
+  });
 
   final String authors;
-  final AsyncValue<dynamic>? authorAsync;
+  final AsyncValue<UserModel?>? authorAsync;
+  final String? authorId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = authorAsync?.asData?.value;
-    return Row(
+    final targetUserId = authorId?.trim();
+    final canOpenProfile = targetUserId != null && targetUserId.isNotEmpty;
+    final displayName = _displayName(user, authors);
+    final authorContent = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (user?.photoURL != null) ...[
+        if (user?.photoURL != null && user!.photoURL!.isNotEmpty) ...[
           CircleAvatar(
             radius: 12,
-            backgroundImage: CachedNetworkImageProvider(user!.photoURL!),
+            backgroundImage: CachedNetworkImageProvider(user.photoURL!),
           ),
           const SizedBox(width: 8),
         ],
-        Expanded(
+        Flexible(
           child: Text(
-            authors,
+            displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: canOpenProfile
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              fontWeight: canOpenProfile ? FontWeight.w600 : null,
             ),
           ),
         ),
       ],
     );
+
+    return Row(
+      children: [
+        Expanded(
+          child: canOpenProfile
+              ? InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => Navigator.of(context).pushNamed(
+                    AppRoutes.publicProfile,
+                    arguments: PublicProfileArguments(userId: targetUserId),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: authorContent,
+                  ),
+                )
+              : authorContent,
+        ),
+        if (canOpenProfile) ...[
+          const SizedBox(width: 8),
+          FollowButton(targetUserId: targetUserId, compact: true),
+        ],
+      ],
+    );
+  }
+
+  static String _displayName(UserModel? user, String fallback) {
+    final displayName = user?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    final penName = user?.penName?.trim();
+    if (penName != null && penName.isNotEmpty) {
+      return penName;
+    }
+
+    final username = user?.username.trim();
+    if (username != null && username.isNotEmpty) {
+      return username;
+    }
+
+    return fallback;
   }
 }
 

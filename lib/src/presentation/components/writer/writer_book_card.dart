@@ -6,13 +6,13 @@ import '../../utils/date_formatter.dart';
 class WriterBookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
-  final VoidCallback? onOpenStory;
+  final VoidCallback? onViewStory;
 
   const WriterBookCard({
     super.key,
     required this.book,
     required this.onTap,
-    this.onOpenStory,
+    this.onViewStory,
   });
 
   @override
@@ -106,37 +106,30 @@ class WriterBookCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (onOpenStory != null)
-                  PopupMenuButton<String>(
-                    tooltip: 'Story actions',
-                    onSelected: (value) {
-                      if (value == 'open_story') onOpenStory?.call();
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'open_story',
-                        child: Row(
-                          children: [
-                            Icon(Icons.open_in_new_rounded, size: 18),
-                            SizedBox(width: 8),
-                            Text('Open story page'),
-                          ],
-                        ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Tooltip(
+                      message: isPublished
+                          ? 'View story'
+                          : 'Story page available after publishing',
+                      child: IconButton(
+                        icon: const Icon(Icons.visibility_outlined),
+                        color: colorScheme.primary,
+                        onPressed: onViewStory,
                       ),
-                    ],
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: colorScheme.onSurfaceVariant,
                     ),
-                  )
-                else
-                  SizedBox(
-                    width: 28,
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onSurfaceVariant,
+                    Tooltip(
+                      message: 'Edit story',
+                      child: IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        color: colorScheme.onSurfaceVariant,
+                        onPressed: onTap,
+                      ),
                     ),
-                  ),
+                  ],
+                ),
               ],
             ),
           ),

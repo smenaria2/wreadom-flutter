@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
@@ -258,8 +257,8 @@ class _ProfileSideMenu extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 children: [
                   _MenuTile(
-                    icon: Icons.settings_outlined,
-                    title: 'Settings',
+                    icon: Icons.manage_accounts_outlined,
+                    title: 'Edit Profile',
                     onTap: () => _go(context, AppRoutes.profileSettings),
                   ),
                   _MenuTile(
@@ -267,16 +266,6 @@ class _ProfileSideMenu extends ConsumerWidget {
                     title: 'Theme',
                     subtitle: themeMode == ThemeMode.dark ? 'Dark' : 'Light',
                     onTap: () => _showThemePicker(context, ref),
-                  ),
-                  _MenuTile(
-                    icon: Icons.edit_note_outlined,
-                    title: 'Writer Dashboard',
-                    onTap: () => _go(context, AppRoutes.writerDashboard),
-                  ),
-                  _MenuTile(
-                    icon: Icons.auto_stories_outlined,
-                    title: 'Publish Book',
-                    onTap: () => _openPublishingSite(context),
                   ),
                   const Divider(),
                   _MenuTile(
@@ -291,13 +280,8 @@ class _ProfileSideMenu extends ConsumerWidget {
                   ),
                   _MenuTile(
                     icon: Icons.description_outlined,
-                    title: 'Terms of Service',
+                    title: 'Terms of Use',
                     onTap: () => _go(context, AppRoutes.terms),
-                  ),
-                  _MenuTile(
-                    icon: Icons.emoji_events_outlined,
-                    title: 'Competition',
-                    onTap: () => _go(context, AppRoutes.competition),
                   ),
                 ],
               ),
@@ -320,18 +304,6 @@ class _ProfileSideMenu extends ConsumerWidget {
   void _go(BuildContext context, String route) {
     Navigator.of(context).pop();
     Navigator.of(context).pushNamed(route);
-  }
-
-  Future<void> _openPublishingSite(BuildContext context) async {
-    Navigator.of(context).pop();
-    final uri = Uri.parse('https://publish.wreadom.in');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not launch publishing site')),
-      );
-    }
   }
 
   Future<void> _showThemePicker(BuildContext context, WidgetRef ref) async {
