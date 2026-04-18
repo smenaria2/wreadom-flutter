@@ -134,4 +134,35 @@ void main() {
     expect(source, contains('Error submitting comment'));
     expect(source, isNot(contains('Error subitting comment')));
   });
+
+  test('feed post sharing uses Wreadom canonical query link', () {
+    final source = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('Check out this post on Wreadom'));
+    expect(source, contains('AppLinkHelper.post'));
+    expect(source, isNot(contains('Check out this post on Librebook')));
+  });
+
+  test('profile side menu exposes expanded navigation items', () {
+    final source = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+
+    for (final label in [
+      'Theme',
+      'Help',
+      'Privacy Policy',
+      'Terms of Service',
+      'Competition',
+      'Writer Dashboard',
+      'Publish Book',
+      'Logout',
+    ]) {
+      expect(source, contains(label));
+    }
+    expect(source, contains('Icons.menu_rounded'));
+    expect(source, isNot(contains('Icons.more_vert')));
+  });
 }

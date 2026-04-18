@@ -10,6 +10,7 @@ import '../widgets/comment_widgets.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../../utils/app_link_helper.dart';
 import '../../utils/format_utils.dart';
 import '../widgets/report_dialog.dart';
 
@@ -156,6 +157,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         _optimisticLiked ??
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
+    final commentsCount = post.comments?.length ?? post.commentCount ?? 0;
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -483,7 +485,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     // Comment
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
-                      label: (post.commentCount ?? 0).toString(),
+                      label: commentsCount.toString(),
                       semanticLabel: 'Show comments',
                       onTap: () => _showComments(context),
                     ),
@@ -496,8 +498,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       onPressed: () {
                         if (post.id != null) {
                           Share.share(
-                            'Check out this post on Librebook: https://wreadom.in/posts/${post.id}',
-                            subject: 'Librebook Post',
+                            'Check out this post on Wreadom: ${AppLinkHelper.post(post.id!)}',
+                            subject: 'Wreadom Post',
                           );
                         }
                       },
@@ -654,19 +656,23 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
     try {
       if (_replyingTo != null) {
         // Submit a reply
-        await ref
-            .read(commentRepositoryProvider)
-            .addReply(
-              _replyingTo!.id!,
-              CommentReply(
-                userId: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                userPhotoURL: user.photoURL,
-                text: text,
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-              ),
-            );
+        final reply = CommentReply(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          userPhotoURL: user.photoURL,
+          text: text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+        if (_replyingTo!.feedPostId != null && _replyingTo!.id != null) {
+          await ref
+              .read(feedRepositoryProvider)
+              .addCommentReply(widget.post.id!, _replyingTo!.id!, reply);
+        } else {
+          await ref
+              .read(commentRepositoryProvider)
+              .addReply(_replyingTo!.id!, reply);
+        }
       } else {
         // Submit a top-level comment
         await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
@@ -679,6 +685,11 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
       }
 
       ref.invalidate(feedPostCommentsProvider(widget.post.id!));
+      ref.invalidate(singlePostProvider(widget.post.id!));
+      ref.invalidate(feedPostsProvider);
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
       _ctrl.clear();
       setState(() => _replyingTo = null);
     } catch (e) {

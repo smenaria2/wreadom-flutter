@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,28 +167,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final user = ref.read(currentUserProvider).value;
     final userId = user?.id ?? _currentUserId;
 
-    if (userId != null) {
-      _currentUserId = userId;
-      double position = 0.0;
-      if (_scrollController.hasClients &&
-          _scrollController.position.maxScrollExtent > 0) {
-        position =
-            _scrollController.offset /
-            _scrollController.position.maxScrollExtent;
-      }
+    if (userId != null) await _saveProgressForUser(userId);
+  }
 
-      await _bookRepository.updateReadingProgress(
-        userId,
-        widget.book.id.toString(),
-        chapterIndex: _chapterIndex,
-        position: position,
-      );
+  Future<void> _saveProgressForUser(String userId) async {
+    _currentUserId = userId;
+    double position = 0.0;
+    if (_scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0) {
+      position =
+          _scrollController.offset / _scrollController.position.maxScrollExtent;
     }
+
+    await _bookRepository.updateReadingProgress(
+      userId,
+      widget.book.id.toString(),
+      chapterIndex: _chapterIndex,
+      position: position,
+    );
   }
 
   @override
   void dispose() {
-    _saveProgress();
+    final userId = _currentUserId;
+    if (userId != null) unawaited(_saveProgressForUser(userId));
+    _scrollController.removeListener(_onScroll);
     _commentController.dispose();
     _scrollController.dispose();
     _commentFocusNode.dispose();

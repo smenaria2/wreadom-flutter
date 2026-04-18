@@ -7,13 +7,13 @@ import '../utils/firestore_utils.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
   FirebaseWriterRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
   @override
   Future<String> createBook(Book book) async {
-    final data = book.toJson()..remove('id');
+    final data = _bookToFirestoreJson(book)..remove('id');
     final now = DateTime.now().millisecondsSinceEpoch;
     data['createdAt'] ??= now;
     data['updatedAt'] = now;
@@ -32,7 +32,10 @@ class FirebaseWriterRepository implements WriterRepository {
   }
 
   @override
-  Future<List<Book>> getUserBooks(String userId, {String status = 'all'}) async {
+  Future<List<Book>> getUserBooks(
+    String userId, {
+    String status = 'all',
+  }) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection('books')
         .where('authorId', isEqualTo: userId);
@@ -40,15 +43,21 @@ class FirebaseWriterRepository implements WriterRepository {
       query = query.where('status', isEqualTo: status);
     }
     final snapshot = await query.get();
-    final items = snapshot.docs.map((doc) {
-      try {
-        final data = normalizeBookMapForModel(doc.data(), doc.id);
-        return Book.fromJson(data);
-      } catch (e) {
-        debugPrint('[FirebaseWriterRepository] Error parsing book ${doc.id}: $e');
-        return null;
-      }
-    }).whereType<Book>().where((book) => book.status != 'deleted').toList();
+    final items = snapshot.docs
+        .map((doc) {
+          try {
+            final data = normalizeBookMapForModel(doc.data(), doc.id);
+            return Book.fromJson(data);
+          } catch (e) {
+            debugPrint(
+              '[FirebaseWriterRepository] Error parsing book ${doc.id}: $e',
+            );
+            return null;
+          }
+        })
+        .whereType<Book>()
+        .where((book) => book.status != 'deleted')
+        .toList();
 
     items.sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
     return items;
@@ -56,11 +65,24 @@ class FirebaseWriterRepository implements WriterRepository {
 
   @override
   Future<void> updateBook(String bookId, Book book) async {
-    final data = book.toJson()..remove('id');
+    final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
-    await _firestore.collection('books').doc(bookId).set(
-          data,
-          SetOptions(merge: true),
-        );
+    await _firestore
+        .collection('books')
+        .doc(bookId)
+        .set(data, SetOptions(merge: true));
+  }
+
+  Map<String, dynamic> _bookToFirestoreJson(Book book) {
+    final data = book.toJson();
+    data['authors'] = book.authors.map((author) => author.toJson()).toList();
+    data['chapters'] = book.chapters?.map((chapter) {
+      final chapterData = chapter.toJson();
+      chapterData['versions'] = chapter.versions
+          ?.map((version) => version.toJson())
+          .toList();
+      return chapterData;
+    }).toList();
+    return data;
   }
 }

@@ -103,6 +103,17 @@ class WriterDashboardScreen extends ConsumerWidget {
                             arguments: WriterPadArguments(book: book),
                           );
                         },
+                        onOpenStory: book.status == 'published'
+                            ? () {
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.bookDetail,
+                                  arguments: BookDetailArguments(
+                                    bookId: book.id,
+                                    book: book,
+                                  ),
+                                );
+                              }
+                            : null,
                       );
                     }, childCount: books.length),
                   ),

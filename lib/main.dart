@@ -2,14 +2,18 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/presentation/providers/auth_providers.dart';
+import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
@@ -25,39 +29,44 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await OfflineService().init(); // Open the offline boxes
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  final sharedPreferences = await SharedPreferences.getInstance();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAppCheck.instance.activate(
     providerAndroid: kDebugMode
         ? const AndroidDebugProvider()
         : const AndroidPlayIntegrityProvider(),
-    providerApple:
-        kDebugMode ? const AppleDebugProvider() : const AppleDeviceCheckProvider(),
-    providerWeb: ReCaptchaV3Provider('6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1'),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleDeviceCheckProvider(),
+    providerWeb: ReCaptchaV3Provider(
+      '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
+    ),
   );
   if (kIsWeb) {
-    await GoogleSignIn.instance.initialize(
-      clientId: _googleServerClientId,
-    );
+    await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
   } else if (defaultTargetPlatform == TargetPlatform.android) {
     await GoogleSignIn.instance.initialize(
       serverClientId: _googleServerClientId,
     );
   }
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-
-
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
@@ -83,11 +92,14 @@ class _MyAppState extends State<MyApp> {
       debugPrint('Failed to get initial deep link: $e');
     }
 
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleUri(uri);
-    }, onError: (err) {
-      debugPrint('Error handling deep link: $err');
-    });
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) {
+        _handleUri(uri);
+      },
+      onError: (err) {
+        debugPrint('Error handling deep link: $err');
+      },
+    );
   }
 
   void _handleUri(Uri uri) {
@@ -105,6 +117,8 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(appThemeControllerProvider);
+
     return ScreenUtilInit(
       designSize: const Size(390, 844),
       minTextAdapt: true,
@@ -114,6 +128,12 @@ class _MyAppState extends State<MyApp> {
           navigatorKey: _navigatorKey,
           title: 'Wreadom',
           debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: const Color(0xFF6200EE),
@@ -130,6 +150,7 @@ class _MyAppState extends State<MyApp> {
             useMaterial3: true,
             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
           ),
+          themeMode: themeMode,
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: const AuthWrapper(),
         );
@@ -152,16 +173,9 @@ class AuthWrapper extends ConsumerWidget {
         }
         return const LoginScreen();
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (e, st) => Scaffold(
-        body: Center(
-          child: Text('Error: $e'),
-        ),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
 }

@@ -227,7 +227,7 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Help',
             body:
-                'Librebook helps you read, write, connect, and manage your profile from one app. Use the profile settings screen to update privacy and account preferences.',
+                'Wreadom helps you read, write, connect, and manage your profile from one app. Use the profile settings screen to update privacy and account preferences.',
           ),
         );
       case AppRoutes.privacy:
@@ -235,7 +235,7 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Privacy Policy',
             body:
-                'Your profile, reading, writing, and messaging data are stored using the existing Librebook Firebase backend. Privacy settings affect profile visibility and follower-only content.',
+                'Your profile, reading, writing, and messaging data are stored using the existing Wreadom Firebase backend. Privacy settings affect profile visibility and follower-only content.',
           ),
         );
       case AppRoutes.terms:
@@ -243,7 +243,7 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Terms of Service',
             body:
-                'Use Librebook respectfully. Do not abuse messaging, posting, or publishing tools. Moderation and reporting are handled through the shared Librebook backend.',
+                'Use Wreadom respectfully. Do not abuse messaging, posting, or publishing tools. Moderation and reporting are handled through the shared Wreadom backend.',
           ),
         );
       case AppRoutes.certificate:
@@ -251,7 +251,7 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Certificate',
             body:
-                'Participation certificates are supported in the main Librebook experience. This Flutter build exposes the route and can be expanded to render generated certificates from backend data.',
+                'Participation certificates are supported in the main Wreadom experience. This Flutter build exposes the route and can be expanded to render generated certificates from backend data.',
           ),
         );
       case AppRoutes.dailyTopic:
@@ -275,7 +275,7 @@ class AppRouter {
           builder: (_) => const StaticInfoScreen(
             title: 'Competition',
             body:
-                'Competitions and winners can be surfaced from the shared Librebook backend. This route provides the mobile entry point for that experience.',
+                'Competitions and winners can be surfaced from the shared Wreadom backend. This route provides the mobile entry point for that experience.',
           ),
         );
       default:

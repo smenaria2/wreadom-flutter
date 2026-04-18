@@ -96,19 +96,23 @@ class _InlineCommentsState extends ConsumerState<_InlineComments> {
     setState(() => _submitting = true);
     try {
       if (_replyingTo != null) {
-        await ref
-            .read(commentRepositoryProvider)
-            .addReply(
-              _replyingTo!.id!,
-              CommentReply(
-                userId: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                userPhotoURL: user.photoURL,
-                text: text,
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-              ),
-            );
+        final reply = CommentReply(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          userPhotoURL: user.photoURL,
+          text: text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+        if (_replyingTo!.feedPostId != null && _replyingTo!.id != null) {
+          await ref
+              .read(feedRepositoryProvider)
+              .addCommentReply(postId, _replyingTo!.id!, reply);
+        } else {
+          await ref
+              .read(commentRepositoryProvider)
+              .addReply(_replyingTo!.id!, reply);
+        }
       } else {
         await ref.read(feedRepositoryProvider).addComment(postId, {
           'userId': user.id,

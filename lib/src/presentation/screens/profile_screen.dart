@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
+import '../providers/theme_provider.dart';
 import '../../utils/format_utils.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
@@ -29,6 +30,7 @@ class ProfileScreen extends ConsumerWidget {
         return DefaultTabController(
           length: 4,
           child: Scaffold(
+            endDrawer: const _ProfileSideMenu(),
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
@@ -117,7 +119,13 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     actions: [
                       _NotificationAction(),
-                      _ProfileMenu(ref: ref),
+                      Builder(
+                        builder: (context) => IconButton(
+                          tooltip: 'Menu',
+                          icon: const Icon(Icons.menu_rounded),
+                          onPressed: () => Scaffold.of(context).openEndDrawer(),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -220,78 +228,170 @@ class _NotificationAction extends ConsumerWidget {
   }
 }
 
-class _ProfileMenu extends StatelessWidget {
-  final WidgetRef ref;
-  const _ProfileMenu({required this.ref});
+class _ProfileSideMenu extends ConsumerWidget {
+  const _ProfileSideMenu();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final themeMode = ref.watch(appThemeControllerProvider);
+
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            DrawerHeader(
+              margin: EdgeInsets.zero,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
+                  'Wreadom',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _MenuTile(
+                    icon: Icons.settings_outlined,
+                    title: 'Settings',
+                    onTap: () => _go(context, AppRoutes.profileSettings),
+                  ),
+                  _MenuTile(
+                    icon: Icons.brightness_6_outlined,
+                    title: 'Theme',
+                    subtitle: themeMode == ThemeMode.dark ? 'Dark' : 'Light',
+                    onTap: () => _showThemePicker(context, ref),
+                  ),
+                  _MenuTile(
+                    icon: Icons.edit_note_outlined,
+                    title: 'Writer Dashboard',
+                    onTap: () => _go(context, AppRoutes.writerDashboard),
+                  ),
+                  _MenuTile(
+                    icon: Icons.auto_stories_outlined,
+                    title: 'Publish Book',
+                    onTap: () => _openPublishingSite(context),
+                  ),
+                  const Divider(),
+                  _MenuTile(
+                    icon: Icons.help_outline_rounded,
+                    title: 'Help',
+                    onTap: () => _go(context, AppRoutes.help),
+                  ),
+                  _MenuTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy Policy',
+                    onTap: () => _go(context, AppRoutes.privacy),
+                  ),
+                  _MenuTile(
+                    icon: Icons.description_outlined,
+                    title: 'Terms of Service',
+                    onTap: () => _go(context, AppRoutes.terms),
+                  ),
+                  _MenuTile(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'Competition',
+                    onTap: () => _go(context, AppRoutes.competition),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            _MenuTile(
+              icon: Icons.logout,
+              title: 'Logout',
+              onTap: () async {
+                Navigator.of(context).pop();
+                await ref.read(authControllerProvider.notifier).logout();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _go(BuildContext context, String route) {
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamed(route);
+  }
+
+  Future<void> _openPublishingSite(BuildContext context) async {
+    Navigator.of(context).pop();
+    final uri = Uri.parse('https://publish.wreadom.in');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch publishing site')),
+      );
+    }
+  }
+
+  Future<void> _showThemePicker(BuildContext context, WidgetRef ref) async {
+    final selected = await showDialog<ThemeMode>(
+      context: context,
+      builder: (context) {
+        final current = ref.read(appThemeControllerProvider);
+        return SimpleDialog(
+          title: const Text('Theme'),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.light_mode_outlined),
+              title: const Text('Light'),
+              trailing: current == ThemeMode.light
+                  ? const Icon(Icons.check_rounded)
+                  : null,
+              onTap: () => Navigator.of(context).pop(ThemeMode.light),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dark_mode_outlined),
+              title: const Text('Dark'),
+              trailing: current == ThemeMode.dark
+                  ? const Icon(Icons.check_rounded)
+                  : null,
+              onTap: () => Navigator.of(context).pop(ThemeMode.dark),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected != null) {
+      await ref
+          .read(appThemeControllerProvider.notifier)
+          .setThemeMode(selected);
+    }
+    if (context.mounted) Navigator.of(context).pop();
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  const _MenuTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: (val) async {
-        if (val == 'logout') {
-          await ref.read(authControllerProvider.notifier).logout();
-        } else if (val == 'settings') {
-          Navigator.of(context).pushNamed(AppRoutes.profileSettings);
-        } else if (val == 'writer') {
-          Navigator.of(context).pushNamed(AppRoutes.writerDashboard);
-        } else if (val == 'publish') {
-          final uri = Uri.parse('https://publish.wreadom.in');
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          } else {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Could not launch publishing site'),
-                ),
-              );
-            }
-          }
-        }
-      },
-      itemBuilder: (_) => [
-        const PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              Icon(Icons.settings, size: 18),
-              SizedBox(width: 8),
-              Text('Settings'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'writer',
-          child: Row(
-            children: [
-              Icon(Icons.edit_note, size: 18),
-              SizedBox(width: 8),
-              Text('Writer Dashboard'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'publish',
-          child: Row(
-            children: [
-              Icon(Icons.auto_stories_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Publish Book'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'logout',
-          child: Row(
-            children: [
-              Icon(Icons.logout, size: 18),
-              SizedBox(width: 8),
-              Text('Logout'),
-            ],
-          ),
-        ),
-      ],
-      icon: const Icon(Icons.more_vert),
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: subtitle == null ? null : Text(subtitle!),
+      onTap: onTap,
     );
   }
 }

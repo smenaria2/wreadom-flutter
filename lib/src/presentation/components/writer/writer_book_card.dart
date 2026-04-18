@@ -6,8 +6,14 @@ import '../../utils/date_formatter.dart';
 class WriterBookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
+  final VoidCallback? onOpenStory;
 
-  const WriterBookCard({super.key, required this.book, required this.onTap});
+  const WriterBookCard({
+    super.key,
+    required this.book,
+    required this.onTap,
+    this.onOpenStory,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -100,13 +106,37 @@ class WriterBookCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(
-                  width: 28,
-                  child: Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.onSurfaceVariant,
+                if (onOpenStory != null)
+                  PopupMenuButton<String>(
+                    tooltip: 'Story actions',
+                    onSelected: (value) {
+                      if (value == 'open_story') onOpenStory?.call();
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'open_story',
+                        child: Row(
+                          children: [
+                            Icon(Icons.open_in_new_rounded, size: 18),
+                            SizedBox(width: 8),
+                            Text('Open story page'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: 28,
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

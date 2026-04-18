@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../utils/firestore_utils.dart';
@@ -200,17 +201,69 @@ class FirebaseFeedRepository implements FeedRepository {
 
   @override
   Future<void> addComment(String postId, Map<String, dynamic> comment) async {
-    // We now save to the standalone comments collection
-    await _firestore.collection('comments').add({
-      ...comment,
-      'feedPostId': postId,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    });
+    final postRef = _firestore.collection(_collection).doc(postId);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final commentId = '${timestamp}_${comment['userId']}';
 
-    // Increment comment count on the post
-    await _firestore.collection('feed').doc(postId).set({
-      'commentCount': FieldValue.increment(1),
-    }, SetOptions(merge: true));
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) {
+        throw StateError('Post not found');
+      }
+
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      final embeddedComment = <String, dynamic>{
+        ...comment,
+        'id': commentId,
+        'timestamp': timestamp,
+      };
+
+      transaction.update(postRef, {
+        'comments': [...comments, embeddedComment],
+      });
+    });
+  }
+
+  @override
+  Future<void> addCommentReply(
+    String postId,
+    String commentId,
+    CommentReply reply,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    final replyId =
+        reply.id ?? '${DateTime.now().millisecondsSinceEpoch}_${reply.userId}';
+    final replyData = reply
+        .copyWith(id: replyId, likes: reply.likes ?? const [])
+        .toJson();
+
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) {
+        throw StateError('Post not found');
+      }
+
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        final id = comment['id']?.toString();
+        if (id != commentId) return raw;
+
+        final replies = List<dynamic>.from(comment['replies'] ?? const []);
+        comment['replies'] = [...replies, replyData];
+        changed = true;
+        return comment;
+      }).toList();
+
+      if (changed) {
+        transaction.update(postRef, {'comments': updated});
+      }
+    });
   }
 
   @override

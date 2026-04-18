@@ -15,21 +15,19 @@ class FirebaseCommentRepository implements CommentRepository {
     final batch = _firestore.batch();
     final docRef = _firestore.collection('comments').doc();
     final data = comment.toJson()..remove('id');
-    
+
     batch.set(docRef, data);
 
     // Sync counts atomically
     if (comment.bookId != null) {
-      batch.update(
-        _firestore.collection('books').doc(comment.bookId!),
-        {'commentCount': FieldValue.increment(1)},
-      );
+      batch.update(_firestore.collection('books').doc(comment.bookId!), {
+        'commentCount': FieldValue.increment(1),
+      });
     }
     if (comment.feedPostId != null) {
-      batch.update(
-        _firestore.collection('feed').doc(comment.feedPostId!),
-        {'commentCount': FieldValue.increment(1)},
-      );
+      batch.update(_firestore.collection('feed').doc(comment.feedPostId!), {
+        'commentCount': FieldValue.increment(1),
+      });
     }
 
     await batch.commit();
@@ -54,21 +52,21 @@ class FirebaseCommentRepository implements CommentRepository {
     final docSnap = await docRef.get();
     if (!docSnap.exists) return;
 
-    final comment = Comment.fromJson(mapFirestoreData(docSnap.data()!, docSnap.id));
+    final comment = Comment.fromJson(
+      mapFirestoreData(docSnap.data()!, docSnap.id),
+    );
     final batch = _firestore.batch();
     batch.delete(docRef);
 
     if (comment.bookId != null) {
-      batch.update(
-        _firestore.collection('books').doc(comment.bookId!),
-        {'commentCount': FieldValue.increment(-1)},
-      );
+      batch.update(_firestore.collection('books').doc(comment.bookId!), {
+        'commentCount': FieldValue.increment(-1),
+      });
     }
     if (comment.feedPostId != null) {
-      batch.update(
-        _firestore.collection('feed').doc(comment.feedPostId!),
-        {'commentCount': FieldValue.increment(-1)},
-      );
+      batch.update(_firestore.collection('feed').doc(comment.feedPostId!), {
+        'commentCount': FieldValue.increment(-1),
+      });
     }
     await batch.commit();
   }
@@ -81,7 +79,7 @@ class FirebaseCommentRepository implements CommentRepository {
       if (!snap.exists) return;
       final data = snap.data() ?? {};
       final replies = List<dynamic>.from(data['replies'] ?? const []);
-      
+
       final updated = replies.where((raw) {
         if (raw is! Map) return true;
         final id = raw['id']?.toString();
@@ -114,6 +112,21 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<List<Comment>> getFeedPostComments(String postId) async {
+    final postDoc = await _firestore.collection('feed').doc(postId).get();
+    if (postDoc.exists) {
+      final postData = postDoc.data() ?? {};
+      final embedded = List<dynamic>.from(postData['comments'] ?? const []);
+      if (embedded.isNotEmpty) {
+        final items = embedded.whereType<Map>().map((raw) {
+          final data = Map<String, dynamic>.from(raw);
+          data['feedPostId'] = postId;
+          return Comment.fromJson(data);
+        }).toList();
+        items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return items;
+      }
+    }
+
     final idAsInt = int.tryParse(postId);
     final ids = [postId, ?idAsInt];
     final snapshot = await _firestore
