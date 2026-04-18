@@ -192,8 +192,8 @@ void main() {
     expect(source, contains('FollowButton'));
   });
 
-  testWidgets('writer card exposes view and edit icon buttons', (tester) async {
-    var viewed = 0;
+  testWidgets('published writer card exposes edit button only', (tester) async {
+    var opened = 0;
     var edited = 0;
 
     await tester.pumpWidget(
@@ -205,39 +205,109 @@ void main() {
               title: 'Published',
               status: 'published',
             ),
-            onTap: () => edited++,
-            onViewStory: () => viewed++,
+            onTap: () => opened++,
+            onEditStory: () => edited++,
           ),
         ),
       ),
     );
 
-    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsNothing);
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.tap(find.byIcon(Icons.edit_outlined));
 
-    expect(viewed, 1);
+    expect(opened, 0);
     expect(edited, 1);
   });
 
-  testWidgets('writer draft card disables public view action', (tester) async {
+  testWidgets('draft writer card has no side action buttons', (tester) async {
+    var edited = 0;
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: WriterBookCard(
             book: book(id: 'draft', title: 'Draft', status: 'draft'),
-            onTap: () {},
+            onTap: () => edited++,
           ),
         ),
       ),
     );
 
-    final viewButton = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.visibility_outlined),
+    expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+
+    await tester.tap(find.byType(WriterBookCard));
+    expect(edited, 1);
+  });
+
+  test(
+    'writer dashboard uses published card tap for book page and edit button for editor',
+    () {
+      final source = File(
+        'lib/src/presentation/screens/writer_dashboard_screen.dart',
+      ).readAsStringSync();
+
+      expect(
+        source,
+        contains('onTap: isPublished ? openStoryPage : openEditor'),
+      );
+      expect(source, contains('onEditStory: isPublished ? openEditor : null'));
+    },
+  );
+
+  test(
+    'reader uses automatic progress instead of manual chapter bookmarks',
+    () {
+      final readerSource = File(
+        'lib/src/presentation/screens/reader_screen.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        'lib/src/data/repositories/firebase_book_repository.dart',
+      ).readAsStringSync();
+
+      expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
+      expect(readerSource, isNot(contains('Add Bookmark')));
+      expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
+      expect(readerSource, contains('Next Chapter'));
+      expect(readerSource, contains('View Comments'));
+      expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
+      expect(repositorySource, contains("'readingProgress': {"));
+      expect(repositorySource, contains('SetOptions(merge: true)'));
+      expect(repositorySource, isNot(contains("'readingProgress.\$bookId'")));
+    },
+  );
+
+  test('reader drawer shows chapter completion and comment actions', () {
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_book_repository.dart',
+    ).readAsStringSync();
+
+    expect(readerSource, contains('completedChapterIndexes'));
+    expect(readerSource, contains('_markChapterCompleteAndGoNext'));
+    expect(
+      readerSource,
+      contains('completedChapterIndex: currentChapterIndex'),
     );
-    expect(viewButton.onPressed, isNull);
-    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    expect(readerSource, contains('commentCounts'));
+    expect(readerSource, contains('View chapter comments'));
+    expect(readerSource, contains('Icons.chat_bubble_outline_rounded'));
+    expect(readerSource, contains('Icons.check_rounded'));
+    expect(readerSource, contains('onOpenComments'));
+    expect(repositorySource, contains('completedChapterIndexes'));
+  });
+
+  test('book detail reads progress through shared progress helper', () {
+    final source = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_progressForBook'));
+    expect(source, contains("'Continue Reading'"));
+    expect(source, contains("'Start Reading'"));
   });
 }

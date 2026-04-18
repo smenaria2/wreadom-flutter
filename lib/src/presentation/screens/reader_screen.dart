@@ -8,10 +8,8 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
-import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
-import '../providers/bookmark_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/comment_widgets.dart';
@@ -56,6 +54,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
+  Timer? _progressSaveDebounce;
 
   @override
   void initState() {
@@ -91,6 +90,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           _showReaderChrome = shouldShowChrome;
           _lastScrollOffset = currentOffset;
         });
+        _scheduleProgressSave();
       }
     }
   }
@@ -126,7 +126,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _restoreScrollPosition() async {
-    final user = ref.read(currentUserProvider).value;
+    final user = await ref.read(currentUserProvider.future);
     if (user != null &&
         user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
       final rawProgress = user.readingProgress![widget.book.id.toString()];
@@ -160,6 +160,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         user.id,
         widget.book.id.toString(),
       );
+      await _saveProgressForUser(user.id);
     }
   }
 
@@ -185,10 +186,52 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       chapterIndex: _chapterIndex,
       position: position,
     );
+    if (mounted) ref.invalidate(currentUserProvider);
+  }
+
+  Future<void> _markChapterCompleteAndGoNext() async {
+    final currentChapterIndex = _chapterIndex;
+    final user = ref.read(currentUserProvider).value;
+    final userId = user?.id ?? _currentUserId;
+    if (userId != null) {
+      await _bookRepository.updateReadingProgress(
+        userId,
+        widget.book.id.toString(),
+        chapterIndex: currentChapterIndex,
+        position: 1.0,
+        completedChapterIndex: currentChapterIndex,
+      );
+      if (mounted) ref.invalidate(currentUserProvider);
+    }
+    _goToChapter(currentChapterIndex + 1);
+  }
+
+  void _scheduleProgressSave() {
+    if (_currentUserId == null) return;
+    _progressSaveDebounce?.cancel();
+    _progressSaveDebounce = Timer(const Duration(seconds: 2), () {
+      final userId = _currentUserId;
+      if (userId != null) unawaited(_saveProgressForUser(userId));
+    });
+  }
+
+  void _goToChapter(int index) {
+    setState(() {
+      _chapterIndex = index;
+      _scrollProgress = 0.0;
+      _lastScrollOffset = 0.0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+    _saveProgress();
   }
 
   @override
   void dispose() {
+    _progressSaveDebounce?.cancel();
     final userId = _currentUserId;
     if (userId != null) unawaited(_saveProgressForUser(userId));
     _scrollController.removeListener(_onScroll);
@@ -200,9 +243,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bookmarksAsync = ref.watch(bookBookmarksProvider(widget.book.id));
-    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
     final chaptersAsync = ref.watch(bookChaptersProvider(widget.book.id));
+    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+    final userAsync = ref.watch(currentUserProvider);
     final offline = ref.watch(offlineServiceProvider);
 
     // Keep current user ID updated
@@ -222,8 +265,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           return _buildReader(
             context,
             offlineChapters,
-            bookmarksAsync,
             commentsAsync,
+            userAsync,
             isOffline: true,
           );
         }
@@ -233,8 +276,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           data: (chapters) => _buildReader(
             context,
             chapters,
-            bookmarksAsync,
             commentsAsync,
+            userAsync,
             isOffline: false,
           ),
           loading: () => Scaffold(
@@ -253,13 +296,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget _buildReader(
     BuildContext context,
     List<Chapter> chapters,
-    AsyncValue<List<Bookmark>> bookmarksAsync,
-    AsyncValue<List<Comment>> commentsAsync, {
+    AsyncValue<List<Comment>> commentsAsync,
+    AsyncValue<dynamic> userAsync, {
     required bool isOffline,
   }) {
     final chapter = chapters.isEmpty
         ? null
         : chapters[_chapterIndex.clamp(0, chapters.length - 1)];
+    final completedChapterIndexes = _completedChapterIndexes(userAsync);
+    final commentCounts = commentsAsync.maybeWhen(
+      data: (comments) => _commentCountsByChapter(chapters, comments),
+      orElse: () => const <int, int>{},
+    );
 
     return Scaffold(
       appBar: PreferredSize(
@@ -294,11 +342,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   onPressed: _showSettings,
                   tooltip: 'Reader Settings',
                 ),
-                IconButton(
-                  icon: const Icon(Icons.bookmark_add_outlined),
-                  onPressed: () => _addBookmark(chapter),
-                  tooltip: 'Add Bookmark',
-                ),
               ],
             ),
           ),
@@ -307,10 +350,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       drawer: _ChapterDrawer(
         chapters: chapters,
         currentIndex: _chapterIndex,
+        completedChapterIndexes: completedChapterIndexes,
+        commentCounts: commentCounts,
         onSelect: (index) {
-          setState(() => _chapterIndex = index);
-          _saveProgress();
+          _goToChapter(index);
           Navigator.of(context).pop();
+        },
+        onOpenComments: (index) {
+          Navigator.of(context).pop();
+          _showDiscussion(chapters[index], chapterIndex: index);
         },
       ),
       body: Container(
@@ -397,47 +445,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text(
-                      'Bookmarks',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    _ChapterEndActions(
+                      hasNextChapter: _chapterIndex < chapters.length - 1,
+                      onNextChapter: _chapterIndex < chapters.length - 1
+                          ? _markChapterCompleteAndGoNext
+                          : null,
+                      onViewComments: () => _showDiscussion(chapter),
                     ),
-                    const SizedBox(height: 8),
-                    bookmarksAsync.when(
-                      data: (items) => Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: items.isEmpty
-                            ? const [Text('No bookmarks yet')]
-                            : items
-                                  .map<Widget>(
-                                    (item) => InputChip(
-                                      label: Text(item.label),
-                                      onDeleted: item.id == null
-                                          ? null
-                                          : () async {
-                                              await ref
-                                                  .read(
-                                                    bookmarkRepositoryProvider,
-                                                  )
-                                                  .removeBookmark(item.id!);
-                                              ref.invalidate(
-                                                bookBookmarksProvider(
-                                                  widget.book.id,
-                                                ),
-                                              );
-                                              ref.invalidate(
-                                                userBookmarksProvider,
-                                              );
-                                            },
-                                    ),
-                                  )
-                                  .toList(),
-                      ),
-                      loading: () => const LinearProgressIndicator(),
-                      error: (error, _) =>
-                          Text('Failed to load bookmarks: $error'),
-                    ),
-                    const SizedBox(height: 24),
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -456,25 +470,44 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  Future<void> _addBookmark(dynamic chapter) async {
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
-    final label = chapter?.title ?? widget.book.title;
-    await ref
-        .read(bookmarkRepositoryProvider)
-        .addBookmark(
-          Bookmark(
-            userId: user.id,
-            bookId: widget.book.id,
-            position: _chapterIndex.toDouble(),
-            label: label,
-            timestamp: DateTime.now().millisecondsSinceEpoch,
-            chapterTitle: chapter?.title,
-            chapterIndex: _chapterIndex,
-          ),
-        );
-    ref.invalidate(bookBookmarksProvider(widget.book.id));
-    ref.invalidate(userBookmarksProvider);
+  Set<int> _completedChapterIndexes(AsyncValue<dynamic> userAsync) {
+    return userAsync.maybeWhen(
+      data: (user) {
+        final progressRaw = user?.readingProgress?[widget.book.id.toString()];
+        if (progressRaw is! Map) return <int>{};
+        final completedRaw = progressRaw['completedChapterIndexes'];
+        if (completedRaw is! List) return <int>{};
+        return completedRaw
+            .whereType<num>()
+            .map((index) => index.toInt())
+            .toSet();
+      },
+      orElse: () => <int>{},
+    );
+  }
+
+  Map<int, int> _commentCountsByChapter(
+    List<Chapter> chapters,
+    List<Comment> comments,
+  ) {
+    final counts = <int, int>{};
+    for (final comment in comments) {
+      final index = _chapterIndexForComment(chapters, comment);
+      if (index == null) continue;
+      counts[index] = (counts[index] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  int? _chapterIndexForComment(List<Chapter> chapters, Comment comment) {
+    final chapterId = comment.chapterId;
+    if (chapterId != null && chapterId.isNotEmpty) {
+      final index = chapters.indexWhere((chapter) => chapter.id == chapterId);
+      if (index >= 0) return index;
+    }
+    final index = comment.chapterIndex;
+    if (index != null && index >= 0 && index < chapters.length) return index;
+    return null;
   }
 
   Future<void> _shareSelectedQuote(dynamic chapter, String selected) async {
@@ -496,7 +529,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  Future<void> _submitComment(dynamic chapter) async {
+  Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
     final text = _commentController.text.trim();
     final user = await ref.read(currentUserProvider.future);
     if (text.isEmpty || user == null) return;
@@ -531,7 +564,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         rating: _chapterRating > 0 ? _chapterRating : null,
         quote: _selectedQuote,
         chapterTitle: chapter?.title,
-        chapterIndex: _chapterIndex,
+        chapterIndex: chapterIndex ?? _chapterIndex,
         chapterId: chapter?.id?.toString(),
         timestamp: now,
         userPhotoURL: user.photoURL,
@@ -576,7 +609,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
-  void _showDiscussion(dynamic chapter) {
+  void _showDiscussion(dynamic chapter, {int? chapterIndex}) {
     if (_isDiscussionOpen) {
       Navigator.of(context).maybePop();
       return;
@@ -801,7 +834,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                       ).colorScheme.primary,
                                     ),
                                     onPressed: () async {
-                                      await _submitComment(chapter);
+                                      await _submitComment(
+                                        chapter,
+                                        chapterIndex: chapterIndex,
+                                      );
                                       setModalState(() {});
                                     },
                                   ),
@@ -827,7 +863,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                         return true;
                                       }
                                       return comment.chapterIndex ==
-                                          _chapterIndex;
+                                          (chapterIndex ?? _chapterIndex);
                                     }).toList();
 
                                     if (chapterComments.isEmpty) {
@@ -1036,12 +1072,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 class _ChapterDrawer extends StatelessWidget {
   final List<Chapter> chapters;
   final int currentIndex;
+  final Set<int> completedChapterIndexes;
+  final Map<int, int> commentCounts;
   final ValueChanged<int> onSelect;
+  final ValueChanged<int> onOpenComments;
 
   const _ChapterDrawer({
     required this.chapters,
     required this.currentIndex,
+    required this.completedChapterIndexes,
+    required this.commentCounts,
     required this.onSelect,
+    required this.onOpenComments,
   });
 
   @override
@@ -1065,28 +1107,56 @@ class _ChapterDrawer extends StatelessWidget {
               itemCount: chapters.length,
               itemBuilder: (context, index) {
                 final isSelected = index == currentIndex;
+                final isComplete = completedChapterIndexes.contains(index);
+                final commentCount = commentCounts[index] ?? 0;
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isSelected
+                    backgroundColor: isComplete
+                        ? Colors.green
+                        : isSelected
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    child: isComplete
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          )
+                        : Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                   ),
                   title: Text(
-                    'Chapter ${index + 1}',
+                    chapters[index].title.trim().isNotEmpty
+                        ? chapters[index].title
+                        : 'Chapter ${index + 1}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),
                   ),
+                  trailing: commentCount > 0
+                      ? IconButton(
+                          tooltip: 'View chapter comments',
+                          icon: Badge(
+                            label: Text('$commentCount'),
+                            child: const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                            ),
+                          ),
+                          onPressed: () => onOpenComments(index),
+                        )
+                      : null,
                   selected: isSelected,
                   onTap: () => onSelect(index),
                 );
@@ -1095,6 +1165,43 @@ class _ChapterDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ChapterEndActions extends StatelessWidget {
+  const _ChapterEndActions({
+    required this.hasNextChapter,
+    required this.onNextChapter,
+    required this.onViewComments,
+  });
+
+  final bool hasNextChapter;
+  final VoidCallback? onNextChapter;
+  final VoidCallback onViewComments;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (hasNextChapter) ...[
+          Expanded(
+            child: FilledButton.icon(
+              icon: const Icon(Icons.navigate_next_rounded),
+              label: const Text('Next Chapter'),
+              onPressed: onNextChapter,
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            label: const Text('View Comments'),
+            onPressed: onViewComments,
+          ),
+        ),
+      ],
     );
   }
 }

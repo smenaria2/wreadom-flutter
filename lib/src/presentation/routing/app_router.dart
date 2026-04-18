@@ -10,6 +10,7 @@ import '../screens/daily_topic_screen.dart';
 import '../screens/discovery_screen.dart';
 import '../screens/follow_list_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/help_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/post_detail_screen.dart';
@@ -223,13 +224,7 @@ class AppRouter {
       case AppRoutes.profileSettings:
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
       case AppRoutes.help:
-        return MaterialPageRoute(
-          builder: (_) => const StaticInfoScreen(
-            title: 'Help',
-            body:
-                'Wreadom helps you read, write, connect, and manage your profile from one app. Use the profile settings screen to update privacy and account preferences.',
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const HelpScreen());
       case AppRoutes.privacy:
         return MaterialPageRoute(
           builder: (_) => const StaticInfoScreen(

@@ -95,25 +95,28 @@ class WriterDashboardScreen extends ConsumerWidget {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final book = books[index];
+                      final isPublished = book.status == 'published';
+                      void openEditor() {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.writerPad,
+                          arguments: WriterPadArguments(book: book),
+                        );
+                      }
+
+                      void openStoryPage() {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: BookDetailArguments(
+                            bookId: book.id,
+                            book: book,
+                          ),
+                        );
+                      }
+
                       return WriterBookCard(
                         book: book,
-                        onTap: () {
-                          Navigator.of(context).pushNamed(
-                            AppRoutes.writerPad,
-                            arguments: WriterPadArguments(book: book),
-                          );
-                        },
-                        onViewStory: book.status == 'published'
-                            ? () {
-                                Navigator.of(context).pushNamed(
-                                  AppRoutes.bookDetail,
-                                  arguments: BookDetailArguments(
-                                    bookId: book.id,
-                                    book: book,
-                                  ),
-                                );
-                              }
-                            : null,
+                        onTap: isPublished ? openStoryPage : openEditor,
+                        onEditStory: isPublished ? openEditor : null,
                       );
                     }, childCount: books.length),
                   ),

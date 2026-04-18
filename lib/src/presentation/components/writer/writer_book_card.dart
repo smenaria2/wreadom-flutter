@@ -6,13 +6,13 @@ import '../../utils/date_formatter.dart';
 class WriterBookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
-  final VoidCallback? onViewStory;
+  final VoidCallback? onEditStory;
 
   const WriterBookCard({
     super.key,
     required this.book,
     required this.onTap,
-    this.onViewStory,
+    this.onEditStory,
   });
 
   @override
@@ -106,30 +106,17 @@ class WriterBookCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Tooltip(
-                      message: isPublished
-                          ? 'View story'
-                          : 'Story page available after publishing',
-                      child: IconButton(
-                        icon: const Icon(Icons.visibility_outlined),
-                        color: colorScheme.primary,
-                        onPressed: onViewStory,
-                      ),
+                if (onEditStory != null) ...[
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Edit story',
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      color: colorScheme.onSurfaceVariant,
+                      onPressed: onEditStory,
                     ),
-                    Tooltip(
-                      message: 'Edit story',
-                      child: IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        color: colorScheme.onSurfaceVariant,
-                        onPressed: onTap,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),

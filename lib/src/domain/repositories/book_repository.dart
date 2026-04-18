@@ -31,6 +31,7 @@ abstract class BookRepository {
     String bookId, {
     required int chapterIndex,
     required double position,
+    int? completedChapterIndex,
   });
   Future<List<String>> getUpvotedIABookIds();
   Future<List<Book>> getUpvotedIABooks({int limit = 20});

@@ -250,20 +250,28 @@ class _BookDetailBody extends ConsumerWidget {
 
   static bool _hasProgress(AsyncValue<dynamic> userAsync, String bookId) {
     return userAsync.maybeWhen(
-      data: (u) => u?.readingProgress?[bookId] != null,
+      data: (u) => _progressForBook(u?.readingProgress, bookId) != null,
       orElse: () => false,
     );
   }
 
+  static Map<String, dynamic>? _progressForBook(
+    Map<String, dynamic>? readingProgress,
+    String bookId,
+  ) {
+    final rawProgress = readingProgress?[bookId];
+    if (rawProgress is Map<String, dynamic>) return rawProgress;
+    if (rawProgress is Map) return Map<String, dynamic>.from(rawProgress);
+    return null;
+  }
+
   void _openReader(BuildContext context, AsyncValue<dynamic> userAsync) {
-    final progress = userAsync.maybeWhen(
-      data: (u) => u?.readingProgress?[book.id],
+    final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
+      data: (u) => _progressForBook(u?.readingProgress, book.id),
       orElse: () => null,
     );
     var startChapter = 0;
-    if (progress is Map) {
-      startChapter = (progress['chapterIndex'] as num?)?.toInt() ?? 0;
-    }
+    startChapter = (progress?['chapterIndex'] as num?)?.toInt() ?? 0;
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArguments(book: book, initialChapterIndex: startChapter),

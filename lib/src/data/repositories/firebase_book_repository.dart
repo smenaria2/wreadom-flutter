@@ -581,16 +581,45 @@ class FirebaseBookRepository implements BookRepository {
     String bookId, {
     required int chapterIndex,
     required double position,
+    int? completedChapterIndex,
   }) async {
     try {
       final userDoc = _firestore.collection('users').doc(userId);
-      await userDoc.update({
-        'readingProgress.$bookId': {
-          'chapterIndex': chapterIndex,
-          'position': position,
-          'updatedAt': FieldValue.serverTimestamp(),
+      final userSnapshot = await userDoc.get();
+      final userData = userSnapshot.data();
+      final readingProgressRaw = userData?['readingProgress'];
+      final readingProgress = readingProgressRaw is Map
+          ? Map<String, dynamic>.from(readingProgressRaw)
+          : <String, dynamic>{};
+      final existingProgressRaw = readingProgress[bookId];
+      final existingProgress = existingProgressRaw is Map
+          ? Map<String, dynamic>.from(existingProgressRaw)
+          : <String, dynamic>{};
+      final completedRaw = existingProgress['completedChapterIndexes'];
+      final completedChapterIndexes = completedRaw is List
+          ? completedRaw
+                .whereType<num>()
+                .map((index) => index.toInt())
+                .toSet()
+                .toList()
+          : <int>[];
+      if (completedChapterIndex != null &&
+          !completedChapterIndexes.contains(completedChapterIndex)) {
+        completedChapterIndexes.add(completedChapterIndex);
+        completedChapterIndexes.sort();
+      }
+
+      await userDoc.set({
+        'readingProgress': {
+          bookId: {
+            ...existingProgress,
+            'chapterIndex': chapterIndex,
+            'position': position,
+            'completedChapterIndexes': completedChapterIndexes,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
         },
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint(
         '[FirebaseBookRepository] Error updating reading progress: $e',

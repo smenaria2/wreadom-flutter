@@ -113,6 +113,7 @@ class ArchiveBookRepository implements BookRepository {
     String bookId, {
     required int chapterIndex,
     required double position,
+    int? completedChapterIndex,
   }) async {
     // Handled by Composite/Firebase repository
   }

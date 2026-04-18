@@ -252,6 +252,7 @@ class CompositeBookRepository implements BookRepository {
     String bookId, {
     required int chapterIndex,
     required double position,
+    int? completedChapterIndex,
   }) async {
     // Progress is tracked in Firebase regardless of book source
     await _firebaseRepo.updateReadingProgress(
@@ -259,6 +260,7 @@ class CompositeBookRepository implements BookRepository {
       bookId,
       chapterIndex: chapterIndex,
       position: position,
+      completedChapterIndex: completedChapterIndex,
     );
   }
 }
