@@ -93,3 +93,8 @@ final bookChaptersProvider =
     FutureProvider.family<List<Chapter>, String>((ref, bookId) async {
   return ref.watch(bookRepositoryProvider).getChapters(bookId);
 });
+
+final offlineChaptersProvider =
+    FutureProvider.family<List<Chapter>, String>((ref, bookId) async {
+  return ref.watch(offlineServiceProvider).getDownloadedChapters(bookId);
+});

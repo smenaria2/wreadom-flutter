@@ -263,10 +263,40 @@ void main() {
       final readerSource = File(
         'lib/src/presentation/screens/reader_screen.dart',
       ).readAsStringSync();
+      final providerSource = File(
+        'lib/src/presentation/providers/book_providers.dart',
+      ).readAsStringSync();
       final repositorySource = File(
         'lib/src/data/repositories/firebase_book_repository.dart',
       ).readAsStringSync();
 
+      expect(readerSource, isNot(contains('FutureBuilder<List<Chapter>>')));
+      expect(readerSource, contains('offlineChaptersProvider(widget.book.id)'));
+      expect(providerSource, contains('offlineChaptersProvider'));
+      expect(providerSource, contains('getDownloadedChapters(bookId)'));
+      expect(readerSource, contains('WidgetsBindingObserver'));
+      expect(readerSource, contains('didChangeAppLifecycleState'));
+      expect(readerSource, contains('_saveProgressSilently'));
+      expect(readerSource, contains('catchError'));
+      expect(readerSource, contains('RestorableInt _restorableChapterIndex'));
+      expect(
+        readerSource,
+        contains('RestorableDouble _restorableScrollProgress'),
+      );
+      expect(
+        readerSource,
+        contains(
+          "registerForRestoration(_restorableChapterIndex, 'chapter_index')",
+        ),
+      );
+      expect(
+        readerSource,
+        contains(
+          "registerForRestoration(_restorableScrollProgress, 'scroll_progress')",
+        ),
+      );
+      expect(readerSource, contains('_flushProgressSave'));
+      expect(readerSource, contains('jumpTo'));
       expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
       expect(readerSource, isNot(contains('Add Bookmark')));
       expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
