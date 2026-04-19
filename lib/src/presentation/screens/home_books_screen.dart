@@ -260,66 +260,77 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
 
         return Column(
           children: [
-            SizedBox(
-              height: 260,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: topics.length,
-                onPageChanged: (index) {
-                  setState(() {}); // For indicator update
-                  if (index >= topics.length - 1) {
-                    ref.read(dailyTopicsProvider.notifier).fetchMore();
-                  }
-                },
-                itemBuilder: (context, index) {
-                  final topic = topics[index];
-                  return _DailyTopicCard(topic: topic);
-                },
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final height = (constraints.maxWidth * 0.62).clamp(
+                  210.0,
+                  280.0,
+                );
+                return SizedBox(
+                  height: height,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: topics.length,
+                    onPageChanged: (index) {
+                      if (index >= topics.length - 1) {
+                        ref.read(dailyTopicsProvider.notifier).fetchMore();
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      final topic = topics[index];
+                      return _DailyTopicCard(topic: topic);
+                    },
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                topics.length,
-                (index) => _buildIndicator(index, topics.length),
-              ),
+            AnimatedBuilder(
+              animation: _pageController,
+              builder: (context, _) {
+                final page = _pageController.hasClients
+                    ? _pageController.page ?? _pageController.initialPage
+                    : _pageController.initialPage.toDouble();
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    topics.length,
+                    (index) => _buildIndicator(index, page.toDouble()),
+                  ),
+                );
+              },
             ),
           ],
         );
       },
-      loading: () => const SizedBox(
-        height: 180,
-        child: Center(child: CircularProgressIndicator()),
+      loading: () => LayoutBuilder(
+        builder: (context, constraints) {
+          final height = (constraints.maxWidth * 0.46).clamp(160.0, 220.0);
+          return SizedBox(
+            height: height,
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
       ),
       error: (_, _) => _buildDefaultBanner(context),
     );
   }
 
-  Widget _buildIndicator(int index, int total) {
-    bool isActive = false;
-    try {
-      if (_pageController.hasClients) {
-        // Use the actual page index from state/controller
-        isActive =
-            (_pageController.page?.round() ?? _pageController.initialPage) ==
-            index;
-      } else {
-        isActive = (index == 0);
-      }
-    } catch (_) {
-      isActive = (index == 0);
-    }
+  Widget _buildIndicator(int index, double page) {
+    final distance = (page - index).abs().clamp(0.0, 1.0);
+    final strength = 1.0 - distance;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 140),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       height: 6,
-      width: isActive ? 20 : 6,
+      width: 6 + (14 * strength),
       decoration: BoxDecoration(
-        color: isActive
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        color: Color.lerp(
+          Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+          Theme.of(context).colorScheme.primary,
+          strength,
+        ),
         borderRadius: BorderRadius.circular(3),
       ),
     );
@@ -328,6 +339,12 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
   Widget _buildDefaultBanner(BuildContext context) {
     return Container(
       width: double.infinity,
+      constraints: BoxConstraints(
+        minHeight: (MediaQuery.sizeOf(context).width * 0.42).clamp(
+          172.0,
+          230.0,
+        ),
+      ),
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -699,6 +716,10 @@ class _BookshelfSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shelfHeight = (MediaQuery.sizeOf(context).width * 0.54).clamp(
+      190.0,
+      232.0,
+    );
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) return const SizedBox.shrink();
@@ -726,7 +747,7 @@ class _BookshelfSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 210,
+              height: shelfHeight,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
@@ -762,7 +783,7 @@ class _BookshelfSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 210,
+            height: shelfHeight,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,

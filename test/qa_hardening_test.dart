@@ -450,4 +450,27 @@ void main() {
       isNot(contains("heroTag: 'book-cover-\$shelfId-\${book.id}-\$index'")),
     );
   });
+
+  test('priority four responsive and theme polish stays in place', () {
+    final homeSource = File(
+      'lib/src/presentation/screens/home_books_screen.dart',
+    ).readAsStringSync();
+    final writerPadSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+
+    expect(homeSource, contains('AnimatedBuilder'));
+    expect(homeSource, contains('_buildIndicator(index, page.toDouble())'));
+    expect(homeSource, contains('constraints.maxWidth'));
+    expect(homeSource, isNot(contains('height: 260')));
+    expect(homeSource, isNot(contains('height: 210')));
+    expect(homeSource, isNot(contains('setState(() {})')));
+    expect(writerPadSource, contains('_writerChromeColor'));
+    expect(writerPadSource, contains('_writerSurfaceColor'));
+    expect(writerPadSource, contains('_writerPaperColor'));
+    expect(writerPadSource, isNot(contains('Color(0xFF111018)')));
+    expect(writerPadSource, isNot(contains('Color(0xFF191722)')));
+    expect(writerPadSource, isNot(contains('Color(0xFF1D1A25)')));
+    expect(writerPadSource, isNot(contains('Color(0xFF14121B)')));
+  });
 }

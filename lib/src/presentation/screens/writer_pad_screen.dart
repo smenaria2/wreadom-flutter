@@ -172,12 +172,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   @override
   Widget build(BuildContext context) {
     final controller = _currentChapter.controller;
+    final chromeColor = _writerChromeColor(context);
+    final onChromeColor = _onWriterChromeColor(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111018),
+      backgroundColor: chromeColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111018),
-        foregroundColor: Colors.white,
+        backgroundColor: chromeColor,
+        foregroundColor: onChromeColor,
         elevation: 0,
         titleSpacing: 0,
         title: Column(
@@ -190,7 +192,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             Text(
               _isSaving ? 'Saving...' : _saveStatus,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.58),
+                color: onChromeColor.withValues(alpha: 0.58),
                 fontSize: 12,
               ),
             ),
@@ -247,6 +249,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Widget _buildEditorStep() {
     final theme = Theme.of(context);
+    final paperColor = _writerPaperColor(context);
+    final paperTextColor = _writerPaperTextColor(context);
+    final paperMutedColor = paperTextColor.withValues(alpha: 0.72);
     return Column(
       key: const ValueKey('editor-step'),
       children: [
@@ -259,8 +264,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: TextField(
                     controller: _currentChapter.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _onWriterSurfaceColor(context),
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
                     ),
@@ -268,7 +273,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       border: InputBorder.none,
                       hintText: 'Chapter ${_currentChapterIndex + 1} title',
                       hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.36),
+                        color: _onWriterSurfaceColor(
+                          context,
+                        ).withValues(alpha: 0.36),
                       ),
                     ),
                   ),
@@ -289,9 +296,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F5EF),
+              color: paperColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE0D8C9)),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: QuillEditor(
               controller: _currentChapter.controller,
@@ -304,10 +313,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 autoFocus: false,
                 customStyles: DefaultStyles(
                   paragraph: DefaultTextBlockStyle(
-                    const TextStyle(
+                    TextStyle(
                       fontSize: 17,
                       height: 1.55,
-                      color: Color(0xFF241F1A),
+                      color: paperTextColor,
                     ),
                     HorizontalSpacing.zero,
                     const VerticalSpacing(8, 0),
@@ -316,7 +325,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   ),
                   h1: DefaultTextBlockStyle(
                     theme.textTheme.headlineMedium!.copyWith(
-                      color: const Color(0xFF201A16),
+                      color: paperTextColor,
                       fontWeight: FontWeight.w800,
                     ),
                     HorizontalSpacing.zero,
@@ -326,7 +335,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   ),
                   h2: DefaultTextBlockStyle(
                     theme.textTheme.headlineSmall!.copyWith(
-                      color: const Color(0xFF201A16),
+                      color: paperTextColor,
                       fontWeight: FontWeight.w700,
                     ),
                     HorizontalSpacing.zero,
@@ -335,8 +344,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     null,
                   ),
                   quote: DefaultTextBlockStyle(
-                    const TextStyle(
-                      color: Color(0xFF5F5145),
+                    TextStyle(
+                      color: paperMutedColor,
                       fontSize: 17,
                       height: 1.55,
                       fontStyle: FontStyle.italic,
@@ -346,7 +355,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     const VerticalSpacing(0, 0),
                     BoxDecoration(
                       border: Border(
-                        left: BorderSide(color: Color(0xFFB65A3B), width: 4),
+                        left: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 4,
+                        ),
                       ),
                     ),
                   ),
@@ -371,7 +383,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               Text(
                 'Story identity',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -399,7 +411,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               Text(
                 'Discovery',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -474,15 +486,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildToolbar(QuillController controller) {
+    final toolbarColor = _writerToolbarColor(context);
+    final onToolbarColor = _onWriterSurfaceColor(context);
     return SafeArea(
       child: Container(
-        color: const Color(0xFF191722),
+        color: toolbarColor,
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         child: Row(
           children: [
             IconButton(
               tooltip: 'Chapters',
-              color: Colors.white,
+              color: onToolbarColor,
               onPressed: _showChapterSheet,
               icon: const Icon(Icons.menu_book_rounded),
             ),
@@ -515,14 +529,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   showSearchButton: false,
                   showSubscript: false,
                   showSuperscript: false,
-                  color: const Color(0xFF191722),
+                  color: toolbarColor,
                   toolbarSectionSpacing: 2,
                 ),
               ),
             ),
             IconButton(
               tooltip: 'Add chapter',
-              color: Colors.white,
+              color: onToolbarColor,
               onPressed: _addChapter,
               icon: const Icon(Icons.add_circle_outline),
             ),
@@ -532,17 +546,66 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     );
   }
 
+  bool _useDarkWriterChrome(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  Color _writerChromeColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _useDarkWriterChrome(context) ? scheme.surface : scheme.surface;
+  }
+
+  Color _writerToolbarColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _useDarkWriterChrome(context)
+        ? scheme.surfaceContainerLow
+        : scheme.surfaceContainer;
+  }
+
+  Color _writerSurfaceColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _useDarkWriterChrome(context)
+        ? scheme.surfaceContainerLow
+        : scheme.surfaceContainerHighest;
+  }
+
+  Color _writerFieldColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _useDarkWriterChrome(context)
+        ? scheme.surfaceContainer
+        : scheme.surface;
+  }
+
+  Color _onWriterChromeColor(BuildContext context) {
+    return Theme.of(context).colorScheme.onSurface;
+  }
+
+  Color _onWriterSurfaceColor(BuildContext context) {
+    return Theme.of(context).colorScheme.onSurface;
+  }
+
+  Color _writerPaperColor(BuildContext context) {
+    return _useDarkWriterChrome(context)
+        ? const Color(0xFFF8F5EF)
+        : Theme.of(context).colorScheme.surface;
+  }
+
+  Color _writerPaperTextColor(BuildContext context) {
+    return const Color(0xFF241F1A);
+  }
+
   Widget _surface({
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1A25),
+        color: _writerSurfaceColor(context),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: child,
     );
@@ -554,24 +617,27 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     required String hint,
     int maxLines = 1,
   }) {
+    final onSurfaceColor = _onWriterSurfaceColor(context);
+    final fieldColor = _writerFieldColor(context);
+    final outlineColor = Theme.of(context).colorScheme.outlineVariant;
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: onSurfaceColor),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.32)),
+        labelStyle: TextStyle(color: onSurfaceColor.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(color: onSurfaceColor.withValues(alpha: 0.32)),
         filled: true,
-        fillColor: const Color(0xFF14121B),
+        fillColor: fieldColor,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          borderSide: BorderSide(color: outlineColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFB65A3B)),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
         ),
       ),
     );
@@ -583,22 +649,25 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     required List<String> values,
     required ValueChanged<String> onChanged,
   }) {
+    final onSurfaceColor = _onWriterSurfaceColor(context);
+    final fieldColor = _writerFieldColor(context);
+    final outlineColor = Theme.of(context).colorScheme.outlineVariant;
     return DropdownButtonFormField<String>(
       initialValue: value,
-      dropdownColor: const Color(0xFF1D1A25),
-      style: const TextStyle(color: Colors.white),
+      dropdownColor: _writerSurfaceColor(context),
+      style: TextStyle(color: onSurfaceColor),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        labelStyle: TextStyle(color: onSurfaceColor.withValues(alpha: 0.7)),
         filled: true,
-        fillColor: const Color(0xFF14121B),
+        fillColor: fieldColor,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          borderSide: BorderSide(color: outlineColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFB65A3B)),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
         ),
       ),
       items: values
@@ -616,9 +685,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void _showChapterSheet() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF17151F),
+      backgroundColor: _writerSurfaceColor(context),
       showDragHandle: true,
       builder: (context) {
+        final onSurfaceColor = _onWriterSurfaceColor(context);
         return SafeArea(
           child: ListView(
             shrinkWrap: true,
@@ -630,14 +700,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     child: Text(
                       'Chapters',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
+                        color: onSurfaceColor,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   IconButton(
                     tooltip: 'Add chapter',
-                    color: Colors.white,
+                    color: onSurfaceColor,
                     onPressed: () {
                       Navigator.of(context).pop();
                       _addChapter();
@@ -649,7 +719,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               for (var i = 0; i < _chapters.length; i++)
                 ListTile(
                   selected: i == _currentChapterIndex,
-                  selectedTileColor: Colors.white.withValues(alpha: 0.08),
+                  selectedTileColor: onSurfaceColor.withValues(alpha: 0.08),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -657,16 +727,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     _chapters[i].title.text.trim().isEmpty
                         ? 'Chapter ${i + 1}'
                         : _chapters[i].title.text.trim(),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: onSurfaceColor),
                   ),
                   subtitle: Text(
                     '${_chapters[i].wordCount} words',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.52),
+                      color: onSurfaceColor.withValues(alpha: 0.52),
                     ),
                   ),
                   trailing: i == _currentChapterIndex
-                      ? const Icon(Icons.check, color: Colors.white)
+                      ? Icon(Icons.check, color: onSurfaceColor)
                       : null,
                   onTap: () {
                     setState(() => _setCurrentChapterIndex(i));
