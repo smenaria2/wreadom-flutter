@@ -137,6 +137,9 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   createdAt: (json['createdAt'] as num?)?.toInt(),
   lastLogin: (json['lastLogin'] as num?)?.toInt(),
   readingProgress: json['readingProgress'] as Map<String, dynamic>?,
+  fcmTokens: (json['fcmTokens'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
   notificationSettings: json['notificationSettings'] == null
       ? null
       : NotificationSettings.fromJson(
@@ -169,5 +172,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'createdAt': instance.createdAt,
       'lastLogin': instance.lastLogin,
       'readingProgress': instance.readingProgress,
+      'fcmTokens': instance.fcmTokens,
       'notificationSettings': instance.notificationSettings,
     };

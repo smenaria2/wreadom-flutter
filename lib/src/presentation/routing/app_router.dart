@@ -82,13 +82,10 @@ class AppRouter {
     String? name = settings.name;
     Object? arguments = settings.arguments;
 
-    if (name != null &&
-        (name.startsWith('http://') || name.startsWith('https://'))) {
-      final resolved = AppLinkHelper.resolve(name);
-      if (resolved != null) {
-        name = resolved.route;
-        arguments = resolved.payload;
-      }
+    final resolvedIncoming = _resolveIncomingName(name);
+    if (resolvedIncoming != null) {
+      name = resolvedIncoming.route;
+      arguments = resolvedIncoming.payload;
     }
 
     switch (name) {
@@ -275,6 +272,37 @@ class AppRouter {
         return _notFound();
     }
   }
+
+  static ResolvedAppLink? _resolveIncomingName(String? name) {
+    if (name == null || name.trim().isEmpty) return null;
+
+    final resolved = AppLinkHelper.resolve(name);
+    if (resolved != null) return resolved;
+
+    final uri = Uri.tryParse(name);
+    if (uri == null) return null;
+
+    if (uri.hasFragment) {
+      final fragment = uri.fragment.startsWith('/')
+          ? uri.fragment
+          : '/${uri.fragment}';
+      final fragmentResolved = AppLinkHelper.resolve(fragment);
+      if (fragmentResolved != null) return fragmentResolved;
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final localPath = uri.hasQuery ? '${uri.path}?${uri.query}' : uri.path;
+      final localResolved = AppLinkHelper.resolve(localPath);
+      if (localResolved != null) return localResolved;
+
+      if ((uri.path.isEmpty || uri.path == '/') && !uri.hasQuery) {
+        return const ResolvedAppLink(AppRoutes.root, null);
+      }
+    }
+
+    return null;
+  }
+
 }
 
 const _privacyPolicyBody = r'''Last Updated: February 20, 2026

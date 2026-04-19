@@ -30,6 +30,8 @@ abstract class AuthRepository {
   Future<void> updateUserSavedBooks(String userId, List<dynamic> savedBooks);
   
   Future<void> updateUserReadingHistory(String userId, List<dynamic> readingHistory);
+  
+  Future<void> updateFcmToken(String userId, String token);
 
   Future<List<UserModel>> searchUsers(String searchTerm, {int maxResults = 5});
 }

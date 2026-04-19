@@ -293,6 +293,13 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> updateFcmToken(String userId, String token) async {
+    await _firestore.collection('users').doc(userId).update({
+      'fcmTokens': FieldValue.arrayUnion([token])
+    });
+  }
+
+  @override
   Future<List<UserModel>> searchUsers(String searchTerm, {int maxResults = 5}) async {
     if (searchTerm.isEmpty) return [];
     

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -76,10 +77,20 @@ class _InlineComments extends ConsumerStatefulWidget {
   ConsumerState<_InlineComments> createState() => _InlineCommentsState();
 }
 
-class _InlineCommentsState extends ConsumerState<_InlineComments> {
-  final _controller = TextEditingController();
+class _InlineCommentsState extends ConsumerState<_InlineComments>
+    with RestorationMixin {
+  final _controller = RestorableTextEditingController();
   Comment? _replyingTo;
   bool _submitting = false;
+
+  @override
+  String? get restorationId =>
+      'post_detail_comments_${widget.post.id ?? 'unknown'}';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_controller, 'comment_text');
+  }
 
   @override
   void dispose() {
@@ -89,7 +100,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments> {
 
   Future<void> _submit() async {
     final postId = widget.post.id;
-    final text = _controller.text.trim();
+    final text = _controller.value.text.trim();
     final user = ref.read(currentUserProvider).asData?.value;
     if (postId == null || text.isEmpty || user == null) return;
 
@@ -122,7 +133,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments> {
           'text': text,
         });
       }
-      _controller.clear();
+      await HapticFeedback.lightImpact();
+      _controller.value.clear();
       setState(() => _replyingTo = null);
       ref.invalidate(feedPostCommentsProvider(postId));
       ref.invalidate(singlePostProvider(postId));
@@ -206,7 +218,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments> {
             children: [
               Expanded(
                 child: TextField(
-                  controller: _controller,
+                  controller: _controller.value,
                   decoration: InputDecoration(
                     hintText: _replyingTo == null
                         ? 'Add a comment...'

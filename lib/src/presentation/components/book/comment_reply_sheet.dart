@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import '../../../domain/models/comment.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
@@ -18,14 +19,18 @@ class CommentReplySheet extends ConsumerStatefulWidget {
   ConsumerState<CommentReplySheet> createState() => _CommentReplySheetState();
 }
 
-class _CommentReplySheetState extends ConsumerState<CommentReplySheet> {
-  late final TextEditingController _controller;
+class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
+    with RestorationMixin {
+  final _controller = RestorableTextEditingController();
   bool _submitting = false;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
+  String? get restorationId =>
+      'book_comment_reply_${widget.bookId}_${widget.comment.id ?? 'unknown'}';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_controller, 'reply_text');
   }
 
   @override
@@ -35,7 +40,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet> {
   }
 
   Future<void> _submit() async {
-    final text = _controller.text.trim();
+    final text = _controller.value.text.trim();
     if (text.isEmpty) return;
 
     final user = await ref.read(currentUserProvider.future);
@@ -56,6 +61,8 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet> {
             ),
           );
 
+      await HapticFeedback.lightImpact();
+      _controller.value.clear();
       ref.invalidate(bookCommentsProvider(widget.bookId));
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -86,7 +93,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _controller,
+            controller: _controller.value,
             autofocus: true,
             minLines: 2,
             maxLines: 4,

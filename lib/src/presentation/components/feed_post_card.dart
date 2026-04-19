@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
@@ -75,6 +76,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       await ref
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
+      await HapticFeedback.lightImpact();
       // No need to invalidate, optimistic state handles it
     } catch (e) {
       // Revert on error
@@ -635,10 +637,19 @@ class _CommentsSheet extends ConsumerStatefulWidget {
   ConsumerState<_CommentsSheet> createState() => _CommentsSheetState();
 }
 
-class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
-  final _ctrl = TextEditingController();
+class _CommentsSheetState extends ConsumerState<_CommentsSheet>
+    with RestorationMixin {
+  final _ctrl = RestorableTextEditingController();
   bool _submitting = false;
   Comment? _replyingTo;
+
+  @override
+  String? get restorationId => 'feed_comments_${widget.post.id ?? 'unknown'}';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_ctrl, 'comment_text');
+  }
 
   @override
   void dispose() {
@@ -647,7 +658,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
   }
 
   Future<void> _submitComment() async {
-    final text = _ctrl.text.trim();
+    final text = _ctrl.value.text.trim();
     if (text.isEmpty || widget.post.id == null) return;
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) return;
@@ -690,7 +701,8 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
-      _ctrl.clear();
+      await HapticFeedback.lightImpact();
+      _ctrl.value.clear();
       setState(() => _replyingTo = null);
     } catch (e) {
       if (mounted) {
@@ -802,7 +814,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _ctrl,
+                    controller: _ctrl.value,
                     decoration: InputDecoration(
                       hintText: _replyingTo != null
                           ? 'Add a reply…'

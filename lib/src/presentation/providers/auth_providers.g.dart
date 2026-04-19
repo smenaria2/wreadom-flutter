@@ -173,4 +173,4 @@ final class CurrentUserProvider
   }
 }
 
-String _$currentUserHash() => r'3a5e1560751631480e71f5d845d2b722f46f892f';
+String _$currentUserHash() => r'4b6089025b338c58c24b409302d64f942e08609b';

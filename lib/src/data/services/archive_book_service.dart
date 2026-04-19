@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../domain/models/book.dart';
 import '../../domain/models/author.dart';
@@ -137,7 +138,7 @@ class ArchiveBookService {
     }
 
     final text = response.body;
-    return _parseTextToChapters(text);
+    return compute(_parseArchiveTextToChaptersOnIsolate, text);
   }
 
   List<Chapter> _parseTextToChapters(String text) {
@@ -349,4 +350,8 @@ class ArchiveBookService {
     if (l == 'english' || l == 'eng' || l == 'en') return 'English';
     return lang[0].toUpperCase() + lang.substring(1).toLowerCase();
   }
+}
+
+List<Chapter> _parseArchiveTextToChaptersOnIsolate(String text) {
+  return ArchiveBookService()._parseTextToChapters(text);
 }

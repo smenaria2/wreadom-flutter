@@ -6,6 +6,8 @@ import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
 import 'writer_dashboard_screen.dart';
 import 'profile_screen.dart';
+import '../providers/auth_providers.dart';
+import '../../data/services/notification_service.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -24,7 +26,28 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     // but better yet, set it directly if it's the first time.
     Future.microtask(() {
       ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
+      _setupNotifications();
     });
+  }
+
+  Future<void> _setupNotifications() async {
+    final notificationService = NotificationService.instance;
+    final hasPermission = await notificationService.requestPermission();
+
+    if (hasPermission) {
+      final token = await notificationService.getFcmToken();
+      if (token != null) {
+        final user = await ref.read(currentUserProvider.future);
+        if (user != null) {
+          try {
+            await ref.read(authRepositoryProvider).updateFcmToken(user.id, token);
+            debugPrint('FCM Token updated successfully');
+          } catch (e) {
+            debugPrint('Failed to update FCM Token: $e');
+          }
+        }
+      }
+    }
   }
 
   List<Widget> get _screens => [

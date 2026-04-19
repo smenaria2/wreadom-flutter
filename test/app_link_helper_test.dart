@@ -20,6 +20,23 @@ void main() {
       expect(resolved?.payload, 'abc123');
     });
 
+    test('resolves Flutter web relative feed post route', () {
+      final resolved = AppLinkHelper.resolve('/?page=feed&post=abc123');
+
+      expect(resolved?.route, AppRoutes.postDetail);
+      expect(resolved?.payload, 'abc123');
+    });
+
+    test('resolves relative book and post paths from Flutter web', () {
+      final book = AppLinkHelper.resolve('/book/book123');
+      final post = AppLinkHelper.resolve('/posts/post123');
+
+      expect(book?.route, AppRoutes.bookDetail);
+      expect(book?.payload, 'book123');
+      expect(post?.route, AppRoutes.postDetail);
+      expect(post?.payload, 'post123');
+    });
+
     test('resolves feed path query URL', () {
       final resolved = AppLinkHelper.resolve(
         'https://wreadom.in/feed?post=abc123',

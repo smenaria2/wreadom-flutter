@@ -310,4 +310,70 @@ void main() {
     expect(source, contains("'Continue Reading'"));
     expect(source, contains("'Start Reading'"));
   });
+
+  test('optional polish stays in low-risk scope', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final writerPadSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+    final feedPostSource = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    final postDetailSource = File(
+      'lib/src/presentation/screens/post_detail_screen.dart',
+    ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final followSource = File(
+      'lib/src/presentation/widgets/follow_button.dart',
+    ).readAsStringSync();
+    final replySheetSource = File(
+      'lib/src/presentation/components/book/comment_reply_sheet.dart',
+    ).readAsStringSync();
+    final archiveSource = File(
+      'lib/src/data/services/archive_book_service.dart',
+    ).readAsStringSync();
+
+    expect(mainSource, contains("restorationScopeId: 'wreadom_app'"));
+    expect(writerPadSource, isNot(contains('RestorationMixin')));
+    expect(writerPadSource, isNot(contains('RestorableTextEditingController')));
+
+    for (final source in [
+      feedPostSource,
+      postDetailSource,
+      readerSource,
+      replySheetSource,
+    ]) {
+      expect(source, contains('RestorationMixin'));
+      expect(source, contains('RestorableTextEditingController'));
+      expect(source, contains('HapticFeedback.lightImpact()'));
+    }
+
+    expect(feedPostSource, contains('HapticFeedback.lightImpact()'));
+    expect(readerSource, contains('HapticFeedback.selectionClick()'));
+    expect(followSource, contains('HapticFeedback.mediumImpact()'));
+    expect(archiveSource, contains('compute('));
+    expect(archiveSource, contains('_parseArchiveTextToChaptersOnIsolate'));
+    expect(archiveSource, contains('ArchiveBookService()._parseTextToChapters'));
+  });
+
+  test('routing handles relative web links before showing not found', () {
+    final routerSource = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+    final manifestSource = File(
+      'android/app/src/main/AndroidManifest.xml',
+    ).readAsStringSync();
+
+    expect(routerSource, contains('_resolveIncomingName(name)'));
+    expect(routerSource, contains('AppLinkHelper.resolve(name)'));
+    expect(routerSource, contains("'\${uri.path}?\${uri.query}'"));
+    expect(routerSource, contains('uri.hasFragment'));
+    expect(routerSource, isNot(contains('_legacyOnGenerateRoute')));
+    expect(
+      manifestSource,
+      contains('android:enableOnBackInvokedCallback="false"'),
+    );
+  });
 }

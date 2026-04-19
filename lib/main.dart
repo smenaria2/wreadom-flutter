@@ -19,6 +19,7 @@ import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
+import 'src/data/services/notification_service.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -42,6 +43,7 @@ void main() async {
       '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
     ),
   );
+  await NotificationService.instance.init();
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
   } else if (defaultTargetPlatform == TargetPlatform.android) {
@@ -126,6 +128,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: _navigatorKey,
+          restorationScopeId: 'wreadom_app',
           title: 'Wreadom',
           debugShowCheckedModeBanner: false,
           localizationsDelegates: const [

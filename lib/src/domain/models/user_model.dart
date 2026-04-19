@@ -87,6 +87,7 @@ abstract class UserModel with _$UserModel {
     int? createdAt,
     int? lastLogin,
     Map<String, dynamic>? readingProgress,
+    List<String>? fcmTokens,
     NotificationSettings? notificationSettings,
   }) = _UserModel;
 

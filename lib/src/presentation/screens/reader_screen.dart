@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../../domain/models/book.dart';
@@ -36,12 +37,14 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen>
+    with RestorationMixin {
   late int _chapterIndex;
   double _fontSize = 18;
   ReaderTheme _readerTheme = ReaderTheme.dark;
   ReaderFont _readerFont = ReaderFont.serif;
-  final TextEditingController _commentController = TextEditingController();
+  final RestorableTextEditingController _commentController =
+      RestorableTextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
@@ -55,6 +58,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
   Timer? _progressSaveDebounce;
+
+  @override
+  String? get restorationId => 'reader_comment_${widget.book.id}';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_commentController, 'comment_text');
+  }
 
   @override
   void initState() {
@@ -203,6 +214,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       );
       if (mounted) ref.invalidate(currentUserProvider);
     }
+    await HapticFeedback.selectionClick();
     _goToChapter(currentChapterIndex + 1);
   }
 
@@ -530,7 +542,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
-    final text = _commentController.text.trim();
+    final text = _commentController.value.text.trim();
     final user = await ref.read(currentUserProvider.future);
     if (text.isEmpty || user == null) return;
 
@@ -605,7 +617,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         _chapterRating = 0;
       });
     }
-    _commentController.clear();
+    await HapticFeedback.lightImpact();
+    _commentController.value.clear();
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
@@ -809,7 +822,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               const SizedBox(height: 12),
                             ],
                             TextField(
-                              controller: _commentController,
+                              controller: _commentController.value,
                               minLines: 2,
                               maxLines: 4,
                               decoration: InputDecoration(
