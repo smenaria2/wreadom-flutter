@@ -67,5 +67,35 @@ void main() {
       expect(resolved?.route, AppRoutes.postDetail);
       expect(resolved?.payload, 'abc123');
     });
+
+    test('rejects external hosts', () {
+      final resolved = AppLinkHelper.resolve(
+        'https://example.com/book/book123',
+      );
+
+      expect(resolved, isNull);
+    });
+
+    test('rejects missing or empty ids', () {
+      for (final link in [
+        'https://wreadom.in/book',
+        'https://wreadom.in/book/',
+        'https://wreadom.in/user/null',
+        'https://wreadom.in/post/undefined',
+        'https://wreadom.in/category/%20',
+      ]) {
+        expect(AppLinkHelper.resolve(link), isNull);
+      }
+    });
+
+    test('resolves discovery and writer paths without payloads', () {
+      final discovery = AppLinkHelper.resolve('/search');
+      final writer = AppLinkHelper.resolve('/writer');
+
+      expect(discovery?.route, AppRoutes.discovery);
+      expect(discovery?.payload, isNull);
+      expect(writer?.route, AppRoutes.writerDashboard);
+      expect(writer?.payload, isNull);
+    });
   });
 }

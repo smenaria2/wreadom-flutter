@@ -38,5 +38,24 @@ void main() {
 
       expect(route, isA<MaterialPageRoute>());
     });
+
+    test('parses fragment deep link correctly', () {
+      const settings = RouteSettings(name: 'https://wreadom.in/#/book/123');
+      final route = AppRouter.onGenerateRoute(settings);
+
+      expect(route, isA<MaterialPageRoute>());
+    });
+
+    test('handles malformed and relative query links safely', () {
+      for (final name in [
+        '/?page=feed&post=abc123',
+        'https://wreadom.in/page=feed&post=abc123',
+        'https://wreadom.in/feed?post=abc123',
+      ]) {
+        final route = AppRouter.onGenerateRoute(RouteSettings(name: name));
+
+        expect(route, isA<MaterialPageRoute>());
+      }
+    });
   });
 }

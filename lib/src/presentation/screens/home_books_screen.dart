@@ -15,6 +15,62 @@ import '../routing/app_routes.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 
+enum _HomeShelfDestination {
+  communityClassics,
+  originals,
+  popular,
+  recent;
+
+  String get category {
+    switch (this) {
+      case _HomeShelfDestination.communityClassics:
+        return 'Community Classics';
+      case _HomeShelfDestination.originals:
+        return 'Wreadom Originals';
+      case _HomeShelfDestination.popular:
+        return 'Popular Now';
+      case _HomeShelfDestination.recent:
+        return 'Recently Added';
+    }
+  }
+
+  String get sectionId {
+    switch (this) {
+      case _HomeShelfDestination.communityClassics:
+        return 'community-classics';
+      case _HomeShelfDestination.originals:
+        return 'wreadom-originals';
+      case _HomeShelfDestination.popular:
+        return 'popular-now';
+      case _HomeShelfDestination.recent:
+        return 'recently-added';
+    }
+  }
+}
+
+String? _initialForName(String value) {
+  final trimmed = value.trim();
+  if (trimmed.characters.isEmpty) return null;
+  return trimmed.characters.first.toUpperCase();
+}
+
+void _openShelfDestination(
+  BuildContext context,
+  _HomeShelfDestination destination,
+) {
+  Navigator.of(context).pushNamed(
+    AppRoutes.category,
+    arguments: CategoryBooksArguments(category: destination.category),
+  );
+}
+
+void _openCategory(BuildContext context, String category) {
+  Navigator.of(context).pushNamed(
+    AppRoutes.category,
+    arguments: CategoryBooksArguments(category: category),
+  );
+}
+
 class HomeBooksScreen extends ConsumerWidget {
   const HomeBooksScreen({super.key});
 
@@ -94,25 +150,25 @@ class HomeBooksScreen extends ConsumerWidget {
 
               // ─── Wreadom Originals ────────────────────────────────────
               _BookshelfSection(
-                title: 'Community Classics',
+                title: _HomeShelfDestination.communityClassics.category,
                 booksAsync: iaAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.category,
-                  arguments: const CategoryBooksArguments(
-                    category: 'Community Classics',
-                  ),
+                sectionId: _HomeShelfDestination.communityClassics.sectionId,
+                onRetry: () => ref.invalidate(homepageIABooksProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.communityClassics,
                 ),
               ),
               const SizedBox(height: 28),
 
               _BookshelfSection(
-                title: 'Wreadom Originals',
+                title: _HomeShelfDestination.originals.category,
                 booksAsync: originalsAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.category,
-                  arguments: const CategoryBooksArguments(
-                    category: 'Wreadom Originals',
-                  ),
+                sectionId: _HomeShelfDestination.originals.sectionId,
+                onRetry: () => ref.invalidate(originalBooksProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.originals,
                 ),
               ),
               const SizedBox(height: 28),
@@ -123,26 +179,26 @@ class HomeBooksScreen extends ConsumerWidget {
 
               // ─── Popular Books ────────────────────────────────────────
               _BookshelfSection(
-                title: 'Popular Now',
+                title: _HomeShelfDestination.popular.category,
                 booksAsync: popularAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.category,
-                  arguments: const CategoryBooksArguments(
-                    category: 'Popular Now',
-                  ),
+                sectionId: _HomeShelfDestination.popular.sectionId,
+                onRetry: () => ref.invalidate(homepagePopularProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.popular,
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Recently Added ───────────────────────────────────────
               _BookshelfSection(
-                title: 'Recently Added',
+                title: _HomeShelfDestination.recent.category,
                 booksAsync: recentAsync,
-                onSeeAll: () => Navigator.of(context).pushNamed(
-                  AppRoutes.category,
-                  arguments: const CategoryBooksArguments(
-                    category: 'Recently Added',
-                  ),
+                sectionId: _HomeShelfDestination.recent.sectionId,
+                onRetry: () => ref.invalidate(homepageRecentProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.recent,
                 ),
               ),
               const SizedBox(height: 28),
@@ -475,10 +531,8 @@ class _GenreSection extends ConsumerWidget {
               title: title,
               booksAsync: booksAsync,
               sectionId: sectionId,
-              onSeeAll: () => Navigator.of(context).pushNamed(
-                AppRoutes.category,
-                arguments: CategoryBooksArguments(category: genre),
-              ),
+              onRetry: () => ref.invalidate(homepageGenreProvider(sectionId)),
+              onSeeAll: () => _openCategory(context, genre),
             ),
             const SizedBox(height: 28),
           ],
@@ -486,11 +540,18 @@ class _GenreSection extends ConsumerWidget {
       },
       loading: () => Column(
         children: [
-          _BookshelfSection(title: title, booksAsync: booksAsync),
+          _BookshelfSection(
+            title: title,
+            booksAsync: booksAsync,
+            sectionId: sectionId,
+          ),
           const SizedBox(height: 28),
         ],
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(
+        title: title,
+        onRetry: () => ref.invalidate(homepageGenreProvider(sectionId)),
+      ),
     );
   }
 }
@@ -511,25 +572,29 @@ class _SavedBooksSection extends ConsumerWidget {
           title: 'Your Shelf',
           booksAsync: remoteSavedAsync,
           sectionId: 'saved',
+          onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
           onSeeAll: () {
             Navigator.of(context).pushNamed(AppRoutes.savedBooks);
           },
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(
+        title: 'Your Shelf',
+        onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
+      ),
     );
   }
 }
 
 // ─── Bookshelf Row ────────────────────────────────────────────────────────────
-class _AuthorsSection extends StatelessWidget {
+class _AuthorsSection extends ConsumerWidget {
   const _AuthorsSection({required this.authorsAsync});
 
   final AsyncValue<List<UserModel>> authorsAsync;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return authorsAsync.when(
       data: (authors) {
         if (authors.isEmpty) return const SizedBox.shrink();
@@ -560,6 +625,7 @@ class _AuthorsSection extends StatelessWidget {
                       : (penName != null && penName.isNotEmpty)
                       ? penName
                       : author.username;
+                  final initial = _initialForName(name);
                   return InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => Navigator.of(context).pushNamed(
@@ -579,9 +645,10 @@ class _AuthorsSection extends StatelessWidget {
                                 : null,
                             child:
                                 (author.photoURL == null ||
-                                        author.photoURL!.isEmpty) &&
-                                    name.isNotEmpty
-                                ? Text(name.characters.first.toUpperCase())
+                                    author.photoURL!.isEmpty)
+                                ? initial != null
+                                      ? Text(initial)
+                                      : const Icon(Icons.person_rounded)
                                 : null,
                           ),
                           const SizedBox(height: 8),
@@ -607,7 +674,10 @@ class _AuthorsSection extends StatelessWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(
+        title: 'Writers to Follow',
+        onRetry: () => ref.invalidate(homepageAuthorsProvider),
+      ),
     );
   }
 }
@@ -617,12 +687,14 @@ class _BookshelfSection extends StatelessWidget {
   final AsyncValue<List<Book>> booksAsync;
   final String? sectionId;
   final VoidCallback? onSeeAll;
+  final VoidCallback? onRetry;
 
   const _BookshelfSection({
     required this.title,
     required this.booksAsync,
     this.sectionId,
     this.onSeeAll,
+    this.onRetry,
   });
 
   @override
@@ -666,7 +738,7 @@ class _BookshelfSection extends StatelessWidget {
                       sectionId ?? title.replaceAll(' ', '-').toLowerCase();
                   return _BookCard(
                     book: book,
-                    heroTag: 'book-cover-$shelfId-${book.id}-$index',
+                    heroTag: 'book-cover-$shelfId-${book.id}',
                   );
                 },
               ),
@@ -701,7 +773,54 @@ class _BookshelfSection extends StatelessWidget {
           ),
         ],
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(title: title, onRetry: onRetry),
+    );
+  }
+}
+
+class _SectionError extends StatelessWidget {
+  const _SectionError({required this.title, this.onRetry});
+
+  final String title;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer.withValues(alpha: 0.38),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: colorScheme.error.withValues(alpha: 0.24),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Could not load $title.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: colorScheme.onErrorContainer),
+              ),
+            ),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -924,6 +1043,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
           final author = eligibleAuthors[_randomIndex!];
           final authorBooksAsync = ref.watch(userBooksProvider(author.id));
           final authorName = _authorName(author);
+          final authorInitial = _initialForName(authorName);
 
           return Container(
             margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -998,15 +1118,19 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                 child:
                                     (author.photoURL == null ||
                                         author.photoURL!.isEmpty)
-                                    ? Text(
-                                        authorName.characters.first
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFFFFD166),
-                                        ),
-                                      )
+                                    ? authorInitial != null
+                                          ? Text(
+                                              authorInitial,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFFFD166),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.person_rounded,
+                                              color: Color(0xFFFFD166),
+                                            )
                                     : null,
                               ),
                             ),
@@ -1151,7 +1275,12 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                             ),
                           ),
                         ),
-                        error: (_, _) => const SizedBox.shrink(),
+                        error: (_, _) => _SectionError(
+                          title: '$authorName books',
+                          onRetry: () => ref.invalidate(
+                            userBooksProvider(author.id),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1161,10 +1290,16 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
           );
         },
         loading: () => const SizedBox.shrink(),
-        error: (_, _) => const SizedBox.shrink(),
+        error: (_, _) => _SectionError(
+          title: 'Author Spotlight',
+          onRetry: () => ref.invalidate(homepageRecentProvider),
+        ),
       ),
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(
+        title: 'Author Spotlight',
+        onRetry: () => ref.invalidate(homepageAuthorsProvider),
+      ),
     );
   }
 }

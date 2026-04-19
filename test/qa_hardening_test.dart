@@ -406,4 +406,23 @@ void main() {
       contains('android:enableOnBackInvokedCallback="false"'),
     );
   });
+
+  test('home books screen keeps priority two hardening in place', () {
+    final source = File(
+      'lib/src/presentation/screens/home_books_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_HomeShelfDestination'));
+    expect(source, contains('_openShelfDestination'));
+    expect(source, contains('_SectionError'));
+    expect(source, contains('onRetry'));
+    expect(source, contains('_initialForName'));
+    expect(source, isNot(contains('name.characters.first')));
+    expect(source, isNot(contains('authorName.characters.first')));
+    expect(source, contains("heroTag: 'book-cover-\$shelfId-\${book.id}'"));
+    expect(
+      source,
+      isNot(contains("heroTag: 'book-cover-\$shelfId-\${book.id}-\$index'")),
+    );
+  });
 }
