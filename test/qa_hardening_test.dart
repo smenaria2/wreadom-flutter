@@ -346,14 +346,20 @@ void main() {
     final writerPadSource = File(
       'lib/src/presentation/screens/writer_pad_screen.dart',
     ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final readerSettingsSource = File(
+      'lib/src/presentation/providers/reader_settings_provider.dart',
+    ).readAsStringSync();
+    final writerTaxonomySource = File(
+      'lib/src/presentation/providers/writer_taxonomy_provider.dart',
+    ).readAsStringSync();
     final feedPostSource = File(
       'lib/src/presentation/components/feed_post_card.dart',
     ).readAsStringSync();
     final postDetailSource = File(
       'lib/src/presentation/screens/post_detail_screen.dart',
-    ).readAsStringSync();
-    final readerSource = File(
-      'lib/src/presentation/screens/reader_screen.dart',
     ).readAsStringSync();
     final followSource = File(
       'lib/src/presentation/widgets/follow_button.dart',
@@ -366,8 +372,27 @@ void main() {
     ).readAsStringSync();
 
     expect(mainSource, contains("restorationScopeId: 'wreadom_app'"));
-    expect(writerPadSource, isNot(contains('RestorationMixin')));
-    expect(writerPadSource, isNot(contains('RestorableTextEditingController')));
+    expect(writerPadSource, contains('RestorationMixin'));
+    expect(writerPadSource, contains('RestorableTextEditingController'));
+    expect(writerPadSource, contains('RestorableString _restorableContentType'));
+    expect(writerPadSource, contains('writerTaxonomyProvider'));
+    expect(writerPadSource, contains('wordCountFromHtml'));
+    expect(writerPadSource, isNot(contains('_categoriesByType')));
+    expect(
+      writerPadSource,
+      isNot(
+        contains(
+          'plainTextFromHtml(htmlFromDocument(_chapters[i].controller.document))',
+        ),
+      ),
+    );
+    expect(readerSource, contains('readerSettingsControllerProvider'));
+    expect(readerSource, isNot(contains('SharedPreferences.getInstance')));
+    expect(readerSettingsSource, contains('reader_font_size'));
+    expect(readerSettingsSource, contains('reader_theme_index'));
+    expect(readerSettingsSource, contains('reader_font_index'));
+    expect(writerTaxonomySource, contains('WriterTaxonomy'));
+    expect(writerTaxonomySource, contains('Arabic'));
 
     for (final source in [
       feedPostSource,

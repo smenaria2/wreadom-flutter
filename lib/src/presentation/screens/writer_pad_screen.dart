@@ -8,6 +8,7 @@ import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../providers/auth_providers.dart';
+import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
 import '../utils/writer_html_codec.dart';
 
@@ -20,94 +21,27 @@ class WriterPadScreen extends ConsumerStatefulWidget {
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
 }
 
-class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
-  static const Map<String, List<String>> _categoriesByType = {
-    'story': [
-      'Romance',
-      'Mystery',
-      'Thriller',
-      'Science Fiction',
-      'Fantasy',
-      'Horror',
-      'Adventure',
-      'Historical Fiction',
-      'Young Adult',
-      'Literary Fiction',
-      'Comedy',
-      'Drama',
-      'Crime',
-      'Stories',
-      'Fan Fiction',
-      'Other',
-    ],
-    'poem': [
-      'Lyrical',
-      'Narrative',
-      'Haiku',
-      'Free Verse',
-      'Sonnet',
-      'Ghazal',
-      'Blank Verse',
-      'Ode',
-      'Elegy',
-      'Ballad',
-      'Prose Poetry',
-      'Spoken Word',
-      'Visual Poetry',
-      'Acrostic',
-      'Experimental',
-      'Other',
-    ],
-    'article': [
-      'Technology',
-      'Science',
-      'Health',
-      'Education',
-      'Business',
-      'Politics',
-      'Travel',
-      'Lifestyle',
-      'Personal Development',
-      'Finance',
-      'Environment',
-      'Arts & Culture',
-      'Food & Cooking',
-      'Sports',
-      'History',
-      'Other',
-    ],
-  };
-  static const _contentTypes = ['story', 'poem', 'article'];
-  static const _languages = [
-    'English',
-    'Hindi',
-    'Bengali',
-    'Telugu',
-    'Marathi',
-    'Tamil',
-    'Gujarati',
-    'Urdu',
-    'Kannada',
-    'Malayalam',
-  ];
-  static const _contentTypeDefaults = {
-    'story': 'Romance',
-    'poem': 'Lyrical',
-    'article': 'Technology',
-  };
+class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
+    with RestorationMixin {
+  WriterTaxonomy get _taxonomy => ref.read(writerTaxonomyProvider);
 
-  static List<String> get _allCategories => _categoriesByType.values
-      .expand((categories) => categories)
-      .toSet()
-      .toList();
+  List<String> get _currentCategories => _taxonomy.categoriesFor(_contentType);
 
-  List<String> get _currentCategories => _categoriesByType[_contentType]!;
+  String get _defaultCategory => _taxonomy.defaultCategoryFor(_contentType);
 
-  String get _defaultCategory => _contentTypeDefaults[_contentType]!;
+  List<String> get _languageOptions {
+    if (_taxonomy.languages.contains(_language)) return _taxonomy.languages;
+    return [..._taxonomy.languages, _language];
+  }
 
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-  late final TextEditingController _topicsController;
+  late final RestorableTextEditingController _titleController;
+  late final RestorableTextEditingController _descriptionController;
+  late final RestorableTextEditingController _topicsController;
+  final RestorableInt _restorableStep = RestorableInt(0);
+  final RestorableInt _restorableCurrentChapterIndex = RestorableInt(0);
+  final RestorableString _restorableContentType = RestorableString('story');
+  final RestorableString _restorableCategory = RestorableString('Romance');
+  final RestorableString _restorableLanguage = RestorableString('English');
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
   final List<_ChapterDraft> _chapters = [];
@@ -118,6 +52,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   int _currentChapterIndex = 0;
   bool _isSaving = false;
   bool _isDirty = false;
+  bool _metadataListenersAttached = false;
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
   String _category = 'Romance';
@@ -125,13 +60,66 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
+  void _setStep(int value) {
+    _step = value.clamp(0, 1);
+    _restorableStep.value = _step;
+  }
+
+  void _setCurrentChapterIndex(int value) {
+    _currentChapterIndex = value.clamp(0, _chapters.length - 1);
+    _restorableCurrentChapterIndex.value = _currentChapterIndex;
+  }
+
+  @override
+  String? get restorationId => 'writer_pad_${widget.book?.id ?? 'new'}';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_titleController, 'title');
+    registerForRestoration(_descriptionController, 'description');
+    registerForRestoration(_topicsController, 'topics');
+    registerForRestoration(_restorableStep, 'step');
+    registerForRestoration(
+      _restorableCurrentChapterIndex,
+      'current_chapter_index',
+    );
+    registerForRestoration(_restorableContentType, 'content_type');
+    registerForRestoration(_restorableCategory, 'category');
+    registerForRestoration(_restorableLanguage, 'language');
+    if (oldBucket == null) {
+      _restorableContentType.value = _contentType;
+      _restorableCategory.value = _category;
+      _restorableLanguage.value = _language;
+    }
+    _step = _restorableStep.value.clamp(0, 1);
+    _currentChapterIndex = _restorableCurrentChapterIndex.value.clamp(
+      0,
+      _chapters.length - 1,
+    );
+    _contentType = _contentTypeFromBook(_restorableContentType.value);
+    _category = _restorableCategory.value;
+    if (!_currentCategories.contains(_category)) _category = _defaultCategory;
+    _language = _restorableLanguage.value.trim().isEmpty
+        ? 'English'
+        : _restorableLanguage.value;
+    _attachMetadataListeners();
+  }
+
+  void _attachMetadataListeners() {
+    if (_metadataListenersAttached) return;
+    _titleController.value.addListener(_markDirty);
+    _descriptionController.value.addListener(_markDirty);
+    _topicsController.value.addListener(_markDirty);
+    _metadataListenersAttached = true;
+  }
+
   @override
   void initState() {
     super.initState();
     final book = widget.book;
     _bookId = book?.id;
-    _titleController = TextEditingController(text: book?.title ?? '');
-    _descriptionController = TextEditingController(
+    _titleController = RestorableTextEditingController(text: book?.title ?? '');
+    _descriptionController = RestorableTextEditingController(
       text: book?.description ?? '',
     );
     _contentType = _contentTypeFromBook(book?.contentType);
@@ -140,7 +128,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
     if (!_currentCategories.contains(_category)) {
       _category = _defaultCategory;
     }
-    _topicsController = TextEditingController(
+    _topicsController = RestorableTextEditingController(
       text: (book?.topics ?? const <String>[]).join(', '),
     );
 
@@ -151,9 +139,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
       _chapters.add(_ChapterDraft.empty(_markDirty));
     }
 
-    _titleController.addListener(_markDirty);
-    _descriptionController.addListener(_markDirty);
-    _topicsController.addListener(_markDirty);
     _autosaveTimer = Timer.periodic(
       const Duration(seconds: 10),
       (_) => _autosaveDraft(),
@@ -163,9 +148,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    if (_metadataListenersAttached) {
+      _titleController.value.removeListener(_markDirty);
+      _descriptionController.value.removeListener(_markDirty);
+      _topicsController.value.removeListener(_markDirty);
+    }
     _titleController.dispose();
     _descriptionController.dispose();
     _topicsController.dispose();
+    _restorableStep.dispose();
+    _restorableCurrentChapterIndex.dispose();
+    _restorableContentType.dispose();
+    _restorableCategory.dispose();
+    _restorableLanguage.dispose();
     _editorFocusNode.dispose();
     _editorScrollController.dispose();
     for (final chapter in _chapters) {
@@ -217,7 +212,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
                 ? null
                 : () {
                     if (_step == 0) {
-                      setState(() => _step = 1);
+                      setState(() => _setStep(1));
                     } else {
                       _save(status: 'published', closeAfterSave: true);
                     }
@@ -240,7 +235,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   void _handleBack() {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_step == 1) {
-      setState(() => _step = 0);
+      setState(() => _setStep(0));
       return;
     }
 
@@ -382,13 +377,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
               ),
               const SizedBox(height: 16),
               _darkField(
-                controller: _titleController,
+                controller: _titleController.value,
                 label: 'Title',
                 hint: 'Give your work a title',
               ),
               const SizedBox(height: 14),
               _darkField(
-                controller: _descriptionController,
+                controller: _descriptionController.value,
                 label: 'Synopsis',
                 hint: 'A short pitch for readers',
                 maxLines: 5,
@@ -412,12 +407,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
               _dropdown(
                 label: 'Content type',
                 value: _contentType,
-                values: _contentTypes,
+                values: _taxonomy.contentTypes,
                 onChanged: (value) {
                   setState(() {
                     _contentType = value;
+                    _restorableContentType.value = _contentType;
                     if (!_currentCategories.contains(_category)) {
                       _category = _defaultCategory;
+                      _restorableCategory.value = _category;
                     }
                   });
                   _markDirty();
@@ -429,7 +426,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
                 value: _category,
                 values: _currentCategories,
                 onChanged: (value) {
-                  setState(() => _category = value);
+                  setState(() {
+                    _category = value;
+                    _restorableCategory.value = _category;
+                  });
                   _markDirty();
                 },
               ),
@@ -437,15 +437,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
               _dropdown(
                 label: 'Language',
                 value: _language,
-                values: _languages,
+                values: _languageOptions,
                 onChanged: (value) {
-                  setState(() => _language = value);
+                  setState(() {
+                    _language = value;
+                    _restorableLanguage.value = _language;
+                  });
                   _markDirty();
                 },
               ),
               const SizedBox(height: 14),
               _darkField(
-                controller: _topicsController,
+                controller: _topicsController.value,
                 label: 'Topics',
                 hint: 'magic, friendship, survival',
               ),
@@ -657,7 +660,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    '${plainTextFromHtml(htmlFromDocument(_chapters[i].controller.document)).split(RegExp(r'\\s+')).where((word) => word.isNotEmpty).length} words',
+                    '${_chapters[i].wordCount} words',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.52),
                     ),
@@ -666,7 +669,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
                       ? const Icon(Icons.check, color: Colors.white)
                       : null,
                   onTap: () {
-                    setState(() => _currentChapterIndex = i);
+                    setState(() => _setCurrentChapterIndex(i));
                     Navigator.of(context).pop();
                   },
                 ),
@@ -680,7 +683,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   void _addChapter() {
     setState(() {
       _chapters.add(_ChapterDraft.empty(_markDirty));
-      _currentChapterIndex = _chapters.length - 1;
+      _setCurrentChapterIndex(_chapters.length - 1);
       _isDirty = true;
     });
   }
@@ -698,10 +701,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
     final user = await ref.read(currentUserProvider.future);
     if (user == null || _isSaving) return;
 
-    final title = _titleController.text.trim();
+    final title = _titleController.value.text.trim();
     if (title.isEmpty && !isAutosave) {
       _showSnack('Add a title before saving.');
-      setState(() => _step = 1);
+      setState(() => _setStep(1));
       return;
     }
 
@@ -735,7 +738,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
         );
       }
 
-      final topics = _topicsController.text
+      final topics = _topicsController.value.text
           .split(',')
           .map((topic) => topic.trim())
           .where((topic) => topic.isNotEmpty)
@@ -744,7 +747,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
       final book = Book(
         id: _bookId ?? widget.book?.id ?? '',
         title: title.isEmpty ? 'Untitled Story' : title,
-        description: _descriptionController.text.trim(),
+        description: _descriptionController.value.text.trim(),
         coverUrl: widget.book?.coverUrl,
         authors: [
           Author(
@@ -806,7 +809,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   }
 
   bool get _hasSavableContent {
-    if (_titleController.text.trim().isNotEmpty) return true;
+    if (_titleController.value.text.trim().isNotEmpty) return true;
     return _chapters.any((chapter) {
       return plainTextFromHtml(
         htmlFromDocument(chapter.controller.document),
@@ -833,7 +836,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   String _initialCategory(Book? book) {
     final subjects = book?.subjects ?? const <String>[];
     for (final subject in subjects) {
-      final match = _allCategories.where(
+      final match = _taxonomy.allCategories.where(
         (category) => category.toLowerCase() == subject.toLowerCase(),
       );
       if (match.isNotEmpty) return match.first;
@@ -844,7 +847,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
   String _contentTypeFromBook(String? value) {
     final normalized = value?.trim().toLowerCase();
     if (normalized == 'poetry') return 'poem';
-    if (normalized != null && _contentTypes.contains(normalized)) {
+    if (normalized != null && _taxonomy.contentTypes.contains(normalized)) {
       return normalized;
     }
     return 'story';
@@ -876,8 +879,26 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen> {
       'kannada': 'Kannada',
       'ml': 'Malayalam',
       'malayalam': 'Malayalam',
+      'ar': 'Arabic',
+      'arabic': 'Arabic',
+      'fr': 'French',
+      'french': 'French',
+      'de': 'German',
+      'german': 'German',
+      'es': 'Spanish',
+      'spanish': 'Spanish',
+      'pt': 'Portuguese',
+      'portuguese': 'Portuguese',
+      'ru': 'Russian',
+      'russian': 'Russian',
+      'zh': 'Chinese',
+      'chinese': 'Chinese',
+      'ja': 'Japanese',
+      'japanese': 'Japanese',
+      'ko': 'Korean',
+      'korean': 'Korean',
     };
-    return aliases[normalized] ?? 'English';
+    return aliases[normalized] ?? value!.trim();
   }
 
   String _titleCase(String value) {
@@ -897,8 +918,7 @@ class _ChapterDraft {
     required this.id,
     required VoidCallback onChanged,
   }) : _onChanged = onChanged {
-    title.addListener(_onChanged);
-    _documentChanges = controller.document.changes.listen((_) => _onChanged());
+    _attachListeners();
   }
 
   factory _ChapterDraft.fromChapter(Chapter chapter, VoidCallback onChanged) {
@@ -930,6 +950,24 @@ class _ChapterDraft {
   final Chapter? original;
   final VoidCallback _onChanged;
   late final StreamSubscription<dynamic> _documentChanges;
+  late int wordCount;
+
+  void _handleDocumentChanged() {
+    _refreshWordCount();
+    _onChanged();
+  }
+
+  void _refreshWordCount() {
+    wordCount = wordCountFromHtml(htmlFromDocument(controller.document));
+  }
+
+  void _attachListeners() {
+    title.addListener(_onChanged);
+    _refreshWordCount();
+    _documentChanges = controller.document.changes.listen(
+      (_) => _handleDocumentChanged(),
+    );
+  }
 
   void dispose() {
     title.removeListener(_onChanged);

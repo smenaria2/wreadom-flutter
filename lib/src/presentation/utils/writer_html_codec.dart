@@ -44,6 +44,21 @@ String plainTextFromHtml(String input) {
   return html_parser.parseFragment(input).text?.trim() ?? input.trim();
 }
 
+int wordCountFromHtml(String input) {
+  final separatedBlocks = input.replaceAll(
+    RegExp(
+      r'<\s*/?\s*(p|div|section|article|h1|h2|h3|li|br|blockquote)\b[^>]*>',
+      caseSensitive: false,
+    ),
+    ' ',
+  );
+  final text = plainTextFromHtml(separatedBlocks)
+      .replaceAll('\u00A0', ' ')
+      .trim();
+  if (text.isEmpty) return 0;
+  return text.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
+}
+
 const _blockTags = {
   'p',
   'div',

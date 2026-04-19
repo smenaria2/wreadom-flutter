@@ -13,15 +13,11 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
+import '../providers/reader_settings_provider.dart';
 import '../widgets/comment_widgets.dart';
 import '../../domain/repositories/book_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
-
-enum ReaderTheme { light, sepia, dark }
-
-enum ReaderFont { sans, serif }
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -83,7 +79,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _restorableChapterIndex.value = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
-    _loadReaderSettings();
+    _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     _incrementView();
     _saveHistorySilently('initial_history_save');
     unawaited(
@@ -145,26 +141,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
-  Future<void> _loadReaderSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+  void _applyReaderSettings(ReaderSettings settings) {
+    if (!mounted) {
+      _fontSize = settings.fontSize;
+      _readerTheme = settings.theme;
+      _readerFont = settings.font;
+      return;
+    }
     setState(() {
-      _fontSize = prefs.getDouble('reader_font_size') ?? 18.0;
-      final themeIndex = prefs.getInt('reader_theme_index');
-      if (themeIndex != null) {
-        _readerTheme = ReaderTheme.values[themeIndex];
-      }
-      final fontIndex = prefs.getInt('reader_font_index');
-      if (fontIndex != null) {
-        _readerFont = ReaderFont.values[fontIndex];
-      }
+      _fontSize = settings.fontSize;
+      _readerTheme = settings.theme;
+      _readerFont = settings.font;
     });
-  }
-
-  Future<void> _saveReaderSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('reader_font_size', _fontSize);
-    await prefs.setInt('reader_theme_index', _readerTheme.index);
-    await prefs.setInt('reader_font_index', _readerFont.index);
   }
 
   Future<void> _loadSavedScrollPosition() async {
@@ -377,6 +365,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
     final userAsync = ref.watch(currentUserProvider);
+
+    ref.listen(readerSettingsControllerProvider, (previous, next) {
+      if (previous != next) _applyReaderSettings(next);
+    });
 
     // Keep current user ID updated
     ref.listen(currentUserProvider, (previous, next) {
@@ -1121,7 +1113,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     setState(() => _fontSize = value);
                     setModalState(() {});
                   },
-                  onChangeEnd: (value) => _saveReaderSettings(),
+                  onChangeEnd: (value) => ref
+                      .read(readerSettingsControllerProvider.notifier)
+                      .setFontSize(value),
                 ),
                 SwitchListTile(
                   value: _readerFont == ReaderFont.serif,
@@ -1133,7 +1127,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           ? ReaderFont.serif
                           : ReaderFont.sans,
                     );
-                    _saveReaderSettings();
+                    ref
+                        .read(readerSettingsControllerProvider.notifier)
+                        .setFont(_readerFont);
                     setModalState(() {});
                   },
                 ),
@@ -1152,7 +1148,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       selected: _readerTheme == ReaderTheme.light,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.light);
-                        _saveReaderSettings();
+                        ref
+                            .read(readerSettingsControllerProvider.notifier)
+                            .setTheme(_readerTheme);
                         setModalState(() {});
                       },
                     ),
@@ -1162,7 +1160,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       selected: _readerTheme == ReaderTheme.sepia,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.sepia);
-                        _saveReaderSettings();
+                        ref
+                            .read(readerSettingsControllerProvider.notifier)
+                            .setTheme(_readerTheme);
                         setModalState(() {});
                       },
                     ),
@@ -1173,7 +1173,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       selected: _readerTheme == ReaderTheme.dark,
                       onTap: () {
                         setState(() => _readerTheme = ReaderTheme.dark);
-                        _saveReaderSettings();
+                        ref
+                            .read(readerSettingsControllerProvider.notifier)
+                            .setTheme(_readerTheme);
                         setModalState(() {});
                       },
                     ),
