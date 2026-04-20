@@ -218,7 +218,7 @@ class _DailyTopicBody extends ConsumerWidget {
               Row(
                 children: [
                   Text(
-                    'Submissions',
+                    'Submissions Received',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -242,7 +242,7 @@ class _DailyTopicBody extends ConsumerWidget {
             if (books.isEmpty) {
               return const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text('No submissions yet.')),
+                child: Center(child: Text('No submissions received yet.')),
               );
             }
             return SliverPadding(
@@ -251,8 +251,7 @@ class _DailyTopicBody extends ConsumerWidget {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 0.56,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 18,
+                  crossAxisSpacing: 12, mainAxisSpacing: 18,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => BookCard(book: books[index]),
@@ -267,7 +266,9 @@ class _DailyTopicBody extends ConsumerWidget {
           ),
           error: (error, _) => SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(child: Text('Failed to load submissions: $error')),
+            child: Center(
+              child: Text('Failed to load submissions received: $error'),
+            ),
           ),
         ),
       ],

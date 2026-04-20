@@ -206,7 +206,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _step == 0 ? 'Writing Editor' : 'Story Details',
+              _step == 0 ? 'Writing Editor' : 'Content Details',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
@@ -407,7 +407,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Story identity',
+                'Content identity',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
@@ -578,7 +578,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ? null
               : () => _save(status: 'published', closeAfterSave: true),
           icon: const Icon(Icons.publish_rounded),
-          label: const Text('Publish Story'),
+          label: const Text('Publish Content'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -695,13 +695,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Color _writerPaperColor(BuildContext context) {
-    return _useDarkWriterChrome(context)
-        ? const Color(0xFFF8F5EF)
-        : Theme.of(context).colorScheme.surface;
+    return Colors.black;
   }
 
   Color _writerPaperTextColor(BuildContext context) {
-    return const Color(0xFF241F1A);
+    return Colors.white;
   }
 
   Widget _surface({
@@ -798,8 +796,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final dark = Theme.of(context).colorScheme.inverseSurface;
-        final onDark = Theme.of(context).colorScheme.onInverseSurface;
+        const dark = Colors.black;
+        const onDark = Colors.white;
         return SafeArea(
           child: StatefulBuilder(
             builder: (context, modalSetState) {

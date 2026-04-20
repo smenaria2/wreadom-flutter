@@ -144,7 +144,7 @@ class WriterDashboardScreen extends ConsumerWidget {
         },
         icon: const Icon(Icons.edit_note, color: Colors.white),
         label: const Text(
-          'Create Story',
+          'Create Content',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: theme.primaryColor,

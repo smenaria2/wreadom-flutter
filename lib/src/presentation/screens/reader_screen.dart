@@ -66,6 +66,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _stopTtsRequested = false;
   int _ttsSession = 0;
   late final FlutterTts _tts;
+  List<String> _ttsChunkList = const [];
+  int _ttsChunkIndex = 0;
   final GlobalKey _quoteImageKey = GlobalKey();
   _QuoteSharePayload? _quoteSharePayload;
   Timer? _progressSaveDebounce;
@@ -80,6 +82,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     registerForRestoration(_commentController, 'comment_text');
     registerForRestoration(_restorableChapterIndex, 'chapter_index');
     registerForRestoration(_restorableScrollProgress, 'scroll_progress');
+
+    // If this is the first time the screen is loading and no state was restored,
+    // use the initial chapter index provided to the widget.
+    if (oldBucket == null && initialRestore) {
+      _restorableChapterIndex.value = widget.initialChapterIndex;
+    }
+
     _chapterIndex = _restorableChapterIndex.value;
     _scrollProgress = _restorableScrollProgress.value;
     _pendingSavedScrollProgress = _scrollProgress > 0 ? _scrollProgress : null;
@@ -88,8 +97,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _chapterIndex = widget.initialChapterIndex;
-    _restorableChapterIndex.value = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
     _tts = FlutterTts();
@@ -340,6 +349,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _lastScrollOffset = 0.0;
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
+      // Reset TTS position for new chapter
+      _ttsChunkIndex = 0;
+      _ttsChunkList = const [];
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -351,6 +363,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     WidgetsBinding.instance.removeObserver(this);
     _flushProgressSave(
       'dispose',
@@ -510,13 +526,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       orElse: () => const <int, int>{},
     );
 
+    final topPadding = MediaQuery.of(context).padding.top;
+    final appBarHeight = kToolbarHeight + topPadding;
+
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(_showReaderChrome ? kToolbarHeight : 0),
+        preferredSize: Size.fromHeight(_showReaderChrome ? appBarHeight : 0),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          height: _showReaderChrome ? kToolbarHeight : 0,
+          height: _showReaderChrome ? appBarHeight : 0,
           child: ClipRect(
             child: AppBar(
               title: Text(
@@ -550,7 +569,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               ? Icons.stop_circle_outlined
                               : Icons.volume_up_outlined,
                         ),
-                  tooltip: _isTtsPlaying ? 'Stop reading aloud' : 'Read aloud',
+                  tooltip: _isTtsPlaying
+                      ? (_ttsChunkList.isNotEmpty
+                          ? 'Stop (chunk ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
+                          : 'Stop reading aloud')
+                      : 'Read aloud',
                   onPressed: chapter == null || _isTtsPreparing
                       ? null
                       : () => _toggleTts(chapter),
@@ -595,131 +618,88 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         Navigator.of(context).maybePop();
                       }
                     },
-                    child: ListView(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(20),
-                      children: [
-                        Text(
-                          chapter?.title ?? widget.book.title,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        SelectionArea(
-                          onSelectionChanged: (content) {
-                            setState(() {
-                              _selectedText = content?.plainText ?? "";
-                            });
-                          },
-                          contextMenuBuilder: (context, selectableRegionState) {
-                            final selected = _selectedText.trim();
-                            final buttonItems = <ContextMenuButtonItem>[
-                              ContextMenuButtonItem(
-                                label: 'Quote & Comment',
-                                onPressed: selected.isEmpty
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _selectedQuote = selected;
-                                          _replyingTo = null;
-                                        });
-                                        selectableRegionState.hideToolbar();
-                                        _showDiscussion(
-                                          chapter,
-                                          focusComposer: true,
-                                        );
-                                      },
-                              ),
-                              ContextMenuButtonItem(
-                                label: 'Share Quote',
-                                onPressed: selected.isEmpty
-                                    ? null
-                                    : () {
-                                        selectableRegionState.hideToolbar();
-                                        _shareSelectedQuote(chapter, selected);
-                                      },
-                              ),
-                            ];
-                            return AdaptiveTextSelectionToolbar.buttonItems(
-                              anchors: selectableRegionState.contextMenuAnchors,
-                              buttonItems: buttonItems,
-                            );
-                          },
-                          child: HtmlWidget(
-                            chapter?.content ??
-                                widget.book.description ??
-                                'No readable content available yet.',
-                            customWidgetBuilder: (element) {
-                              final tag = element.localName?.toLowerCase();
-                              if (tag == 'a') {
-                                final href = element.attributes['href'];
-                                if (isAllowedWriterLink(href)) {
-                                  return WriterMediaPreview(
-                                    url: href!,
-                                    textColor: _getTextColor(),
-                                  );
-                                }
-                                return Text(
-                                  element.text,
-                                  style: TextStyle(
-                                    fontSize: _fontSize,
-                                    height: 1.8,
-                                    color: _getTextColor(),
-                                  ),
-                                );
-                              }
-                              if (tag == 'img') {
-                                final src = element.attributes['src'];
-                                if (isTrustedCloudinaryImageUrl(src)) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        src!,
-                                        width: double.infinity,
-                                        fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const SizedBox.shrink(),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              }
-                              return null;
+                    onTapUp: (_isTtsPlaying || _isTtsPreparing)
+                        ? (details) {
+                            // TTS is active — seek to the tapped position.
+                            if (chapter == null) return;
+                            if (!_scrollController.hasClients) return;
+                            final position = _scrollController.position;
+                            final tapY = details.localPosition.dy +
+                                _scrollController.offset;
+                            final totalHeight =
+                                position.viewportDimension +
+                                position.maxScrollExtent;
+                            final fraction = totalHeight > 0
+                                ? (tapY / totalHeight).clamp(0.0, 1.0)
+                                : 0.0;
+                            unawaited(_seekTtsToFraction(chapter, fraction));
+                          }
+                        : null,
+                    child: (_isTtsPlaying || _isTtsPreparing)
+                        // When TTS is active, disable text selection so
+                        // taps are handled cleanly for seeking.
+                        ? _buildListView(chapter, chapters, commentCounts)
+                        : SelectionArea(
+                            onSelectionChanged: (content) {
+                              setState(() {
+                                _selectedText = content?.plainText ?? "";
+                              });
                             },
-                            onTapUrl: (url) async => isAllowedWriterLink(url),
-                            textStyle: TextStyle(
-                              fontSize: _fontSize,
-                              height: 1.8,
-                              color: _getTextColor(),
-                              fontFamily: _readerFont == ReaderFont.serif
-                                  ? 'Serif'
-                                  : null,
+                            contextMenuBuilder: (
+                              context,
+                              selectableRegionState,
+                            ) {
+                              final selected = _selectedText.trim();
+                              final ctxChapter = _chapterIndex >= 0 &&
+                                      _chapterIndex < chapters.length
+                                  ? chapters[_chapterIndex]
+                                  : null;
+                              final buttonItems = <ContextMenuButtonItem>[
+                                ContextMenuButtonItem(
+                                  label: 'Quote & Comment',
+                                  onPressed: selected.isEmpty
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _selectedQuote = selected;
+                                            _replyingTo = null;
+                                          });
+                                          selectableRegionState.hideToolbar();
+                                          _showDiscussion(
+                                            ctxChapter,
+                                            focusComposer: true,
+                                          );
+                                        },
+                                ),
+                                ContextMenuButtonItem(
+                                  label: 'Share Quote',
+                                  onPressed: selected.isEmpty
+                                      ? null
+                                      : () {
+                                          selectableRegionState.hideToolbar();
+                                          _shareSelectedQuote(
+                                            ctxChapter,
+                                            selected,
+                                          );
+                                        },
+                                ),
+                              ];
+                              return AdaptiveTextSelectionToolbar.buttonItems(
+                                anchors:
+                                    selectableRegionState.contextMenuAnchors,
+                                buttonItems: buttonItems,
+                              );
+                            },
+                            child: _buildListView(
+                              chapter,
+                              chapters,
+                              commentCounts,
                             ),
-                            // Custom styles for images and links if needed
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        _ChapterEndActions(
-                          hasNextChapter: _chapterIndex < chapters.length - 1,
-                          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
-                          onNextChapter: _chapterIndex < chapters.length - 1
-                              ? _markChapterCompleteAndGoNext
-                              : null,
-                          onViewComments: () => _showDiscussion(chapter),
-                        ),
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ),
+                  ), // GestureDetector
+                ), // Expanded
               ],
-            ),
+            ), // Column
             if (_quoteSharePayload != null)
               Positioned(
                 left: -2000,
@@ -739,6 +719,101 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         onTap: () => _showDiscussion(chapter),
         theme: _readerTheme,
       ),
+    );
+  }
+
+  /// Builds the scrollable chapter reading content.
+  /// Used by both TTS mode (no selection) and normal mode (wrapped in SelectionArea).
+  Widget _buildListView(
+    Chapter? chapter,
+    List<Chapter> chapters,
+    Map<int, int> commentCounts,
+  ) {
+    final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
+
+    return ListView(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(
+          chapter?.title ?? widget.book.title,
+          textAlign: isPoem ? TextAlign.center : TextAlign.start,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        HtmlWidget(
+          chapter?.content ??
+              widget.book.description ??
+              'No readable content available yet.',
+          customStylesBuilder: (element) {
+            if (isPoem) {
+              return {'text-align': 'center'};
+            }
+            return null;
+          },
+          customWidgetBuilder: (element) {
+            final tag = element.localName?.toLowerCase();
+            if (tag == 'a') {
+              final href = element.attributes['href'];
+              if (isAllowedWriterLink(href)) {
+                return WriterMediaPreview(
+                  url: href!,
+                  textColor: _getTextColor(),
+                );
+              }
+              return Text(
+                element.text,
+                style: TextStyle(
+                  fontSize: _fontSize,
+                  height: 1.8,
+                  color: _getTextColor(),
+                  fontStyle: isPoem ? FontStyle.italic : null,
+                ),
+              );
+            }
+            if (tag == 'img') {
+              final src = element.attributes['src'];
+              if (isTrustedCloudinaryImageUrl(src)) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      src!,
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }
+            return null;
+          },
+          onTapUrl: (url) async => isAllowedWriterLink(url),
+          textStyle: TextStyle(
+            fontSize: _fontSize,
+            height: 1.8,
+            color: _getTextColor(),
+            fontStyle: isPoem ? FontStyle.italic : null,
+            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _ChapterEndActions(
+          hasNextChapter: _chapterIndex < chapters.length - 1,
+          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+          onNextChapter: _chapterIndex < chapters.length - 1
+              ? _markChapterCompleteAndGoNext
+              : null,
+          onViewComments: () => _showDiscussion(chapter),
+        ),
+        const SizedBox(height: 100),
+      ],
     );
   }
 
@@ -767,6 +842,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _tts.setErrorHandler((message) {
       if (!mounted) return;
+
+      // On web, 'interrupted' errors are common and expected when we manually 
+      // call stop() to seek or change chapters. We ignore them to avoid 
+      // showing annoying snackbars during normal interactions.
+      final msg = message.toString();
+      if (msg.toLowerCase().contains('interrupted') || 
+          msg.contains('[object SpeechSynthesisErrorEvent]')) {
+        return;
+      }
+
       _stopTtsRequested = true;
       _ttsSession++;
       setState(() {
@@ -793,7 +878,77 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    setState(() => _isTtsPreparing = true);
+    // Build chunk list once for this chapter (or reuse if already built)
+    final chunks = _ttsChunkList.isNotEmpty
+        ? _ttsChunkList
+        : _ttsChunks(text);
+    if (_ttsChunkList.isEmpty) {
+      setState(() => _ttsChunkList = chunks);
+    }
+
+    // Always start from beginning when explicitly toggled on
+    final startIndex = 0;
+    setState(() {
+      _ttsChunkIndex = startIndex;
+      _isTtsPreparing = true;
+    });
+
+    await _runTtsFromIndex(chapter, startIndex);
+  }
+
+  /// Seek TTS to a position based on scroll fraction [0.0–1.0].
+  /// Stops current speech and restarts from the nearest chunk.
+  Future<void> _seekTtsToFraction(Chapter chapter, double fraction) async {
+    if (!_isTtsPlaying && !_isTtsPreparing) return;
+
+    // Build chunk list if not yet available
+    if (_ttsChunkList.isEmpty) {
+      final text = _plainTextForTts(chapter);
+      if (text.isEmpty) return;
+      final chunks = _ttsChunks(text);
+      setState(() => _ttsChunkList = chunks);
+    }
+
+    if (_ttsChunkList.isEmpty) return;
+
+    final targetIndex = (fraction * _ttsChunkList.length)
+        .floor()
+        .clamp(0, _ttsChunkList.length - 1);
+
+    // Stop current playback
+    _stopTtsRequested = true;
+    _ttsSession++;
+    await _tts.stop();
+
+    // Small delay helps browser Speech API stabilize after stop()
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+
+    setState(() {
+      _ttsChunkIndex = targetIndex;
+      _isTtsPlaying = false;
+      _isTtsPreparing = true;
+    });
+
+    await _runTtsFromIndex(chapter, targetIndex);
+  }
+
+  Future<void> _runTtsFromIndex(Chapter chapter, int startIndex) async {
+    final chunks = _ttsChunkList.isNotEmpty
+        ? _ttsChunkList
+        : _ttsChunks(_plainTextForTts(chapter));
+
+    if (chunks.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isTtsPreparing = false;
+          _isTtsPlaying = false;
+        });
+      }
+      return;
+    }
+
     try {
       final session = ++_ttsSession;
       _stopTtsRequested = false;
@@ -802,22 +957,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       await _tts.setLanguage(_ttsLanguageForBook());
       await _tts.setSpeechRate(0.45);
       await _tts.setPitch(1.0);
-      for (final chunk in _ttsChunks(text)) {
+
+      for (int i = startIndex; i < chunks.length; i++) {
         if (_stopTtsRequested || session != _ttsSession) break;
-        await _tts.speak(chunk);
+        setState(() => _ttsChunkIndex = i);
+        await _tts.speak(chunks[i]);
       }
+
       if (!mounted || session != _ttsSession) return;
-      if (_stopTtsRequested) {
-        setState(() {
-          _isTtsPreparing = false;
-          _isTtsPlaying = false;
-        });
-      } else {
-        setState(() {
-          _isTtsPreparing = false;
-          _isTtsPlaying = false;
-        });
-      }
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = false;
+        // Reset chunk index so next play starts from beginning
+        _ttsChunkIndex = 0;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -932,13 +1085,91 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return null;
   }
 
+  /// Restores line breaks lost during text selection by matching the flat
+  /// selected text against the block-level segments extracted from the raw HTML.
+  String _restoreLineBreaks(String flat, String? htmlContent) {
+    if (htmlContent == null || htmlContent.isEmpty) return flat;
+    try {
+      final doc = html_parser.parse(htmlContent);
+      // Collect text of every block-level element in document order.
+      // These are the segments HtmlWidget renders as separate Flutter widgets,
+      // causing the selection system to join them without any separator.
+      const blockTags = {
+        'p', 'div', 'br', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'blockquote', 'pre', 'section', 'article',
+      };
+      final segments = <String>[];
+      void walk(dynamic node) {
+        final tag = node.localName?.toLowerCase();
+        if (tag == 'br') {
+          segments.add('');
+          return;
+        }
+        if (tag != null && blockTags.contains(tag)) {
+          final text = node.text?.trim() ?? '';
+          if (text.isNotEmpty) segments.add(text);
+          return;
+        }
+        // recurse into inline/unknown nodes
+        for (final child in (node.nodes ?? [])) {
+          walk(child);
+        }
+      }
+      for (final child in doc.body?.nodes ?? []) {
+        walk(child);
+      }
+      if (segments.isEmpty) return flat;
+
+      // Build a reconstructed string by joining segments with newlines and
+      // try to find the flat selection within it (ignoring whitespace/newlines).
+      final full = segments.join('\n');
+      // Normalise both to compare
+      final normFlat = flat.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final normFull = full.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final idx = normFull.indexOf(normFlat);
+      if (idx < 0) return flat; // couldn't locate — return original
+
+      // Map the character offset back to the newline-restored string.
+      // We walk character-by-character through `full`, skipping whitespace
+      // the same way normalisation did, and collect the matching window.
+      int matchStart = -1, matchEnd = -1;
+      int normPos = 0;
+      for (int i = 0; i < full.length; i++) {
+        final ch = full[i];
+        final isWs = ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t';
+        if (isWs) {
+          // collapsed to single space in normFull — advance normPos only if
+          // previous normFull char wasn't also a space
+          if (normPos > 0 && normFull[normPos - 1] != ' ') normPos++;
+          if (normPos == idx && matchStart < 0) matchStart = i;
+          if (normPos == idx + normFlat.length && matchEnd < 0) matchEnd = i;
+        } else {
+          if (normPos == idx && matchStart < 0) matchStart = i;
+          normPos++;
+          if (normPos == idx + normFlat.length && matchEnd < 0) matchEnd = i + 1;
+        }
+      }
+      if (matchStart >= 0 && matchEnd > matchStart) {
+        return full.substring(matchStart, matchEnd).trim();
+      }
+      return flat;
+    } catch (_) {
+      return flat;
+    }
+  }
+
   Future<void> _shareSelectedQuote(dynamic chapter, String selected) async {
+    // Restore line breaks that SelectionArea strips out when extracting plainText
+    // from HtmlWidget's multi-widget layout.
+    final htmlContent = chapter?.content as String?;
+    final quoteWithBreaks = _restoreLineBreaks(selected, htmlContent);
+
     final authors = widget.book.authors
         .map((a) => a.name)
         .where((n) => n.isNotEmpty)
         .join(', ');
     final chapterTitle = chapter?.title?.toString();
-    final shareText = _quoteShareText(selected, chapterTitle, authors);
+    final shareText = _quoteShareText(quoteWithBreaks, chapterTitle, authors);
 
     try {
       final coverUrl = widget.book.coverUrl;
@@ -950,7 +1181,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       }
       setState(() {
         _quoteSharePayload = _QuoteSharePayload(
-          quote: selected,
+          quote: quoteWithBreaks,
           bookTitle: widget.book.title,
           chapterTitle: chapterTitle,
           authors: authors,
@@ -1726,7 +1957,7 @@ class _QuoteImage extends StatelessWidget {
       color: Colors.transparent,
       child: SizedBox(
         width: 420,
-        height: 420,
+        height: 580,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -1767,13 +1998,13 @@ class _QuoteImage extends StatelessWidget {
                     child: Center(
                       child: Text(
                         payload.quote,
-                        maxLines: 6,
+                        maxLines: 20,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
-                          height: 1.45,
+                          fontSize: 18,
+                          height: 1.3,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
