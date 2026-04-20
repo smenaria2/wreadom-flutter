@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../domain/models/book.dart';
+import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
 
 class BookCard extends StatelessWidget {
@@ -45,9 +46,9 @@ class BookCard extends StatelessWidget {
                           ),
                         ),
                         errorWidget: (context, url, error) =>
-                            _Placeholder(title: book.title),
+                            _GeneratedCover(book: book, borderRadius: 8),
                       )
-                    : _Placeholder(title: book.title),
+                    : _GeneratedCover(book: book, borderRadius: 8),
               ),
             ),
             const SizedBox(height: 8),
@@ -74,27 +75,20 @@ class BookCard extends StatelessWidget {
   }
 }
 
-class _Placeholder extends StatelessWidget {
-  final String title;
-  const _Placeholder({required this.title});
+class _GeneratedCover extends StatelessWidget {
+  const _GeneratedCover({required this.book, required this.borderRadius});
+
+  final Book book;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-          ),
-        ),
-      ),
+    return GeneratedBookCover(
+      title: book.title,
+      author: book.authors.isNotEmpty ? book.authors.first.name : null,
+      seed: book.id,
+      borderRadius: borderRadius,
+      compact: true,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/follow_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -14,6 +15,7 @@ import '../routing/app_routes.dart';
 import '../components/book_card.dart';
 import '../components/feed_post_card.dart';
 import 'follow_list_screen.dart';
+import '../../utils/app_link_helper.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
   const PublicProfileScreen({super.key, required this.userId});
@@ -46,6 +48,14 @@ class PublicProfileScreen extends ConsumerWidget {
                 expandedHeight: 220,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    tooltip: 'Share Profile',
+                    icon: const Icon(Icons.ios_share_rounded),
+                    onPressed: () => _shareProfile(
+                      user.id,
+                      user.displayName ?? user.username,
+                    ),
+                  ),
                   if (!isSelf) ...[
                     FollowButton(targetUserId: userId, compact: true),
                     followingAsync.when(
@@ -87,7 +97,9 @@ class PublicProfileScreen extends ConsumerWidget {
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
                     user.displayName ?? user.username,
-                    style: const TextStyle(shadows: [Shadow(blurRadius: 10, color: Colors.black)]),
+                    style: const TextStyle(
+                      shadows: [Shadow(blurRadius: 10, color: Colors.black)],
+                    ),
                   ),
                   background: Container(
                     decoration: BoxDecoration(
@@ -233,6 +245,13 @@ class PublicProfileScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Failed to load: $error')),
       ),
+    );
+  }
+
+  void _shareProfile(String userId, String name) {
+    Share.share(
+      'Read with $name on Wreadom\n${AppLinkHelper.user(userId)}',
+      subject: '$name on Wreadom',
     );
   }
 }

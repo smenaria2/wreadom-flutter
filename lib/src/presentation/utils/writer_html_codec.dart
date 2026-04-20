@@ -3,6 +3,8 @@ import 'package:flutter_quill/quill_delta.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import 'writer_media_utils.dart';
+
 Document documentFromHtml(String input) {
   final html = input.trim();
   if (html.isEmpty) return Document();
@@ -52,9 +54,9 @@ int wordCountFromHtml(String input) {
     ),
     ' ',
   );
-  final text = plainTextFromHtml(separatedBlocks)
-      .replaceAll('\u00A0', ' ')
-      .trim();
+  final text = plainTextFromHtml(
+    separatedBlocks,
+  ).replaceAll('\u00A0', ' ').trim();
   if (text.isEmpty) return 0;
   return text.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
 }
@@ -99,7 +101,7 @@ void _appendNode(
   if (node is! dom.Element) return;
 
   final tag = node.localName?.toLowerCase() ?? '';
-  if (tag == 'script' || tag == 'style') return;
+  if (tag == 'script' || tag == 'style' || tag == 'iframe') return;
 
   if (tag == 'br') {
     delta.insert('\n');
@@ -115,15 +117,24 @@ void _appendNode(
   if (tag == 'u') nextInline['underline'] = true;
   if (tag == 'a') {
     final href = node.attributes['href'];
-    if (_isSafeUrl(href)) nextInline['link'] = href;
+    if (isAllowedWriterLink(href)) {
+      if (!state.endsWithNewline && !state.isEmpty) delta.insert('\n');
+      delta.insert(BlockEmbed.video(href!.trim()));
+      delta.insert('\n');
+      state.endsWithNewline = true;
+      state.lastWasSpace = false;
+      state.isEmpty = false;
+      return;
+    }
   }
 
   if (tag == 'img') {
     final src = node.attributes['src'];
-    final alt = node.attributes['alt'] ?? 'Image';
-    if (_isSafeUrl(src)) {
-      delta.insert(alt, nextInline.isEmpty ? null : nextInline);
-      state.endsWithNewline = false;
+    if (isTrustedCloudinaryImageUrl(src)) {
+      if (!state.endsWithNewline && !state.isEmpty) delta.insert('\n');
+      delta.insert(BlockEmbed.image(src!.trim()));
+      delta.insert('\n');
+      state.endsWithNewline = true;
       state.lastWasSpace = false;
       state.isEmpty = false;
     }
@@ -185,8 +196,16 @@ String _deltaToHtml(Delta delta) {
 
   for (final operation in delta.toList()) {
     final data = operation.data;
-    if (data is! String) continue;
     final attributes = operation.attributes ?? const <String, dynamic>{};
+    if (data is Map) {
+      final embedHtml = _formatEmbed(data);
+      if (embedHtml != null) {
+        if (inline.isNotEmpty) flushLine();
+        buffer.write(embedHtml);
+      }
+      continue;
+    }
+    if (data is! String) continue;
     final pieces = data.split('\n');
     for (var i = 0; i < pieces.length; i++) {
       if (pieces[i].isNotEmpty) {
@@ -208,10 +227,23 @@ String _formatInline(String text, Map<String, dynamic> attributes) {
   if (attributes['bold'] == true) value = '<strong>$value</strong>';
   if (attributes['italic'] == true) value = '<em>$value</em>';
   if (attributes['underline'] == true) value = '<u>$value</u>';
-  if (link is String && _isSafeUrl(link)) {
+  if (link is String && isAllowedWriterLink(link)) {
     value = '<a href="${_escapeAttribute(link)}">$value</a>';
   }
   return value;
+}
+
+String? _formatEmbed(Map<dynamic, dynamic> data) {
+  final image = data[BlockEmbed.imageType];
+  if (image is String && isTrustedCloudinaryImageUrl(image)) {
+    return '<p><img src="${_escapeAttribute(image)}"></p>';
+  }
+  final video = data[BlockEmbed.videoType];
+  if (video is String && isAllowedWriterLink(video)) {
+    final label = _escapeHtml(classifyWriterMediaUrl(video).label);
+    return '<p><a href="${_escapeAttribute(video)}">$label</a></p>';
+  }
+  return null;
 }
 
 String _sanitizeNode(dom.Node node) {
@@ -219,7 +251,7 @@ String _sanitizeNode(dom.Node node) {
   if (node is! dom.Element) return '';
 
   final tag = node.localName?.toLowerCase() ?? '';
-  if (tag == 'script' || tag == 'style') return '';
+  if (tag == 'script' || tag == 'style' || tag == 'iframe') return '';
   if (tag == 'br') return '<br>';
 
   const allowedTags = {
@@ -249,15 +281,17 @@ String _sanitizeNode(dom.Node node) {
   final attrs = <String>[];
   if (tag == 'a') {
     final href = node.attributes['href'];
-    if (_isSafeUrl(href)) {
+    if (isAllowedWriterLink(href)) {
       attrs.add('href="${_escapeAttribute(href!)}"');
       attrs.add('target="_blank"');
       attrs.add('rel="noopener noreferrer"');
+    } else {
+      return children;
     }
   }
   if (tag == 'img') {
     final src = node.attributes['src'];
-    if (!_isSafeUrl(src)) return '';
+    if (!isTrustedCloudinaryImageUrl(src)) return '';
     attrs.add('src="${_escapeAttribute(src!)}"');
     final alt = node.attributes['alt'];
     if (alt != null && alt.trim().isNotEmpty) {
@@ -272,15 +306,6 @@ String _sanitizeNode(dom.Node node) {
   final attrText = attrs.isEmpty ? '' : ' ${attrs.join(' ')}';
   if (tag == 'img') return '<img$attrText>';
   return '<$tag$attrText>$children</$tag>';
-}
-
-bool _isSafeUrl(String? url) {
-  if (url == null || url.trim().isEmpty) return false;
-  final normalized = url.trim().toLowerCase();
-  return normalized.startsWith('http://') ||
-      normalized.startsWith('https://') ||
-      normalized.startsWith('mailto:') ||
-      normalized.startsWith('/');
 }
 
 String _escapeHtml(String value) {

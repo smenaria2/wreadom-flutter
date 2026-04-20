@@ -56,9 +56,10 @@ class ConversationArguments {
 }
 
 class WriterPadArguments {
-  const WriterPadArguments({this.book});
+  const WriterPadArguments({this.book, this.initialTopic});
 
   final Book? book;
+  final String? initialTopic;
 }
 
 class PostDetailArguments {
@@ -171,7 +172,10 @@ class AppRouter {
         }
         final args = argsValue as WriterPadArguments?;
         return MaterialPageRoute(
-          builder: (_) => WriterPadScreen(book: args?.book),
+          builder: (_) => WriterPadScreen(
+            book: args?.book,
+            initialTopic: args?.initialTopic,
+          ),
         );
       case AppRoutes.postDetail:
         final args = arguments ?? settings.arguments;
@@ -302,7 +306,6 @@ class AppRouter {
 
     return null;
   }
-
 }
 
 const _privacyPolicyBody = r'''Last Updated: February 20, 2026

@@ -117,6 +117,9 @@ class WriterDashboardScreen extends ConsumerWidget {
                         book: book,
                         onTap: isPublished ? openStoryPage : openEditor,
                         onEditStory: isPublished ? openEditor : null,
+                        onDeleteDraft: isPublished
+                            ? null
+                            : () => _confirmDeleteDraft(context, ref, book.id),
                       );
                     }, childCount: books.length),
                   ),
@@ -147,5 +150,44 @@ class WriterDashboardScreen extends ConsumerWidget {
         backgroundColor: theme.primaryColor,
       ),
     );
+  }
+
+  Future<void> _confirmDeleteDraft(
+    BuildContext context,
+    WidgetRef ref,
+    String bookId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete draft?'),
+        content: const Text('This draft will be removed from your dashboard.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(writerRepositoryProvider).deleteBook(bookId);
+      ref.invalidate(myBooksProvider);
+      ref.invalidate(filteredMyBooksProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Draft deleted.')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not delete draft: $error')));
+    }
   }
 }

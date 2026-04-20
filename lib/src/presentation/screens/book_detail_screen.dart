@@ -5,11 +5,14 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/comment.dart';
+import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
+import '../../domain/repositories/message_repository.dart';
 import '../../utils/app_link_helper.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
@@ -17,6 +20,7 @@ import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
 import '../components/book/comment_reply_sheet.dart';
+import '../components/generated_book_cover.dart';
 
 class BookDetailScreen extends ConsumerStatefulWidget {
   const BookDetailScreen({
@@ -76,10 +80,15 @@ class _BookDetailBody extends ConsumerWidget {
         .where((n) => n.isNotEmpty)
         .join(', ');
     final userAsync = ref.watch(currentUserProvider);
+    final currentUser = userAsync.asData?.value;
     final authorId = (book.isOriginal ?? false) ? book.authorId?.trim() : null;
     final authorAsync = authorId == null || authorId.isEmpty
         ? null
         : ref.watch(publicProfileProvider(authorId));
+    final canEdit =
+        currentUser != null &&
+        (book.isOriginal ?? false) &&
+        authorId == currentUser.id;
 
     return CustomScrollView(
       slivers: [
@@ -87,6 +96,15 @@ class _BookDetailBody extends ConsumerWidget {
           expandedHeight: 330,
           pinned: true,
           actions: [
+            if (canEdit)
+              IconButton(
+                tooltip: 'Edit book',
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  AppRoutes.writerPad,
+                  arguments: WriterPadArguments(book: book),
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.share_outlined),
               onPressed: () => Share.share(
@@ -173,7 +191,7 @@ class _BookDetailBody extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: book.subjects.take(5).map((subject) {
-                    return Chip(
+                    return ActionChip(
                       label: Text(
                         subject,
                         style: const TextStyle(fontSize: 12),
@@ -182,6 +200,10 @@ class _BookDetailBody extends ConsumerWidget {
                       backgroundColor: theme.colorScheme.primaryContainer
                           .withValues(alpha: 0.5),
                       side: BorderSide.none,
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        AppRoutes.discovery,
+                        arguments: {'query': 'topic:$subject'},
+                      ),
                     );
                   }).toList(),
                 ),
@@ -219,11 +241,8 @@ class _BookDetailBody extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () => Share.share(
-                      'Read "${book.title}" on Wreadom: ${AppLinkHelper.book(book.id)}',
-                      subject: book.title,
-                    ),
-                    child: const Icon(Icons.share_outlined),
+                    onPressed: () => _showSendToChatSheet(context, ref, book),
+                    child: const Icon(Icons.send_rounded),
                   ),
                 ],
               ),
@@ -275,6 +294,118 @@ class _BookDetailBody extends ConsumerWidget {
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArguments(book: book, initialChapterIndex: startChapter),
+    );
+  }
+
+  Future<void> _showSendToChatSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Book book,
+  ) async {
+    final authors = book.authors
+        .map((author) => author.name)
+        .where((name) => name.isNotEmpty)
+        .join(', ');
+    final rootContext = context;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final conversationsAsync = ref.watch(conversationsProvider);
+            final currentUser = ref.watch(currentUserProvider).asData?.value;
+
+            return SafeArea(
+              child: conversationsAsync.when(
+                data: (conversations) {
+                  if (conversations.isEmpty || currentUser == null) {
+                    return const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(
+                        child: Text('No recent conversations yet.'),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: conversations.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final conversation = conversations[index];
+                      final otherId = conversation.participants.firstWhere(
+                        (id) => id != currentUser.id,
+                        orElse: () => conversation.participants.first,
+                      );
+                      final other = conversation.participantDetails[otherId];
+                      final title =
+                          conversation.name ??
+                          other?.displayName ??
+                          other?.username ??
+                          'Conversation';
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Text(title.characters.first.toUpperCase()),
+                        ),
+                        title: Text(title),
+                        subtitle: Text(
+                          conversation.lastMessage?.text ?? 'No messages yet',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () async {
+                          final sender = await ref.read(
+                            currentUserProvider.future,
+                          );
+                          if (sender == null) return;
+                          try {
+                            await ref
+                                .read(messageRepositoryProvider)
+                                .sendStoryMessage(
+                                  conversationId: conversation.id,
+                                  sender: sender,
+                                  storyData: MessageStoryData(
+                                    id: book.id,
+                                    title: book.title,
+                                    coverUrl: book.coverUrl,
+                                    authorNames: authors.isEmpty
+                                        ? 'Unknown Author'
+                                        : authors,
+                                  ),
+                                );
+                          } on MessageLimitException catch (error) {
+                            if (!rootContext.mounted) return;
+                            ScaffoldMessenger.of(rootContext).showSnackBar(
+                              SnackBar(content: Text(error.message)),
+                            );
+                            return;
+                          }
+                          if (!sheetContext.mounted) return;
+                          Navigator.of(sheetContext).pop();
+                          if (!rootContext.mounted) return;
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            SnackBar(content: Text('Sent "${book.title}".')),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, _) => Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(child: Text('Failed to load chats: $error')),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -496,33 +627,19 @@ class _Stat extends StatelessWidget {
 }
 
 class _PlaceholderCover extends StatelessWidget {
-  const _PlaceholderCover({required this.title});
+  const _PlaceholderCover({required this.book});
 
-  final String title;
+  final Book book;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GeneratedBookCover(
       width: 150,
       height: 220,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            title,
-            maxLines: 4,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
+      title: book.title,
+      author: book.authors.isNotEmpty ? book.authors.first.name : null,
+      seed: book.id,
+      borderRadius: 12,
     );
   }
 }
@@ -548,9 +665,9 @@ class _DetailCover extends StatelessWidget {
                 color: Colors.grey[200],
                 child: const Center(child: CircularProgressIndicator()),
               ),
-              errorWidget: (_, _, _) => _PlaceholderCover(title: book.title),
+              errorWidget: (_, _, _) => _PlaceholderCover(book: book),
             )
-          : _PlaceholderCover(title: book.title),
+          : _PlaceholderCover(book: book),
     );
   }
 }

@@ -208,7 +208,9 @@ class _DailyTopicBody extends ConsumerWidget {
                   label: const Text('Participate Now'),
                   onPressed: () => Navigator.of(context).pushNamed(
                     AppRoutes.writerPad,
-                    arguments: const WriterPadArguments(),
+                    arguments: WriterPadArguments(
+                      initialTopic: topic.topicName,
+                    ),
                   ),
                 ),
               ),

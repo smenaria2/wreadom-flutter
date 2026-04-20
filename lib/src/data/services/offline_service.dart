@@ -1,6 +1,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../utils/map_utils.dart';
@@ -38,11 +39,11 @@ class OfflineService {
       await _booksBox.put(book.id, {
         'schemaVersion': _schemaVersion,
         'downloadedAt': DateTime.now().millisecondsSinceEpoch,
-        'book': book.toJson(),
+        'book': _hiveSafeValue(book),
       });
 
       // 2. Save chapters
-      final chaptersJson = chapters.map((c) => c.toJson()).toList();
+      final chaptersJson = _hiveSafeValue(chapters);
       await _chaptersBox.put(book.id, chaptersJson);
 
       // 3. Download related files if any (e.g. cover or epub for local storage)
@@ -62,31 +63,46 @@ class OfflineService {
     if (!Hive.isBoxOpen(_booksBoxName)) return [];
     return _booksBox.values
         .map((json) {
-          final map = asStringMap(json);
-          final bookJson = map['book'] is Map ? map['book'] : map;
-          return Book.fromJson(asStringMap(bookJson));
+          try {
+            final map = asStringMap(json);
+            final bookJson = map['book'] is Map ? map['book'] : map;
+            return Book.fromJson(asStringMap(bookJson));
+          } catch (error) {
+            debugPrint(
+              '[OfflineService] Skipping invalid offline book: $error',
+            );
+            return null;
+          }
         })
         .whereType<Book>()
         .toList();
   }
 
-  // Removed local _ensureStringMap in favor of map_utils.dart
-
   Future<List<Chapter>> getDownloadedChapters(String bookId) async {
     await init();
     final chaptersJson = _chaptersBox.get(bookId);
-    if (chaptersJson == null) return [];
+    if (chaptersJson is! List) return [];
 
-    return (chaptersJson as List).map((json) {
-      final map = asStringMap(json);
-      map['id'] = map['id']?.toString() ?? '';
-      map['title'] = map['title']?.toString() ?? 'Chapter';
-      map['content'] = map['content']?.toString() ?? '';
-      map['index'] = map['index'] is num
-          ? (map['index'] as num).toInt()
-          : int.tryParse(map['index']?.toString() ?? '') ?? 0;
-      return Chapter.fromJson(map);
-    }).toList();
+    return chaptersJson
+        .map((json) {
+          try {
+            final map = asStringMap(json);
+            map['id'] = map['id']?.toString() ?? '';
+            map['title'] = map['title']?.toString() ?? 'Chapter';
+            map['content'] = map['content']?.toString() ?? '';
+            map['index'] = map['index'] is num
+                ? (map['index'] as num).toInt()
+                : int.tryParse(map['index']?.toString() ?? '') ?? 0;
+            return Chapter.fromJson(map);
+          } catch (error) {
+            debugPrint(
+              '[OfflineService] Skipping invalid offline chapter: $error',
+            );
+            return null;
+          }
+        })
+        .whereType<Chapter>()
+        .toList();
   }
 
   Future<void> deleteBook(String bookId) async {
@@ -94,5 +110,24 @@ class OfflineService {
     await _booksBox.delete(bookId);
     await _chaptersBox.delete(bookId);
     debugPrint('[OfflineService] Book $bookId deleted from offline storage.');
+  }
+
+  dynamic _hiveSafeValue(dynamic value) {
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    if (value is Book) return _hiveSafeValue(value.toJson());
+    if (value is Author) return _hiveSafeValue(value.toJson());
+    if (value is Chapter) return _hiveSafeValue(value.toJson());
+    if (value is ChapterVersion) return _hiveSafeValue(value.toJson());
+    if (value is List) {
+      return value.map(_hiveSafeValue).toList(growable: false);
+    }
+    if (value is Map) {
+      return value.map(
+        (key, mapValue) => MapEntry(key.toString(), _hiveSafeValue(mapValue)),
+      );
+    }
+    return value.toString();
   }
 }

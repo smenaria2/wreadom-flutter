@@ -20,5 +20,12 @@ final conversationsProvider = StreamProvider<List<Conversation>>((ref) async* {
 
 final conversationMessagesProvider =
     StreamProvider.family<List<Message>, String>((ref, conversationId) {
-  return ref.watch(messageRepositoryProvider).watchMessages(conversationId);
+      return ref.watch(messageRepositoryProvider).watchMessages(conversationId);
+    });
+
+final conversationProvider = StreamProvider.family<Conversation?, String>((
+  ref,
+  conversationId,
+) {
+  return ref.watch(messageRepositoryProvider).watchConversation(conversationId);
 });

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
@@ -11,11 +12,14 @@ import '../providers/auth_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
 import '../utils/writer_html_codec.dart';
+import '../utils/writer_media_utils.dart';
+import '../widgets/writer_media_embed.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
-  const WriterPadScreen({super.key, this.book});
+  const WriterPadScreen({super.key, this.book, this.initialTopic});
 
   final Book? book;
+  final String? initialTopic;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -44,6 +48,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final RestorableString _restorableLanguage = RestorableString('English');
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
   final List<_ChapterDraft> _chapters = [];
 
   Timer? _autosaveTimer;
@@ -51,12 +56,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   int _step = 0;
   int _currentChapterIndex = 0;
   bool _isSaving = false;
+  bool _isUploadingInlineImage = false;
+  bool _isUploadingCover = false;
   bool _isDirty = false;
   bool _metadataListenersAttached = false;
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
   String _category = 'Romance';
   String _language = 'English';
+  String? _coverUrl;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
@@ -118,6 +126,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     super.initState();
     final book = widget.book;
     _bookId = book?.id;
+    _coverUrl = book?.coverUrl;
     _titleController = RestorableTextEditingController(text: book?.title ?? '');
     _descriptionController = RestorableTextEditingController(
       text: book?.description ?? '',
@@ -129,7 +138,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _category = _defaultCategory;
     }
     _topicsController = RestorableTextEditingController(
-      text: (book?.topics ?? const <String>[]).join(', '),
+      text: _initialTopicsText(book),
     );
 
     for (final chapter in book?.chapters ?? const <Chapter>[]) {
@@ -143,6 +152,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       const Duration(seconds: 10),
       (_) => _autosaveDraft(),
     );
+  }
+
+  String _initialTopicsText(Book? book) {
+    final topics = <String>{...(book?.topics ?? const <String>[])};
+    if (book == null) {
+      final initialTopic = widget.initialTopic?.trim();
+      if (initialTopic != null && initialTopic.isNotEmpty) {
+        topics.add(initialTopic);
+      }
+    }
+    return topics.join(', ');
   }
 
   @override
@@ -206,7 +226,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         actions: [
           TextButton(
             onPressed: _isSaving ? null : () => _save(status: 'draft'),
-            child: const Text('Draft'),
+            child: Text(
+              widget.book?.status == 'published' ? 'Convert to Draft' : 'Draft',
+            ),
           ),
           const SizedBox(width: 4),
           FilledButton(
@@ -307,6 +329,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               focusNode: _editorFocusNode,
               scrollController: _editorScrollController,
               config: QuillEditorConfig(
+                embedBuilders: const [
+                  WriterImageEmbedBuilder(),
+                  WriterMediaEmbedBuilder(),
+                ],
                 placeholder: 'Start writing...',
                 padding: EdgeInsets.zero,
                 expands: true,
@@ -409,6 +435,85 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
+                'Cover',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: _onWriterSurfaceColor(context),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 144,
+                    decoration: BoxDecoration(
+                      color: _writerFieldColor(context),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      image: _coverUrl == null
+                          ? null
+                          : DecorationImage(
+                              image: NetworkImage(_coverUrl!),
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                    child: _coverUrl == null
+                        ? Icon(
+                            Icons.auto_stories_outlined,
+                            color: _onWriterSurfaceColor(
+                              context,
+                            ).withValues(alpha: 0.42),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _isUploadingCover ? null : _pickCover,
+                          icon: _isUploadingCover
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.cloud_upload_outlined),
+                          label: Text(
+                            _isUploadingCover ? 'Uploading...' : 'Upload cover',
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _coverUrl == null || _isUploadingCover
+                              ? null
+                              : () {
+                                  setState(() => _coverUrl = null);
+                                  _markDirty();
+                                },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Remove'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _surface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
                 'Discovery',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
@@ -495,10 +600,21 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Chapters',
+              tooltip: 'Insert image',
               color: onToolbarColor,
-              onPressed: _showChapterSheet,
-              icon: const Icon(Icons.menu_book_rounded),
+              onPressed: _isUploadingInlineImage ? null : _pickInlineImage,
+              icon: _isUploadingInlineImage
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.image_outlined),
+            ),
+            IconButton(
+              tooltip: 'Insert media',
+              color: onToolbarColor,
+              onPressed: _showMediaInsertDialog,
+              icon: const Icon(Icons.smart_display_outlined),
             ),
             Expanded(
               child: QuillSimpleToolbar(
@@ -533,12 +649,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   toolbarSectionSpacing: 2,
                 ),
               ),
-            ),
-            IconButton(
-              tooltip: 'Add chapter',
-              color: onToolbarColor,
-              onPressed: _addChapter,
-              icon: const Icon(Icons.add_circle_outline),
             ),
           ],
         ),
@@ -685,65 +795,143 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void _showChapterSheet() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: _writerSurfaceColor(context),
-      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        final onSurfaceColor = _onWriterSurfaceColor(context);
+        final dark = Theme.of(context).colorScheme.inverseSurface;
+        final onDark = Theme.of(context).colorScheme.onInverseSurface;
         return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Chapters',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: onSurfaceColor,
-                        fontWeight: FontWeight.w800,
+          child: StatefulBuilder(
+            builder: (context, modalSetState) {
+              return Container(
+                height: MediaQuery.sizeOf(context).height * 0.9,
+                margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                decoration: BoxDecoration(
+                  color: dark,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Chapter overview',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        color: onDark,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_chapters.length} chapters',
+                                  style: TextStyle(
+                                    color: onDark.withValues(alpha: 0.62),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Close',
+                            color: onDark,
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Add chapter',
-                    color: onSurfaceColor,
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _addChapter();
-                    },
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              for (var i = 0; i < _chapters.length; i++)
-                ListTile(
-                  selected: i == _currentChapterIndex,
-                  selectedTileColor: onSurfaceColor.withValues(alpha: 0.08),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  title: Text(
-                    _chapters[i].title.text.trim().isEmpty
-                        ? 'Chapter ${i + 1}'
-                        : _chapters[i].title.text.trim(),
-                    style: TextStyle(color: onSurfaceColor),
-                  ),
-                  subtitle: Text(
-                    '${_chapters[i].wordCount} words',
-                    style: TextStyle(
-                      color: onSurfaceColor.withValues(alpha: 0.52),
+                    Expanded(
+                      child: ReorderableListView.builder(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                        itemCount: _chapters.length,
+                        proxyDecorator: (child, index, animation) => Material(
+                          color: Colors.transparent,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 1, end: 1.02).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
+                              ),
+                            ),
+                            child: child,
+                          ),
+                        ),
+                        onReorder: (oldIndex, newIndex) {
+                          setState(() => _reorderChapter(oldIndex, newIndex));
+                          modalSetState(() {});
+                        },
+                        itemBuilder: (context, i) {
+                          final chapter = _chapters[i];
+                          final isCurrent = i == _currentChapterIndex;
+                          return _ChapterOverviewCard(
+                            key: ValueKey(chapter.key),
+                            index: i,
+                            title: chapter.title.text.trim().isEmpty
+                                ? 'Chapter ${i + 1}'
+                                : chapter.title.text.trim(),
+                            preview: _chapterPreview(chapter),
+                            wordCount: chapter.wordCount,
+                            isCurrent: isCurrent,
+                            canDelete: _chapters.length > 1,
+                            textColor: onDark,
+                            onTap: () {
+                              setState(() => _setCurrentChapterIndex(i));
+                              Navigator.of(context).pop();
+                            },
+                            onDelete: () async {
+                              final deleted = await _confirmDeleteChapter(i);
+                              if (deleted && context.mounted) {
+                                modalSetState(() {});
+                              }
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  trailing: i == _currentChapterIndex
-                      ? Icon(Icons.check, color: onSurfaceColor)
-                      : null,
-                  onTap: () {
-                    setState(() => _setCurrentChapterIndex(i));
-                    Navigator.of(context).pop();
-                  },
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          _addChapter();
+                          modalSetState(() {});
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: onDark.withValues(alpha: 0.28),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.add_rounded, color: onDark),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Add new chapter',
+                                style: TextStyle(
+                                  color: onDark,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -755,7 +943,179 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapters.add(_ChapterDraft.empty(_markDirty));
       _setCurrentChapterIndex(_chapters.length - 1);
       _isDirty = true;
+      _saveStatus = 'Unsaved changes';
     });
+  }
+
+  void _reorderChapter(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final moving = _chapters[oldIndex];
+    final current = _currentChapter;
+    _chapters
+      ..removeAt(oldIndex)
+      ..insert(newIndex, moving);
+    _setCurrentChapterIndex(_chapters.indexOf(current));
+    _isDirty = true;
+    _saveStatus = 'Unsaved changes';
+  }
+
+  Future<bool> _confirmDeleteChapter(int index) async {
+    if (_chapters.length <= 1) return false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete chapter?'),
+        content: const Text('This removes the chapter from this draft.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return false;
+    setState(() {
+      final removed = _chapters.removeAt(index);
+      removed.dispose();
+      _setCurrentChapterIndex(
+        _currentChapterIndex.clamp(0, _chapters.length - 1),
+      );
+      _isDirty = true;
+      _saveStatus = 'Unsaved changes';
+    });
+    return true;
+  }
+
+  String _chapterPreview(_ChapterDraft chapter) {
+    final text = plainTextFromHtml(
+      htmlFromDocument(chapter.controller.document),
+    );
+    if (text.isEmpty) return 'No content yet';
+    if (text.length <= 96) return text;
+    return '${text.substring(0, 96).trim()}...';
+  }
+
+  Future<void> _pickInlineImage() async {
+    final user = await ref.read(currentUserProvider.future);
+    if (user == null) {
+      _showSnack('Sign in before uploading images.');
+      return;
+    }
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _isUploadingInlineImage = true);
+    try {
+      final uploaded = await ref
+          .read(cloudinaryUploadServiceProvider)
+          .uploadImage(file: file, folder: 'books', userId: user.id);
+      final url = optimizeCloudinaryImageUrl(uploaded);
+      _insertEmbed(BlockEmbed.image(url));
+      _showSnack('Image inserted.');
+    } catch (error) {
+      _showSnack('Could not upload image: $error');
+    } finally {
+      if (mounted) setState(() => _isUploadingInlineImage = false);
+    }
+  }
+
+  Future<void> _pickCover() async {
+    final user = await ref.read(currentUserProvider.future);
+    if (user == null) {
+      _showSnack('Sign in before uploading a cover.');
+      return;
+    }
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _isUploadingCover = true);
+    try {
+      final uploaded = await ref
+          .read(cloudinaryUploadServiceProvider)
+          .uploadImage(file: file, folder: 'covers', userId: user.id);
+      final url = optimizeCloudinaryImageUrl(
+        uploaded,
+        transform: 'f_auto,q_auto,w_600,h_900,c_fill',
+      );
+      setState(() => _coverUrl = url);
+      _markDirty();
+      _showSnack('Cover uploaded.');
+    } catch (error) {
+      _showSnack('Could not upload cover: $error');
+    } finally {
+      if (mounted) setState(() => _isUploadingCover = false);
+    }
+  }
+
+  Future<void> _showMediaInsertDialog() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Insert media'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'YouTube, Instagram, or Spotify URL',
+          ),
+          keyboardType: TextInputType.url,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text('Insert'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null) return;
+    final info = classifyWriterMediaUrl(result);
+    if (info.isSupported) {
+      _insertEmbed(BlockEmbed.video(info.originalUrl));
+      return;
+    }
+    _insertText(result.trim());
+    _showSnack('Unsupported links are inserted as plain text.');
+  }
+
+  void _insertEmbed(BlockEmbed embed) {
+    final controller = _currentChapter.controller;
+    final selection = controller.selection;
+    final index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
+    final length = selection.isCollapsed ? 0 : selection.end - selection.start;
+    controller.replaceText(
+      index,
+      length,
+      embed,
+      TextSelection.collapsed(offset: index + 1),
+    );
+    _markDirty();
+  }
+
+  void _insertText(String text) {
+    if (text.trim().isEmpty) return;
+    final controller = _currentChapter.controller;
+    final selection = controller.selection;
+    final index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
+    final length = selection.isCollapsed ? 0 : selection.end - selection.start;
+    controller.replaceText(
+      index,
+      length,
+      text,
+      TextSelection.collapsed(offset: index + text.length),
+    );
+    _markDirty();
   }
 
   Future<void> _autosaveDraft() async {
@@ -790,7 +1150,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         final draft = _chapters[i];
         final content = htmlFromDocument(draft.controller.document);
         final plainContent = plainTextFromHtml(content);
-        if (draft.title.text.trim().isEmpty && plainContent.isEmpty) continue;
+        if (draft.title.text.trim().isEmpty &&
+            plainContent.isEmpty &&
+            !hasMeaningfulWriterHtml(content)) {
+          continue;
+        }
         chapters.add(
           Chapter(
             id: draft.id ?? 'chapter_${now}_$i',
@@ -818,7 +1182,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         id: _bookId ?? widget.book?.id ?? '',
         title: title.isEmpty ? 'Untitled Story' : title,
         description: _descriptionController.value.text.trim(),
-        coverUrl: widget.book?.coverUrl,
+        coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
         authors: [
           Author(
             name: user.displayName ?? user.username,
@@ -881,9 +1245,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool get _hasSavableContent {
     if (_titleController.value.text.trim().isNotEmpty) return true;
     return _chapters.any((chapter) {
-      return plainTextFromHtml(
-        htmlFromDocument(chapter.controller.document),
-      ).isNotEmpty;
+      final html = htmlFromDocument(chapter.controller.document);
+      return plainTextFromHtml(html).isNotEmpty ||
+          hasMeaningfulWriterHtml(html);
     });
   }
 
@@ -980,6 +1344,131 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 }
 
+class _ChapterOverviewCard extends StatelessWidget {
+  const _ChapterOverviewCard({
+    super.key,
+    required this.index,
+    required this.title,
+    required this.preview,
+    required this.wordCount,
+    required this.isCurrent,
+    required this.canDelete,
+    required this.textColor,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final int index;
+  final String title;
+  final String preview;
+  final int wordCount;
+  final bool isCurrent;
+  final bool canDelete;
+  final Color textColor;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isCurrent
+        ? Theme.of(context).colorScheme.primary
+        : textColor.withValues(alpha: 0.18);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: textColor.withValues(alpha: isCurrent ? 0.12 : 0.07),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor, width: isCurrent ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(
+                  Icons.drag_indicator_rounded,
+                  color: textColor.withValues(alpha: 0.62),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (isCurrent)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Editing',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      preview,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.66),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$wordCount words',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.52),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Delete chapter',
+                onPressed: canDelete ? onDelete : null,
+                color: textColor.withValues(alpha: 0.74),
+                icon: const Icon(Icons.delete_outline_rounded),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChapterDraft {
   _ChapterDraft({
     required this.title,
@@ -1015,6 +1504,7 @@ class _ChapterDraft {
   }
 
   final String? id;
+  String get key => id ?? identityHashCode(this).toString();
   final TextEditingController title;
   final QuillController controller;
   final Chapter? original;

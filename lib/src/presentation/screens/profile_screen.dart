@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
@@ -12,6 +13,7 @@ import '../components/profile/user_about_tab.dart';
 import '../components/profile/user_history_tab.dart';
 import '../components/profile/user_saved_tab.dart';
 import 'follow_list_screen.dart';
+import '../../utils/app_link_helper.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -117,6 +119,14 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     actions: [
+                      IconButton(
+                        tooltip: 'Share Profile',
+                        icon: const Icon(Icons.ios_share_rounded),
+                        onPressed: () => _shareProfile(
+                          user.id,
+                          user.displayName ?? user.username,
+                        ),
+                      ),
                       _NotificationAction(),
                       Builder(
                         builder: (context) => IconButton(
@@ -209,6 +219,13 @@ class ProfileScreen extends ConsumerWidget {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(body: Center(child: Text('Error: $err'))),
+    );
+  }
+
+  void _shareProfile(String userId, String name) {
+    Share.share(
+      'Read with $name on Wreadom\n${AppLinkHelper.user(userId)}',
+      subject: '$name on Wreadom',
     );
   }
 }

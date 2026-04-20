@@ -8,6 +8,7 @@ import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/book_providers.dart';
 import '../providers/discovery_providers.dart';
+import '../components/generated_book_cover.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import 'book_detail_screen.dart';
@@ -439,9 +440,9 @@ class _SearchResultTile extends StatelessWidget {
                           height: 80,
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) =>
-                              _MiniPlaceholder(title: book.title),
+                              _MiniPlaceholder(book: book),
                         )
-                      : _MiniPlaceholder(title: book.title),
+                      : _MiniPlaceholder(book: book),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -497,33 +498,20 @@ class _SearchResultTile extends StatelessWidget {
 }
 
 class _MiniPlaceholder extends StatelessWidget {
-  const _MiniPlaceholder({required this.title});
+  const _MiniPlaceholder({required this.book});
 
-  final String title;
+  final Book book;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GeneratedBookCover(
       width: 56,
       height: 80,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Text(
-            title,
-            maxLines: 3,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontSize: 9,
-            ),
-          ),
-        ),
-      ),
+      title: book.title,
+      author: book.authors.isNotEmpty ? book.authors.first.name : null,
+      seed: book.id,
+      borderRadius: 8,
+      compact: true,
     );
   }
 }

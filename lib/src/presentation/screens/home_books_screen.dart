@@ -12,8 +12,10 @@ import 'category_books_screen.dart';
 import 'daily_topic_screen.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
+import '../components/generated_book_cover.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -132,6 +134,7 @@ class HomeBooksScreen extends ConsumerWidget {
           ref.invalidate(homepageIABooksProvider);
           ref.invalidate(homepageAuthorsProvider);
           ref.invalidate(homepageDownloadedBooksProvider);
+          ref.invalidate(readingHistoryBooksProvider);
           ref.invalidate(originalBooksProvider);
           ref.invalidate(popularBooksProvider);
           ref.invalidate(recentBooksProvider);
@@ -144,23 +147,17 @@ class HomeBooksScreen extends ConsumerWidget {
               _AuthorSpotlight(recentBooksAsync: recentAsync),
               const SizedBox(height: 16),
 
+              const _HeroBanner(),
+              const SizedBox(height: 28),
+
+              const _ContinueReadingSection(),
+              const SizedBox(height: 28),
+
               // ─── Saved Books (Local & Remote) ─────────────────────────
               const _SavedBooksSection(),
               const SizedBox(height: 28),
 
               // ─── Wreadom Originals ────────────────────────────────────
-              _BookshelfSection(
-                title: _HomeShelfDestination.communityClassics.category,
-                booksAsync: iaAsync,
-                sectionId: _HomeShelfDestination.communityClassics.sectionId,
-                onRetry: () => ref.invalidate(homepageIABooksProvider),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.communityClassics,
-                ),
-              ),
-              const SizedBox(height: 28),
-
               _BookshelfSection(
                 title: _HomeShelfDestination.originals.category,
                 booksAsync: originalsAsync,
@@ -171,10 +168,6 @@ class HomeBooksScreen extends ConsumerWidget {
                   _HomeShelfDestination.originals,
                 ),
               ),
-              const SizedBox(height: 28),
-
-              // ─── Daily Topics (Hero Banner moved here) ────────────────
-              const _HeroBanner(),
               const SizedBox(height: 28),
 
               // ─── Popular Books ────────────────────────────────────────
@@ -223,6 +216,16 @@ class HomeBooksScreen extends ConsumerWidget {
                 booksAsync: sciFiAsync,
                 genre: 'Sci-Fi',
                 sectionId: 'sci-fi',
+              ),
+              _BookshelfSection(
+                title: _HomeShelfDestination.communityClassics.category,
+                booksAsync: iaAsync,
+                sectionId: _HomeShelfDestination.communityClassics.sectionId,
+                onRetry: () => ref.invalidate(homepageIABooksProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.communityClassics,
+                ),
               ),
               const SizedBox(height: 32),
             ],
@@ -574,6 +577,190 @@ class _GenreSection extends ConsumerWidget {
 }
 
 // ─── Saved Books Section (Top Shelf) ──────────────────────────────────────────
+class _ContinueReadingSection extends ConsumerWidget {
+  const _ContinueReadingSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final booksAsync = ref.watch(readingHistoryBooksProvider);
+    final user = ref.watch(currentUserProvider).asData?.value;
+
+    return booksAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const SizedBox.shrink();
+        final visibleBooks = books.take(12).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Continue Reading',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 150,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: visibleBooks.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final book = visibleBooks[index];
+                  final progress = _progressFor(user, book.id);
+                  return _ContinueReadingCard(
+                    book: book,
+                    chapterIndex: progress.chapterIndex,
+                    position: progress.position,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => _SectionError(
+        title: 'Continue Reading',
+        onRetry: () => ref.invalidate(readingHistoryBooksProvider),
+      ),
+    );
+  }
+
+  _ReadingProgress _progressFor(UserModel? user, String bookId) {
+    final raw = user?.readingProgress?[bookId];
+    if (raw is! Map) return const _ReadingProgress();
+    final progress = Map<String, dynamic>.from(raw);
+    return _ReadingProgress(
+      chapterIndex: (progress['chapterIndex'] as num?)?.toInt() ?? 0,
+      position: ((progress['position'] as num?)?.toDouble() ?? 0)
+          .clamp(0.0, 1.0)
+          .toDouble(),
+    );
+  }
+}
+
+class _ReadingProgress {
+  const _ReadingProgress({this.chapterIndex = 0, this.position = 0});
+
+  final int chapterIndex;
+  final double position;
+}
+
+class _ContinueReadingCard extends StatelessWidget {
+  const _ContinueReadingCard({
+    required this.book,
+    required this.chapterIndex,
+    required this.position,
+  });
+
+  final Book book;
+  final int chapterIndex;
+  final double position;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final authors = book.authors
+        .map((author) => author.name)
+        .where((name) => name.isNotEmpty)
+        .join(', ');
+    final percent = (position * 100).round().clamp(0, 100);
+
+    return SizedBox(
+      width: 260,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => Navigator.of(context).pushNamed(
+          AppRoutes.reader,
+          arguments: ReaderArguments(
+            book: book,
+            initialChapterIndex: chapterIndex,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 82,
+                height: 124,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: book.coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: book.coverUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              _CoverPlaceholder(book: book),
+                        )
+                      : _CoverPlaceholder(book: book),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.18,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      authors.isEmpty ? 'Unknown Author' : authors,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Chapter ${chapterIndex + 1}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    LinearProgressIndicator(
+                      value: position,
+                      minHeight: 4,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      percent > 0 ? '$percent% complete' : 'Ready to resume',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SavedBooksSection extends ConsumerWidget {
   const _SavedBooksSection();
 
@@ -816,9 +1003,7 @@ class _SectionError extends StatelessWidget {
         decoration: BoxDecoration(
           color: colorScheme.errorContainer.withValues(alpha: 0.38),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: colorScheme.error.withValues(alpha: 0.24),
-          ),
+          border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
         ),
         child: Row(
           children: [
@@ -835,10 +1020,7 @@ class _SectionError extends StatelessWidget {
                 style: TextStyle(color: colorScheme.onErrorContainer),
               ),
             ),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),
@@ -901,10 +1083,10 @@ class _BookCard extends StatelessWidget {
                               ),
                             ),
                             errorWidget: (context, url, error) =>
-                                _CoverPlaceholder(title: book.title),
+                                _CoverPlaceholder(book: book),
                           ),
                         )
-                      : _CoverPlaceholder(title: book.title),
+                      : _CoverPlaceholder(book: book),
                 ),
               ),
               const SizedBox(height: 8),
@@ -939,33 +1121,19 @@ class _BookCard extends StatelessWidget {
 }
 
 class _CoverPlaceholder extends StatelessWidget {
-  final String title;
-  const _CoverPlaceholder({required this.title});
+  final Book book;
+  const _CoverPlaceholder({required this.book});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GeneratedBookCover(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(
-            title,
-            maxLines: 3,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
+      title: book.title,
+      author: book.authors.isNotEmpty ? book.authors.first.name : null,
+      seed: book.id,
+      borderRadius: 12,
+      compact: true,
     );
   }
 }
@@ -1298,9 +1466,8 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                         ),
                         error: (_, _) => _SectionError(
                           title: '$authorName books',
-                          onRetry: () => ref.invalidate(
-                            userBooksProvider(author.id),
-                          ),
+                          onRetry: () =>
+                              ref.invalidate(userBooksProvider(author.id)),
                         ),
                       ),
                     ],

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:html/parser.dart' as html_parser;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
@@ -14,7 +17,9 @@ import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
+import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
@@ -55,6 +60,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
+  bool _isTtsPlaying = false;
+  bool _isTtsPreparing = false;
+  bool _isTtsSequencing = false;
+  bool _stopTtsRequested = false;
+  int _ttsSession = 0;
+  late final FlutterTts _tts;
+  final GlobalKey _quoteImageKey = GlobalKey();
+  _QuoteSharePayload? _quoteSharePayload;
   Timer? _progressSaveDebounce;
   bool _initialScrollRestored = false;
   double? _pendingSavedScrollProgress;
@@ -79,6 +92,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _restorableChapterIndex.value = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
+    _tts = FlutterTts();
+    _configureTts();
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     _incrementView();
     _saveHistorySilently('initial_history_save');
@@ -87,11 +102,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         Object error,
         StackTrace stackTrace,
       ) {
-        _logBackgroundSaveError(
-          'initial_scroll_restore',
-          error,
-          stackTrace,
-        );
+        _logBackgroundSaveError('initial_scroll_restore', error, stackTrace);
       }),
     );
     _scrollController.addListener(_onScroll);
@@ -266,9 +277,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _logBackgroundSaveError(
     String operationName,
     Object error,
-    StackTrace stackTrace,
-    {int? chapterIndex}
-  ) {
+    StackTrace stackTrace, {
+    int? chapterIndex,
+  }) {
     debugPrint(
       'Reader background save failed during $operationName '
       '(bookId: ${widget.book.id}, '
@@ -300,10 +311,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _progressSaveDebounce?.cancel();
     _progressSaveDebounce = Timer(const Duration(seconds: 2), () {
       _progressSaveDebounce = null;
-      _saveProgressSilently(
-        'debounced_progress_save',
-        userId: _currentUserId,
-      );
+      _saveProgressSilently('debounced_progress_save', userId: _currentUserId);
     });
   }
 
@@ -323,6 +331,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _goToChapter(int index) {
     _flushProgressSave('chapter_change');
+    unawaited(_stopTts());
     setState(() {
       _chapterIndex = index;
       _restorableChapterIndex.value = index;
@@ -354,6 +363,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _restorableScrollProgress.dispose();
     _scrollController.dispose();
     _commentFocusNode.dispose();
+    unawaited(_tts.stop());
     super.dispose();
   }
 
@@ -399,7 +409,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
           loading: () => Scaffold(
             appBar: AppBar(title: Text(widget.book.title)),
-            body: const Center(child: CircularProgressIndicator()),
+            body: _buildLoadingBody(),
           ),
           error: (err, stack) => Scaffold(
             appBar: AppBar(title: const Text('Error')),
@@ -417,7 +427,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
         loading: () => Scaffold(
           appBar: AppBar(title: Text(widget.book.title)),
-          body: const Center(child: CircularProgressIndicator()),
+          body: _buildLoadingBody(),
         ),
         error: (err, stack) => Scaffold(
           appBar: AppBar(title: const Text('Error')),
@@ -434,11 +444,50 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
         loading: () => Scaffold(
           appBar: AppBar(title: Text(widget.book.title)),
-          body: const Center(child: CircularProgressIndicator()),
+          body: _buildLoadingBody(),
         ),
         error: (err, stack) => Scaffold(
           appBar: AppBar(title: const Text('Error')),
           body: Center(child: Text('Failed to load book content: $err')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingBody() {
+    final isArchiveBook =
+        widget.book.source == 'archive' ||
+        (widget.book.source == null &&
+            !(widget.book.id.length == 20 &&
+                RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(widget.book.id)));
+    if (!isArchiveBook) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const LinearProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              'Fetching public-domain text...',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Internet Archive books can take a moment to prepare.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -490,6 +539,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ),
                 IconButton(
+                  icon: _isTtsPreparing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _isTtsPlaying
+                              ? Icons.stop_circle_outlined
+                              : Icons.volume_up_outlined,
+                        ),
+                  tooltip: _isTtsPlaying ? 'Stop reading aloud' : 'Read aloud',
+                  onPressed: chapter == null || _isTtsPreparing
+                      ? null
+                      : () => _toggleTts(chapter),
+                ),
+                IconButton(
                   icon: const Icon(Icons.format_size_rounded),
                   onPressed: _showSettings,
                   tooltip: 'Reader Settings',
@@ -515,100 +581,154 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ),
       body: Container(
         color: _getBackgroundColor(),
-        child: Column(
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            // Removed horizontal chips - now in Drawer
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  if (_isDiscussionOpen) {
-                    Navigator.of(context).maybePop();
-                  }
-                },
-                child: ListView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    Text(
-                      chapter?.title ?? widget.book.title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    SelectionArea(
-                      onSelectionChanged: (content) {
-                        setState(() {
-                          _selectedText = content?.plainText ?? "";
-                        });
-                      },
-                      contextMenuBuilder: (context, selectableRegionState) {
-                        final selected = _selectedText.trim();
-                        final buttonItems = <ContextMenuButtonItem>[
-                          ContextMenuButtonItem(
-                            label: 'Quote & Comment',
-                            onPressed: selected.isEmpty
-                                ? null
-                                : () {
-                                    setState(() {
-                                      _selectedQuote = selected;
-                                      _replyingTo = null;
-                                    });
-                                    selectableRegionState.hideToolbar();
-                                    _scrollController.animateTo(
-                                      _scrollController
-                                          .position
-                                          .maxScrollExtent,
-                                      duration: const Duration(
-                                        milliseconds: 500,
-                                      ),
-                                      curve: Curves.easeOut,
-                                    );
-                                  },
-                          ),
-                          ContextMenuButtonItem(
-                            label: 'Share Quote',
-                            onPressed: selected.isEmpty
-                                ? null
-                                : () {
-                                    selectableRegionState.hideToolbar();
-                                    _shareSelectedQuote(chapter, selected);
-                                  },
-                          ),
-                        ];
-                        return AdaptiveTextSelectionToolbar.buttonItems(
-                          anchors: selectableRegionState.contextMenuAnchors,
-                          buttonItems: buttonItems,
-                        );
-                      },
-                      child: HtmlWidget(
-                        chapter?.content ??
-                            widget.book.description ??
-                            'No readable content available yet.',
-                        textStyle: TextStyle(
-                          fontSize: _fontSize,
-                          height: 1.8,
-                          color: _getTextColor(),
-                          fontFamily: _readerFont == ReaderFont.serif
-                              ? 'Serif'
-                              : null,
+            Column(
+              children: [
+                // Removed horizontal chips - now in Drawer
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      if (_isDiscussionOpen) {
+                        Navigator.of(context).maybePop();
+                      }
+                    },
+                    child: ListView(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        Text(
+                          chapter?.title ?? widget.book.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        // Custom styles for images and links if needed
-                      ),
+                        const SizedBox(height: 16),
+                        SelectionArea(
+                          onSelectionChanged: (content) {
+                            setState(() {
+                              _selectedText = content?.plainText ?? "";
+                            });
+                          },
+                          contextMenuBuilder: (context, selectableRegionState) {
+                            final selected = _selectedText.trim();
+                            final buttonItems = <ContextMenuButtonItem>[
+                              ContextMenuButtonItem(
+                                label: 'Quote & Comment',
+                                onPressed: selected.isEmpty
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _selectedQuote = selected;
+                                          _replyingTo = null;
+                                        });
+                                        selectableRegionState.hideToolbar();
+                                        _showDiscussion(
+                                          chapter,
+                                          focusComposer: true,
+                                        );
+                                      },
+                              ),
+                              ContextMenuButtonItem(
+                                label: 'Share Quote',
+                                onPressed: selected.isEmpty
+                                    ? null
+                                    : () {
+                                        selectableRegionState.hideToolbar();
+                                        _shareSelectedQuote(chapter, selected);
+                                      },
+                              ),
+                            ];
+                            return AdaptiveTextSelectionToolbar.buttonItems(
+                              anchors: selectableRegionState.contextMenuAnchors,
+                              buttonItems: buttonItems,
+                            );
+                          },
+                          child: HtmlWidget(
+                            chapter?.content ??
+                                widget.book.description ??
+                                'No readable content available yet.',
+                            customWidgetBuilder: (element) {
+                              final tag = element.localName?.toLowerCase();
+                              if (tag == 'a') {
+                                final href = element.attributes['href'];
+                                if (isAllowedWriterLink(href)) {
+                                  return WriterMediaPreview(
+                                    url: href!,
+                                    textColor: _getTextColor(),
+                                  );
+                                }
+                                return Text(
+                                  element.text,
+                                  style: TextStyle(
+                                    fontSize: _fontSize,
+                                    height: 1.8,
+                                    color: _getTextColor(),
+                                  ),
+                                );
+                              }
+                              if (tag == 'img') {
+                                final src = element.attributes['src'];
+                                if (isTrustedCloudinaryImageUrl(src)) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        src!,
+                                        width: double.infinity,
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }
+                              return null;
+                            },
+                            onTapUrl: (url) async => isAllowedWriterLink(url),
+                            textStyle: TextStyle(
+                              fontSize: _fontSize,
+                              height: 1.8,
+                              color: _getTextColor(),
+                              fontFamily: _readerFont == ReaderFont.serif
+                                  ? 'Serif'
+                                  : null,
+                            ),
+                            // Custom styles for images and links if needed
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _ChapterEndActions(
+                          hasNextChapter: _chapterIndex < chapters.length - 1,
+                          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+                          onNextChapter: _chapterIndex < chapters.length - 1
+                              ? _markChapterCompleteAndGoNext
+                              : null,
+                          onViewComments: () => _showDiscussion(chapter),
+                        ),
+                        const SizedBox(height: 100),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    _ChapterEndActions(
-                      hasNextChapter: _chapterIndex < chapters.length - 1,
-                      onNextChapter: _chapterIndex < chapters.length - 1
-                          ? _markChapterCompleteAndGoNext
-                          : null,
-                      onViewComments: () => _showDiscussion(chapter),
-                    ),
-                    const SizedBox(height: 100),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+            if (_quoteSharePayload != null)
+              Positioned(
+                left: -2000,
+                top: 0,
+                child: RepaintBoundary(
+                  key: _quoteImageKey,
+                  child: _QuoteImage(payload: _quoteSharePayload!),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -620,6 +740,156 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         theme: _readerTheme,
       ),
     );
+  }
+
+  void _configureTts() {
+    _tts.setStartHandler(() {
+      if (!mounted) return;
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = true;
+      });
+    });
+    _tts.setCompletionHandler(() {
+      if (!mounted) return;
+      if (_isTtsSequencing) return;
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = false;
+      });
+    });
+    _tts.setCancelHandler(() {
+      if (!mounted) return;
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = false;
+      });
+    });
+    _tts.setErrorHandler((message) {
+      if (!mounted) return;
+      _stopTtsRequested = true;
+      _ttsSession++;
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Read aloud failed: $message')));
+    });
+  }
+
+  Future<void> _toggleTts(Chapter chapter) async {
+    if (_isTtsPlaying) {
+      await _stopTts();
+      return;
+    }
+
+    final text = _plainTextForTts(chapter);
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No readable text in this chapter.')),
+      );
+      return;
+    }
+
+    setState(() => _isTtsPreparing = true);
+    try {
+      final session = ++_ttsSession;
+      _stopTtsRequested = false;
+      _isTtsSequencing = true;
+      await _tts.awaitSpeakCompletion(true);
+      await _tts.setLanguage(_ttsLanguageForBook());
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      for (final chunk in _ttsChunks(text)) {
+        if (_stopTtsRequested || session != _ttsSession) break;
+        await _tts.speak(chunk);
+      }
+      if (!mounted || session != _ttsSession) return;
+      if (_stopTtsRequested) {
+        setState(() {
+          _isTtsPreparing = false;
+          _isTtsPlaying = false;
+        });
+      } else {
+        setState(() {
+          _isTtsPreparing = false;
+          _isTtsPlaying = false;
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isTtsPreparing = false;
+        _isTtsPlaying = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Read aloud failed: $error')));
+    } finally {
+      _isTtsSequencing = false;
+    }
+  }
+
+  Future<void> _stopTts() async {
+    _stopTtsRequested = true;
+    _ttsSession++;
+    await _tts.stop();
+    if (!mounted) return;
+    setState(() {
+      _isTtsPreparing = false;
+      _isTtsPlaying = false;
+    });
+  }
+
+  String _plainTextForTts(Chapter chapter) {
+    final title = chapter.title.trim();
+    final content = html_parser
+        .parse(chapter.content)
+        .documentElement
+        ?.text
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return [
+      title,
+      content,
+    ].where((part) => part != null && part.isNotEmpty).join('. ');
+  }
+
+  String _ttsLanguageForBook() {
+    final language = widget.book.languages.firstOrNull?.toLowerCase().trim();
+    if (language == null || language.isEmpty) return 'en-US';
+    if (language == 'hi' || language == 'hin' || language.contains('hindi')) {
+      return 'hi-IN';
+    }
+    if (language == 'en' || language == 'eng' || language.contains('english')) {
+      return 'en-US';
+    }
+    return language.length == 2 ? language : 'en-US';
+  }
+
+  List<String> _ttsChunks(String text) {
+    final normalized = text
+        .replaceAll(RegExp(r'[\u0000-\u0008\u000B\u000C\u000E-\u001F]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (normalized.isEmpty) return const [];
+
+    const maxChunkLength = 3200;
+    final chunks = <String>[];
+    var remaining = normalized;
+    while (remaining.length > maxChunkLength) {
+      var splitAt = remaining.lastIndexOf(RegExp(r'[.!?।]\s+'), maxChunkLength);
+      if (splitAt < maxChunkLength * 0.5) {
+        splitAt = remaining.lastIndexOf(' ', maxChunkLength);
+      }
+      if (splitAt < maxChunkLength * 0.5) splitAt = maxChunkLength;
+      chunks.add(remaining.substring(0, splitAt).trim());
+      remaining = remaining.substring(splitAt).trim();
+    }
+    if (remaining.isNotEmpty) chunks.add(remaining);
+    return chunks;
   }
 
   Set<int> _completedChapterIndexes(AsyncValue<dynamic> userAsync) {
@@ -668,6 +938,65 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         .where((n) => n.isNotEmpty)
         .join(', ');
     final chapterTitle = chapter?.title?.toString();
+    final shareText = _quoteShareText(selected, chapterTitle, authors);
+
+    try {
+      final coverUrl = widget.book.coverUrl;
+      if (coverUrl != null && coverUrl.isNotEmpty && mounted) {
+        await precacheImage(
+          NetworkImage(coverUrl),
+          context,
+        ).timeout(const Duration(seconds: 2), onTimeout: () {});
+      }
+      setState(() {
+        _quoteSharePayload = _QuoteSharePayload(
+          quote: selected,
+          bookTitle: widget.book.title,
+          chapterTitle: chapterTitle,
+          authors: authors,
+          coverUrl: coverUrl,
+        );
+      });
+      await WidgetsBinding.instance.endOfFrame;
+      final boundary =
+          _quoteImageKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      final image = await boundary?.toImage(pixelRatio: 3);
+      final bytes = await image
+          ?.toByteData(format: ui.ImageByteFormat.png)
+          .then((data) => data?.buffer.asUint8List());
+      if (bytes == null || bytes.isEmpty) {
+        await Share.share(
+          shareText,
+          subject: 'Quote from ${widget.book.title}',
+        );
+      } else {
+        await Share.shareXFiles(
+          [
+            XFile.fromData(
+              bytes,
+              name: '${_safeFilePart(widget.book.title)}-quote.png',
+              mimeType: 'image/png',
+            ),
+          ],
+          text: AppLinkHelper.book(widget.book.id),
+          subject: 'Quote from ${widget.book.title}',
+        );
+      }
+    } catch (_) {
+      await Share.share(shareText, subject: 'Quote from ${widget.book.title}');
+    } finally {
+      if (mounted) {
+        setState(() => _quoteSharePayload = null);
+      }
+    }
+  }
+
+  String _quoteShareText(
+    String selected,
+    String? chapterTitle,
+    String authors,
+  ) {
     final parts = [
       '"$selected"',
       '',
@@ -675,10 +1004,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (authors.isNotEmpty) 'by $authors',
       AppLinkHelper.book(widget.book.id),
     ];
-    await Share.share(
-      parts.join('\n'),
-      subject: 'Quote from ${widget.book.title}',
-    );
+    return parts.join('\n');
+  }
+
+  String _safeFilePart(String value) {
+    final safe = value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    return safe.isEmpty ? 'wreadom' : safe;
   }
 
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
@@ -762,8 +1096,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
-  void _showDiscussion(dynamic chapter, {int? chapterIndex}) {
+  void _showDiscussion(
+    dynamic chapter, {
+    int? chapterIndex,
+    bool focusComposer = false,
+  }) {
     if (_isDiscussionOpen) {
+      if (focusComposer) {
+        _commentFocusNode.requestFocus();
+      }
       Navigator.of(context).maybePop();
       return;
     }
@@ -787,13 +1128,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
           child: Column(
             children: [
-              Container(
-                margin: const EdgeInsets.all(12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _getSecondaryTextColor().withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: _getSecondaryTextColor().withValues(
+                              alpha: 0.3,
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -963,6 +1321,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             ],
                             TextField(
                               controller: _commentController.value,
+                              focusNode: _commentFocusNode,
                               minLines: 2,
                               maxLines: 4,
                               decoration: InputDecoration(
@@ -1086,6 +1445,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isDiscussionOpen = false;
       _commentFocusNode.unfocus();
     });
+    if (focusComposer) {
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && _isDiscussionOpen) {
+          _commentFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _showSettings() {
@@ -1332,14 +1698,183 @@ class _ChapterDrawer extends StatelessWidget {
   }
 }
 
+class _QuoteSharePayload {
+  const _QuoteSharePayload({
+    required this.quote,
+    required this.bookTitle,
+    required this.chapterTitle,
+    required this.authors,
+    required this.coverUrl,
+  });
+
+  final String quote;
+  final String bookTitle;
+  final String? chapterTitle;
+  final String authors;
+  final String? coverUrl;
+}
+
+class _QuoteImage extends StatelessWidget {
+  const _QuoteImage({required this.payload});
+
+  final _QuoteSharePayload payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl = payload.coverUrl;
+    return Material(
+      color: Colors.transparent,
+      child: SizedBox(
+        width: 420,
+        height: 420,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (coverUrl != null && coverUrl.isNotEmpty)
+              ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Image.network(coverUrl, fit: BoxFit.cover),
+              )
+            else
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF33395F),
+                      Color(0xFF61647E),
+                      Color(0xFF284B63),
+                    ],
+                  ),
+                ),
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFF2F315B).withValues(alpha: 0.72),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 30, 28, 26),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.format_quote_rounded,
+                    color: Colors.white.withValues(alpha: 0.16),
+                    size: 38,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        payload.quote,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (coverUrl != null && coverUrl.isNotEmpty) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: Image.network(
+                            coverUrl,
+                            width: 44,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              payload.bookTitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (payload.authors.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'by ${payload.authors}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.82),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'WREADOM\nwreadom.in',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 11,
+                          height: 1.25,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ChapterEndActions extends StatelessWidget {
   const _ChapterEndActions({
     required this.hasNextChapter,
+    required this.hasComments,
     required this.onNextChapter,
     required this.onViewComments,
   });
 
   final bool hasNextChapter;
+  final bool hasComments;
   final VoidCallback? onNextChapter;
   final VoidCallback onViewComments;
 
@@ -1359,8 +1894,12 @@ class _ChapterEndActions extends StatelessWidget {
         ],
         Expanded(
           child: OutlinedButton.icon(
-            icon: const Icon(Icons.chat_bubble_outline_rounded),
-            label: const Text('View Comments'),
+            icon: Icon(
+              hasComments
+                  ? Icons.chat_bubble_outline_rounded
+                  : Icons.rate_review_outlined,
+            ),
+            label: Text(hasComments ? 'View Comments' : 'Write Review'),
             onPressed: onViewComments,
           ),
         ),
