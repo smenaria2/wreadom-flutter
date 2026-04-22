@@ -4,7 +4,14 @@ class AppLinkHelper {
   static const host = 'wreadom.in';
   static const origin = 'https://$host';
 
-  static String book(String bookId) => '$origin/book/$bookId';
+  static String book(String bookId) {
+    return 'https://wreadom.in/?book=$bookId';
+  }
+
+  static String chapter(String bookId, int chapterNumber) {
+    return 'https://wreadom.in/?book=$bookId&mode=read&chapter=$chapterNumber';
+  }
+
   static String post(String postId) =>
       '$origin/?page=feed&post=${Uri.encodeComponent(postId)}';
   static String user(String userId) => '$origin/user/$userId';
@@ -23,8 +30,16 @@ class AppLinkHelper {
     if (isWebLink && uri.host != host) return null;
 
     final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final queryBookId = uri.queryParameters['book'];
     final queryPostId = uri.queryParameters['post'];
     if (segments.isEmpty) {
+      if (_hasValue(queryBookId)) {
+        return ResolvedAppLink(
+          AppRoutes.bookDetail,
+          queryBookId,
+          chapterIndex: _chapterIndexFromQuery(uri),
+        );
+      }
       if (_hasValue(queryPostId)) {
         return ResolvedAppLink(AppRoutes.postDetail, queryPostId);
       }
@@ -92,11 +107,21 @@ class AppLinkHelper {
         value != 'null' &&
         value != 'undefined';
   }
+
+  static int? _chapterIndexFromQuery(Uri uri) {
+    final mode = uri.queryParameters['mode']?.trim().toLowerCase();
+    if (mode != 'read') return null;
+
+    final chapterNumber = int.tryParse(uri.queryParameters['chapter'] ?? '');
+    if (chapterNumber == null) return null;
+    return chapterNumber <= 1 ? 0 : chapterNumber - 1;
+  }
 }
 
 class ResolvedAppLink {
-  const ResolvedAppLink(this.route, this.payload);
+  const ResolvedAppLink(this.route, this.payload, {this.chapterIndex});
 
   final String route;
   final String? payload;
+  final int? chapterIndex;
 }

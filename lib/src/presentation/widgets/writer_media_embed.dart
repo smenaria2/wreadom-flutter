@@ -17,16 +17,32 @@ class WriterImageEmbedBuilder extends EmbedBuilder {
   Widget build(BuildContext context, EmbedContext embedContext) {
     final url = embedContext.node.value.data?.toString() ?? '';
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          url,
-          width: double.infinity,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) =>
-              _BrokenMediaCard(label: 'Image unavailable', detail: url),
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scheme = Theme.of(context).colorScheme;
+          return Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 160, maxHeight: 420),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Image.network(
+              url,
+              width: constraints.maxWidth,
+              fit: BoxFit.contain,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame != null) return child;
+                return const Center(child: CircularProgressIndicator());
+              },
+              errorBuilder: (context, error, stackTrace) =>
+                  _BrokenMediaCard(label: 'Image unavailable', detail: url),
+            ),
+          );
+        },
       ),
     );
   }
@@ -44,7 +60,10 @@ class WriterMediaEmbedBuilder extends EmbedBuilder {
   @override
   Widget build(BuildContext context, EmbedContext embedContext) {
     final url = embedContext.node.value.data?.toString() ?? '';
-    return WriterMediaPreview(url: url);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: WriterMediaPreview(url: url),
+    );
   }
 }
 

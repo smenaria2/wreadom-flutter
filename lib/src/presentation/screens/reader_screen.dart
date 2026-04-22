@@ -23,6 +23,7 @@ import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
+import '../providers/theme_provider.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -42,7 +43,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     with RestorationMixin, WidgetsBindingObserver {
   late int _chapterIndex;
   double _fontSize = 18;
-  ReaderTheme _readerTheme = ReaderTheme.dark;
+  ReaderTheme _readerTheme = ReaderTheme.system;
   ReaderFont _readerFont = ReaderFont.serif;
   final RestorableTextEditingController _commentController =
       RestorableTextEditingController();
@@ -155,10 +156,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _incrementView() async {
     try {
-      await _bookRepository.incrementViewCount(widget.book.id);
+      await _bookRepository.recordBookView(
+        widget.book.id,
+        await _viewerKeyForViewCount(),
+      );
     } catch (e) {
       debugPrint('Error incrementing view count: $e');
     }
+  }
+
+  Future<String> _viewerKeyForViewCount() async {
+    try {
+      final user = await ref.read(currentUserProvider.future);
+      final userId = user?.id.trim();
+      if (userId != null && userId.isNotEmpty) return 'user:$userId';
+    } catch (_) {}
+
+    const prefsKey = 'anonymous_reader_viewer_id';
+    final prefs = ref.read(sharedPreferencesProvider);
+    var anonymousId = prefs.getString(prefsKey)?.trim();
+    if (anonymousId == null || anonymousId.isEmpty) {
+      anonymousId =
+          '${DateTime.now().microsecondsSinceEpoch}_${identityHashCode(this)}';
+      await prefs.setString(prefsKey, anonymousId);
+    }
+    return 'anon:$anonymousId';
   }
 
   void _applyReaderSettings(ReaderSettings settings) {
@@ -391,6 +413,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
     final userAsync = ref.watch(currentUserProvider);
+    ref.watch(appThemeControllerProvider);
 
     ref.listen(readerSettingsControllerProvider, (previous, next) {
       if (previous != next) _applyReaderSettings(next);
@@ -517,9 +540,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     required bool isOffline,
   }) {
     _restorePendingScrollPosition();
+    if (chapters.isNotEmpty) {
+      final clampedIndex = _chapterIndex.clamp(0, chapters.length - 1).toInt();
+      if (clampedIndex != _chapterIndex) {
+        _chapterIndex = clampedIndex;
+        _restorableChapterIndex.value = clampedIndex;
+      }
+    }
     final chapter = chapters.isEmpty
         ? null
-        : chapters[_chapterIndex.clamp(0, chapters.length - 1)];
+        : chapters[_chapterIndex.clamp(0, chapters.length - 1).toInt()];
     final completedChapterIndexes = _completedChapterIndexes(userAsync);
     final commentCounts = commentsAsync.maybeWhen(
       data: (comments) => _commentCountsByChapter(chapters, comments),
@@ -538,10 +568,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           height: _showReaderChrome ? appBarHeight : 0,
           child: ClipRect(
             child: AppBar(
+              backgroundColor: _getAppBarBackgroundColor(),
+              foregroundColor: _getAppBarForegroundColor(),
+              iconTheme: IconThemeData(color: _getAppBarForegroundColor()),
+              actionsIconTheme: IconThemeData(
+                color: _getAppBarForegroundColor(),
+              ),
               title: Text(
                 widget.book.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: _getAppBarForegroundColor()),
               ),
               actions: [
                 if (isOffline)
@@ -571,8 +608,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                   tooltip: _isTtsPlaying
                       ? (_ttsChunkList.isNotEmpty
-                          ? 'Stop (chunk ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
-                          : 'Stop reading aloud')
+                            ? 'Stop (chunk ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
+                            : 'Stop reading aloud')
                       : 'Read aloud',
                   onPressed: chapter == null || _isTtsPreparing
                       ? null
@@ -593,6 +630,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         currentIndex: _chapterIndex,
         completedChapterIndexes: completedChapterIndexes,
         commentCounts: commentCounts,
+        backgroundColor: _getBackgroundColor(),
+        headerColor: _getAppBarBackgroundColor(),
+        textColor: _getTextColor(),
+        secondaryTextColor: _getSecondaryTextColor(),
+        accentColor: Theme.of(context).colorScheme.primary,
         onSelect: (index) {
           _goToChapter(index);
           Navigator.of(context).pop();
@@ -624,7 +666,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             if (chapter == null) return;
                             if (!_scrollController.hasClients) return;
                             final position = _scrollController.position;
-                            final tapY = details.localPosition.dy +
+                            final tapY =
+                                details.localPosition.dy +
                                 _scrollController.offset;
                             final totalHeight =
                                 position.viewportDimension +
@@ -645,12 +688,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 _selectedText = content?.plainText ?? "";
                               });
                             },
-                            contextMenuBuilder: (
-                              context,
-                              selectableRegionState,
-                            ) {
+                            contextMenuBuilder: (context, selectableRegionState) {
                               final selected = _selectedText.trim();
-                              final ctxChapter = _chapterIndex >= 0 &&
+                              final ctxChapter =
+                                  _chapterIndex >= 0 &&
                                       _chapterIndex < chapters.length
                                   ? chapters[_chapterIndex]
                                   : null;
@@ -717,7 +758,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         visible: _showReaderChrome,
         onSwipeUp: () => _showDiscussion(chapter),
         onTap: () => _showDiscussion(chapter),
-        theme: _readerTheme,
+        theme: _getEffectiveTheme(),
+        hasPrevious: _chapterIndex > 0,
+        hasNext: _chapterIndex < chapters.length - 1,
+        onPrevious: () => _goToChapter(_chapterIndex - 1),
+        onNext: () => _goToChapter(_chapterIndex + 1),
+        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }
@@ -738,15 +784,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         Text(
           chapter?.title ?? widget.book.title,
           textAlign: isPoem ? TextAlign.center : TextAlign.start,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: _getTextColor(),
+          ),
         ),
         const SizedBox(height: 16),
         HtmlWidget(
           chapter?.content ??
               widget.book.description ??
               'No readable content available yet.',
+          textStyle: TextStyle(
+            color: _getTextColor(),
+            fontSize: _fontSize,
+            height: 1.8,
+            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
+          ),
           customStylesBuilder: (element) {
             if (isPoem) {
               return {'text-align': 'center'};
@@ -795,13 +848,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             return null;
           },
           onTapUrl: (url) async => isAllowedWriterLink(url),
-          textStyle: TextStyle(
-            fontSize: _fontSize,
-            height: 1.8,
-            color: _getTextColor(),
-            fontStyle: isPoem ? FontStyle.italic : null,
-            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
-          ),
         ),
         const SizedBox(height: 24),
         _ChapterEndActions(
@@ -811,6 +857,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ? _markChapterCompleteAndGoNext
               : null,
           onViewComments: () => _showDiscussion(chapter),
+          onShare: () => _handleShareChapter(chapter),
         ),
         const SizedBox(height: 100),
       ],
@@ -843,11 +890,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _tts.setErrorHandler((message) {
       if (!mounted) return;
 
-      // On web, 'interrupted' errors are common and expected when we manually 
-      // call stop() to seek or change chapters. We ignore them to avoid 
+      // On web, 'interrupted' errors are common and expected when we manually
+      // call stop() to seek or change chapters. We ignore them to avoid
       // showing annoying snackbars during normal interactions.
       final msg = message.toString();
-      if (msg.toLowerCase().contains('interrupted') || 
+      if (msg.toLowerCase().contains('interrupted') ||
           msg.contains('[object SpeechSynthesisErrorEvent]')) {
         return;
       }
@@ -879,9 +926,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     // Build chunk list once for this chapter (or reuse if already built)
-    final chunks = _ttsChunkList.isNotEmpty
-        ? _ttsChunkList
-        : _ttsChunks(text);
+    final chunks = _ttsChunkList.isNotEmpty ? _ttsChunkList : _ttsChunks(text);
     if (_ttsChunkList.isEmpty) {
       setState(() => _ttsChunkList = chunks);
     }
@@ -911,9 +956,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (_ttsChunkList.isEmpty) return;
 
-    final targetIndex = (fraction * _ttsChunkList.length)
-        .floor()
-        .clamp(0, _ttsChunkList.length - 1);
+    final targetIndex = (fraction * _ttsChunkList.length).floor().clamp(
+      0,
+      _ttsChunkList.length - 1,
+    );
 
     // Stop current playback
     _stopTtsRequested = true;
@@ -1095,8 +1141,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       // These are the segments HtmlWidget renders as separate Flutter widgets,
       // causing the selection system to join them without any separator.
       const blockTags = {
-        'p', 'div', 'br', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'blockquote', 'pre', 'section', 'article',
+        'p',
+        'div',
+        'br',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'blockquote',
+        'pre',
+        'section',
+        'article',
       };
       final segments = <String>[];
       void walk(dynamic node) {
@@ -1115,6 +1173,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           walk(child);
         }
       }
+
       for (final child in doc.body?.nodes ?? []) {
         walk(child);
       }
@@ -1146,7 +1205,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         } else {
           if (normPos == idx && matchStart < 0) matchStart = i;
           normPos++;
-          if (normPos == idx + normFlat.length && matchEnd < 0) matchEnd = i + 1;
+          if (normPos == idx + normFlat.length && matchEnd < 0) {
+            matchEnd = i + 1;
+          }
         }
       }
       if (matchStart >= 0 && matchEnd > matchStart) {
@@ -1196,6 +1257,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final bytes = await image
           ?.toByteData(format: ui.ImageByteFormat.png)
           .then((data) => data?.buffer.asUint8List());
+
+      final chapterIndex = _chapterIndex;
+      final chapterLink = AppLinkHelper.chapter(
+        widget.book.id,
+        chapterIndex + 1,
+      );
+
       if (bytes == null || bytes.isEmpty) {
         await Share.share(
           shareText,
@@ -1210,7 +1278,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               mimeType: 'image/png',
             ),
           ],
-          text: AppLinkHelper.book(widget.book.id),
+          text: chapterLink,
           subject: 'Quote from ${widget.book.title}',
         );
       }
@@ -1228,14 +1296,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     String? chapterTitle,
     String authors,
   ) {
+    final chapterLink = AppLinkHelper.chapter(
+      widget.book.id,
+      _chapterIndex + 1,
+    );
     final parts = [
       '"$selected"',
       '',
       'From ${widget.book.title}${chapterTitle != null && chapterTitle.isNotEmpty ? ', $chapterTitle' : ''}',
       if (authors.isNotEmpty) 'by $authors',
-      AppLinkHelper.book(widget.book.id),
+      chapterLink,
     ];
     return parts.join('\n');
+  }
+
+  Future<void> _handleShareChapter(Chapter? chapter) async {
+    if (chapter == null) return;
+
+    final chapterNumber = _chapterIndex + 1;
+    final url = AppLinkHelper.chapter(widget.book.id, chapterNumber);
+    final chapterTitle = chapter.title.trim();
+
+    final authors = widget.book.authors
+        .map((a) => a.name)
+        .where((n) => n.isNotEmpty)
+        .join(', ');
+
+    final shareText =
+        'Read "${widget.book.title}" - $chapterTitle ${authors.isNotEmpty ? 'by $authors' : ''}\n\n$url';
+
+    await Share.share(
+      shareText,
+      subject: '${widget.book.title} - $chapterTitle',
+    );
   }
 
   String _safeFilePart(String value) {
@@ -1740,6 +1833,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _ThemeOption(
+                      label: 'Auto',
+                      color: Theme.of(context).colorScheme.surface,
+                      icon: Icons.brightness_auto_rounded,
+                      selected: _readerTheme == ReaderTheme.system,
+                      onTap: () {
+                        setState(() => _readerTheme = ReaderTheme.system);
+                        ref
+                            .read(readerSettingsControllerProvider.notifier)
+                            .setTheme(_readerTheme);
+                        setModalState(() {});
+                      },
+                    ),
+                    _ThemeOption(
                       label: 'Light',
                       color: Colors.white,
                       selected: _readerTheme == ReaderTheme.light,
@@ -1786,45 +1892,84 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  ReaderTheme _getEffectiveTheme() {
+    if (_readerTheme != ReaderTheme.system) return _readerTheme;
+    final themeMode = ref.read(appThemeControllerProvider);
+    return themeMode == ThemeMode.dark ? ReaderTheme.dark : ReaderTheme.light;
+  }
+
   Color _getBackgroundColor() {
-    switch (_readerTheme) {
+    switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
         return Colors.white;
       case ReaderTheme.sepia:
         return const Color(0xFFF4ECD8);
       case ReaderTheme.dark:
         return const Color(0xFF121212);
+      case ReaderTheme.system:
+        return Colors.white; // Should not happen with _getEffectiveTheme
+    }
+  }
+
+  Color _getAppBarBackgroundColor() {
+    switch (_getEffectiveTheme()) {
+      case ReaderTheme.light:
+        return Colors.white;
+      case ReaderTheme.sepia:
+        return _getBackgroundColor();
+      case ReaderTheme.dark:
+        return Colors.black;
+      case ReaderTheme.system:
+        return Colors.white;
+    }
+  }
+
+  Color _getAppBarForegroundColor() {
+    switch (_getEffectiveTheme()) {
+      case ReaderTheme.light:
+      case ReaderTheme.sepia:
+        return const Color(0xFF2E261B);
+      case ReaderTheme.dark:
+        return Colors.white;
+      case ReaderTheme.system:
+        return const Color(0xFF2E261B);
     }
   }
 
   Color _getTextColor() {
-    switch (_readerTheme) {
+    switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
       case ReaderTheme.sepia:
         return const Color(0xFF2E261B);
       case ReaderTheme.dark:
         return const Color(0xFFE0E0E0);
+      case ReaderTheme.system:
+        return const Color(0xFF2E261B);
     }
   }
 
   Color _getSecondaryTextColor() {
-    switch (_readerTheme) {
+    switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
       case ReaderTheme.sepia:
         return const Color(0xFF5F5447);
       case ReaderTheme.dark:
         return const Color(0xFFB8B8B8);
+      case ReaderTheme.system:
+        return const Color(0xFF5F5447);
     }
   }
 
   Color _getInputFillColor() {
-    switch (_readerTheme) {
+    switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
         return const Color(0xFFF4F4F4);
       case ReaderTheme.sepia:
         return const Color(0xFFE9DCC0);
       case ReaderTheme.dark:
         return const Color(0xFF1F1F1F);
+      case ReaderTheme.system:
+        return const Color(0xFFF4F4F4);
     }
   }
 }
@@ -1834,6 +1979,11 @@ class _ChapterDrawer extends StatelessWidget {
   final int currentIndex;
   final Set<int> completedChapterIndexes;
   final Map<int, int> commentCounts;
+  final Color backgroundColor;
+  final Color headerColor;
+  final Color textColor;
+  final Color secondaryTextColor;
+  final Color accentColor;
   final ValueChanged<int> onSelect;
   final ValueChanged<int> onOpenComments;
 
@@ -1842,6 +1992,11 @@ class _ChapterDrawer extends StatelessWidget {
     required this.currentIndex,
     required this.completedChapterIndexes,
     required this.commentCounts,
+    required this.backgroundColor,
+    required this.headerColor,
+    required this.textColor,
+    required this.secondaryTextColor,
+    required this.accentColor,
     required this.onSelect,
     required this.onOpenComments,
   });
@@ -1849,16 +2004,19 @@ class _ChapterDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: backgroundColor,
       child: Column(
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-            ),
-            child: const Center(
+            decoration: BoxDecoration(color: headerColor),
+            child: Center(
               child: Text(
                 'Chapters',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -1870,12 +2028,13 @@ class _ChapterDrawer extends StatelessWidget {
                 final isComplete = completedChapterIndexes.contains(index);
                 final commentCount = commentCounts[index] ?? 0;
                 return ListTile(
+                  selectedTileColor: accentColor.withValues(alpha: 0.12),
                   leading: CircleAvatar(
                     backgroundColor: isComplete
                         ? Colors.green
                         : isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                        ? accentColor
+                        : secondaryTextColor.withValues(alpha: 0.14),
                     child: isComplete
                         ? const Icon(
                             Icons.check_rounded,
@@ -1886,10 +2045,8 @@ class _ChapterDrawer extends StatelessWidget {
                             '${index + 1}',
                             style: TextStyle(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.onPrimary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                  ? Colors.white
+                                  : secondaryTextColor,
                             ),
                           ),
                   ),
@@ -1900,6 +2057,7 @@ class _ChapterDrawer extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      color: textColor,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -1914,6 +2072,7 @@ class _ChapterDrawer extends StatelessWidget {
                               Icons.chat_bubble_outline_rounded,
                             ),
                           ),
+                          color: secondaryTextColor,
                           onPressed: () => onOpenComments(index),
                         )
                       : null,
@@ -2102,36 +2261,51 @@ class _ChapterEndActions extends StatelessWidget {
     required this.hasComments,
     required this.onNextChapter,
     required this.onViewComments,
+    required this.onShare,
   });
 
   final bool hasNextChapter;
   final bool hasComments;
   final VoidCallback? onNextChapter;
   final VoidCallback onViewComments;
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        if (hasNextChapter) ...[
-          Expanded(
-            child: FilledButton.icon(
-              icon: const Icon(Icons.navigate_next_rounded),
-              label: const Text('Next Chapter'),
-              onPressed: onNextChapter,
+        Row(
+          children: [
+            if (hasNextChapter) ...[
+              Expanded(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.navigate_next_rounded),
+                  label: const Text('Next Chapter'),
+                  onPressed: onNextChapter,
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: Icon(
+                  hasComments
+                      ? Icons.chat_bubble_outline_rounded
+                      : Icons.rate_review_outlined,
+                ),
+                label: Text(hasComments ? 'View Comments' : 'Write Review'),
+                onPressed: onViewComments,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-        ],
-        Expanded(
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
           child: OutlinedButton.icon(
-            icon: Icon(
-              hasComments
-                  ? Icons.chat_bubble_outline_rounded
-                  : Icons.rate_review_outlined,
-            ),
-            label: Text(hasComments ? 'View Comments' : 'Write Review'),
-            onPressed: onViewComments,
+            icon: const Icon(Icons.share_rounded),
+            label: const Text('Share Chapter'),
+            onPressed: onShare,
           ),
         ),
       ],
@@ -2150,9 +2324,12 @@ class _ThemeOption extends StatelessWidget {
     required this.label,
     required this.color,
     this.textColor,
+    this.icon,
     required this.selected,
     required this.onTap,
   });
+
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -2183,7 +2360,9 @@ class _ThemeOption extends StatelessWidget {
             ),
             child: selected
                 ? const Icon(Icons.check, color: Colors.blue)
-                : null,
+                : (icon != null
+                      ? Icon(icon, color: textColor ?? Colors.grey)
+                      : null),
           ),
           const SizedBox(height: 4),
           Text(
@@ -2206,6 +2385,11 @@ class _ReaderBottomBar extends StatelessWidget {
     required this.onSwipeUp,
     required this.onTap,
     required this.theme,
+    required this.hasPrevious,
+    required this.hasNext,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onClose,
   });
 
   final double progress;
@@ -2213,6 +2397,11 @@ class _ReaderBottomBar extends StatelessWidget {
   final VoidCallback onSwipeUp;
   final VoidCallback onTap;
   final ReaderTheme theme;
+  final bool hasPrevious;
+  final bool hasNext;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -2258,12 +2447,46 @@ class _ReaderBottomBar extends StatelessWidget {
                   minHeight: 2,
                 ),
                 Expanded(
-                  child: Center(
-                    child: Icon(
-                      Icons.keyboard_arrow_up_rounded,
-                      size: 24,
-                      color: textColor.withValues(alpha: 0.5),
-                    ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          hasPrevious
+                              ? Icons.navigate_before_rounded
+                              : Icons.close_rounded,
+                        ),
+                        onPressed: hasPrevious ? onPrevious : onClose,
+                        color: textColor.withValues(alpha: 0.5),
+                        tooltip: hasPrevious
+                            ? 'Previous Chapter'
+                            : 'Close Reader',
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onVerticalDragEnd: (details) {
+                          if (details.primaryVelocity != null &&
+                              details.primaryVelocity! < -100) {
+                            onSwipeUp();
+                          }
+                        },
+                        onTap: onTap,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          size: 24,
+                          color: textColor.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (hasNext)
+                        IconButton(
+                          icon: const Icon(Icons.navigate_next_rounded),
+                          onPressed: onNext,
+                          color: textColor.withValues(alpha: 0.5),
+                          tooltip: 'Next Chapter',
+                        )
+                      else
+                        const SizedBox(width: 48),
+                    ],
                   ),
                 ),
               ],

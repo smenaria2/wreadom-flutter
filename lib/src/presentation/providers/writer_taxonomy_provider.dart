@@ -13,8 +13,10 @@ class WriterTaxonomy {
   final List<String> languages;
   final Map<String, String> contentTypeDefaults;
 
-  List<String> get allCategories =>
-      categoriesByType.values.expand((categories) => categories).toSet().toList();
+  List<String> get allCategories => categoriesByType.values
+      .expand((categories) => categories)
+      .toSet()
+      .toList();
 
   List<String> categoriesFor(String contentType) {
     return categoriesByType[contentType] ?? const <String>[];
@@ -95,15 +97,6 @@ final writerTaxonomyProvider = Provider<WriterTaxonomy>((ref) {
       'Urdu',
       'Kannada',
       'Malayalam',
-      'Arabic',
-      'French',
-      'German',
-      'Spanish',
-      'Portuguese',
-      'Russian',
-      'Chinese',
-      'Japanese',
-      'Korean',
     ],
     contentTypeDefaults: {
       'story': 'Romance',

@@ -37,10 +37,15 @@ class PublicProfileArguments {
 }
 
 class BookDetailArguments {
-  const BookDetailArguments({required this.bookId, this.book});
+  const BookDetailArguments({
+    required this.bookId,
+    this.book,
+    this.initialReaderChapterIndex,
+  });
 
   final String bookId;
   final Book? book;
+  final int? initialReaderChapterIndex;
 }
 
 class ConversationArguments {
@@ -86,7 +91,14 @@ class AppRouter {
     final resolvedIncoming = _resolveIncomingName(name);
     if (resolvedIncoming != null) {
       name = resolvedIncoming.route;
-      arguments = resolvedIncoming.payload;
+      arguments =
+          resolvedIncoming.route == AppRoutes.bookDetail &&
+              resolvedIncoming.payload != null
+          ? BookDetailArguments(
+              bookId: resolvedIncoming.payload!,
+              initialReaderChapterIndex: resolvedIncoming.chapterIndex,
+            )
+          : resolvedIncoming.payload;
     }
 
     switch (name) {
@@ -118,7 +130,13 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
-          builder: (_) => BookDetailScreen(bookId: bookId, preloadedBook: book),
+          builder: (_) => BookDetailScreen(
+            bookId: bookId,
+            preloadedBook: book,
+            initialReaderChapterIndex: args is BookDetailArguments
+                ? args.initialReaderChapterIndex
+                : null,
+          ),
         );
       case AppRoutes.reader:
         final argsValue = arguments ?? settings.arguments;

@@ -27,6 +27,26 @@ void main() {
       expect(resolved?.payload, 'abc123');
     });
 
+    test('resolves canonical book query URL', () {
+      final resolved = AppLinkHelper.resolve(
+        'https://wreadom.in/?book=book123',
+      );
+
+      expect(resolved?.route, AppRoutes.bookDetail);
+      expect(resolved?.payload, 'book123');
+      expect(resolved?.chapterIndex, isNull);
+    });
+
+    test('resolves shared chapter query URL with zero based index', () {
+      final resolved = AppLinkHelper.resolve(
+        'https://wreadom.in/?book=book123&mode=read&chapter=3',
+      );
+
+      expect(resolved?.route, AppRoutes.bookDetail);
+      expect(resolved?.payload, 'book123');
+      expect(resolved?.chapterIndex, 2);
+    });
+
     test('resolves relative book and post paths from Flutter web', () {
       final book = AppLinkHelper.resolve('/book/book123');
       final post = AppLinkHelper.resolve('/posts/post123');

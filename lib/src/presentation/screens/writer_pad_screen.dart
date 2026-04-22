@@ -60,6 +60,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _isUploadingCover = false;
   bool _isDirty = false;
   bool _metadataListenersAttached = false;
+  bool _bookTitleEditedByUser = false;
+  bool _syncingBookTitleFromChapter = false;
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
   String _category = 'Romance';
@@ -115,10 +117,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   void _attachMetadataListeners() {
     if (_metadataListenersAttached) return;
-    _titleController.value.addListener(_markDirty);
+    _titleController.value.addListener(_handleBookTitleChanged);
     _descriptionController.value.addListener(_markDirty);
     _topicsController.value.addListener(_markDirty);
     _metadataListenersAttached = true;
+  }
+
+  void _handleBookTitleChanged() {
+    if (!_syncingBookTitleFromChapter && widget.book == null) {
+      _bookTitleEditedByUser = true;
+    }
+    _markDirty();
   }
 
   @override
@@ -169,7 +178,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void dispose() {
     _autosaveTimer?.cancel();
     if (_metadataListenersAttached) {
-      _titleController.value.removeListener(_markDirty);
+      _titleController.value.removeListener(_handleBookTitleChanged);
       _descriptionController.value.removeListener(_markDirty);
       _topicsController.value.removeListener(_markDirty);
     }
@@ -695,11 +704,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Color _writerPaperColor(BuildContext context) {
-    return Colors.black;
+    final scheme = Theme.of(context).colorScheme;
+    return _useDarkWriterChrome(context) ? scheme.surface : scheme.surface;
   }
 
   Color _writerPaperTextColor(BuildContext context) {
-    return Colors.white;
+    return Theme.of(context).colorScheme.onSurface;
   }
 
   Widget _surface({
@@ -796,8 +806,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        const dark = Colors.black;
-        const onDark = Colors.white;
+        final sheetColor = _writerSurfaceColor(context);
+        final onSheetColor = _onWriterSurfaceColor(context);
+        final outlineColor = Theme.of(context).colorScheme.outlineVariant;
         return SafeArea(
           child: StatefulBuilder(
             builder: (context, modalSetState) {
@@ -805,8 +816,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 height: MediaQuery.sizeOf(context).height * 0.9,
                 margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                 decoration: BoxDecoration(
-                  color: dark,
+                  color: sheetColor,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: outlineColor),
                 ),
                 child: Column(
                   children: [
@@ -822,7 +834,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                   'Chapter overview',
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
-                                        color: onDark,
+                                        color: onSheetColor,
                                         fontWeight: FontWeight.w900,
                                       ),
                                 ),
@@ -830,7 +842,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 Text(
                                   '${_chapters.length} chapters',
                                   style: TextStyle(
-                                    color: onDark.withValues(alpha: 0.62),
+                                    color: onSheetColor.withValues(alpha: 0.62),
                                   ),
                                 ),
                               ],
@@ -838,7 +850,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           ),
                           IconButton(
                             tooltip: 'Close',
-                            color: onDark,
+                            color: onSheetColor,
                             onPressed: () => Navigator.of(context).pop(),
                             icon: const Icon(Icons.close_rounded),
                           ),
@@ -878,7 +890,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             wordCount: chapter.wordCount,
                             isCurrent: isCurrent,
                             canDelete: _chapters.length > 1,
-                            textColor: onDark,
+                            textColor: onSheetColor,
                             onTap: () {
                               setState(() => _setCurrentChapterIndex(i));
                               Navigator.of(context).pop();
@@ -907,17 +919,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: onDark.withValues(alpha: 0.28),
+                              color: onSheetColor.withValues(alpha: 0.28),
                             ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.add_rounded, color: onDark),
+                              Icon(Icons.add_rounded, color: onSheetColor),
                               const SizedBox(width: 10),
                               Text(
                                 'Add new chapter',
                                 style: TextStyle(
-                                  color: onDark,
+                                  color: onSheetColor,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -1090,13 +1102,32 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void _insertEmbed(BlockEmbed embed) {
     final controller = _currentChapter.controller;
     final selection = controller.selection;
-    final index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
+    var index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
     final length = selection.isCollapsed ? 0 : selection.end - selection.start;
+    final plainText = controller.document.toPlainText();
+    if (length == 0 &&
+        index > 0 &&
+        index <= plainText.length &&
+        plainText[index - 1] != '\n') {
+      controller.replaceText(
+        index,
+        0,
+        '\n',
+        TextSelection.collapsed(offset: index + 1),
+      );
+      index += 1;
+    }
     controller.replaceText(
       index,
       length,
       embed,
       TextSelection.collapsed(offset: index + 1),
+    );
+    controller.replaceText(
+      index + 1,
+      0,
+      '\n',
+      TextSelection.collapsed(offset: index + 2),
     );
     _markDirty();
   }
@@ -1129,6 +1160,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final user = await ref.read(currentUserProvider.future);
     if (user == null || _isSaving) return;
 
+    _syncBookTitleFromFirstChapter();
     final title = _titleController.value.text.trim();
     if (title.isEmpty && !isAutosave) {
       _showSnack('Add a title before saving.');
@@ -1251,12 +1283,28 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   void _markDirty() {
     if (!mounted) return;
+    _syncBookTitleFromFirstChapter();
     if (!_isDirty) {
       setState(() {
         _isDirty = true;
         _saveStatus = 'Unsaved changes';
       });
     }
+  }
+
+  void _syncBookTitleFromFirstChapter() {
+    if (widget.book != null || _bookTitleEditedByUser || _chapters.isEmpty) {
+      return;
+    }
+    final firstChapterTitle = _chapters.first.title.text.trim();
+    if (firstChapterTitle.isEmpty ||
+        _titleController.value.text.trim() == firstChapterTitle) {
+      return;
+    }
+
+    _syncingBookTitleFromChapter = true;
+    _titleController.value.text = firstChapterTitle;
+    _syncingBookTitleFromChapter = false;
   }
 
   void _showSnack(String message) {
@@ -1311,24 +1359,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       'kannada': 'Kannada',
       'ml': 'Malayalam',
       'malayalam': 'Malayalam',
-      'ar': 'Arabic',
-      'arabic': 'Arabic',
-      'fr': 'French',
-      'french': 'French',
-      'de': 'German',
-      'german': 'German',
-      'es': 'Spanish',
-      'spanish': 'Spanish',
-      'pt': 'Portuguese',
-      'portuguese': 'Portuguese',
-      'ru': 'Russian',
-      'russian': 'Russian',
-      'zh': 'Chinese',
-      'chinese': 'Chinese',
-      'ja': 'Japanese',
-      'japanese': 'Japanese',
-      'ko': 'Korean',
-      'korean': 'Korean',
     };
     return aliases[normalized] ?? value!.trim();
   }

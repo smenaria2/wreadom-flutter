@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'theme_provider.dart';
 
-enum ReaderTheme { light, sepia, dark }
+enum ReaderTheme { light, sepia, dark, system }
 
 enum ReaderFont { sans, serif }
 
@@ -48,7 +48,7 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
 
     return ReaderSettings(
       fontSize: prefs.getDouble(_readerFontSizeKey) ?? 18.0,
-      theme: _enumAt(ReaderTheme.values, themeIndex) ?? ReaderTheme.dark,
+      theme: _enumAt(ReaderTheme.values, themeIndex) ?? ReaderTheme.system,
       font: _enumAt(ReaderFont.values, fontIndex) ?? ReaderFont.serif,
     );
   }

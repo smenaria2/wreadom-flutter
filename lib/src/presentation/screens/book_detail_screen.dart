@@ -28,25 +28,19 @@ class BookDetailScreen extends ConsumerStatefulWidget {
     required this.bookId,
     this.preloadedBook,
     this.heroTag,
+    this.initialReaderChapterIndex,
   });
 
   final String bookId;
   final Book? preloadedBook;
   final String? heroTag;
+  final int? initialReaderChapterIndex;
 
   @override
   ConsumerState<BookDetailScreen> createState() => _BookDetailScreenState();
 }
 
 class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(bookRepositoryProvider).incrementViewCount(widget.bookId);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final bookAsync = widget.preloadedBook != null
@@ -57,11 +51,68 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       body: bookAsync.when(
         data: (book) {
           if (book == null) return const Center(child: Text('Book not found'));
+          if (widget.initialReaderChapterIndex != null) {
+            return _ReaderDeepLinkLauncher(
+              book: book,
+              initialChapterIndex: widget.initialReaderChapterIndex!,
+            );
+          }
           return _BookDetailBody(book: book, heroTag: widget.heroTag);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
       ),
+    );
+  }
+}
+
+class _ReaderDeepLinkLauncher extends ConsumerWidget {
+  const _ReaderDeepLinkLauncher({
+    required this.book,
+    required this.initialChapterIndex,
+  });
+
+  final Book book;
+  final int initialChapterIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chaptersAsync = ref.watch(bookChaptersProvider(book.id));
+
+    return chaptersAsync.when(
+      data: (chapters) {
+        final maxIndex = chapters.isEmpty ? 0 : chapters.length - 1;
+        final clampedIndex = initialChapterIndex.clamp(0, maxIndex).toInt();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          Navigator.of(context).pushReplacementNamed(
+            AppRoutes.reader,
+            arguments: ReaderArguments(
+              book: book,
+              initialChapterIndex: clampedIndex,
+            ),
+          );
+        });
+        return const Center(child: CircularProgressIndicator());
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) {
+        final fallbackMax = (book.chapters?.length ?? 0) - 1;
+        final clampedIndex = initialChapterIndex
+            .clamp(0, fallbackMax < 0 ? 0 : fallbackMax)
+            .toInt();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          Navigator.of(context).pushReplacementNamed(
+            AppRoutes.reader,
+            arguments: ReaderArguments(
+              book: book,
+              initialChapterIndex: clampedIndex,
+            ),
+          );
+        });
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 }

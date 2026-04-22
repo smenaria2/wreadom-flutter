@@ -257,57 +257,54 @@ void main() {
     },
   );
 
-  test(
-    'reader uses automatic progress instead of manual chapter bookmarks',
-    () {
-      final readerSource = File(
-        'lib/src/presentation/screens/reader_screen.dart',
-      ).readAsStringSync();
-      final providerSource = File(
-        'lib/src/presentation/providers/book_providers.dart',
-      ).readAsStringSync();
-      final repositorySource = File(
-        'lib/src/data/repositories/firebase_book_repository.dart',
-      ).readAsStringSync();
+  test('reader uses automatic progress instead of manual chapter bookmarks', () {
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final providerSource = File(
+      'lib/src/presentation/providers/book_providers.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_book_repository.dart',
+    ).readAsStringSync();
 
-      expect(readerSource, isNot(contains('FutureBuilder<List<Chapter>>')));
-      expect(readerSource, contains('offlineChaptersProvider(widget.book.id)'));
-      expect(providerSource, contains('offlineChaptersProvider'));
-      expect(providerSource, contains('getDownloadedChapters(bookId)'));
-      expect(readerSource, contains('WidgetsBindingObserver'));
-      expect(readerSource, contains('didChangeAppLifecycleState'));
-      expect(readerSource, contains('_saveProgressSilently'));
-      expect(readerSource, contains('catchError'));
-      expect(readerSource, contains('RestorableInt _restorableChapterIndex'));
-      expect(
-        readerSource,
-        contains('RestorableDouble _restorableScrollProgress'),
-      );
-      expect(
-        readerSource,
-        contains(
-          "registerForRestoration(_restorableChapterIndex, 'chapter_index')",
-        ),
-      );
-      expect(
-        readerSource,
-        contains(
-          "registerForRestoration(_restorableScrollProgress, 'scroll_progress')",
-        ),
-      );
-      expect(readerSource, contains('_flushProgressSave'));
-      expect(readerSource, contains('jumpTo'));
-      expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
-      expect(readerSource, isNot(contains('Add Bookmark')));
-      expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
-      expect(readerSource, contains('Next Chapter'));
-      expect(readerSource, contains('View Comments'));
-      expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
-      expect(repositorySource, contains("'readingProgress': {"));
-      expect(repositorySource, contains('SetOptions(merge: true)'));
-      expect(repositorySource, isNot(contains("'readingProgress.\$bookId'")));
-    },
-  );
+    expect(readerSource, isNot(contains('FutureBuilder<List<Chapter>>')));
+    expect(readerSource, contains('offlineChaptersProvider(widget.book.id)'));
+    expect(providerSource, contains('offlineChaptersProvider'));
+    expect(providerSource, contains('getDownloadedChapters(bookId)'));
+    expect(readerSource, contains('WidgetsBindingObserver'));
+    expect(readerSource, contains('didChangeAppLifecycleState'));
+    expect(readerSource, contains('_saveProgressSilently'));
+    expect(readerSource, contains('catchError'));
+    expect(readerSource, contains('RestorableInt _restorableChapterIndex'));
+    expect(
+      readerSource,
+      contains('RestorableDouble _restorableScrollProgress'),
+    );
+    expect(
+      readerSource,
+      contains(
+        "registerForRestoration(_restorableChapterIndex, 'chapter_index')",
+      ),
+    );
+    expect(
+      readerSource,
+      contains(
+        "registerForRestoration(_restorableScrollProgress, 'scroll_progress')",
+      ),
+    );
+    expect(readerSource, contains('_flushProgressSave'));
+    expect(readerSource, contains('jumpTo'));
+    expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
+    expect(readerSource, isNot(contains('Add Bookmark')));
+    expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
+    expect(readerSource, contains('Next Chapter'));
+    expect(readerSource, contains('View Comments'));
+    expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
+    expect(repositorySource, contains("'readingProgress': {"));
+    expect(repositorySource, contains('SetOptions(merge: true)'));
+    expect(repositorySource, isNot(contains("'readingProgress.\$bookId'")));
+  });
 
   test('reader drawer shows chapter completion and comment actions', () {
     final readerSource = File(
@@ -339,6 +336,35 @@ void main() {
     expect(source, contains('_progressForBook'));
     expect(source, contains("'Continue Reading'"));
     expect(source, contains("'Start Reading'"));
+    expect(source, isNot(contains('incrementViewCount')));
+    expect(source, contains('initialReaderChapterIndex'));
+    expect(source, contains('_ReaderDeepLinkLauncher'));
+  });
+
+  test('reader sharing, chrome, tts, and unique views stay wired', () {
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_book_repository.dart',
+    ).readAsStringSync();
+
+    expect(readerSource, contains('recordBookView'));
+    expect(readerSource, contains('_viewerKeyForViewCount'));
+    expect(readerSource, contains("'user:\$userId'"));
+    expect(readerSource, contains("'anon:\$anonymousId'"));
+    expect(readerSource, contains('anonymous_reader_viewer_id'));
+    expect(readerSource, isNot(contains('leading: _chapterIndex == 0')));
+    expect(readerSource, contains('_getAppBarBackgroundColor'));
+    expect(readerSource, contains('_getAppBarForegroundColor'));
+    expect(readerSource, contains('_seekTtsToFraction'));
+    expect(readerSource, contains('SelectionArea'));
+    expect(readerSource, contains('_isTtsPlaying || _isTtsPreparing'));
+    expect(readerSource, contains('AppLinkHelper.chapter'));
+    expect(repositorySource, contains(".collection('views')"));
+    expect(repositorySource, contains('runTransaction'));
+    expect(repositorySource, contains('FieldValue.increment(1)'));
+    expect(repositorySource, contains('existingView.exists'));
   });
 
   test('optional polish stays in low-risk scope', () {
@@ -374,7 +400,10 @@ void main() {
     expect(mainSource, contains("restorationScopeId: 'wreadom_app'"));
     expect(writerPadSource, contains('RestorationMixin'));
     expect(writerPadSource, contains('RestorableTextEditingController'));
-    expect(writerPadSource, contains('RestorableString _restorableContentType'));
+    expect(
+      writerPadSource,
+      contains('RestorableString _restorableContentType'),
+    );
     expect(writerPadSource, contains('writerTaxonomyProvider'));
     expect(writerPadSource, contains('wordCountFromHtml'));
     expect(writerPadSource, isNot(contains('_categoriesByType')));
@@ -392,7 +421,7 @@ void main() {
     expect(readerSettingsSource, contains('reader_theme_index'));
     expect(readerSettingsSource, contains('reader_font_index'));
     expect(writerTaxonomySource, contains('WriterTaxonomy'));
-    expect(writerTaxonomySource, contains('Arabic'));
+    expect(writerTaxonomySource, isNot(contains('Arabic')));
 
     for (final source in [
       feedPostSource,
@@ -410,7 +439,10 @@ void main() {
     expect(followSource, contains('HapticFeedback.mediumImpact()'));
     expect(archiveSource, contains('compute('));
     expect(archiveSource, contains('_parseArchiveTextToChaptersOnIsolate'));
-    expect(archiveSource, contains('ArchiveBookService()._parseTextToChapters'));
+    expect(
+      archiveSource,
+      contains('ArchiveBookService()._parseTextToChapters'),
+    );
   });
 
   test('routing handles relative web links before showing not found', () {
@@ -423,6 +455,8 @@ void main() {
 
     expect(routerSource, contains('_resolveIncomingName(name)'));
     expect(routerSource, contains('AppLinkHelper.resolve(name)'));
+    expect(routerSource, contains('initialReaderChapterIndex'));
+    expect(routerSource, contains('resolvedIncoming.chapterIndex'));
     expect(routerSource, contains("'\${uri.path}?\${uri.query}'"));
     expect(routerSource, contains('uri.hasFragment'));
     expect(routerSource, isNot(contains('_legacyOnGenerateRoute')));
@@ -468,9 +502,48 @@ void main() {
     expect(writerPadSource, contains('_writerChromeColor'));
     expect(writerPadSource, contains('_writerSurfaceColor'));
     expect(writerPadSource, contains('_writerPaperColor'));
+    expect(writerPadSource, contains('_syncBookTitleFromFirstChapter'));
+    expect(writerPadSource, contains('_bookTitleEditedByUser'));
     expect(writerPadSource, isNot(contains('Color(0xFF111018)')));
     expect(writerPadSource, isNot(contains('Color(0xFF191722)')));
     expect(writerPadSource, isNot(contains('Color(0xFF1D1A25)')));
     expect(writerPadSource, isNot(contains('Color(0xFF14121B)')));
+    expect(writerPadSource, isNot(contains('const dark = Colors.black')));
+    expect(writerPadSource, isNot(contains('const onDark = Colors.white')));
+  });
+
+  test('writer navigation and language list use requested polish', () {
+    final navSource = File(
+      'lib/src/presentation/screens/main_navigation_shell.dart',
+    ).readAsStringSync();
+    final taxonomySource = File(
+      'lib/src/presentation/providers/writer_taxonomy_provider.dart',
+    ).readAsStringSync();
+    final writerPadSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+
+    expect(navSource, contains('Icons.edit_note_outlined'));
+    expect(navSource, contains('Icons.edit_note'));
+    expect(navSource, isNot(contains('Icons.dashboard_outlined')));
+    expect(navSource, isNot(contains('Icons.dashboard)')));
+    for (final language in [
+      'English',
+      'Hindi',
+      'Bengali',
+      'Telugu',
+      'Marathi',
+      'Tamil',
+      'Gujarati',
+      'Urdu',
+      'Kannada',
+      'Malayalam',
+    ]) {
+      expect(taxonomySource, contains("'$language'"));
+    }
+    for (final language in ['Arabic', 'French', 'German', 'Spanish']) {
+      expect(taxonomySource, isNot(contains("'$language'")));
+      expect(writerPadSource, isNot(contains("'${language.toLowerCase()}'")));
+    }
   });
 }

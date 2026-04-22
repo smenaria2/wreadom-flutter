@@ -40,7 +40,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         final user = await ref.read(currentUserProvider.future);
         if (user != null) {
           try {
-            await ref.read(authRepositoryProvider).updateFcmToken(user.id, token);
+            await ref
+                .read(authRepositoryProvider)
+                .updateFcmToken(user.id, token);
             debugPrint('FCM Token updated successfully');
           } catch (e) {
             debugPrint('Failed to update FCM Token: $e');
@@ -51,22 +53,19 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   }
 
   List<Widget> get _screens => [
-        const HomeBooksScreen(),
-        HomeFeedScreen(),
-        const WriterDashboardScreen(),
-        const MessagesScreen(),
-        ProfileScreen(),
-      ];
+    const HomeBooksScreen(),
+    HomeFeedScreen(),
+    const WriterDashboardScreen(),
+    const MessagesScreen(),
+    ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedTabProvider);
 
     return Scaffold(
-      body: IndexedStack(
-        index: selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: selectedIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
@@ -83,8 +82,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Feed',
           ),
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
+            icon: Icon(Icons.edit_note_outlined),
+            selectedIcon: Icon(Icons.edit_note),
             label: 'Writer',
           ),
           NavigationDestination(
