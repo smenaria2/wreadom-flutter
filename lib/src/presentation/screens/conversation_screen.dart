@@ -46,6 +46,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     final messages = messagesAsync.asData?.value ?? const <Message>[];
     final conversation = conversationAsync.asData?.value;
+    final otherUserId =
+        conversation != null &&
+            currentUser != null &&
+            conversation.type == 'direct'
+        ? conversation.participants.firstWhere(
+            (id) => id != currentUser.id,
+            orElse: () => '',
+          )
+        : '';
+    final otherUser = otherUserId.isEmpty
+        ? null
+        : conversation?.participantDetails[otherUserId];
     final isBlocked =
         currentUser != null &&
         conversation?.memberStatus[currentUser.id] == 'blocked';
@@ -56,16 +68,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.title),
-            if (widget.subtitle != null)
-              Text(
-                widget.subtitle!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-          ],
+        title: _ConversationTitle(
+          title: widget.title,
+          subtitle: widget.subtitle,
+          userId: otherUserId,
+          photoUrl: otherUser?.photoURL,
         ),
         actions: [
           if (conversation != null &&
@@ -245,6 +252,70 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 }
 
+class _ConversationTitle extends StatelessWidget {
+  const _ConversationTitle({
+    required this.title,
+    required this.subtitle,
+    required this.userId,
+    required this.photoUrl,
+  });
+
+  final String title;
+  final String? subtitle;
+  final String userId;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final canOpenProfile = userId.trim().isNotEmpty;
+    final content = Row(
+      children: [
+        if (canOpenProfile) ...[
+          CircleAvatar(
+            radius: 17,
+            backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
+                ? NetworkImage(photoUrl!)
+                : null,
+            child: photoUrl == null || photoUrl!.isEmpty
+                ? Text(title.characters.first.toUpperCase())
+                : null,
+          ),
+          const SizedBox(width: 10),
+        ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (!canOpenProfile) return content;
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () => Navigator.of(context).pushNamed(
+        AppRoutes.publicProfile,
+        arguments: PublicProfileArguments(userId: userId),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: content,
+      ),
+    );
+  }
+}
+
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({required this.message, required this.isMine});
 
@@ -270,6 +341,8 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          _MessageSender(message: message),
+          const SizedBox(height: 6),
           if (message.type == 'story' && message.storyData != null)
             _StoryMessageCard(story: message.storyData!)
           else
@@ -285,6 +358,58 @@ class _MessageBubble extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _MessageSender extends StatelessWidget {
+  const _MessageSender({required this.message});
+
+  final Message message;
+
+  @override
+  Widget build(BuildContext context) {
+    final photoUrl = message.senderPhotoURL;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => Navigator.of(context).pushNamed(
+        AppRoutes.publicProfile,
+        arguments: PublicProfileArguments(userId: message.senderId),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 11,
+            backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                ? NetworkImage(photoUrl)
+                : null,
+            child: photoUrl == null || photoUrl.isEmpty
+                ? Text(
+                    _initial(message.senderName),
+                    style: const TextStyle(fontSize: 10),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              message.senderName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _initial(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '?';
+    return trimmed.characters.first.toUpperCase();
   }
 }
 

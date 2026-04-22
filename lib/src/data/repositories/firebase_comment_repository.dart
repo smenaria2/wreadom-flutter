@@ -12,25 +12,11 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<String> addComment(Comment comment) async {
-    final batch = _firestore.batch();
     final docRef = _firestore.collection('comments').doc();
     final data = comment.toJson()..remove('id');
+    data.removeWhere((key, value) => value == null);
 
-    batch.set(docRef, data);
-
-    // Sync counts atomically
-    if (comment.bookId != null) {
-      batch.update(_firestore.collection('books').doc(comment.bookId!), {
-        'commentCount': FieldValue.increment(1),
-      });
-    }
-    if (comment.feedPostId != null) {
-      batch.update(_firestore.collection('feed').doc(comment.feedPostId!), {
-        'commentCount': FieldValue.increment(1),
-      });
-    }
-
-    await batch.commit();
+    await docRef.set(data);
     return docRef.id;
   }
 
@@ -41,6 +27,7 @@ class FirebaseCommentRepository implements CommentRepository {
     final data = reply
         .copyWith(id: replyId, likes: reply.likes ?? const [])
         .toJson();
+    data.removeWhere((key, value) => value == null);
     await _firestore.collection('comments').doc(commentId).update({
       'replies': FieldValue.arrayUnion([data]),
     });
@@ -52,22 +39,8 @@ class FirebaseCommentRepository implements CommentRepository {
     final docSnap = await docRef.get();
     if (!docSnap.exists) return;
 
-    final comment = Comment.fromJson(
-      mapFirestoreData(docSnap.data()!, docSnap.id),
-    );
     final batch = _firestore.batch();
     batch.delete(docRef);
-
-    if (comment.bookId != null) {
-      batch.update(_firestore.collection('books').doc(comment.bookId!), {
-        'commentCount': FieldValue.increment(-1),
-      });
-    }
-    if (comment.feedPostId != null) {
-      batch.update(_firestore.collection('feed').doc(comment.feedPostId!), {
-        'commentCount': FieldValue.increment(-1),
-      });
-    }
     await batch.commit();
   }
 
@@ -106,8 +79,50 @@ class FirebaseCommentRepository implements CommentRepository {
       final data = mapFirestoreData(doc.data(), doc.id);
       return Comment.fromJson(data);
     }).toList();
-    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    items.sort(_compareBookComments);
     return items;
+  }
+
+  @override
+  Future<Comment?> getUserBookReview(String bookId, String userId) async {
+    final snapshot = await _bookCommentsQuery(
+      bookId,
+    ).where('userId', isEqualTo: userId).get();
+    if (snapshot.docs.isEmpty) return null;
+    for (final doc in snapshot.docs) {
+      final comment = Comment.fromJson(mapFirestoreData(doc.data(), doc.id));
+      if ((comment.rating ?? 0) > 0) return comment;
+    }
+    return null;
+  }
+
+  @override
+  Future<String> upsertBookReview(Comment comment) async {
+    final existing = await getUserBookReview(
+      comment.bookId.toString(),
+      comment.userId,
+    );
+    if (existing?.id == null) {
+      return addComment(comment.copyWith(rating: comment.rating ?? 5));
+    }
+
+    final docRef = _firestore.collection('comments').doc(existing!.id);
+    final data =
+        comment
+            .copyWith(
+              id: null,
+              rating: comment.rating ?? 5,
+              replies: existing.replies,
+              likes: existing.likes,
+              isHighlighted: existing.isHighlighted,
+              highlightedAt: existing.highlightedAt,
+              highlightedByUserId: existing.highlightedByUserId,
+            )
+            .toJson()
+          ..remove('id');
+    data.removeWhere((key, value) => value == null);
+    await docRef.update(data);
+    return existing.id!;
   }
 
   @override
@@ -196,5 +211,66 @@ class FirebaseCommentRepository implements CommentRepository {
         transaction.update(ref, {'replies': updated});
       }
     });
+  }
+
+  @override
+  Future<void> toggleReviewHighlight({
+    required String commentId,
+    required String bookId,
+    required String authorId,
+    int maxHighlighted = 3,
+  }) async {
+    final commentRef = _firestore.collection('comments').doc(commentId);
+    final snap = await commentRef.get();
+    if (!snap.exists) return;
+    final data = snap.data() ?? {};
+    final rating = (data['rating'] as num?)?.toInt() ?? 0;
+    if (rating <= 0) return;
+
+    final isHighlighted = data['isHighlighted'] == true;
+    if (isHighlighted) {
+      await commentRef.update({
+        'isHighlighted': false,
+        'highlightedAt': FieldValue.delete(),
+        'highlightedByUserId': FieldValue.delete(),
+      });
+      return;
+    }
+
+    final highlighted = await _bookCommentsQuery(
+      bookId,
+    ).where('isHighlighted', isEqualTo: true).get();
+    final highlightedReviews = highlighted.docs.where((doc) {
+      final rating = (doc.data()['rating'] as num?)?.toInt() ?? 0;
+      return rating > 0;
+    });
+    if (highlightedReviews.length >= maxHighlighted) {
+      throw StateError('You can highlight up to $maxHighlighted reviews.');
+    }
+
+    await commentRef.update({
+      'isHighlighted': true,
+      'highlightedAt': DateTime.now().millisecondsSinceEpoch,
+      'highlightedByUserId': authorId,
+    });
+  }
+
+  Query<Map<String, dynamic>> _bookCommentsQuery(String bookId) {
+    final idAsInt = int.tryParse(bookId);
+    final ids = [bookId, ?idAsInt];
+    return _firestore.collection('comments').where('bookId', whereIn: ids);
+  }
+
+  int _compareBookComments(Comment a, Comment b) {
+    final aHighlighted = a.isHighlighted == true && (a.rating ?? 0) > 0;
+    final bHighlighted = b.isHighlighted == true && (b.rating ?? 0) > 0;
+    if (aHighlighted != bHighlighted) return aHighlighted ? -1 : 1;
+    if (aHighlighted && bHighlighted) {
+      final highlightedCompare = (b.highlightedAt ?? 0).compareTo(
+        a.highlightedAt ?? 0,
+      );
+      if (highlightedCompare != 0) return highlightedCompare;
+    }
+    return b.timestamp.compareTo(a.timestamp);
   }
 }

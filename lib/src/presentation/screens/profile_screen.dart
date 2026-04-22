@@ -3,9 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
+import '../providers/book_providers.dart';
 import '../providers/notification_providers.dart';
 import '../providers/report_providers.dart';
 import '../providers/theme_provider.dart';
@@ -16,6 +17,7 @@ import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
 import '../components/profile/user_history_tab.dart';
 import '../components/profile/user_saved_tab.dart';
+import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 
@@ -31,6 +33,12 @@ class ProfileScreen extends ConsumerWidget {
         if (user == null) {
           return const Scaffold(body: Center(child: Text('Please log in')));
         }
+        final worksCount = ref
+            .watch(userBooksProvider(user.id))
+            .maybeWhen(
+              data: (books) => books.length,
+              orElse: () => user.pinnedWorks?.length ?? 0,
+            );
 
         return DefaultTabController(
           length: 4,
@@ -125,11 +133,9 @@ class ProfileScreen extends ConsumerWidget {
                     actions: [
                       IconButton(
                         tooltip: 'Share Profile',
-                        icon: const Icon(Icons.ios_share_rounded),
-                        onPressed: () => _shareProfile(
-                          user.id,
-                          user.displayName ?? user.username,
-                        ),
+                        icon: const Icon(Icons.share_outlined),
+                        onPressed: () =>
+                            _shareProfile(context, user, worksCount),
                       ),
                       _NotificationAction(),
                       Builder(
@@ -226,10 +232,14 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _shareProfile(String userId, String name) {
-    Share.share(
-      'Read with $name on Wreadom\n${AppLinkHelper.user(userId)}',
-      subject: '$name on Wreadom',
+  void _shareProfile(BuildContext context, UserModel user, int worksCount) {
+    final name = user.displayName ?? user.username;
+    shareUserProfileCard(
+      context,
+      user: user,
+      worksCount: worksCount,
+      fallbackText:
+          'Read with $name on Wreadom\n${AppLinkHelper.user(user.id)}',
     );
   }
 }

@@ -51,9 +51,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final RestorableInt _restorableChapterIndex = RestorableInt(0);
   final RestorableDouble _restorableScrollProgress = RestorableDouble(0.0);
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _chapterContentEndKey = GlobalKey();
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
-  int _chapterRating = 0;
+  int _chapterRating = 5;
   String? _selectedQuote;
   String _selectedText = "";
   late BookRepository _bookRepository;
@@ -66,6 +67,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isTtsPreparing = false;
   bool _isTtsSequencing = false;
   bool _stopTtsRequested = false;
+  bool _isSelectionTtsPlaying = false;
   int _ttsSession = 0;
   late final FlutterTts _tts;
   List<String> _ttsChunkList = const [];
@@ -138,10 +140,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           : direction == ScrollDirection.forward
           ? true
           : _showReaderChrome;
-      final hasScrollableContent = position.maxScrollExtent > 0;
-      final progress = hasScrollableContent
-          ? currentOffset / position.maxScrollExtent
-          : 0.0;
+      final progress = _currentProgressPosition();
       if ((progress - _scrollProgress).abs() > 0.01 ||
           shouldShowChrome != _showReaderChrome ||
           (currentOffset - _lastScrollOffset).abs() > 0.5) {
@@ -227,8 +226,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (!mounted || !_scrollController.hasClients || _initialScrollRestored) {
         return;
       }
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      if (maxScroll <= 0) return;
+      final maxScroll = _progressScrollExtent();
+      if (maxScroll <= 0) {
+        _initialScrollRestored = true;
+        _pendingSavedScrollProgress = null;
+        setState(() {
+          _scrollProgress = 1.0;
+          _restorableScrollProgress.value = 1.0;
+        });
+        return;
+      }
 
       _scrollController.jumpTo(
         (progress * maxScroll).clamp(0.0, maxScroll).toDouble(),
@@ -259,12 +266,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   double _currentProgressPosition() {
-    if (_scrollController.hasClients &&
-        _scrollController.position.maxScrollExtent > 0) {
-      return _scrollController.offset /
-          _scrollController.position.maxScrollExtent;
+    if (!_scrollController.hasClients) return _scrollProgress;
+    final extent = _progressScrollExtent();
+    if (extent <= 0) return 1.0;
+    return (_scrollController.offset / extent).clamp(0.0, 1.0).toDouble();
+  }
+
+  double _progressScrollExtent() {
+    if (!_scrollController.hasClients) return 0.0;
+    final position = _scrollController.position;
+    final markerContext = _chapterContentEndKey.currentContext;
+    final marker = markerContext?.findRenderObject();
+    if (marker != null) {
+      final viewport = RenderAbstractViewport.maybeOf(marker);
+      if (viewport != null) {
+        final revealOffset = viewport.getOffsetToReveal(marker, 1.0).offset;
+        return revealOffset.clamp(0.0, position.maxScrollExtent).toDouble();
+      }
     }
-    return 0.0;
+    return position.maxScrollExtent;
   }
 
   bool get _useLegacyTtsTapSeeking => false;
@@ -648,6 +668,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           Navigator.of(context).pop();
           _showDiscussion(chapters[index], chapterIndex: index);
         },
+        onBack: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).maybePop();
+        },
       ),
       body: Container(
         color: _getBackgroundColor(),
@@ -667,7 +691,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onTapUp:
                         _useLegacyTtsTapSeeking &&
-                            (_isTtsPlaying || _isTtsPreparing)
+                            (_isTtsPlaying || _isTtsPreparing) &&
+                            !_isSelectionTtsPlaying
                         ? (details) {
                             // TTS is active — seek to the tapped position.
                             if (chapter == null) return;
@@ -685,7 +710,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             unawaited(_seekTtsToFraction(chapter, fraction));
                           }
                         : null,
-                    child: (_isTtsPlaying || _isTtsPreparing)
+                    child:
+                        (_isTtsPlaying || _isTtsPreparing) &&
+                            !_isSelectionTtsPlaying
                         // When TTS is active, disable text selection so
                         // taps are handled cleanly for seeking.
                         ? _buildTtsListView(chapter, chapters, commentCounts)
@@ -704,12 +731,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                   : null;
                               final buttonItems = <ContextMenuButtonItem>[
                                 ContextMenuButtonItem(
+                                  label: 'Read selected',
+                                  onPressed: selected.isEmpty
+                                      ? null
+                                      : () {
+                                          selectableRegionState.hideToolbar();
+                                          _speakSelectedText(selected);
+                                        },
+                                ),
+                                ContextMenuButtonItem(
                                   label: 'Quote & Comment',
                                   onPressed: selected.isEmpty
                                       ? null
                                       : () {
+                                          final restoredQuote =
+                                              _restoreLineBreaks(
+                                                selected,
+                                                ctxChapter?.content,
+                                              );
                                           setState(() {
-                                            _selectedQuote = selected;
+                                            _selectedQuote = restoredQuote;
                                             _replyingTo = null;
                                           });
                                           selectableRegionState.hideToolbar();
@@ -856,6 +897,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           },
           onTapUrl: (url) async => isAllowedWriterLink(url),
         ),
+        SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
           hasNextChapter: _chapterIndex < chapters.length - 1,
@@ -897,6 +939,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 ? null
                 : () => unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
           ),
+        SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
           hasNextChapter: _chapterIndex < chapters.length - 1,
@@ -926,6 +969,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isSelectionTtsPlaying = false;
       });
     });
     _tts.setCancelHandler(() {
@@ -933,6 +977,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isSelectionTtsPlaying = false;
       });
     });
     _tts.setErrorHandler((message) {
@@ -952,6 +997,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isSelectionTtsPlaying = false;
       });
       ScaffoldMessenger.of(
         context,
@@ -975,12 +1021,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     // Always start from beginning when explicitly toggled on
     final startIndex = 0;
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
     setState(() {
+      _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
       _ttsChunkIndex = startIndex;
       _activeTtsBlockIndex = startIndex;
       _isTtsPreparing = true;
     });
+    _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
     await _runTtsFromIndex(chapter, startIndex);
   }
@@ -997,15 +1048,66 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await Future.delayed(const Duration(milliseconds: 100));
 
     if (!mounted) return;
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
     setState(() {
+      _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
       _ttsChunkIndex = blockIndex;
       _activeTtsBlockIndex = blockIndex;
       _isTtsPlaying = false;
       _isTtsPreparing = true;
     });
+    _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
     await _runTtsFromIndex(chapter, blockIndex);
+  }
+
+  void _restoreScrollOffsetAfterModeSwitch(double? scrollOffset) {
+    if (scrollOffset == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      _scrollController.jumpTo(scrollOffset.clamp(0.0, maxScroll).toDouble());
+    });
+  }
+
+  Future<void> _speakSelectedText(String selected) async {
+    final chunks = _ttsChunks(selected);
+    if (chunks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No readable text selected.')),
+      );
+      return;
+    }
+
+    _stopTtsRequested = true;
+    _ttsSession++;
+    await _tts.stop();
+    await Future.delayed(const Duration(milliseconds: 80));
+    if (!mounted) return;
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
+    setState(() {
+      _isSelectionTtsPlaying = true;
+      _ttsChunkList = chunks;
+      _ttsChunkIndex = 0;
+      _activeTtsBlockIndex = -1;
+      _isTtsPlaying = false;
+      _isTtsPreparing = true;
+    });
+    _restoreScrollOffsetAfterModeSwitch(scrollOffset);
+    await _runTtsFromIndex(
+      Chapter(
+        id: 'selection',
+        title: '',
+        content: selected,
+        index: _chapterIndex,
+      ),
+      0,
+    );
   }
 
   Future<void> _seekTtsToFraction(Chapter chapter, double fraction) async {
@@ -1086,6 +1188,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         // Reset chunk index so next play starts from beginning
         _ttsChunkIndex = 0;
         _activeTtsBlockIndex = -1;
+        _isSelectionTtsPlaying = false;
       });
     } catch (error) {
       if (!mounted) return;
@@ -1093,6 +1196,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _isTtsPreparing = false;
         _isTtsPlaying = false;
         _activeTtsBlockIndex = -1;
+        _isSelectionTtsPlaying = false;
       });
       ScaffoldMessenger.of(
         context,
@@ -1111,17 +1215,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isTtsPreparing = false;
       _isTtsPlaying = false;
       _activeTtsBlockIndex = -1;
+      _isSelectionTtsPlaying = false;
     });
   }
 
   String _plainTextForTts(Chapter chapter) {
     final title = chapter.title.trim();
-    final content = html_parser
-        .parse(chapter.content)
-        .documentElement
-        ?.text
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+    final content = _looksLikeHtml(chapter.content)
+        ? html_parser
+              .parse(chapter.content)
+              .documentElement
+              ?.text
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim()
+        : chapter.content
+              .replaceAll(RegExp(r'\r\n?'), '\n')
+              .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+              .trim();
     return [
       title,
       content,
@@ -1161,12 +1271,60 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final html = chapter?.content ?? widget.book.description ?? '';
     if (html.trim().isEmpty) return blocks;
+    if (!_looksLikeHtml(html)) {
+      _appendPlainReaderBlocks(html, addText);
+      return blocks;
+    }
 
     final doc = html_parser.parse(html);
     for (final node in doc.body?.nodes ?? const <dom.Node>[]) {
       _appendReaderBlocks(node, blocks, addText);
     }
     return blocks;
+  }
+
+  bool _looksLikeHtml(String value) {
+    return RegExp(r'<[a-z][\s\S]*>', caseSensitive: false).hasMatch(value);
+  }
+
+  void _appendPlainReaderBlocks(
+    String value,
+    void Function(String text, {_ReaderBlockKind kind}) addText,
+  ) {
+    final normalized = value
+        .replaceAll(RegExp(r'\r\n?'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+    if (normalized.isEmpty) return;
+    final paragraphs = normalized
+        .split(RegExp(r'\n\s*\n'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty);
+    for (final paragraph in paragraphs) {
+      for (final chunk in _splitLongPlainTextBlock(paragraph)) {
+        addText(chunk);
+      }
+    }
+  }
+
+  List<String> _splitLongPlainTextBlock(String text) {
+    const maxBlockLength = 900;
+    final normalized = text.replaceAll(RegExp(r'[ \t]+'), ' ').trim();
+    if (normalized.length <= maxBlockLength) return [normalized];
+
+    final chunks = <String>[];
+    var remaining = normalized;
+    while (remaining.length > maxBlockLength) {
+      var splitAt = remaining.lastIndexOf(RegExp(r'[.!?।]\s+'), maxBlockLength);
+      if (splitAt < maxBlockLength * 0.45) {
+        splitAt = remaining.lastIndexOf(' ', maxBlockLength);
+      }
+      if (splitAt < maxBlockLength * 0.45) splitAt = maxBlockLength;
+      chunks.add(remaining.substring(0, splitAt).trim());
+      remaining = remaining.substring(splitAt).trim();
+    }
+    if (remaining.isNotEmpty) chunks.add(remaining);
+    return chunks;
   }
 
   void _appendReaderBlocks(
@@ -1308,6 +1466,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   String _restoreLineBreaks(String flat, String? htmlContent) {
     if (htmlContent == null || htmlContent.isEmpty) return flat;
     try {
+      if (!_looksLikeHtml(htmlContent)) {
+        return _restoreLineBreaksFromPlainText(flat, htmlContent);
+      }
       final doc = html_parser.parse(htmlContent);
       // Collect text of every block-level element in document order.
       // These are the segments HtmlWidget renders as separate Flutter widgets,
@@ -1389,6 +1550,38 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     } catch (_) {
       return flat;
     }
+  }
+
+  String _restoreLineBreaksFromPlainText(String flat, String source) {
+    final normalizedFlat = flat.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalizedFlat.isEmpty) return flat;
+    final normalizedSource = source.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (!normalizedSource.contains(normalizedFlat)) return flat;
+
+    final lines = source
+        .replaceAll(RegExp(r'\r\n?'), '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    final matches = <String>[];
+    var remaining = normalizedFlat;
+    for (final line in lines) {
+      final normalizedLine = line.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (normalizedLine.isEmpty) continue;
+      if (remaining.startsWith(normalizedLine)) {
+        matches.add(line);
+        remaining = remaining.substring(normalizedLine.length).trimLeft();
+      } else if (normalizedLine.contains(remaining)) {
+        matches.add(remaining);
+        remaining = '';
+      } else if (remaining.contains(normalizedLine)) {
+        matches.add(line);
+        remaining = remaining.replaceFirst(normalizedLine, '').trimLeft();
+      }
+      if (remaining.isEmpty) break;
+    }
+    return matches.length > 1 ? matches.join('\n') : flat;
   }
 
   Future<void> _shareSelectedQuote(dynamic chapter, String selected) async {
@@ -1511,10 +1704,52 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return safe.isEmpty ? 'wreadom' : safe;
   }
 
+  String? get _bookAuthorId {
+    final authorId = widget.book.authorId?.trim();
+    return authorId == null || authorId.isEmpty ? null : authorId;
+  }
+
+  bool _isOwnOriginalBook(String userId) {
+    return (widget.book.isOriginal ?? false) && _bookAuthorId == userId;
+  }
+
+  void _prepareReviewComposer() {
+    if (_replyingTo != null) return;
+    final user = ref.read(currentUserProvider).asData?.value;
+    if (user == null || _isOwnOriginalBook(user.id)) {
+      _chapterRating = 5;
+      return;
+    }
+
+    final comments = ref
+        .read(bookCommentsProvider(widget.book.id))
+        .asData
+        ?.value;
+    final existingReview = comments
+        ?.where(
+          (comment) =>
+              comment.userId == user.id &&
+              comment.bookId?.toString() == widget.book.id &&
+              (comment.rating ?? 0) > 0,
+        )
+        .firstOrNull;
+    if (existingReview == null) {
+      _chapterRating = 5;
+      return;
+    }
+
+    _chapterRating = existingReview.rating ?? 5;
+    if (_commentController.value.text.trim().isEmpty) {
+      _commentController.value.text = existingReview.text;
+    }
+    _selectedQuote ??= existingReview.quote;
+  }
+
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
     final text = _commentController.value.text.trim();
     final user = await ref.read(currentUserProvider.future);
     if (text.isEmpty || user == null) return;
+    if (!mounted) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -1535,6 +1770,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           );
       setState(() => _replyingTo = null);
     } else {
+      if (_isOwnOriginalBook(user.id)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Authors cannot review their own book.'),
+          ),
+        );
+        return;
+      }
+      if (_chapterRating <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a rating.')),
+        );
+        return;
+      }
+      final existingReview = await ref
+          .read(commentRepositoryProvider)
+          .getUserBookReview(widget.book.id, user.id);
       final comment = Comment(
         bookId: widget.book.id,
         bookTitle: widget.book.title,
@@ -1543,7 +1795,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         displayName: user.displayName,
         penName: user.penName,
         text: text,
-        rating: _chapterRating > 0 ? _chapterRating : null,
+        rating: _chapterRating,
         quote: _selectedQuote,
         chapterTitle: chapter?.title,
         chapterIndex: chapterIndex ?? _chapterIndex,
@@ -1552,10 +1804,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         userPhotoURL: user.photoURL,
       );
 
-      await ref.read(commentRepositoryProvider).addComment(comment);
+      await ref.read(commentRepositoryProvider).upsertBookReview(comment);
 
-      // If it's a review (has rating), also cross-post to feed
-      if (_chapterRating > 0) {
+      if (existingReview == null) {
         await ref
             .read(feedRepositoryProvider)
             .createFeedPost(
@@ -1584,7 +1835,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
       setState(() {
         _selectedQuote = null;
-        _chapterRating = 0;
+        _chapterRating = 5;
       });
     }
     await HapticFeedback.lightImpact();
@@ -1597,6 +1848,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     int? chapterIndex,
     bool focusComposer = false,
   }) {
+    _prepareReviewComposer();
     if (_isDiscussionOpen) {
       if (focusComposer) {
         _commentFocusNode.requestFocus();
@@ -1614,97 +1866,159 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       barrierColor: Colors.black.withValues(alpha: 0.01),
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
+        initialChildSize: focusComposer ? 0.88 : 0.68,
         minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: _getBackgroundColor(),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        maxChildSize: 0.98,
+        builder: (context, scrollController) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: _getSecondaryTextColor().withValues(
-                              alpha: 0.3,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _getBackgroundColor(),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: _getSecondaryTextColor().withValues(
+                                alpha: 0.3,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
                             ),
-                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close',
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
+                      IconButton(
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    StatefulBuilder(
-                      builder: (context, setModalState) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_selectedQuote != null)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      width: 4,
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      StatefulBuilder(
+                        builder: (context, setModalState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_selectedQuote != null)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        width: 4,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.format_quote,
-                                          size: 16,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.format_quote,
+                                            size: 16,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Text(
+                                            'Quote',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(
+                                                () => _selectedQuote = null,
+                                              );
+                                              setModalState(() {});
+                                            },
+                                            child: const Icon(
+                                              Icons.close,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _selectedQuote!,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          fontSize: 13,
+                                          color: _getSecondaryTextColor(),
                                         ),
-                                        const SizedBox(width: 4),
-                                        const Text(
-                                          'Quote',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (_replyingTo != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                          .withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                                            style: TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              fontSize: 13,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimaryContainer,
+                                            ),
                                           ),
                                         ),
-                                        const Spacer(),
                                         GestureDetector(
                                           onTap: () {
-                                            setState(
-                                              () => _selectedQuote = null,
-                                            );
+                                            setState(() => _replyingTo = null);
                                             setModalState(() {});
                                           },
                                           child: const Icon(
@@ -1714,226 +2028,174 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 4),
+                                  ),
+                                )
+                              else ...[
+                                Row(
+                                  children: [
                                     Text(
-                                      _selectedQuote!,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
+                                      'Your Rating:',
                                       style: TextStyle(
-                                        fontStyle: FontStyle.italic,
                                         fontSize: 13,
                                         color: _getSecondaryTextColor(),
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            if (_replyingTo != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer
-                                        .withValues(alpha: 0.3),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
-                                          style: TextStyle(
-                                            fontStyle: FontStyle.italic,
-                                            fontSize: 13,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                          ),
-                                        ),
-                                      ),
-                                      GestureDetector(
+                                    const SizedBox(width: 8),
+                                    ...List.generate(5, (index) {
+                                      final active = index < _chapterRating;
+                                      return GestureDetector(
                                         onTap: () {
-                                          setState(() => _replyingTo = null);
+                                          setState(
+                                            () => _chapterRating = index + 1,
+                                          );
                                           setModalState(() {});
                                         },
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 16,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 2,
+                                          ),
+                                          child: Icon(
+                                            active
+                                                ? Icons.star_rounded
+                                                : Icons.star_border_rounded,
+                                            color: active
+                                                ? Colors.amber
+                                                : _getSecondaryTextColor(),
+                                            size: 24,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      );
+                                    }),
+                                  ],
                                 ),
-                              )
-                            else ...[
-                              Row(
-                                children: [
-                                  Text(
-                                    'Your Rating:',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: _getSecondaryTextColor(),
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                const SizedBox(height: 12),
+                              ],
+                              TextField(
+                                controller: _commentController.value,
+                                focusNode: _commentFocusNode,
+                                minLines: 2,
+                                maxLines: 4,
+                                decoration: InputDecoration(
+                                  hintText: _replyingTo != null
+                                      ? 'Add a reply...'
+                                      : 'Add your review about this chapter',
+                                  hintStyle: TextStyle(
+                                    color: _getSecondaryTextColor(),
                                   ),
-                                  const SizedBox(width: 8),
-                                  ...List.generate(5, (index) {
-                                    final active = index < _chapterRating;
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(
-                                          () => _chapterRating =
-                                              (_chapterRating == index + 1)
-                                              ? 0
-                                              : index + 1,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: _getInputFillColor(),
+                                  suffixIcon: Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.send_rounded,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                      onPressed: () async {
+                                        await _submitComment(
+                                          chapter,
+                                          chapterIndex: chapterIndex,
                                         );
                                         setModalState(() {});
                                       },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 2,
-                                        ),
-                                        child: Icon(
-                                          active
-                                              ? Icons.star_rounded
-                                              : Icons.star_border_rounded,
-                                          color: active
-                                              ? Colors.amber
-                                              : _getSecondaryTextColor(),
-                                          size: 24,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                            TextField(
-                              controller: _commentController.value,
-                              focusNode: _commentFocusNode,
-                              minLines: 2,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                hintText: _replyingTo != null
-                                    ? 'Add a reply...'
-                                    : 'Add a comment about this chapter',
-                                hintStyle: TextStyle(
-                                  color: _getSecondaryTextColor(),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: _getInputFillColor(),
-                                suffixIcon: Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: IconButton(
-                                    icon: Icon(
-                                      Icons.send_rounded,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
                                     ),
-                                    onPressed: () async {
-                                      await _submitComment(
-                                        chapter,
-                                        chapterIndex: chapterIndex,
-                                      );
-                                      setModalState(() {});
-                                    },
                                   ),
                                 ),
+                                style: TextStyle(color: _getTextColor()),
                               ),
-                              style: TextStyle(color: _getTextColor()),
-                            ),
-                            const SizedBox(height: 24),
-                            Consumer(
-                              builder: (context, ref, _) {
-                                final commentsAsync = ref.watch(
-                                  bookCommentsProvider(widget.book.id),
-                                );
-                                return commentsAsync.when(
-                                  data: (items) {
-                                    final chapterId = chapter?.id.toString();
-                                    final chapterComments = items.where((
-                                      comment,
-                                    ) {
-                                      if (chapterId != null &&
-                                          chapterId.isNotEmpty &&
-                                          comment.chapterId == chapterId) {
-                                        return true;
-                                      }
-                                      return comment.chapterIndex ==
-                                          (chapterIndex ?? _chapterIndex);
-                                    }).toList();
+                              const SizedBox(height: 24),
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final commentsAsync = ref.watch(
+                                    bookCommentsProvider(widget.book.id),
+                                  );
+                                  return commentsAsync.when(
+                                    data: (items) {
+                                      final chapterId = chapter?.id.toString();
+                                      final chapterComments = items.where((
+                                        comment,
+                                      ) {
+                                        if (chapterId != null &&
+                                            chapterId.isNotEmpty &&
+                                            comment.chapterId == chapterId) {
+                                          return true;
+                                        }
+                                        return comment.chapterIndex ==
+                                            (chapterIndex ?? _chapterIndex);
+                                      }).toList();
 
-                                    if (chapterComments.isEmpty) {
-                                      return Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(32.0),
-                                          child: Column(
-                                            children: [
-                                              Icon(
-                                                Icons
-                                                    .chat_bubble_outline_rounded,
-                                                size: 48,
-                                                color: _getSecondaryTextColor()
-                                                    .withValues(alpha: 0.3),
-                                              ),
-                                              const SizedBox(height: 16),
-                                              Text(
-                                                'No comments for this chapter yet.',
-                                                style: TextStyle(
+                                      if (chapterComments.isEmpty) {
+                                        return Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(32.0),
+                                            child: Column(
+                                              children: [
+                                                Icon(
+                                                  Icons
+                                                      .chat_bubble_outline_rounded,
+                                                  size: 48,
                                                   color:
-                                                      _getSecondaryTextColor(),
+                                                      _getSecondaryTextColor()
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          ),
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(height: 16),
+                                                Text(
+                                                  'No comments for this chapter yet.',
+                                                  style: TextStyle(
+                                                    color:
+                                                        _getSecondaryTextColor(),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    }
+                                        );
+                                      }
 
-                                    return Column(
-                                      children: [
-                                        for (final comment in chapterComments)
-                                          CommentTile(
-                                            comment: comment,
-                                            textColor: _getTextColor(),
-                                            metadataColor:
-                                                _getSecondaryTextColor(),
-                                            onReply: () {
-                                              setState(
-                                                () => _replyingTo = comment,
-                                              );
-                                              setModalState(() {});
-                                            },
-                                          ),
-                                      ],
-                                    );
-                                  },
-                                  loading: () => const Center(
-                                    child: LinearProgressIndicator(),
-                                  ),
-                                  error: (error, _) => Text('Error: $error'),
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+                                      return Column(
+                                        children: [
+                                          for (final comment in chapterComments)
+                                            CommentTile(
+                                              comment: comment,
+                                              bookId: widget.book.id,
+                                              bookAuthorId: _bookAuthorId,
+                                              textColor: _getTextColor(),
+                                              metadataColor:
+                                                  _getSecondaryTextColor(),
+                                              onReply: () {
+                                                setState(
+                                                  () => _replyingTo = comment,
+                                                );
+                                                setModalState(() {});
+                                              },
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                    loading: () => const Center(
+                                      child: LinearProgressIndicator(),
+                                    ),
+                                    error: (error, _) => Text('Error: $error'),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2266,6 +2528,7 @@ class _ChapterDrawer extends StatelessWidget {
   final Color accentColor;
   final ValueChanged<int> onSelect;
   final ValueChanged<int> onOpenComments;
+  final VoidCallback onBack;
 
   const _ChapterDrawer({
     required this.chapters,
@@ -2279,6 +2542,7 @@ class _ChapterDrawer extends StatelessWidget {
     required this.accentColor,
     required this.onSelect,
     required this.onOpenComments,
+    required this.onBack,
   });
 
   @override
@@ -2289,15 +2553,28 @@ class _ChapterDrawer extends StatelessWidget {
         children: [
           DrawerHeader(
             decoration: BoxDecoration(color: headerColor),
-            child: Center(
-              child: Text(
-                'Chapters',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Chapters',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Back'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textColor,
+                    side: BorderSide(color: textColor.withValues(alpha: 0.45)),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(

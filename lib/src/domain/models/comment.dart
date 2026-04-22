@@ -18,7 +18,8 @@ abstract class CommentReply with _$CommentReply {
     Map<String, String>? mentions,
   }) = _CommentReply;
 
-  factory CommentReply.fromJson(Map<String, dynamic> json) => _$CommentReplyFromJson(json);
+  factory CommentReply.fromJson(Map<String, dynamic> json) =>
+      _$CommentReplyFromJson(json);
 }
 
 @freezed
@@ -43,7 +44,11 @@ abstract class Comment with _$Comment {
     List<CommentReply>? replies,
     List<String>? likes,
     Map<String, String>? mentions,
+    bool? isHighlighted,
+    int? highlightedAt,
+    String? highlightedByUserId,
   }) = _Comment;
 
-  factory Comment.fromJson(Map<String, dynamic> json) => _$CommentFromJson(json);
+  factory Comment.fromJson(Map<String, dynamic> json) =>
+      _$CommentFromJson(json);
 }

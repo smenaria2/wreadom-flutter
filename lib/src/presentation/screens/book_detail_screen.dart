@@ -185,29 +185,16 @@ class _BookDetailBody extends ConsumerWidget {
                 subject: book.title,
               ),
             ),
-            PopupMenuButton<String>(
-              onSelected: (val) {
-                if (val == 'report') {
-                  showDialog(
-                    context: context,
-                    builder: (context) =>
-                        ReportDialog(targetId: book.id, targetType: 'book'),
-                  );
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'report',
-                  child: Row(
-                    children: [
-                      Icon(Icons.report_problem_outlined),
-                      SizedBox(width: 8),
-                      Text('Report Book'),
-                    ],
-                  ),
+            if (!canEdit)
+              IconButton(
+                tooltip: 'Report book',
+                icon: const Icon(Icons.report_problem_outlined),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) =>
+                      ReportDialog(targetId: book.id, targetType: 'book'),
                 ),
-              ],
-            ),
+              ),
           ],
           flexibleSpace: FlexibleSpaceBar(
             background: Stack(
@@ -331,7 +318,7 @@ class _BookDetailBody extends ConsumerWidget {
                 _ExpandableText(text: book.description!),
               ],
               const SizedBox(height: 28),
-              _LatestDiscussionSection(bookId: book.id),
+              _LatestDiscussionSection(book: book),
               const SizedBox(height: 32),
             ]),
           ),
@@ -573,9 +560,9 @@ class _AuthorLine extends StatelessWidget {
 }
 
 class _LatestDiscussionSection extends ConsumerStatefulWidget {
-  const _LatestDiscussionSection({required this.bookId});
+  const _LatestDiscussionSection({required this.book});
 
-  final String bookId;
+  final Book book;
 
   @override
   ConsumerState<_LatestDiscussionSection> createState() =>
@@ -588,7 +575,7 @@ class _LatestDiscussionSectionState
 
   @override
   Widget build(BuildContext context) {
-    final commentsAsync = ref.watch(bookCommentsProvider(widget.bookId));
+    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
     final theme = Theme.of(context);
 
     return commentsAsync.when(
@@ -608,6 +595,8 @@ class _LatestDiscussionSectionState
             for (final comment in visible)
               CommentTile(
                 comment: comment,
+                bookId: widget.book.id,
+                bookAuthorId: widget.book.authorId,
                 onReply: () => _showReplySheet(comment),
               ),
             if (_visibleCount < comments.length)
@@ -634,29 +623,29 @@ class _LatestDiscussionSectionState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) =>
-          CommentReplySheet(comment: comment, bookId: widget.bookId),
+          CommentReplySheet(comment: comment, bookId: widget.book.id),
     );
   }
 }
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   const _StatsRow({required this.book});
 
   final Book book;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textColor = Colors.grey[600];
+    final commentsAsync = ref.watch(bookCommentsProvider(book.id));
+    final rating = commentsAsync.maybeWhen(
+      data: (comments) => _ratingSummary(book, comments),
+      orElse: () => _ratingSummary(book, const <Comment>[]),
+    );
     return Wrap(
       spacing: 16,
       runSpacing: 8,
       children: [
-        if (book.averageRating != null)
-          _Stat(
-            icon: Icons.star_rounded,
-            label: book.averageRating!.toStringAsFixed(1),
-            color: Colors.amber,
-          ),
+        _RatingStat(summary: rating),
         _Stat(
           icon: Icons.visibility_outlined,
           label: '${_formatCount(book.viewCount ?? 0)} reads',
@@ -672,10 +661,73 @@ class _StatsRow extends StatelessWidget {
     );
   }
 
+  _RatingSummary _ratingSummary(Book book, List<Comment> comments) {
+    final ratings = <double>[
+      if (book.averageRating != null && book.averageRating! > 0)
+        book.averageRating!,
+      ...comments
+          .where((comment) => comment.rating != null && comment.rating! > 0)
+          .map((comment) => comment.rating!.toDouble()),
+    ];
+    if (ratings.isEmpty) return const _RatingSummary.none();
+    final average =
+        ratings.reduce((sum, rating) => sum + rating) / ratings.length;
+    final storedCount = book.ratingsCount ?? 0;
+    final count = storedCount > ratings.length ? storedCount : ratings.length;
+    return _RatingSummary(average: average, count: count);
+  }
+
   String _formatCount(int n) {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
+  }
+}
+
+class _RatingSummary {
+  const _RatingSummary({required this.average, required this.count});
+  const _RatingSummary.none() : average = null, count = 0;
+
+  final double? average;
+  final int count;
+}
+
+class _RatingStat extends StatelessWidget {
+  const _RatingStat({required this.summary});
+
+  final _RatingSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final average = summary.average;
+    if (average == null) {
+      return _Stat(
+        icon: Icons.star_border_rounded,
+        label: 'No ratings',
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      );
+    }
+
+    final countLabel = summary.count > 0 ? ' (${summary.count})' : '';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...List.generate(5, (index) {
+          return Icon(
+            index < average.round()
+                ? Icons.star_rounded
+                : Icons.star_border_rounded,
+            size: 16,
+            color: Colors.amber,
+          );
+        }),
+        const SizedBox(width: 4),
+        Text(
+          '${average.toStringAsFixed(1)}$countLabel',
+          style: const TextStyle(color: Colors.amber, fontSize: 13),
+        ),
+      ],
+    );
   }
 }
 

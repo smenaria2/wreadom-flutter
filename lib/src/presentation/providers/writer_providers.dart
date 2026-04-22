@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/services/cloudinary_upload_service.dart';
+import '../../data/services/writer_draft_service.dart';
 import '../../data/repositories/firebase_writer_repository.dart';
 import '../../domain/models/book.dart';
 import '../../domain/repositories/writer_repository.dart';
@@ -14,6 +15,10 @@ final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
   ref,
 ) {
   return CloudinaryUploadService();
+});
+
+final writerDraftServiceProvider = Provider<WriterDraftService>((ref) {
+  return WriterDraftService();
 });
 
 /// The current selected tab in the Writer Dashboard

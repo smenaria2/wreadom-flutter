@@ -16,12 +16,16 @@ class CommentTile extends ConsumerStatefulWidget {
     required this.onReply,
     this.textColor,
     this.metadataColor,
+    this.bookId,
+    this.bookAuthorId,
   });
 
   final Comment comment;
   final VoidCallback onReply;
   final Color? textColor;
   final Color? metadataColor;
+  final String? bookId;
+  final String? bookAuthorId;
 
   @override
   ConsumerState<CommentTile> createState() => _CommentTileState();
@@ -29,6 +33,7 @@ class CommentTile extends ConsumerStatefulWidget {
 
 class _CommentTileState extends ConsumerState<CommentTile> {
   bool _liking = false;
+  bool _highlighting = false;
   bool? _liked;
   int? _likeCount;
 
@@ -63,6 +68,39 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     }
   }
 
+  Future<void> _toggleHighlight() async {
+    final commentId = widget.comment.id;
+    final bookId = widget.bookId ?? widget.comment.bookId?.toString();
+    final user = ref.read(currentUserProvider).asData?.value;
+    if (_highlighting ||
+        commentId == null ||
+        bookId == null ||
+        user == null ||
+        widget.bookAuthorId != user.id) {
+      return;
+    }
+
+    setState(() => _highlighting = true);
+    try {
+      await ref
+          .read(commentRepositoryProvider)
+          .toggleReviewHighlight(
+            commentId: commentId,
+            bookId: bookId,
+            authorId: user.id,
+          );
+      ref.invalidate(bookCommentsProvider(bookId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _highlighting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -74,6 +112,15 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         _liked ??
         (user != null && (comment.likes ?? const <String>[]).contains(user.id));
     final likeCount = _likeCount ?? (comment.likes ?? const <String>[]).length;
+    final isReview = (comment.rating ?? 0) > 0;
+    final isHighlighted = comment.isHighlighted == true;
+    final canHighlight =
+        isReview &&
+        widget.bookAuthorId != null &&
+        user != null &&
+        widget.bookAuthorId == user.id &&
+        comment.userId != user.id &&
+        comment.id != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +156,14 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                           : Colors.grey[400],
                     ),
                   ),
+                ),
+              ],
+              if (isHighlighted) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.workspace_premium_rounded,
+                  size: 16,
+                  color: Colors.amber[700],
                 ),
               ],
             ],
@@ -175,15 +230,13 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                   ] else if (user != null && comment.id != null) ...[
                     const SizedBox(width: 16),
                     GestureDetector(
-                      onTap:
-                          () => showDialog(
-                            context: context,
-                            builder:
-                                (context) => ReportDialog(
-                                  targetId: comment.id!,
-                                  targetType: 'comment',
-                                ),
-                          ),
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (context) => ReportDialog(
+                          targetId: comment.id!,
+                          targetType: 'comment',
+                        ),
+                      ),
                       child: Text(
                         'Report',
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -191,6 +244,34 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             alpha: 0.5,
                           ),
                         ),
+                      ),
+                    ),
+                  ],
+                  if (canHighlight) ...[
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: _toggleHighlight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isHighlighted
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            size: 14,
+                            color: isHighlighted
+                                ? Colors.amber
+                                : widget.metadataColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isHighlighted ? 'Unstar' : 'Star',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -346,13 +427,12 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
               if (user != null && reply.userId == user.id) ...[
                 const SizedBox(width: 14),
                 GestureDetector(
-                  onTap:
-                      () => _confirmDeleteReply(
-                        context,
-                        ref,
-                        widget.commentId,
-                        reply,
-                      ),
+                  onTap: () => _confirmDeleteReply(
+                    context,
+                    ref,
+                    widget.commentId,
+                    reply,
+                  ),
                   child: Text(
                     'Delete',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -365,15 +445,13 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
               ] else if (user != null) ...[
                 const SizedBox(width: 14),
                 GestureDetector(
-                  onTap:
-                      () => showDialog(
-                        context: context,
-                        builder:
-                            (context) => ReportDialog(
-                              targetId: reply.id ?? reply.timestamp.toString(),
-                              targetType: 'comment_reply',
-                            ),
-                      ),
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (context) => ReportDialog(
+                      targetId: reply.id ?? reply.timestamp.toString(),
+                      targetType: 'comment_reply',
+                    ),
+                  ),
                   child: Text(
                     'Report',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -480,21 +558,20 @@ Future<void> _confirmDeleteComment(
   if (comment.id == null) return;
   final confirmed = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: const Text('Delete Comment?'),
-          content: const Text('This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete Comment?'),
+      content: const Text('This action cannot be undone.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
         ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
   );
 
   if (confirmed == true) {
@@ -528,21 +605,20 @@ Future<void> _confirmDeleteReply(
 
   final confirmed = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: const Text('Delete Reply?'),
-          content: const Text('This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete Reply?'),
+      content: const Text('This action cannot be undone.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
         ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
   );
 
   if (confirmed == true) {

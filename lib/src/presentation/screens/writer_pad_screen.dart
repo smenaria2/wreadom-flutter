@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
@@ -26,7 +27,7 @@ class WriterPadScreen extends ConsumerStatefulWidget {
 }
 
 class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
-    with RestorationMixin {
+    with RestorationMixin, WidgetsBindingObserver {
   WriterTaxonomy get _taxonomy => ref.read(writerTaxonomyProvider);
 
   List<String> get _currentCategories => _taxonomy.categoriesFor(_contentType);
@@ -53,12 +54,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Timer? _autosaveTimer;
   String? _bookId;
+  late final String _localDraftId;
   int _step = 0;
   int _currentChapterIndex = 0;
   bool _isSaving = false;
   bool _isUploadingInlineImage = false;
   bool _isUploadingCover = false;
   bool _isDirty = false;
+  bool _isLocalDirty = false;
+  bool _isRestoringLocalDraft = false;
   bool _metadataListenersAttached = false;
   bool _bookTitleEditedByUser = false;
   bool _syncingBookTitleFromChapter = false;
@@ -133,8 +137,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final book = widget.book;
     _bookId = book?.id;
+    _localDraftId =
+        book?.id ??
+        'new_${DateTime.now().millisecondsSinceEpoch}_${identityHashCode(this)}';
     _coverUrl = book?.coverUrl;
     _titleController = RestorableTextEditingController(text: book?.title ?? '');
     _descriptionController = RestorableTextEditingController(
@@ -161,6 +169,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       const Duration(seconds: 10),
       (_) => _autosaveDraft(),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_restoreLocalDraft());
+    });
   }
 
   String _initialTopicsText(Book? book) {
@@ -174,8 +185,70 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return topics.join(', ');
   }
 
+  String _draftKey(String userId) {
+    return '$userId:${_bookId ?? widget.book?.id ?? _localDraftId}';
+  }
+
+  Future<void> _restoreLocalDraft() async {
+    final user = await _currentUserOrNull();
+    if (!mounted || user == null) return;
+
+    final draft = await ref
+        .read(writerDraftServiceProvider)
+        .getDraft(_draftKey(user.id));
+    if (!mounted || draft == null) return;
+
+    _isRestoringLocalDraft = true;
+    setState(() {
+      _titleController.value.text = draft.title == 'Untitled Story'
+          ? ''
+          : draft.title;
+      _descriptionController.value.text = draft.description ?? '';
+      _coverUrl = draft.coverUrl;
+      _contentType = _contentTypeFromBook(draft.contentType);
+      _restorableContentType.value = _contentType;
+      _language = _languageFromBook(draft.languages.firstOrNull);
+      _restorableLanguage.value = _language;
+      _category = _initialCategory(draft);
+      if (!_currentCategories.contains(_category)) {
+        _category = _defaultCategory;
+      }
+      _restorableCategory.value = _category;
+      _topicsController.value.text = _initialTopicsText(draft);
+      for (final chapter in _chapters) {
+        chapter.dispose();
+      }
+      _chapters
+        ..clear()
+        ..addAll(
+          (draft.chapters ?? const <Chapter>[]).map(
+            (chapter) => _ChapterDraft.fromChapter(chapter, _markDirty),
+          ),
+        );
+      if (_chapters.isEmpty) {
+        _chapters.add(_ChapterDraft.empty(_markDirty));
+      }
+      _setCurrentChapterIndex(
+        _currentChapterIndex.clamp(0, _chapters.length - 1),
+      );
+      _isDirty = true;
+      _isLocalDirty = false;
+      _saveStatus = 'Saved on device';
+    });
+    _isRestoringLocalDraft = false;
+  }
+
+  Future<UserModel?> _currentUserOrNull() async {
+    try {
+      return await ref.read(currentUserProvider.future);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autosaveTimer?.cancel();
     if (_metadataListenersAttached) {
       _titleController.value.removeListener(_handleBookTitleChanged);
@@ -196,6 +269,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       chapter.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_syncDraftCheckpoint());
+    }
   }
 
   @override
@@ -245,6 +327,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 ? null
                 : () {
                     if (_step == 0) {
+                      unawaited(_syncDraftCheckpoint());
                       setState(() => _setStep(1));
                     } else {
                       _save(status: 'published', closeAfterSave: true);
@@ -265,7 +348,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     );
   }
 
-  void _handleBack() {
+  Future<void> _handleBack() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_step == 1) {
       setState(() => _setStep(0));
@@ -274,6 +357,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
+      await _syncDraftCheckpoint();
+      if (!mounted) return;
       navigator.pop();
     }
   }
@@ -875,6 +960,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         ),
                         onReorder: (oldIndex, newIndex) {
                           setState(() => _reorderChapter(oldIndex, newIndex));
+                          unawaited(_syncDraftCheckpoint());
                           modalSetState(() {});
                         },
                         itemBuilder: (context, i) {
@@ -893,11 +979,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             textColor: onSheetColor,
                             onTap: () {
                               setState(() => _setCurrentChapterIndex(i));
+                              unawaited(_syncDraftCheckpoint());
                               Navigator.of(context).pop();
                             },
                             onDelete: () async {
                               final deleted = await _confirmDeleteChapter(i);
                               if (deleted && context.mounted) {
+                                unawaited(_syncDraftCheckpoint());
                                 modalSetState(() {});
                               }
                             },
@@ -911,6 +999,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         borderRadius: BorderRadius.circular(8),
                         onTap: () {
                           _addChapter();
+                          unawaited(_syncDraftCheckpoint());
                           modalSetState(() {});
                         },
                         child: Container(
@@ -953,6 +1042,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapters.add(_ChapterDraft.empty(_markDirty));
       _setCurrentChapterIndex(_chapters.length - 1);
       _isDirty = true;
+      _isLocalDirty = true;
       _saveStatus = 'Unsaved changes';
     });
   }
@@ -966,6 +1056,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       ..insert(newIndex, moving);
     _setCurrentChapterIndex(_chapters.indexOf(current));
     _isDirty = true;
+    _isLocalDirty = true;
     _saveStatus = 'Unsaved changes';
   }
 
@@ -996,6 +1087,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _currentChapterIndex.clamp(0, _chapters.length - 1),
       );
       _isDirty = true;
+      _isLocalDirty = true;
       _saveStatus = 'Unsaved changes';
     });
     return true;
@@ -1148,25 +1240,27 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Future<void> _autosaveDraft() async {
-    if (!_isDirty || _isSaving || !_hasSavableContent) return;
-    await _save(status: 'draft', isAutosave: true);
+    if (!_isLocalDirty || _isSaving || !_hasSavableContent) return;
+    await _saveLocalDraft();
   }
 
   Future<void> _save({
     required String status,
     bool closeAfterSave = false,
-    bool isAutosave = false,
+    bool allowUntitled = false,
+    bool showSnack = true,
   }) async {
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null || _isSaving) return;
+    if (_isSaving) return;
 
-    _syncBookTitleFromFirstChapter();
     final title = _titleController.value.text.trim();
-    if (title.isEmpty && !isAutosave) {
+    if (title.isEmpty && !allowUntitled) {
       _showSnack('Add a title before saving.');
       setState(() => _setStep(1));
       return;
     }
+
+    final user = await _currentUserOrNull();
+    if (user == null) return;
 
     setState(() {
       _isSaving = true;
@@ -1174,91 +1268,25 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     });
 
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final chapters = <Chapter>[];
-      for (var i = 0; i < _chapters.length; i++) {
-        final draft = _chapters[i];
-        final content = htmlFromDocument(draft.controller.document);
-        final plainContent = plainTextFromHtml(content);
-        if (draft.title.text.trim().isEmpty &&
-            plainContent.isEmpty &&
-            !hasMeaningfulWriterHtml(content)) {
-          continue;
-        }
-        chapters.add(
-          Chapter(
-            id: draft.id ?? 'chapter_${now}_$i',
-            title: draft.title.text.trim().isEmpty
-                ? 'Chapter ${i + 1}'
-                : draft.title.text.trim(),
-            content: content,
-            index: i,
-            status: status == 'published' ? 'published' : 'draft',
-            lastSavedAt: now,
-            versions: draft.original?.versions,
-            isTitleLocked: draft.original?.isTitleLocked,
-            originalBookId: draft.original?.originalBookId,
-          ),
-        );
-      }
-
-      final topics = _topicsController.value.text
-          .split(',')
-          .map((topic) => topic.trim())
-          .where((topic) => topic.isNotEmpty)
-          .toList();
-      final subjects = <String>{_category, ...topics}.toList();
-      final book = Book(
-        id: _bookId ?? widget.book?.id ?? '',
-        title: title.isEmpty ? 'Untitled Story' : title,
-        description: _descriptionController.value.text.trim(),
-        coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
-        authors: [
-          Author(
-            name: user.displayName ?? user.username,
-            birthYear: null,
-            deathYear: null,
-          ),
-        ],
-        subjects: subjects,
-        languages: [_language],
-        formats: widget.book?.formats ?? const {},
-        downloadCount: widget.book?.downloadCount ?? 0,
-        mediaType: widget.book?.mediaType ?? 'text',
-        bookshelves: widget.book?.bookshelves ?? const [],
-        year: widget.book?.year,
-        source: 'firestore',
-        isOriginal: true,
-        contentType: _contentType,
-        authorId: user.id,
-        chapters: chapters,
-        status: status,
-        createdAt: widget.book?.createdAt ?? now,
-        updatedAt: now,
-        identifier: widget.book?.identifier,
-        recommendationCount: widget.book?.recommendationCount,
-        weightedScore: widget.book?.weightedScore,
-        averageRating: widget.book?.averageRating,
-        viewCount: widget.book?.viewCount,
-        ratingsCount: widget.book?.ratingsCount,
-        topics: topics,
-        chapterCount: chapters.length,
-      );
+      final localDraftKey = _draftKey(user.id);
+      final book = _buildBookForSave(user, status: status);
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
       } else {
         await ref.read(writerRepositoryProvider).updateBook(_bookId!, book);
       }
+      await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
       if (!mounted) return;
       setState(() {
         _isDirty = false;
+        _isLocalDirty = false;
         _isSaving = false;
         _saveStatus = status == 'published' ? 'Published' : 'Draft saved';
       });
-      if (!isAutosave) {
+      if (showSnack) {
         _showSnack(status == 'published' ? 'Story published.' : 'Draft saved.');
       }
       if (closeAfterSave && mounted) Navigator.of(context).pop();
@@ -1268,8 +1296,109 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _isSaving = false;
         _saveStatus = 'Save failed';
       });
-      if (!isAutosave) _showSnack('Could not save: $error');
+      if (showSnack) _showSnack('Could not save: $error');
     }
+  }
+
+  Future<void> _syncDraftCheckpoint() async {
+    if (!_isDirty || _isSaving || !_hasSavableContent) return;
+    await _save(status: 'draft', allowUntitled: true, showSnack: false);
+  }
+
+  Future<void> _saveLocalDraft() async {
+    final user = await _currentUserOrNull();
+    if (user == null) return;
+
+    try {
+      final book = _buildBookForSave(user, status: 'draft');
+      await ref
+          .read(writerDraftServiceProvider)
+          .saveDraft(draftKey: _draftKey(user.id), book: book);
+      if (!mounted) return;
+      setState(() {
+        _isLocalDirty = false;
+        _saveStatus = 'Saved on device';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saveStatus = 'Local save failed');
+    }
+  }
+
+  Book _buildBookForSave(UserModel user, {required String status}) {
+    _syncBookTitleFromFirstChapter();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final chapters = <Chapter>[];
+    for (var i = 0; i < _chapters.length; i++) {
+      final draft = _chapters[i];
+      final content = htmlFromDocument(draft.controller.document);
+      final plainContent = plainTextFromHtml(content);
+      if (draft.title.text.trim().isEmpty &&
+          plainContent.isEmpty &&
+          !hasMeaningfulWriterHtml(content)) {
+        continue;
+      }
+      chapters.add(
+        Chapter(
+          id: draft.id ?? 'chapter_${now}_$i',
+          title: draft.title.text.trim().isEmpty
+              ? 'Chapter ${i + 1}'
+              : draft.title.text.trim(),
+          content: content,
+          index: i,
+          status: status == 'published' ? 'published' : 'draft',
+          lastSavedAt: now,
+          versions: draft.original?.versions,
+          isTitleLocked: draft.original?.isTitleLocked,
+          originalBookId: draft.original?.originalBookId,
+        ),
+      );
+    }
+
+    final topics = _topicsController.value.text
+        .split(',')
+        .map((topic) => topic.trim())
+        .where((topic) => topic.isNotEmpty)
+        .toList();
+    final subjects = <String>{_category, ...topics}.toList();
+    return Book(
+      id: _bookId ?? widget.book?.id ?? '',
+      title: _titleController.value.text.trim().isEmpty
+          ? 'Untitled Story'
+          : _titleController.value.text.trim(),
+      description: _descriptionController.value.text.trim(),
+      coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
+      authors: [
+        Author(
+          name: user.displayName ?? user.username,
+          birthYear: null,
+          deathYear: null,
+        ),
+      ],
+      subjects: subjects,
+      languages: [_language],
+      formats: widget.book?.formats ?? const {},
+      downloadCount: widget.book?.downloadCount ?? 0,
+      mediaType: widget.book?.mediaType ?? 'text',
+      bookshelves: widget.book?.bookshelves ?? const [],
+      year: widget.book?.year,
+      source: 'firestore',
+      isOriginal: true,
+      contentType: _contentType,
+      authorId: user.id,
+      chapters: chapters,
+      status: status,
+      createdAt: widget.book?.createdAt ?? now,
+      updatedAt: now,
+      identifier: widget.book?.identifier,
+      recommendationCount: widget.book?.recommendationCount,
+      weightedScore: widget.book?.weightedScore,
+      averageRating: widget.book?.averageRating,
+      viewCount: widget.book?.viewCount,
+      ratingsCount: widget.book?.ratingsCount,
+      topics: topics,
+      chapterCount: chapters.length,
+    );
   }
 
   bool get _hasSavableContent {
@@ -1282,11 +1411,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _markDirty() {
-    if (!mounted) return;
+    if (!mounted || _isRestoringLocalDraft) return;
     _syncBookTitleFromFirstChapter();
     if (!_isDirty) {
       setState(() {
         _isDirty = true;
+        _isLocalDirty = true;
+        _saveStatus = 'Unsaved changes';
+      });
+    } else if (!_isLocalDirty) {
+      setState(() {
+        _isLocalDirty = true;
         _saveStatus = 'Unsaved changes';
       });
     }

@@ -62,6 +62,9 @@ _Comment _$CommentFromJson(Map<String, dynamic> json) => _Comment(
   mentions: (json['mentions'] as Map<String, dynamic>?)?.map(
     (k, e) => MapEntry(k, e as String),
   ),
+  isHighlighted: json['isHighlighted'] as bool?,
+  highlightedAt: (json['highlightedAt'] as num?)?.toInt(),
+  highlightedByUserId: json['highlightedByUserId'] as String?,
 );
 
 Map<String, dynamic> _$CommentToJson(_Comment instance) => <String, dynamic>{
@@ -84,4 +87,7 @@ Map<String, dynamic> _$CommentToJson(_Comment instance) => <String, dynamic>{
   'replies': instance.replies,
   'likes': instance.likes,
   'mentions': instance.mentions,
+  'isHighlighted': instance.isHighlighted,
+  'highlightedAt': instance.highlightedAt,
+  'highlightedByUserId': instance.highlightedByUserId,
 };

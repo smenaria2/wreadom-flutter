@@ -11,6 +11,7 @@ class FirebaseReportRepository implements ReportRepository {
   @override
   Future<void> submitReport(Report report) async {
     final data = report.toJson()..remove('id');
+    data.removeWhere((key, value) => value == null);
     await _firestore.collection('reports').add(data);
   }
 

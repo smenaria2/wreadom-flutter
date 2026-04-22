@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/models/user_model.dart';
 import '../widgets/follow_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -14,6 +14,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../components/book_card.dart';
 import '../components/feed_post_card.dart';
+import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 
@@ -35,6 +36,13 @@ class PublicProfileScreen extends ConsumerWidget {
           if (user == null) {
             return const Center(child: Text('User not found'));
           }
+          final theme = Theme.of(context);
+          final worksCount = ref
+              .watch(userBooksProvider(user.id))
+              .maybeWhen(
+                data: (books) => books.length,
+                orElse: () => user.pinnedWorks?.length ?? 0,
+              );
           final level = (user.privacyLevel ?? 'public').toLowerCase();
           final contentVisible =
               isSelf ||
@@ -47,14 +55,14 @@ class PublicProfileScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 220,
                 pinned: true,
+                backgroundColor: theme.colorScheme.surface,
+                foregroundColor: theme.colorScheme.onSurface,
+                iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
                 actions: [
                   IconButton(
                     tooltip: 'Share Profile',
-                    icon: const Icon(Icons.ios_share_rounded),
-                    onPressed: () => _shareProfile(
-                      user.id,
-                      user.displayName ?? user.username,
-                    ),
+                    icon: const Icon(Icons.share_outlined),
+                    onPressed: () => _shareProfile(context, user, worksCount),
                   ),
                   if (!isSelf) ...[
                     FollowButton(targetUserId: userId, compact: true),
@@ -97,34 +105,22 @@ class PublicProfileScreen extends ConsumerWidget {
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
                     user.displayName ?? user.username,
-                    style: const TextStyle(
-                      shadows: [Shadow(blurRadius: 10, color: Colors.black)],
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   background: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF0D0D0D),
-                          Color(0xFF1A1A1A),
-                          Color(0xFF262626),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        stops: [0.0, 0.5, 1.0],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
                     ),
                     child: SafeArea(
                       child: Center(
                         child: CircleAvatar(
                           radius: 42,
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           backgroundImage: user.photoURL != null
                               ? CachedNetworkImageProvider(user.photoURL!)
                               : null,
@@ -134,6 +130,11 @@ class PublicProfileScreen extends ConsumerWidget {
                                       .characters
                                       .first
                                       .toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 )
                               : null,
                         ),
@@ -248,10 +249,14 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _shareProfile(String userId, String name) {
-    Share.share(
-      'Read with $name on Wreadom\n${AppLinkHelper.user(userId)}',
-      subject: '$name on Wreadom',
+  void _shareProfile(BuildContext context, UserModel user, int worksCount) {
+    final name = user.displayName ?? user.username;
+    shareUserProfileCard(
+      context,
+      user: user,
+      worksCount: worksCount,
+      fallbackText:
+          'Read with $name on Wreadom\n${AppLinkHelper.user(user.id)}',
     );
   }
 }

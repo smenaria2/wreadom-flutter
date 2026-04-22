@@ -13,6 +13,7 @@ class FirebaseBookmarkRepository implements BookmarkRepository {
   @override
   Future<String> addBookmark(Bookmark bookmark) async {
     final data = bookmark.toJson()..remove('id');
+    data.removeWhere((key, value) => value == null);
     final doc = await _firestore.collection('bookmarks').add(data);
     return doc.id;
   }

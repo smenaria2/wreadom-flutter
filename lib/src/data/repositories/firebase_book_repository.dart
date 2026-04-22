@@ -121,7 +121,7 @@ class FirebaseBookRepository implements BookRepository {
     if (term.isEmpty) return [];
 
     try {
-      final candidates = <String>{term, term.replaceAll(' ', '_')};
+      final candidates = _topicSearchTerms(term);
       final byId = <String, Book>{};
 
       for (final topicValue in candidates) {
@@ -533,6 +533,26 @@ class FirebaseBookRepository implements BookRepository {
         .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
     return {trimmed, lower, title, trimmed.replaceAll(' ', '_')}.toList();
+  }
+
+  List<String> _topicSearchTerms(String term) {
+    final trimmed = term.trim();
+    final normalizedSpaces = trimmed.replaceAll(RegExp(r'\s+'), ' ');
+    final lower = normalizedSpaces.toLowerCase();
+    final title = normalizedSpaces
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
+    return <String>{
+      trimmed,
+      normalizedSpaces,
+      normalizedSpaces.replaceAll(' ', '_'),
+      lower,
+      lower.replaceAll(' ', '_'),
+      title,
+      title.replaceAll(' ', '_'),
+    }.where((value) => value.trim().isNotEmpty).toList();
   }
 
   bool _matchesBook(Book book, String query) {

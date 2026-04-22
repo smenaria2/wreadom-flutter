@@ -347,6 +347,33 @@ void main() {
     expect(source, contains('offlineChaptersProvider(bookId).future'));
   });
 
+  test(
+    'book detail shows direct report or edit actions and comment ratings',
+    () {
+      final source = File(
+        'lib/src/presentation/screens/book_detail_screen.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('Report book'));
+      expect(source, contains('if (!canEdit)'));
+      expect(source, isNot(contains('PopupMenuButton<String>')));
+      expect(source, contains('_RatingStat'));
+      expect(source, contains('bookCommentsProvider(book.id)'));
+      expect(source, contains('comment.rating'));
+      expect(source, contains('No ratings'));
+    },
+  );
+
+  test('story comments do not require unauthorized book counter writes', () {
+    final source = File(
+      'lib/src/data/repositories/firebase_comment_repository.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('await docRef.set(data)'));
+    expect(source, isNot(contains("'commentCount': FieldValue.increment(1)")));
+    expect(source, isNot(contains("'commentCount': FieldValue.increment(-1)")));
+  });
+
   test('reader sharing, chrome, tts, and unique views stay wired', () {
     final readerSource = File(
       'lib/src/presentation/screens/reader_screen.dart',
@@ -375,6 +402,109 @@ void main() {
     expect(repositorySource, contains('runTransaction'));
     expect(repositorySource, contains('FieldValue.increment(1)'));
     expect(repositorySource, contains('existingView.exists'));
+  });
+
+  test(
+    'reader progress is chapter-only and selection tts avoids scroll jumps',
+    () {
+      final readerSource = File(
+        'lib/src/presentation/screens/reader_screen.dart',
+      ).readAsStringSync();
+
+      expect(readerSource, contains('_chapterContentEndKey'));
+      expect(readerSource, contains('_progressScrollExtent'));
+      expect(readerSource, contains('RenderAbstractViewport.maybeOf'));
+      expect(readerSource, contains('Read selected'));
+      expect(readerSource, contains('_speakSelectedText'));
+      expect(readerSource, contains('_isSelectionTtsPlaying'));
+      expect(readerSource, contains('_restoreScrollOffsetAfterModeSwitch'));
+      expect(readerSource, contains('scrollOffset'));
+      expect(readerSource, contains('_appendPlainReaderBlocks'));
+      expect(readerSource, contains('_splitLongPlainTextBlock'));
+      expect(readerSource, contains('Back'));
+      expect(readerSource, contains('Icons.arrow_back_rounded'));
+      expect(readerSource, isNot(contains('Go to book')));
+      expect(readerSource, isNot(contains('BookDetailArguments')));
+    },
+  );
+
+  test('reader review rules enforce one rated review and author highlighting', () {
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final commentSource = File(
+      'lib/src/domain/models/comment.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_comment_repository.dart',
+    ).readAsStringSync();
+    final tileSource = File(
+      'lib/src/presentation/widgets/comment_widgets.dart',
+    ).readAsStringSync();
+
+    expect(commentSource, contains('isHighlighted'));
+    expect(commentSource, contains('highlightedAt'));
+    expect(commentSource, contains('highlightedByUserId'));
+    expect(repositorySource, contains('getUserBookReview'));
+    expect(repositorySource, contains('upsertBookReview'));
+    expect(repositorySource, contains('toggleReviewHighlight'));
+    expect(repositorySource, contains('maxHighlighted = 3'));
+    expect(readerSource, contains('int _chapterRating = 5'));
+    expect(readerSource, contains('_isOwnOriginalBook'));
+    expect(readerSource, contains('Authors cannot review their own book.'));
+    expect(readerSource, contains('upsertBookReview'));
+    expect(readerSource, contains('_restoreLineBreaks'));
+    expect(readerSource, contains('viewInsets.bottom'));
+    expect(tileSource, contains('bookAuthorId'));
+    expect(tileSource, contains('Unstar'));
+  });
+
+  test(
+    'profile sharing uses generated card and public header matches theme',
+    () {
+      final profileSource = File(
+        'lib/src/presentation/screens/profile_screen.dart',
+      ).readAsStringSync();
+      final publicProfileSource = File(
+        'lib/src/presentation/screens/public_profile_screen.dart',
+      ).readAsStringSync();
+      final cardSource = File(
+        'lib/src/presentation/components/profile/profile_share_card.dart',
+      ).readAsStringSync();
+
+      expect(profileSource, contains('Icons.share_outlined'));
+      expect(publicProfileSource, contains('Icons.share_outlined'));
+      expect(profileSource, contains('shareUserProfileCard'));
+      expect(publicProfileSource, contains('shareUserProfileCard'));
+      expect(publicProfileSource, contains('theme.colorScheme.surface'));
+      expect(publicProfileSource, contains('surfaceContainerHighest'));
+      expect(cardSource, contains('RepaintBoundary'));
+      expect(cardSource, contains('ProfileShareCard'));
+      expect(cardSource, contains('Share.shareXFiles'));
+    },
+  );
+
+  test('chat surfaces open public profiles', () {
+    final conversationSource = File(
+      'lib/src/presentation/screens/conversation_screen.dart',
+    ).readAsStringSync();
+
+    expect(conversationSource, contains('_ConversationTitle'));
+    expect(conversationSource, contains('_MessageSender'));
+    expect(conversationSource, contains('AppRoutes.publicProfile'));
+    expect(conversationSource, contains('PublicProfileArguments'));
+    expect(conversationSource, contains('message.senderId'));
+  });
+
+  test('daily topic matching allows spaces and normalized variants', () {
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_book_repository.dart',
+    ).readAsStringSync();
+
+    expect(repositorySource, contains('_topicSearchTerms'));
+    expect(repositorySource, contains("replaceAll(RegExp(r'\\s+'), ' ')"));
+    expect(repositorySource, contains("replaceAll(' ', '_')"));
+    expect(repositorySource, contains('toLowerCase()'));
   });
 
   test('profile error reporting captures device info and logs', () {
