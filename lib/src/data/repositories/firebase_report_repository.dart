@@ -4,7 +4,7 @@ import '../../domain/repositories/report_repository.dart';
 
 class FirebaseReportRepository implements ReportRepository {
   FirebaseReportRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -12,5 +12,14 @@ class FirebaseReportRepository implements ReportRepository {
   Future<void> submitReport(Report report) async {
     final data = report.toJson()..remove('id');
     await _firestore.collection('reports').add(data);
+  }
+
+  @override
+  Future<void> submitErrorReport(Map<String, dynamic> report) async {
+    await _firestore.collection('reports').add({
+      ...report,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

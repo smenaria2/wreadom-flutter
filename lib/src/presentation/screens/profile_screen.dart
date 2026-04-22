@@ -1,12 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_providers.dart';
+import '../providers/report_providers.dart';
 import '../providers/theme_provider.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/app_log_collector.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
@@ -286,6 +290,11 @@ class _ProfileSideMenu extends ConsumerWidget {
                   ),
                   const Divider(),
                   _MenuTile(
+                    icon: Icons.bug_report_outlined,
+                    title: 'Submit Error',
+                    onTap: () => _showErrorReportDialog(context, ref),
+                  ),
+                  _MenuTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Help',
                     onTap: () => _go(context, AppRoutes.help),
@@ -323,6 +332,17 @@ class _ProfileSideMenu extends ConsumerWidget {
     Navigator.of(context).pushNamed(route);
   }
 
+  Future<void> _showErrorReportDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    Navigator.of(context).pop();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => const _SubmitErrorDialog(),
+    );
+  }
+
   Future<void> _showThemePicker(BuildContext context, WidgetRef ref) async {
     final selected = await showDialog<ThemeMode>(
       context: context,
@@ -358,6 +378,218 @@ class _ProfileSideMenu extends ConsumerWidget {
           .setThemeMode(selected);
     }
     if (context.mounted) Navigator.of(context).pop();
+  }
+}
+
+class _SubmitErrorDialog extends ConsumerStatefulWidget {
+  const _SubmitErrorDialog();
+
+  @override
+  ConsumerState<_SubmitErrorDialog> createState() => _SubmitErrorDialogState();
+}
+
+class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
+  final TextEditingController _detailsController = TextEditingController();
+  String _type = 'bug';
+  bool _submitting = false;
+
+  static const List<String> _types = ['bug', 'crash', 'performance', 'other'];
+
+  @override
+  void dispose() {
+    _detailsController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Submit Error'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _type,
+              decoration: const InputDecoration(
+                labelText: 'Error type',
+                border: OutlineInputBorder(),
+              ),
+              items: _types
+                  .map(
+                    (type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(_titleCase(type)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(() => _type = value ?? _type),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _detailsController,
+              minLines: 5,
+              maxLines: 8,
+              decoration: const InputDecoration(
+                labelText: 'What went wrong?',
+                hintText: 'Describe the error and what you were doing.',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Device info and recent app logs will be included.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'View collected logs',
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  onPressed: _showCollectedLogs,
+                  icon: const Icon(Icons.info_outline),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Submit'),
+        ),
+      ],
+    );
+  }
+
+  void _showCollectedLogs() {
+    final logs = AppLogCollector.formattedLogs();
+    final logText = logs.isEmpty
+        ? 'No app logs have been collected yet.'
+        : logs.join('\n\n');
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+
+        return AlertDialog(
+          title: const Text('Collected Logs'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 420),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                logText,
+                style: textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submit() async {
+    final issue = _detailsController.text.trim();
+    if (issue.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe the error.')),
+      );
+      return;
+    }
+
+    final user = ref.read(currentUserProvider).value;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be logged in to submit errors.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      final mediaQuery = MediaQuery.of(context);
+      final routeName = ModalRoute.of(context)?.settings.name;
+
+      await ref.read(reportRepositoryProvider).submitErrorReport({
+        'type': _type,
+        'title': 'User Reported ${_titleCase(_type)}',
+        'issue': issue,
+        'currentRoute': routeName ?? 'profile',
+        'deviceInfo': {
+          'platform': defaultTargetPlatform.name,
+          'isWeb': kIsWeb,
+          'locale': Localizations.localeOf(context).toLanguageTag(),
+          'screenSize':
+              '${mediaQuery.size.width.toStringAsFixed(0)}x${mediaQuery.size.height.toStringAsFixed(0)}',
+          'devicePixelRatio': mediaQuery.devicePixelRatio,
+          'appVersion': packageInfo.version,
+          'buildNumber': packageInfo.buildNumber,
+          'packageName': packageInfo.packageName,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+        'reporterId': user.id,
+        'reporterEmail': user.email,
+        'consoleLogs': AppLogCollector.formattedLogs(),
+        'status': 'pending',
+        'occurrenceCount': 1,
+      });
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Error report submitted.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit error report: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  static String _titleCase(String value) {
+    return value
+        .split(RegExp(r'[\s_-]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0].toUpperCase() + part.substring(1))
+        .join(' ');
   }
 }
 

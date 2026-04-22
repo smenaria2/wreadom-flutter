@@ -153,6 +153,7 @@ void main() {
     for (final label in [
       'Edit Profile',
       'Theme',
+      'Submit Error',
       'Help',
       'Privacy Policy',
       'Terms of Use',
@@ -339,6 +340,11 @@ void main() {
     expect(source, isNot(contains('incrementViewCount')));
     expect(source, contains('initialReaderChapterIndex'));
     expect(source, contains('_ReaderDeepLinkLauncher'));
+    expect(source, contains('_hasLaunchedReader'));
+    expect(source, contains('_launchReaderOnce'));
+    expect(source, contains('_preloadChapters'));
+    expect(source, contains('bookChaptersProvider(bookId).future'));
+    expect(source, contains('offlineChaptersProvider(bookId).future'));
   });
 
   test('reader sharing, chrome, tts, and unique views stay wired', () {
@@ -357,7 +363,11 @@ void main() {
     expect(readerSource, isNot(contains('leading: _chapterIndex == 0')));
     expect(readerSource, contains('_getAppBarBackgroundColor'));
     expect(readerSource, contains('_getAppBarForegroundColor'));
-    expect(readerSource, contains('_seekTtsToFraction'));
+    expect(readerSource, contains('_readerBlocksForChapter'));
+    expect(readerSource, contains('_buildTtsListView'));
+    expect(readerSource, contains('_startTtsFromBlock'));
+    expect(readerSource, contains('_ReaderTtsBlockView'));
+    expect(readerSource, contains('_activeTtsBlockIndex'));
     expect(readerSource, contains('SelectionArea'));
     expect(readerSource, contains('_isTtsPlaying || _isTtsPreparing'));
     expect(readerSource, contains('AppLinkHelper.chapter'));
@@ -365,6 +375,38 @@ void main() {
     expect(repositorySource, contains('runTransaction'));
     expect(repositorySource, contains('FieldValue.increment(1)'));
     expect(repositorySource, contains('existingView.exists'));
+  });
+
+  test('profile error reporting captures device info and logs', () {
+    final profileSource = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+    final reportRepositorySource = File(
+      'lib/src/data/repositories/firebase_report_repository.dart',
+    ).readAsStringSync();
+    final logCollectorSource = File(
+      'lib/src/utils/app_log_collector.dart',
+    ).readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
+
+    expect(profileSource, contains('Submit Error'));
+    expect(
+      profileSource.indexOf('Submit Error'),
+      lessThan(profileSource.indexOf("'Help'")),
+    );
+    expect(profileSource, contains('_SubmitErrorDialog'));
+    expect(profileSource, contains('submitErrorReport'));
+    expect(profileSource, contains('deviceInfo'));
+    expect(profileSource, contains('AppLogCollector.formattedLogs()'));
+    expect(profileSource, contains('PackageInfo.fromPlatform()'));
+    expect(profileSource, contains('You must be logged in to submit errors.'));
+    expect(reportRepositorySource, contains('submitErrorReport'));
+    expect(reportRepositorySource, contains('FieldValue.serverTimestamp()'));
+    expect(logCollectorSource, contains('DebugPrintCallback'));
+    expect(logCollectorSource, contains('_maxEntries = 100'));
+    expect(mainSource, contains('runZonedGuarded'));
+    expect(mainSource, contains('AppLogCollector.init()'));
+    expect(mainSource, contains('PlatformDispatcher.instance.onError'));
   });
 
   test('optional polish stays in low-risk scope', () {

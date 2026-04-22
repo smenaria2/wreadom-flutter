@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
@@ -69,6 +70,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late final FlutterTts _tts;
   List<String> _ttsChunkList = const [];
   int _ttsChunkIndex = 0;
+  int _activeTtsBlockIndex = -1;
   final GlobalKey _quoteImageKey = GlobalKey();
   _QuoteSharePayload? _quoteSharePayload;
   Timer? _progressSaveDebounce;
@@ -265,6 +267,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return 0.0;
   }
 
+  bool get _useLegacyTtsTapSeeking => false;
+
   Future<void> _saveProgressForUser(
     String userId, {
     required int chapterIndex,
@@ -373,6 +377,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _pendingSavedScrollProgress = null;
       // Reset TTS position for new chapter
       _ttsChunkIndex = 0;
+      _activeTtsBlockIndex = -1;
       _ttsChunkList = const [];
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -608,7 +613,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                   tooltip: _isTtsPlaying
                       ? (_ttsChunkList.isNotEmpty
-                            ? 'Stop (chunk ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
+                            ? 'Stop (block ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
                             : 'Stop reading aloud')
                       : 'Read aloud',
                   onPressed: chapter == null || _isTtsPreparing
@@ -660,7 +665,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         Navigator.of(context).maybePop();
                       }
                     },
-                    onTapUp: (_isTtsPlaying || _isTtsPreparing)
+                    onTapUp:
+                        _useLegacyTtsTapSeeking &&
+                            (_isTtsPlaying || _isTtsPreparing)
                         ? (details) {
                             // TTS is active — seek to the tapped position.
                             if (chapter == null) return;
@@ -681,7 +688,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     child: (_isTtsPlaying || _isTtsPreparing)
                         // When TTS is active, disable text selection so
                         // taps are handled cleanly for seeking.
-                        ? _buildListView(chapter, chapters, commentCounts)
+                        ? _buildTtsListView(chapter, chapters, commentCounts)
                         : SelectionArea(
                             onSelectionChanged: (content) {
                               setState(() {
@@ -864,6 +871,47 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  Widget _buildTtsListView(
+    Chapter? chapter,
+    List<Chapter> chapters,
+    Map<int, int> commentCounts,
+  ) {
+    final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
+    final blocks = _readerBlocksForChapter(chapter);
+
+    return ListView(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(20),
+      children: [
+        for (final block in blocks)
+          _ReaderTtsBlockView(
+            block: block,
+            textColor: _getTextColor(),
+            mutedColor: _getSecondaryTextColor(),
+            accentColor: Theme.of(context).colorScheme.primary,
+            fontSize: _fontSize,
+            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
+            isPoem: isPoem,
+            isActive: block.ttsIndex == _activeTtsBlockIndex,
+            onTap: block.ttsIndex == null || chapter == null
+                ? null
+                : () => unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
+          ),
+        const SizedBox(height: 24),
+        _ChapterEndActions(
+          hasNextChapter: _chapterIndex < chapters.length - 1,
+          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+          onNextChapter: _chapterIndex < chapters.length - 1
+              ? _markChapterCompleteAndGoNext
+              : null,
+          onViewComments: () => _showDiscussion(chapter),
+          onShare: () => _handleShareChapter(chapter),
+        ),
+        const SizedBox(height: 100),
+      ],
+    );
+  }
+
   void _configureTts() {
     _tts.setStartHandler(() {
       if (!mounted) return;
@@ -917,24 +965,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    final text = _plainTextForTts(chapter);
-    if (text.isEmpty) {
+    final blocks = _ttsBlocksForChapter(chapter);
+    if (blocks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No readable text in this chapter.')),
       );
       return;
     }
 
-    // Build chunk list once for this chapter (or reuse if already built)
-    final chunks = _ttsChunkList.isNotEmpty ? _ttsChunkList : _ttsChunks(text);
-    if (_ttsChunkList.isEmpty) {
-      setState(() => _ttsChunkList = chunks);
-    }
-
     // Always start from beginning when explicitly toggled on
     final startIndex = 0;
     setState(() {
+      _ttsChunkList = blocks;
       _ttsChunkIndex = startIndex;
+      _activeTtsBlockIndex = startIndex;
       _isTtsPreparing = true;
     });
 
@@ -943,6 +987,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   /// Seek TTS to a position based on scroll fraction [0.0–1.0].
   /// Stops current speech and restarts from the nearest chunk.
+  Future<void> _startTtsFromBlock(Chapter chapter, int blockIndex) async {
+    final blocks = _ttsBlocksForChapter(chapter);
+    if (blocks.isEmpty || blockIndex < 0 || blockIndex >= blocks.length) return;
+
+    _stopTtsRequested = true;
+    _ttsSession++;
+    await _tts.stop();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+    setState(() {
+      _ttsChunkList = blocks;
+      _ttsChunkIndex = blockIndex;
+      _activeTtsBlockIndex = blockIndex;
+      _isTtsPlaying = false;
+      _isTtsPreparing = true;
+    });
+
+    await _runTtsFromIndex(chapter, blockIndex);
+  }
+
   Future<void> _seekTtsToFraction(Chapter chapter, double fraction) async {
     if (!_isTtsPlaying && !_isTtsPreparing) return;
 
@@ -973,6 +1038,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     setState(() {
       _ttsChunkIndex = targetIndex;
+      _activeTtsBlockIndex = targetIndex;
       _isTtsPlaying = false;
       _isTtsPreparing = true;
     });
@@ -1006,7 +1072,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
       for (int i = startIndex; i < chunks.length; i++) {
         if (_stopTtsRequested || session != _ttsSession) break;
-        setState(() => _ttsChunkIndex = i);
+        setState(() {
+          _ttsChunkIndex = i;
+          _activeTtsBlockIndex = i;
+        });
         await _tts.speak(chunks[i]);
       }
 
@@ -1016,12 +1085,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _isTtsPlaying = false;
         // Reset chunk index so next play starts from beginning
         _ttsChunkIndex = 0;
+        _activeTtsBlockIndex = -1;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _activeTtsBlockIndex = -1;
       });
       ScaffoldMessenger.of(
         context,
@@ -1039,6 +1110,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() {
       _isTtsPreparing = false;
       _isTtsPlaying = false;
+      _activeTtsBlockIndex = -1;
     });
   }
 
@@ -1054,6 +1126,106 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       title,
       content,
     ].where((part) => part != null && part.isNotEmpty).join('. ');
+  }
+
+  List<String> _ttsBlocksForChapter(Chapter chapter) {
+    return _readerBlocksForChapter(chapter)
+        .where(
+          (block) => block.ttsIndex != null && block.text.trim().isNotEmpty,
+        )
+        .map((block) => block.text.trim())
+        .toList();
+  }
+
+  List<_ReaderContentBlock> _readerBlocksForChapter(Chapter? chapter) {
+    final blocks = <_ReaderContentBlock>[];
+    var nextTtsIndex = 0;
+
+    void addText(String text, {_ReaderBlockKind kind = _ReaderBlockKind.text}) {
+      final normalized = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (normalized.isEmpty) return;
+      blocks.add(
+        _ReaderContentBlock(
+          kind: kind,
+          text: normalized,
+          ttsIndex: nextTtsIndex++,
+        ),
+      );
+    }
+
+    final title = chapter?.title.trim();
+    addText(
+      title?.isNotEmpty == true ? title! : widget.book.title,
+      kind: _ReaderBlockKind.heading,
+    );
+
+    final html = chapter?.content ?? widget.book.description ?? '';
+    if (html.trim().isEmpty) return blocks;
+
+    final doc = html_parser.parse(html);
+    for (final node in doc.body?.nodes ?? const <dom.Node>[]) {
+      _appendReaderBlocks(node, blocks, addText);
+    }
+    return blocks;
+  }
+
+  void _appendReaderBlocks(
+    dom.Node node,
+    List<_ReaderContentBlock> blocks,
+    void Function(String text, {_ReaderBlockKind kind}) addText,
+  ) {
+    if (node is dom.Text) {
+      addText(node.text);
+      return;
+    }
+    if (node is! dom.Element) return;
+
+    final tag = node.localName?.toLowerCase();
+    if (tag == 'img') {
+      final src = node.attributes['src'];
+      if (isTrustedCloudinaryImageUrl(src)) {
+        blocks.add(_ReaderContentBlock(kind: _ReaderBlockKind.image, url: src));
+      }
+      return;
+    }
+    if (tag == 'a') {
+      final href = node.attributes['href'];
+      if (isAllowedWriterLink(href)) {
+        blocks.add(
+          _ReaderContentBlock(kind: _ReaderBlockKind.media, url: href),
+        );
+        return;
+      }
+    }
+
+    const blockTags = {
+      'p',
+      'div',
+      'li',
+      'blockquote',
+      'pre',
+      'section',
+      'article',
+    };
+    const headingTags = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'};
+
+    if (headingTags.contains(tag)) {
+      addText(node.text, kind: _ReaderBlockKind.heading);
+      return;
+    }
+    if (blockTags.contains(tag)) {
+      addText(
+        node.text,
+        kind: tag == 'blockquote'
+            ? _ReaderBlockKind.quote
+            : _ReaderBlockKind.text,
+      );
+      return;
+    }
+
+    for (final child in node.nodes) {
+      _appendReaderBlocks(child, blocks, addText);
+    }
   }
 
   String _ttsLanguageForBook() {
@@ -1971,6 +2143,114 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       case ReaderTheme.system:
         return const Color(0xFFF4F4F4);
     }
+  }
+}
+
+enum _ReaderBlockKind { text, heading, quote, image, media }
+
+class _ReaderContentBlock {
+  const _ReaderContentBlock({
+    required this.kind,
+    this.text = '',
+    this.url,
+    this.ttsIndex,
+  });
+
+  final _ReaderBlockKind kind;
+  final String text;
+  final String? url;
+  final int? ttsIndex;
+}
+
+class _ReaderTtsBlockView extends StatelessWidget {
+  const _ReaderTtsBlockView({
+    required this.block,
+    required this.textColor,
+    required this.mutedColor,
+    required this.accentColor,
+    required this.fontSize,
+    required this.fontFamily,
+    required this.isPoem,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final _ReaderContentBlock block;
+  final Color textColor;
+  final Color mutedColor;
+  final Color accentColor;
+  final double fontSize;
+  final String? fontFamily;
+  final bool isPoem;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (block.kind == _ReaderBlockKind.image) {
+      final url = block.url;
+      if (url == null) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            url,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) =>
+                const SizedBox.shrink(),
+          ),
+        ),
+      );
+    }
+
+    if (block.kind == _ReaderBlockKind.media) {
+      final url = block.url;
+      if (url == null) return const SizedBox.shrink();
+      return WriterMediaPreview(url: url, textColor: textColor);
+    }
+
+    final isHeading = block.kind == _ReaderBlockKind.heading;
+    final isQuote = block.kind == _ReaderBlockKind.quote;
+    return Padding(
+      padding: EdgeInsets.only(bottom: isHeading ? 16 : 10),
+      child: Material(
+        color: isActive
+            ? accentColor.withValues(alpha: 0.14)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: double.infinity,
+            padding: isActive
+                ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+                : EdgeInsets.zero,
+            decoration: isActive
+                ? BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: accentColor, width: 4),
+                    ),
+                  )
+                : null,
+            child: Text(
+              block.text,
+              textAlign: isPoem ? TextAlign.center : TextAlign.start,
+              style: TextStyle(
+                color: isQuote ? mutedColor : textColor,
+                fontSize: isHeading ? 22 : fontSize,
+                height: isHeading ? 1.35 : 1.8,
+                fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
+                fontStyle: isQuote || isPoem ? FontStyle.italic : null,
+                fontFamily: fontFamily,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

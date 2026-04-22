@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -20,45 +21,59 @@ import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
+import 'src/utils/app_log_collector.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 
 const String _googleServerClientId =
     '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  await OfflineService().init(); // Open the offline boxes
-  final sharedPreferences = await SharedPreferences.getInstance();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAppCheck.instance.activate(
-    providerAndroid: kDebugMode
-        ? const AndroidDebugProvider()
-        : const AndroidPlayIntegrityProvider(),
-    providerApple: kDebugMode
-        ? const AppleDebugProvider()
-        : const AppleDeviceCheckProvider(),
-    providerWeb: ReCaptchaV3Provider(
-      '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
-    ),
-  );
-  await NotificationService.instance.init();
-  if (kIsWeb) {
-    await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
-  } else if (defaultTargetPlatform == TargetPlatform.android) {
-    await GoogleSignIn.instance.initialize(
-      serverClientId: _googleServerClientId,
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    AppLogCollector.init();
+    FlutterError.onError = (details) {
+      AppLogCollector.recordFlutterError(details);
+      FlutterError.presentError(details);
+    };
+    ui.PlatformDispatcher.instance.onError = (error, stack) {
+      AppLogCollector.recordZoneError(error, stack);
+      return false;
+    };
+    await Hive.initFlutter();
+    await OfflineService().init(); // Open the offline boxes
+    final sharedPreferences = await SharedPreferences.getInstance();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
     );
-  }
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-      ],
-      child: const MyApp(),
-    ),
-  );
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
+      providerWeb: ReCaptchaV3Provider(
+        '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
+      ),
+    );
+    await NotificationService.instance.init();
+    if (kIsWeb) {
+      await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      await GoogleSignIn.instance.initialize(
+        serverClientId: _googleServerClientId,
+      );
+    }
+    runApp(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  }, AppLogCollector.recordZoneError);
 }
 
 class MyApp extends ConsumerStatefulWidget {

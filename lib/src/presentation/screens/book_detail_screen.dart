@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +43,8 @@ class BookDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
+  final Set<String> _preloadedBookIds = <String>{};
+
   @override
   Widget build(BuildContext context) {
     final bookAsync = widget.preloadedBook != null
@@ -57,6 +61,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
               initialChapterIndex: widget.initialReaderChapterIndex!,
             );
           }
+          _preloadChapters(book.id);
           return _BookDetailBody(book: book, heroTag: widget.heroTag);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -64,9 +69,18 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       ),
     );
   }
+
+  void _preloadChapters(String bookId) {
+    if (!_preloadedBookIds.add(bookId)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(bookChaptersProvider(bookId).future));
+      unawaited(ref.read(offlineChaptersProvider(bookId).future));
+    });
+  }
 }
 
-class _ReaderDeepLinkLauncher extends ConsumerWidget {
+class _ReaderDeepLinkLauncher extends ConsumerStatefulWidget {
   const _ReaderDeepLinkLauncher({
     required this.book,
     required this.initialChapterIndex,
@@ -76,44 +90,52 @@ class _ReaderDeepLinkLauncher extends ConsumerWidget {
   final int initialChapterIndex;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final chaptersAsync = ref.watch(bookChaptersProvider(book.id));
+  ConsumerState<_ReaderDeepLinkLauncher> createState() =>
+      _ReaderDeepLinkLauncherState();
+}
+
+class _ReaderDeepLinkLauncherState
+    extends ConsumerState<_ReaderDeepLinkLauncher> {
+  bool _hasLaunchedReader = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final chaptersAsync = ref.watch(bookChaptersProvider(widget.book.id));
 
     return chaptersAsync.when(
       data: (chapters) {
         final maxIndex = chapters.isEmpty ? 0 : chapters.length - 1;
-        final clampedIndex = initialChapterIndex.clamp(0, maxIndex).toInt();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          Navigator.of(context).pushReplacementNamed(
-            AppRoutes.reader,
-            arguments: ReaderArguments(
-              book: book,
-              initialChapterIndex: clampedIndex,
-            ),
-          );
-        });
+        final clampedIndex = widget.initialChapterIndex
+            .clamp(0, maxIndex)
+            .toInt();
+        _launchReaderOnce(clampedIndex);
         return const Center(child: CircularProgressIndicator());
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) {
-        final fallbackMax = (book.chapters?.length ?? 0) - 1;
-        final clampedIndex = initialChapterIndex
+        final fallbackMax = (widget.book.chapters?.length ?? 0) - 1;
+        final clampedIndex = widget.initialChapterIndex
             .clamp(0, fallbackMax < 0 ? 0 : fallbackMax)
             .toInt();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          Navigator.of(context).pushReplacementNamed(
-            AppRoutes.reader,
-            arguments: ReaderArguments(
-              book: book,
-              initialChapterIndex: clampedIndex,
-            ),
-          );
-        });
+        _launchReaderOnce(clampedIndex);
         return const Center(child: CircularProgressIndicator());
       },
     );
+  }
+
+  void _launchReaderOnce(int initialChapterIndex) {
+    if (_hasLaunchedReader) return;
+    _hasLaunchedReader = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.reader,
+        arguments: ReaderArguments(
+          book: widget.book,
+          initialChapterIndex: initialChapterIndex,
+        ),
+      );
+    });
   }
 }
 
