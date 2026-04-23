@@ -1,5 +1,5 @@
 {
-  "appTitle": "Wreadom",
+  "appTitle": "रीडम्",
   "login": "लॉग इन",
   "home": "होम",
   "settings": "सेटिंग्स",
@@ -22,7 +22,7 @@
   "works": "रचनाएं",
   "about": "परिचय",
   "posts": "पोस्ट",
-  "history": "इतिहास",
+  "history": "पढ़ी गई रचनाएँ",
   "saved": "सेव किए गए",
   "profileSettings": "प्रोफ़ाइल सेटिंग्स",
   "displayName": "दिखने वाला नाम",
@@ -56,7 +56,7 @@
   "loginLink": "लॉग इन",
   "feed": "फीड",
   "notifications": "सूचनाएं",
-  "searchBooks": "किताबें खोजें",
+  "searchBooks": "रचनाएँ खोजें",
   "mine": "मेरी",
   "noFollowingPosts": "जिन लोगों को आप फ़ॉलो करते हैं, उनकी कोई पोस्ट अभी नहीं है",
   "noPosts": "अभी कोई पोस्ट नहीं है",
@@ -66,41 +66,41 @@
   "tryAgain": "फिर कोशिश करें",
   "post": "पोस्ट",
   "discover": "खोजें",
-  "searchBooksAuthors": "किताबें और लेखक खोजें",
-  "searchHint": "किताबें, लेखक खोजें...",
-  "suggestedBooks": "सुझाई गई किताबें",
-  "noSuggestedBooks": "कोई सुझाई गई किताबें नहीं मिलीं।",
-  "noBooksFoundIn": "{genre} में कोई किताबें नहीं मिलीं।",
+  "searchBooksAuthors": "रचनाएँ और लेखक खोजें",
+  "searchHint": "रचनाएँ, लेखक खोजें...",
+  "suggestedBooks": "सुझाई गई रचनाएँ",
+  "noSuggestedBooks": "कोई सुझाई गई रचनाएँ नहीं मिलीं।",
+  "noBooksFoundIn": "{genre} में कोई रचनाएँ नहीं मिलीं।",
   "noResultsFor": "\"{query}\" के लिए कोई परिणाम नहीं मिले",
-  "originalBooks": "मूल किताबें",
-  "moreBooks": "और किताबें",
+  "originalBooks": "मूल रचनाएँ",
+  "moreBooks": "और रचनाएँ",
   "profiles": "प्रोफाइल",
   "unknownAuthor": "अज्ञात लेखक",
   "internetArchive": "इंटरनेट आर्काइव",
-  "bookNotFound": "किताब नहीं मिली",
-  "editBook": "किताब संपादित करें",
-  "reportBook": "किताब की रिपोर्ट करें",
-  "shareBookMessage": "Wreadom पर \"{title}\" पढ़ें: {link}",
+  "bookNotFound": "रचना नहीं मिली",
+  "editBook": "रचना संपादित करें",
+  "reportBook": "रचना की रिपोर्ट करें",
+  "shareBookMessage": "रीडम् पर \"{title}\" पढ़ें: {link}",
   "readsStat": "{count} बार पढ़ा गया",
   "chaptersStat": "{count} अध्याय",
   "continueReading": "पढ़ना जारी रखें",
   "startReading": "पढ़ना शुरू करें",
-  "aboutThisBook": "इस किताब के बारे में",
-  "defaultShareMessage": "मैं Wreadom पर \"{title}\" पढ़ रहा हूँ। इसे देखें।",
+  "aboutThisBook": "इस रचना के बारे में",
+  "defaultShareMessage": "मैं रीडम् पर \"{title}\" पढ़ रहा हूँ। इसे देखें।",
   "shareToFeed": "फीड पर साझा करें",
-  "signInToShare": "इस किताब को साझा करने के लिए साइन इन करें।",
+  "signInToShare": "इस रचना को साझा करने के लिए साइन इन करें।",
   "sendToChat": "चैट पर भेजें",
   "noRecentConversations": "अभी कोई हालिया बातचीत नहीं हुई है।",
   "conversation": "बातचीत",
   "noMessagesYet": "अभी कोई संदेश नहीं है",
-  "sentYouABook": "ने आपको एक किताब भेजी है।",
+  "sentYouABook": "ने आपको एक रचना भेजी है।",
   "sentBookSnack": "\"{title}\" भेज दी गई।",
   "sharedToFeed": "फीड पर साझा किया गया।",
   "latestDiscussion": "नवीनतम चर्चा",
   "showMore": "और दिखाएं",
   "failedToLoadChats": "चैट लोड करने में विफल: {error}",
   "fetchingPublicDomain": "सार्वजनिक-डोमेन टेक्स्ट प्राप्त किया जा रहा है...",
-  "internetArchivePreparation": "इंटरनेट आर्काइव की किताबों को तैयार होने में थोड़ा समय लग सकता है।",
+  "internetArchivePreparation": "इंटरनेट आर्काइव की रचनाओं को तैयार होने में थोड़ा समय लग सकता है।",
   "offline": "ऑफलाइन",
   "readAloud": "जोर से पढ़ें",
   "stop": "रुकें",
@@ -121,12 +121,12 @@
   "writer": "लेखक",
   "messages": "संदेश",
   "shelfCommunityClassics": "सामुदायिक क्लासिक्स",
-  "shelfOriginals": "Wreadom मूल",
+  "shelfOriginals": "रीडम् मूल",
   "shelfTrending": "ट्रेंडिंग रचनाएं",
   "shelfPopular": "अभी लोकप्रिय",
   "shelfRecentlyAdded": "हाल ही में जोड़े गए",
   "keepReading": "पढ़ते रहें",
-  "heroBannerSubtitle": "हजारों मुफ्त किताबें और मूल कहानियां, आपके लिए चुनी गईं।",
+  "heroBannerSubtitle": "हजारों मुफ्त रचनाएँ और मूल कहानियां, आपके लिए चुनी गईं।",
   "exploreNow": "अभी खोजें",
   "dailyTopic": "दैनिक विषय",
   "readMore": "और पढ़ें",
@@ -140,9 +140,9 @@
   "topRatedAuthors": "टॉप रेटेड लेखक",
   "mostReadAuthors": "सबसे ज्यादा पढ़े जाने वाले लेखक",
   "mostPublishedAuthors": "सबसे ज्यादा प्रकाशित लेखक",
-  "featuredWreadomAuthor": "विशेष Wreadom लेखक।",
+  "featuredWreadomAuthor": "विशेष रीडम् लेखक।",
   "authorSpotlight": "लेखक स्पॉटलाइट",
-  "authorBooks": "{author} की किताबें",
+  "authorBooks": "{author} की रचनाएँ",
   "couldNotLoad": "{title} लोड नहीं किया जा सका।",
   "bookByAuthor": "{author} द्वारा {title}",
   "failedToLoadWithError": "लोड करने में विफल: {error}",
@@ -172,8 +172,8 @@
   "likePost": "पसंद करें",
   "showComments": "टिप्पणियां दिखाएं",
   "sharePost": "पोस्ट साझा करें",
-  "checkOutPostOnWreadom": "Wreadom पर यह पोस्ट देखें: {link}",
-  "wreadomPost": "Wreadom पोस्ट",
+  "checkOutPostOnWreadom": "रीडम् पर यह पोस्ट देखें: {link}",
+  "wreadomPost": "रीडम् पोस्ट",
   "repliedToYourComment": "ने आपकी टिप्पणी का जवाब दिया।",
   "commentedOnYourPost": "ने आपकी पोस्ट पर टिप्पणी की।",
   "errorSubmittingComment": "टिप्पणी सबमिट करने में त्रुटि: {error}",
@@ -204,7 +204,7 @@
   "minutesAgo": "{count} मिनट पहले",
   "shareProfile": "प्रोफ़ाइल शेयर करें",
   "menu": "मेन्यू",
-  "readWithUserOnWreadom": "{name} के साथ Wreadom पर पढ़ें\n{link}",
+  "readWithUserOnWreadom": "{name} के साथ रीडम् पर पढ़ें\n{link}",
   "@readWithUserOnWreadom": {
     "placeholders": {
       "name": {
@@ -249,9 +249,9 @@
   },
   "privateAccountNotice": "यह खाता निजी है। सिर्फ़ स्वीकृत फ़ॉलोअर ही सामग्री देख सकते हैं।",
   "followToSeeFullProfile": "पूरी प्रोफ़ाइल देखने के लिए इस लेखक को फ़ॉलो करें",
-  "books": "किताबें",
-  "noPublishedBooksYet": "अभी कोई प्रकाशित किताब नहीं है",
-  "failedToLoadBooks": "किताबें लोड नहीं हो सकीं: {error}",
+  "books": "रचनाएँ",
+  "noPublishedBooksYet": "अभी कोई प्रकाशित रचना नहीं है",
+  "failedToLoadBooks": "रचनाएँ लोड नहीं हो सकीं: {error}",
   "@failedToLoadBooks": {
     "placeholders": {
       "error": {
@@ -276,9 +276,9 @@
       }
     }
   },
-  "wreadomCreator": "WREADOM क्रिएटर",
+  "wreadomCreator": "रीडम् क्रिएटर",
   "officialLiteraryProfile": "आधिकारिक साहित्यिक प्रोफ़ाइल - WREADOM.IN",
-  "shareProfileSubject": "{name} Wreadom पर",
+  "shareProfileSubject": "{name} रीडम् पर",
   "@shareProfileSubject": {
     "placeholders": {
       "name": {
@@ -305,7 +305,7 @@
       }
     }
   },
-  "enterQuoteHint": "किताब से उद्धरण लिखें...",
+  "enterQuoteHint": "रचना से उद्धरण लिखें...",
   "addThoughtsOptional": "अपने विचार जोड़ें (वैकल्पिक)",
   "postQuote": "उद्धरण पोस्ट करें",
   "pleaseSelectRating": "कृपया रेटिंग चुनें",
@@ -320,7 +320,7 @@
       }
     }
   },
-  "reviewHint": "इस किताब के बारे में आपके विचार",
+  "reviewHint": "इस रचना के बारे में आपके विचार",
   "continueWithGoogle": "Google से जारी रखें",
   "mustBeLoggedInToReportContent": "सामग्री रिपोर्ट करने के लिए लॉग इन करें",
   "reportSubmittedThanks": "धन्यवाद। आपकी रिपोर्ट भेज दी गई है।",
@@ -354,8 +354,8 @@
   "deleteChatTitle": "चैट हटाएं?",
   "noConversationsYet": "अभी कोई बातचीत नहीं है। किसी पाठक से बात शुरू करें।",
   "postNotFoundOrDeleted": "पोस्ट नहीं मिली या हटा दी गई है",
-  "savedBooksTitle": "सेव की गई किताबें",
-  "noSavedOrDownloadedBooksYet": "अभी कोई सेव या डाउनलोड की गई किताब नहीं है",
+  "savedBooksTitle": "सेव की गई रचनाएँ",
+  "noSavedOrDownloadedBooksYet": "अभी कोई सेव या डाउनलोड की गई रचना नहीं है",
   "dailyTopicNotFound": "आज का विषय नहीं मिला",
   "participateNow": "भाग लें",
   "noSubmissionsYet": "अभी कोई रचना नहीं आई है",
@@ -365,10 +365,10 @@
   "block": "ब्लॉक करें",
   "userBlocked": "यूज़र ब्लॉक कर दिया गया",
   "noRatings": "अभी कोई रेटिंग नहीं",
-  "removeSavedBookTitle": "सेव की गई किताब हटाएं?",
+  "removeSavedBookTitle": "सेव की गई रचना हटाएं?",
   "removeSavedBookBody": "ऑफ़लाइन डाउनलोड तब तक रहेगा जब तक आप उसे अलग से नहीं हटाते।",
   "unsave": "सेव हटाएं",
-  "bookSavedDownloaded": "किताब सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।",
+  "bookSavedDownloaded": "रचना सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।",
   "published": "प्रकाशित",
   "drafts": "ड्राफ़्ट",
   "reads": "रीड्स",
@@ -376,7 +376,7 @@
   "deleteDraftBody": "यह ड्राफ़्ट आपके डैशबोर्ड से हट जाएगा।",
   "draftDeleted": "ड्राफ़्ट हटा दिया गया।",
   "deleteConversationBody": "यह बातचीत आपके इनबॉक्स से हट जाएगी।",
-  "failedToLoadSavedBooks": "सेव की गई किताबें लोड नहीं हो सकीं: {error}",
+  "failedToLoadSavedBooks": "सेव की गई रचनाएँ लोड नहीं हो सकीं: {error}",
   "@failedToLoadSavedBooks": {
     "placeholders": {
       "error": {
@@ -423,7 +423,7 @@
   "noNotificationsYet": "अभी कोई नोटिफ़िकेशन नहीं",
   "noMessageNotificationsYet": "अभी कोई संदेश नोटिफ़िकेशन नहीं",
   "noPostNotificationsYet": "अभी कोई पोस्ट नोटिफ़िकेशन नहीं",
-  "noBookNotificationsYet": "अभी कोई किताब नोटिफ़िकेशन नहीं",
+  "noBookNotificationsYet": "अभी कोई रचना नोटिफ़िकेशन नहीं",
   "showLess": "कम दिखाएं",
   "saveFailed": "सेव नहीं हो सका: {error}",
   "writerDashboard": "लेखक डैशबोर्ड",
@@ -435,7 +435,7 @@
   "aboutThisTopic": "इस विषय के बारे में",
   "submissionsReceived": "प्राप्त रचनाएं",
   "failedToLoadTopic": "विषय लोड नहीं हो सका: {error}",
-  "writeOnDailyTopic": "Wreadom पर \"{topic}\" पर लिखें: {link}",
+  "writeOnDailyTopic": "रीडम् पर \"{topic}\" पर लिखें: {link}",
   "failedToLoadSubmissions": "प्राप्त रचनाएं लोड नहीं हो सकीं: {error}",
   "cannotSendMessages": "आप इस बातचीत में संदेश नहीं भेज सकते।",
   "oneMessageAllowed": "प्राप्तकर्ता के जवाब देने तक सिर्फ़ एक संदेश भेजा जा सकता है।",
@@ -446,7 +446,7 @@
   "writeReview": "समीक्षा लिखें",
   "deleteChapter": "अध्याय हटाएं",
   "deleteChapterTitle": "अध्याय हटाएं?",
-  "unsavedChanges": "बिना सेव किए बदलाव",
+  "unsavedChanges": "बदलाव सेव नहीं हुए",
   "draftSaved": "ड्राफ़्ट सेव हो गया",
   "@saveFailed": {
     "description": "Shown when saving a book fails",
@@ -491,17 +491,168 @@
       }
     }
   },
-  "noSavedBooksYet": "अभी कोई सेव की गई किताब नहीं है।",
+  "noSavedBooksYet": "अभी कोई सेव की गई रचना नहीं है।",
   "noPostsYetStartSharing": "अभी कोई पोस्ट नहीं है।\nअपनी पढ़ने की यात्रा शेयर करना शुरू करें!",
-  "changeProfilePicture": "????????? ?????? ?????",
-  "changeCoverPicture": "??? ?????? ?????",
-  "profilePictureUpdated": "????????? ?????? ????? ?? ???",
-  "coverPictureUpdated": "??? ?????? ????? ?? ???",
-  "couldNotUpdatePicture": "?????? ????? ???? ?? ???: {error}",
+  "changeProfilePicture": "?????? ????? ????",
+  "changeCoverPicture": "??? ????? ????",
+  "profilePictureUpdated": "?????? ????? ???? ?? ???",
+  "coverPictureUpdated": "??? ????? ???? ?? ???",
+  "couldNotUpdatePicture": "????? ???? ???? ?? ???: {error}",
   "@couldNotUpdatePicture": {
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "writerWritingEditor": "लेखन एडिटर",
+  "writerContentDetails": "रचना विवरण",
+  "writerSaving": "सेव हो रहा है...",
+  "writerConvertToDraft": "ड्राफ़्ट में बदलें",
+  "writerDraft": "ड्राफ़्ट",
+  "writerNext": "आगे",
+  "writerPublish": "प्रकाशित करें",
+  "writerChapterTitleHint": "अध्याय {number} का शीर्षक",
+  "@writerChapterTitleHint": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "writerChapters": "अध्याय",
+  "writerStartWriting": "लिखना शुरू करें...",
+  "writerContentIdentity": "रचना की पहचान",
+  "title": "शीर्षक",
+  "synopsis": "सारांश",
+  "writerTitleHint": "अपनी रचना को शीर्षक दें",
+  "writerSynopsisHint": "पाठकों के लिए छोटा परिचय",
+  "writerCoverOptional": "कवर (वैकल्पिक)",
+  "writerUploading": "अपलोड हो रहा है...",
+  "writerUploadCover": "कवर अपलोड करें",
+  "remove": "हटाएं",
+  "writerDiscovery": "खोज",
+  "contentType": "रचना का प्रकार",
+  "category": "श्रेणी",
+  "topicsOptional": "विषय (वैकल्पिक)",
+  "topicsHint": "जादू, दोस्ती, संघर्ष",
+  "publishContent": "रचना प्रकाशित करें",
+  "saveDraft": "ड्राफ़्ट सेव करें",
+  "insertImage": "चित्र जोड़ें",
+  "insertMedia": "मीडिया जोड़ें",
+  "deleteChapterBody": "यह अध्याय इस ड्राफ़्ट से हट जाएगा।",
+  "signInBeforeUploadingImages": "चित्र अपलोड करने से पहले लॉग इन करें।",
+  "imageInserted": "चित्र जोड़ दिया गया।",
+  "couldNotUploadImage": "चित्र अपलोड नहीं हो सका: {error}",
+  "@couldNotUploadImage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInBeforeUploadingCover": "कवर अपलोड करने से पहले लॉग इन करें।",
+  "coverUploaded": "कवर अपलोड हो गया।",
+  "couldNotUploadCover": "कवर अपलोड नहीं हो सका: {error}",
+  "@couldNotUploadCover": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "writerMediaUrlLabel": "YouTube, Instagram या Spotify URL",
+  "insert": "जोड़ें",
+  "unsupportedLinksInsertedAsPlainText": "समर्थित नहीं लिंक सामान्य टेक्स्ट के रूप में जोड़े गए।",
+  "addTitleBeforeSaving": "सेव करने से पहले शीर्षक जोड़ें।",
+  "writerPublishing": "प्रकाशित हो रहा है...",
+  "writerSavingDraft": "ड्राफ़्ट सेव हो रहा है...",
+  "writerPublishedStatus": "प्रकाशित",
+  "storyPublished": "रचना प्रकाशित हो गई।",
+  "couldNotSave": "सेव नहीं हो सका: {error}",
+  "@couldNotSave": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedOnDevice": "डिवाइस पर सेव हो गया",
+  "localSaveFailed": "लोकल सेव असफल रहा",
+  "follow": "फ़ॉलो करें",
+  "unfollow": "फ़ॉलो हटाएं",
+  "signInToContinueAction": "जारी रखने के लिए लॉग इन करें।",
+  "followActionFailed": "फ़ॉलो अपडेट नहीं हो सका: {error}",
+  "@followActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "startedFollowingYou": "ने आपको फ़ॉलो करना शुरू किया।",
+  "back": "वापस",
+  "chapterOverview": "अध्याय सूची",
+  "chapterCount": "{count, plural, =1{1 अध्याय} other{{count} अध्याय}}",
+  "@chapterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addNewChapter": "नया अध्याय जोड़ें",
+  "noContentYet": "अभी कोई सामग्री नहीं",
+  "editing": "संपादन",
+  "wordCountLabel": "{count, plural, =1{1 शब्द} other{{count} शब्द}}",
+  "@wordCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "writerSaveFailed": "सेव असफल रहा",
+  "untitledStory": "बिना शीर्षक रचना",
+  "publishedBookNotification": "ने \"{title}\" प्रकाशित की।",
+  "@publishedBookNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "repliedToYourBookComment": "ने आपकी रचना वाली टिप्पणी का जवाब दिया।",
+  "reviewedYourBook": "ने आपकी रचना की समीक्षा की।",
+  "updatedReviewOnYourBook": "ने आपकी रचना पर समीक्षा अपडेट की।",
+  "authorsCannotReviewOwnBook": "लेखक अपनी रचना की समीक्षा नहीं कर सकते।",
+  "feedTypePost": "पोस्ट",
+  "feedTypeComment": "टिप्पणी",
+  "feedTypeQuote": "उद्धरण",
+  "feedTypeReview": "समीक्षा",
+  "feedTypeTestimony": "प्रशंसा",
+  "noRatingsYet": "अभी कोई रेटिंग नहीं",
+  "ratingMetric": "{rating} रेटिंग",
+  "@ratingMetric": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "readsMetric": "{count} पढ़ाई",
+  "@readsMetric": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "worksMetric": "{count, plural, =1{1 रचना} other{{count} रचनाएं}}",
+  "@worksMetric": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

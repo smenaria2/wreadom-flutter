@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
@@ -1751,6 +1752,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final user = await ref.read(currentUserProvider.future);
     if (text.isEmpty || user == null) return;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final wasReply = _replyingTo != null;
@@ -1775,7 +1777,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         userId: _replyingTo!.userId,
         actor: user,
         type: 'book_reply',
-        text: 'replied to your book comment.',
+        text: l10n.repliedToYourBookComment,
         link: AppLinkHelper.book(widget.book.id),
         targetId: widget.book.id,
         metadata: {'bookId': widget.book.id, 'commentId': _replyingTo!.id},
@@ -1784,16 +1786,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     } else {
       if (_isOwnOriginalBook(user.id)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Authors cannot review their own book.'),
-          ),
+          SnackBar(content: Text(l10n.authorsCannotReviewOwnBook)),
         );
         return;
       }
       if (_chapterRating <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a rating.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
         return;
       }
       if (_existingUserReview != null && !_isReviewEditMode) return;
@@ -1854,8 +1854,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           actor: user,
           type: existingReview == null ? 'book_review' : 'book_comment',
           text: existingReview == null
-              ? 'reviewed your book.'
-              : 'updated a review on your book.',
+              ? l10n.reviewedYourBook
+              : l10n.updatedReviewOnYourBook,
           link: AppLinkHelper.book(widget.book.id),
           targetId: widget.book.id,
           metadata: {'bookId': widget.book.id},

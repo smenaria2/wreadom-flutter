@@ -153,6 +153,7 @@ class HomeBooksScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(homepageMetadataProvider);
           ref.invalidate(homepageBooksProvider);
+          ref.invalidate(homepageAuthorWorksProvider);
           ref.invalidate(homepageIABooksProvider);
           ref.invalidate(homepageAuthorsProvider);
           ref.invalidate(homepageTrendingWorksProvider);
@@ -167,7 +168,7 @@ class HomeBooksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _AuthorSpotlight(recentBooksAsync: recentAsync),
+              const _AuthorSpotlight(),
               const SizedBox(height: 16),
 
               const _HeroBanner(),
@@ -868,6 +869,26 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
     };
   }
 
+  String _compactCount(int value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+    return '$value';
+  }
+
+  String _metricLabel(RankedHomeAuthor ranked, AppLocalizations l10n) {
+    final metrics = ranked.metrics;
+    return switch (_ranking) {
+      HomeAuthorRanking.topRated =>
+        metrics.ratingWeight == 0
+            ? l10n.noRatingsYet
+            : l10n.ratingMetric(metrics.averageRating.toStringAsFixed(1)),
+      HomeAuthorRanking.mostRead => l10n.readsMetric(
+        _compactCount(metrics.reads),
+      ),
+      HomeAuthorRanking.mostPublished => l10n.worksMetric(metrics.works),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -969,7 +990,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            ranked.metricLabel,
+                            _metricLabel(ranked, l10n),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -1298,9 +1319,7 @@ class _BookCardSkeleton extends StatelessWidget {
 
 // ─── Author Spotlight ────────────────────────────────────────────────────────
 class _AuthorSpotlight extends ConsumerStatefulWidget {
-  const _AuthorSpotlight({required this.recentBooksAsync});
-
-  final AsyncValue<List<Book>> recentBooksAsync;
+  const _AuthorSpotlight();
 
   @override
   ConsumerState<_AuthorSpotlight> createState() => _AuthorSpotlightState();
@@ -1333,282 +1352,276 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final authorsAsync = ref.watch(homepageAuthorsProvider);
+    final authorsAsync = ref.watch(
+      homepageRankedAuthorsProvider(HomeAuthorRanking.topRated),
+    );
 
     return authorsAsync.when(
-      data: (authors) => widget.recentBooksAsync.when(
-        data: (recentBooks) {
-          final recentAuthorIds = recentBooks
-              .map((book) => book.authorId)
-              .whereType<String>()
-              .where((id) => id.trim().isNotEmpty)
-              .toSet();
-          final eligibleAuthors = authors
-              .where((author) => recentAuthorIds.contains(author.id))
-              .toList();
+      data: (rankedAuthors) {
+        final eligibleAuthors = rankedAuthors
+            .where((ranked) => ranked.metrics.works > 0)
+            .map((ranked) => ranked.author)
+            .toList();
 
-          if (eligibleAuthors.isEmpty) return const SizedBox.shrink();
+        if (eligibleAuthors.isEmpty) return const SizedBox.shrink();
 
-          _randomIndex ??= math.Random().nextInt(eligibleAuthors.length);
-          if (_randomIndex! >= eligibleAuthors.length) _randomIndex = 0;
-          final author = eligibleAuthors[_randomIndex!];
-          final authorBooksAsync = ref.watch(userBooksProvider(author.id));
-          final authorName = _authorName(author);
-          final authorInitial = _initialForName(authorName);
+        _randomIndex ??= math.Random().nextInt(eligibleAuthors.length);
+        if (_randomIndex! >= eligibleAuthors.length) _randomIndex = 0;
+        final author = eligibleAuthors[_randomIndex!];
+        final authorBooksAsync = ref.watch(
+          homepageAuthorBooksProvider(author.id),
+        );
+        final authorName = _authorName(author);
+        final authorInitial = _initialForName(authorName);
 
-          return Container(
-            margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF0A0A0F),
-                  const Color(0xFF16131D),
-                  const Color(0xFF241D16),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF0A0A0F),
+                const Color(0xFF16131D),
+                const Color(0xFF241D16),
               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -20,
-                  top: -20,
-                  child: Icon(
-                    Icons.star_rounded,
-                    size: 120,
-                    color: const Color(0xFFFFD166).withValues(alpha: 0.08),
-                  ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 120,
+                  color: const Color(0xFFFFD166).withValues(alpha: 0.08),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: () => _openAuthorProfile(context, author),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFFFD166),
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFFFD166,
-                                    ).withValues(alpha: 0.22),
-                                    blurRadius: 18,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _openAuthorProfile(context, author),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFFFD166),
+                                width: 2,
                               ),
-                              child: CircleAvatar(
-                                radius: 30,
-                                backgroundColor: const Color(0xFF2D2A35),
-                                backgroundImage:
-                                    author.photoURL != null &&
-                                        author.photoURL!.isNotEmpty
-                                    ? CachedNetworkImageProvider(
-                                        author.photoURL!,
-                                      )
-                                    : null,
-                                child:
-                                    (author.photoURL == null ||
-                                        author.photoURL!.isEmpty)
-                                    ? authorInitial != null
-                                          ? Text(
-                                              authorInitial,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFFFFD166),
-                                              ),
-                                            )
-                                          : const Icon(
-                                              Icons.person_rounded,
-                                              color: Color(0xFFFFD166),
-                                            )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () =>
-                                      _openAuthorProfile(context, author),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 2,
-                                    ),
-                                    child: Text(
-                                      authorName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFFFFD166),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  author.bio ?? l10n.featuredWreadomAuthor,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.88),
-                                    fontSize: 14,
-                                    height: 1.3,
-                                  ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFFFFD166,
+                                  ).withValues(alpha: 0.22),
+                                  blurRadius: 18,
+                                  spreadRadius: 1,
                                 ),
                               ],
                             ),
+                            child: CircleAvatar(
+                              radius: 30,
+                              backgroundColor: const Color(0xFF2D2A35),
+                              backgroundImage:
+                                  author.photoURL != null &&
+                                      author.photoURL!.isNotEmpty
+                                  ? CachedNetworkImageProvider(author.photoURL!)
+                                  : null,
+                              child:
+                                  (author.photoURL == null ||
+                                      author.photoURL!.isEmpty)
+                                  ? authorInitial != null
+                                        ? Text(
+                                            authorInitial,
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFFFFD166),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.person_rounded,
+                                            color: Color(0xFFFFD166),
+                                          )
+                                  : null,
+                            ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      authorBooksAsync.when(
-                        data: (books) {
-                          if (books.isEmpty) return const SizedBox.shrink();
-                          // Only show first 5 books
-                          final displayBooks = books.take(5).toList();
-                          return SizedBox(
-                            height: 132,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: displayBooks.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 12),
-                              itemBuilder: (context, index) {
-                                final book = displayBooks[index];
-                                return GestureDetector(
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => BookDetailScreen(
-                                        bookId: book.id,
-                                        preloadedBook: book,
-                                      ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () =>
+                                    _openAuthorProfile(context, author),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
+                                  child: Text(
+                                    authorName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFD166),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.8,
                                     ),
                                   ),
-                                  child: SizedBox(
-                                    width: 76,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.28),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                author.bio ?? l10n.featuredWreadomAuthor,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.88),
+                                  fontSize: 14,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    authorBooksAsync.when(
+                      data: (books) {
+                        if (books.isEmpty) return const SizedBox.shrink();
+                        // Only show first 5 books
+                        final displayBooks = books.take(5).toList();
+                        return SizedBox(
+                          height: 132,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: displayBooks.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final book = displayBooks[index];
+                              return GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BookDetailScreen(
+                                      bookId: book.id,
+                                      preloadedBook: book,
+                                    ),
+                                  ),
+                                ),
+                                child: SizedBox(
+                                  width: 76,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                            clipBehavior: Clip.antiAlias,
-                                            child: book.coverUrl != null
-                                                ? CachedNetworkImage(
-                                                    imageUrl: book.coverUrl!,
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                  )
-                                                : Container(
-                                                    color: Colors.white12,
-                                                    child: Center(
-                                                      child: Text(
-                                                        book.title,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        maxLines: 2,
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 10,
-                                                        ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.28,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: book.coverUrl != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: book.coverUrl!,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                )
+                                              : Container(
+                                                  color: Colors.white12,
+                                                  child: Center(
+                                                    child: Text(
+                                                      book.title,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      maxLines: 2,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10,
                                                       ),
                                                     ),
                                                   ),
-                                          ),
+                                                ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          book.title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.92,
-                                            ),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            height: 1.15,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        book.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.92,
                                           ),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.15,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                        loading: () => const SizedBox(
-                          height: 100,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                        error: (_, _) => _SectionError(
-                          title: l10n.authorBooks(authorName),
-                          onRetry: () =>
-                              ref.invalidate(userBooksProvider(author.id)),
+                        );
+                      },
+                      loading: () => const SizedBox(
+                        height: 100,
+                        child: Center(
+                          child: CircularProgressIndicator(color: Colors.white),
                         ),
                       ),
-                    ],
-                  ),
+                      error: (_, _) => _SectionError(
+                        title: l10n.authorBooks(authorName),
+                        onRetry: () => ref.invalidate(
+                          homepageAuthorBooksProvider(author.id),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-        loading: () => const SizedBox.shrink(),
-        error: (_, _) => _SectionError(
-          title: l10n.authorSpotlight,
-          onRetry: () => ref.invalidate(homepageRecentProvider),
-        ),
-      ),
+              ),
+            ],
+          ),
+        );
+      },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
         title: l10n.authorSpotlight,
-        onRetry: () => ref.invalidate(homepageAuthorsProvider),
+        onRetry: () => ref.invalidate(
+          homepageRankedAuthorsProvider(HomeAuthorRanking.topRated),
+        ),
       ),
     );
   }

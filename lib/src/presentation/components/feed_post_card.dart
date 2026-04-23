@@ -46,6 +46,22 @@ IconData _typeIcon(String type) {
   }
 }
 
+String _typeLabel(String type, AppLocalizations l10n) {
+  switch (type.toLowerCase()) {
+    case 'comment':
+      return l10n.feedTypeComment;
+    case 'quote':
+      return l10n.feedTypeQuote;
+    case 'review':
+      return l10n.feedTypeReview;
+    case 'testimony':
+      return l10n.feedTypeTestimony;
+    case 'post':
+    default:
+      return l10n.feedTypePost;
+  }
+}
+
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
   final bool openOnTap;
@@ -65,7 +81,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   Future<void> _toggleLike() async {
     if (_liking) return;
     final user = ref.read(currentUserProvider).asData?.value;
-    if (user == null || widget.post.id == null) return;
+    if (widget.post.id == null) return;
+    if (user == null) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
+      return;
+    }
 
     final wasLiked = _optimisticLiked ?? widget.post.likes.contains(user.id);
     final prevCount = _optimisticLikesCount ?? widget.post.likes.length;
@@ -311,7 +334,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final accentColor = _typeColor(post.type);
-    final typeLabel = post.type[0].toUpperCase() + post.type.substring(1);
+    final typeLabel = _typeLabel(post.type, l10n);
 
     // Check if current user liked this post (with optimistic override)
     final currentUser = ref.watch(currentUserProvider).asData?.value;
@@ -840,7 +863,13 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
     final text = _ctrl.value.text.trim();
     if (text.isEmpty || widget.post.id == null) return;
     final user = ref.read(currentUserProvider).asData?.value;
-    if (user == null) return;
+    if (user == null) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
+      return;
+    }
 
     setState(() => _submitting = true);
     try {

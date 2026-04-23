@@ -472,6 +472,125 @@ void main() {
     },
   );
 
+  test('feed comment writes do not depend on count update permission', () {
+    final feedSource = File(
+      'lib/src/data/repositories/firebase_feed_repository.dart',
+    ).readAsStringSync();
+
+    final setIndex = feedSource.indexOf('await commentRef.set');
+    final countIndex = feedSource.indexOf(
+      "'commentCount': FieldValue.increment(1)",
+    );
+    expect(setIndex, greaterThan(-1));
+    expect(countIndex, greaterThan(setIndex));
+    expect(feedSource, contains('try {'));
+    expect(feedSource, contains('Comment saved but count update failed'));
+  });
+
+  test('feed actions and follow writes require signed-in ownership shapes', () {
+    final feedCardSource = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    final postDetailSource = File(
+      'lib/src/presentation/screens/post_detail_screen.dart',
+    ).readAsStringSync();
+    final followSource = File(
+      'lib/src/data/repositories/firebase_follow_repository.dart',
+    ).readAsStringSync();
+    final rulesSource = File('firestore.rules').readAsStringSync();
+    final firebaseConfig = File('firebase.json').readAsStringSync();
+
+    expect(feedCardSource, contains('l10n.signInToContinueAction'));
+    expect(postDetailSource, contains('l10n.signInToContinueAction'));
+    expect(followSource, contains('_followDocId'));
+    expect(rulesSource, contains('followerId'));
+    expect(rulesSource, contains("ownsIncoming('followerId')"));
+    expect(rulesSource, contains("ownsIncoming('userId')"));
+    expect(rulesSource, contains("onlyChanges(['commentCount'])"));
+    expect(firebaseConfig, contains('"rules": "firestore.rules"'));
+  });
+
+  test('localized feed labels and Hindi app wording stay wired', () {
+    final feedCardSource = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    final enArb = File('lib/l10n/app_en.arb').readAsStringSync();
+    final hiArb = File('lib/l10n/app_hi.arb').readAsStringSync();
+
+    expect(feedCardSource, contains('String _typeLabel'));
+    expect(feedCardSource, contains('l10n.feedTypePost'));
+    expect(feedCardSource, isNot(contains('post.type[0].toUpperCase()')));
+    expect(enArb, contains('"history": "Read Content"'));
+    expect(hiArb, contains('"appTitle": "रीडम्"'));
+    expect(hiArb, contains('"history": "पढ़ी गई रचनाएँ"'));
+    expect(hiArb, isNot(contains('किताब')));
+  });
+
+  test(
+    'follow lists hide handles and home author metrics use ranked works',
+    () {
+      final followListSource = File(
+        'lib/src/presentation/screens/follow_list_screen.dart',
+      ).readAsStringSync();
+      final homeProviderSource = File(
+        'lib/src/presentation/providers/homepage_providers.dart',
+      ).readAsStringSync();
+      final homeScreenSource = File(
+        'lib/src/presentation/screens/home_books_screen.dart',
+      ).readAsStringSync();
+
+      expect(followListSource, isNot(contains('@\${user.username}')));
+      expect(homeProviderSource, contains('homepageAuthorWorksProvider'));
+      expect(
+        homeProviderSource,
+        contains('ratingTotal += rating * ratingsCount'),
+      );
+      expect(homeProviderSource, contains('works += 1'));
+      expect(homeScreenSource, contains('l10n.noRatingsYet'));
+      expect(homeScreenSource, contains('l10n.ratingMetric'));
+      expect(homeScreenSource, contains('l10n.readsMetric'));
+      expect(homeScreenSource, contains('l10n.worksMetric'));
+      expect(
+        homeScreenSource,
+        contains('homepageAuthorBooksProvider(author.id)'),
+      );
+      expect(
+        homeScreenSource,
+        contains('homepageRankedAuthorsProvider(HomeAuthorRanking.topRated)'),
+      );
+    },
+  );
+
+  test('shared firestore rules preserve android and web compatibility paths', () {
+    final rulesSource = File('firestore.rules').readAsStringSync();
+
+    expect(rulesSource, contains("function ownsIncomingAny(primary, fallback)"));
+    expect(rulesSource, contains("function ownsExistingAny(primary, fallback)"));
+    expect(rulesSource, contains("function isBookAuthor(bookId)"));
+    expect(
+      rulesSource,
+      contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
+    );
+
+    expect(rulesSource, contains("allow create: if ownsIncoming('followerId')"));
+    expect(rulesSource, contains("onlyChanges(['commentCount'])"));
+    expect(rulesSource, contains("allowsLegacyEmbeddedFeedCommentMutation()"));
+    expect(
+      rulesSource,
+      contains("request.resource.data.highlightedByUserId == uid()"),
+    );
+    expect(
+      rulesSource,
+      contains("allow create: if ownsIncomingAny('authorId', 'userId');"),
+    );
+    expect(rulesSource, contains("ownsExistingAny('authorId', 'userId')"));
+    expect(
+      rulesSource,
+      contains("request.resource.data.reporterId == uid() ||"),
+    );
+    expect(rulesSource, contains("request.resource.data.userId == uid()"));
+  });
+
   test('reader sharing, chrome, tts, and unique views stay wired', () {
     final readerSource = File(
       'lib/src/presentation/screens/reader_screen.dart',
@@ -558,7 +677,7 @@ void main() {
       expect(repositorySource, contains('maxHighlighted = 3'));
       expect(readerSource, contains('int _chapterRating = 5'));
       expect(readerSource, contains('_isOwnOriginalBook'));
-      expect(readerSource, contains('Authors cannot review their own book.'));
+      expect(readerSource, contains('l10n.authorsCannotReviewOwnBook'));
       expect(readerSource, contains('upsertBookReview'));
       expect(readerSource, contains('_restoreLineBreaks'));
       expect(readerSource, contains('viewInsets.bottom'));
@@ -863,8 +982,8 @@ void main() {
     expect(readerSource, contains("label: const Text('Edit')"));
     expect(writerSource, contains('_populateSynopsisFromFirstLines'));
     expect(writerSource, contains("RestorableString('Hindi')"));
-    expect(writerSource, contains('Cover (optional)'));
-    expect(writerSource, contains('Topics (optional)'));
+    expect(writerSource, contains('l10n.writerCoverOptional'));
+    expect(writerSource, contains('l10n.topicsOptional'));
     expect(writerSource, contains('showLink: false'));
     expect(bookDetailSource, contains('l10n.shareToFeed'));
     expect(bookDetailSource, contains('l10n.defaultShareMessage'));

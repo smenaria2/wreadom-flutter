@@ -104,7 +104,13 @@ class _FollowUserTile extends ConsumerWidget {
     return profileAsync.when(
       data: (user) {
         if (user == null) return const SizedBox.shrink();
-        final name = user.displayName ?? user.username;
+        final displayName = user.displayName?.trim();
+        final penName = user.penName?.trim();
+        final name = displayName != null && displayName.isNotEmpty
+            ? displayName
+            : penName != null && penName.isNotEmpty
+            ? penName
+            : user.username;
         return ListTile(
           leading: CircleAvatar(
             backgroundImage: user.photoURL != null
@@ -115,7 +121,6 @@ class _FollowUserTile extends ConsumerWidget {
                 : null,
           ),
           title: Text(name),
-          subtitle: Text('@${user.username}'),
           trailing: FollowButton(targetUserId: user.id, compact: true),
           onTap: () => Navigator.of(context).pushNamed(
             AppRoutes.publicProfile,

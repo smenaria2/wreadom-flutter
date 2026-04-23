@@ -9,6 +9,7 @@ import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/user_model.dart';
+import '../../localization/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
@@ -236,7 +237,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       );
       _isDirty = true;
       _isLocalDirty = false;
-      _saveStatus = 'Saved on device';
+      _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
     });
     _isRestoringLocalDraft = false;
   }
@@ -285,6 +286,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = _currentChapter.controller;
     final chromeColor = _writerChromeColor(context);
     final onChromeColor = _onWriterChromeColor(context);
@@ -300,11 +302,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _step == 0 ? 'Writing Editor' : 'Content Details',
+              _step == 0 ? l10n.writerWritingEditor : l10n.writerContentDetails,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
-              _isSaving ? 'Saving...' : _saveStatus,
+              _isSaving ? l10n.writerSaving : _saveStatus,
               style: TextStyle(
                 color: onChromeColor.withValues(alpha: 0.58),
                 fontSize: 12,
@@ -313,7 +315,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ],
         ),
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: l10n.back,
           icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
           onPressed: _handleBack,
         ),
@@ -321,7 +323,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           TextButton(
             onPressed: _isSaving ? null : () => _save(status: 'draft'),
             child: Text(
-              widget.book?.status == 'published' ? 'Convert to Draft' : 'Draft',
+              widget.book?.status == 'published'
+                  ? l10n.writerConvertToDraft
+                  : l10n.writerDraft,
             ),
           ),
           const SizedBox(width: 4),
@@ -337,7 +341,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       _save(status: 'published', closeAfterSave: true);
                     }
                   },
-            child: Text(_step == 0 ? 'Next' : 'Publish'),
+            child: Text(_step == 0 ? l10n.writerNext : l10n.writerPublish),
           ),
           const SizedBox(width: 12),
         ],
@@ -368,6 +372,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildEditorStep() {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final paperColor = _writerPaperColor(context);
     final paperTextColor = _writerPaperTextColor(context);
@@ -391,7 +396,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     ),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Chapter ${_currentChapterIndex + 1} title',
+                      hintText: l10n.writerChapterTitleHint(
+                        _currentChapterIndex + 1,
+                      ),
                       hintStyle: TextStyle(
                         color: _onWriterSurfaceColor(
                           context,
@@ -403,7 +410,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ),
               const SizedBox(width: 10),
               IconButton.filledTonal(
-                tooltip: 'Chapters',
+                tooltip: l10n.writerChapters,
                 onPressed: _showChapterSheet,
                 icon: const Icon(Icons.view_list_rounded),
               ),
@@ -431,7 +438,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   WriterImageEmbedBuilder(),
                   WriterMediaEmbedBuilder(),
                 ],
-                placeholder: 'Start writing...',
+                placeholder: l10n.writerStartWriting,
                 padding: EdgeInsets.zero,
                 expands: true,
                 autoFocus: false,
@@ -496,6 +503,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildDetailsStep() {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       key: const ValueKey('details-step'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -505,7 +513,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Content identity',
+                l10n.writerContentIdentity,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
@@ -514,14 +522,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               const SizedBox(height: 16),
               _darkField(
                 controller: _titleController.value,
-                label: 'Title',
-                hint: 'Give your work a title',
+                label: l10n.title,
+                hint: l10n.writerTitleHint,
               ),
               const SizedBox(height: 14),
               _darkField(
                 controller: _descriptionController.value,
-                label: 'Synopsis',
-                hint: 'A short pitch for readers',
+                label: l10n.synopsis,
+                hint: l10n.writerSynopsisHint,
                 maxLines: 5,
               ),
             ],
@@ -533,7 +541,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Cover (optional)',
+                l10n.writerCoverOptional,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
@@ -585,7 +593,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 )
                               : const Icon(Icons.cloud_upload_outlined),
                           label: Text(
-                            _isUploadingCover ? 'Uploading...' : 'Upload cover',
+                            _isUploadingCover
+                                ? l10n.writerUploading
+                                : l10n.writerUploadCover,
                           ),
                         ),
                         OutlinedButton.icon(
@@ -596,7 +606,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                   _markDirty();
                                 },
                           icon: const Icon(Icons.delete_outline_rounded),
-                          label: const Text('Remove'),
+                          label: Text(l10n.remove),
                         ),
                       ],
                     ),
@@ -612,7 +622,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Discovery',
+                l10n.writerDiscovery,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
@@ -620,7 +630,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ),
               const SizedBox(height: 16),
               _dropdown(
-                label: 'Content type',
+                label: l10n.contentType,
                 value: _contentType,
                 values: _taxonomy.contentTypes,
                 onChanged: (value) {
@@ -637,7 +647,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ),
               const SizedBox(height: 14),
               _dropdown(
-                label: 'Category',
+                label: l10n.category,
                 value: _category,
                 values: _currentCategories,
                 onChanged: (value) {
@@ -650,7 +660,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ),
               const SizedBox(height: 14),
               _dropdown(
-                label: 'Language',
+                label: l10n.language,
                 value: _language,
                 values: _languageOptions,
                 onChanged: (value) {
@@ -664,8 +674,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               const SizedBox(height: 14),
               _darkField(
                 controller: _topicsController.value,
-                label: 'Topics (optional)',
-                hint: 'magic, friendship, survival',
+                label: l10n.topicsOptional,
+                hint: l10n.topicsHint,
               ),
             ],
           ),
@@ -676,19 +686,20 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ? null
               : () => _save(status: 'published', closeAfterSave: true),
           icon: const Icon(Icons.publish_rounded),
-          label: const Text('Publish Content'),
+          label: Text(l10n.publishContent),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _isSaving ? null : () => _save(status: 'draft'),
           icon: const Icon(Icons.save_outlined),
-          label: const Text('Save Draft'),
+          label: Text(l10n.saveDraft),
         ),
       ],
     );
   }
 
   Widget _buildToolbar(QuillController controller) {
+    final l10n = AppLocalizations.of(context)!;
     final toolbarColor = _writerToolbarColor(context);
     final onToolbarColor = _onWriterSurfaceColor(context);
     return SafeArea(
@@ -698,7 +709,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Insert image',
+              tooltip: l10n.insertImage,
               color: onToolbarColor,
               onPressed: _isUploadingInlineImage ? null : _pickInlineImage,
               icon: _isUploadingInlineImage
@@ -709,7 +720,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   : const Icon(Icons.image_outlined),
             ),
             IconButton(
-              tooltip: 'Insert media',
+              tooltip: l10n.insertMedia,
               color: onToolbarColor,
               onPressed: _showMediaInsertDialog,
               icon: const Icon(Icons.smart_display_outlined),
@@ -891,6 +902,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _showChapterSheet() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -921,7 +933,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Chapter overview',
+                                  l10n.chapterOverview,
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
                                         color: onSheetColor,
@@ -930,7 +942,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${_chapters.length} chapters',
+                                  l10n.chapterCount(_chapters.length),
                                   style: TextStyle(
                                     color: onSheetColor.withValues(alpha: 0.62),
                                   ),
@@ -939,7 +951,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Close',
+                            tooltip: l10n.close,
                             color: onSheetColor,
                             onPressed: () => Navigator.of(context).pop(),
                             icon: const Icon(Icons.close_rounded),
@@ -975,7 +987,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             key: ValueKey(chapter.key),
                             index: i,
                             title: chapter.title.text.trim().isEmpty
-                                ? 'Chapter ${i + 1}'
+                                ? l10n.chapterNumber(i + 1)
                                 : chapter.title.text.trim(),
                             preview: _chapterPreview(chapter),
                             wordCount: chapter.wordCount,
@@ -1021,7 +1033,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               Icon(Icons.add_rounded, color: onSheetColor),
                               const SizedBox(width: 10),
                               Text(
-                                'Add new chapter',
+                                l10n.addNewChapter,
                                 style: TextStyle(
                                   color: onSheetColor,
                                   fontWeight: FontWeight.w800,
@@ -1048,7 +1060,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _setCurrentChapterIndex(_chapters.length - 1);
       _isDirty = true;
       _isLocalDirty = true;
-      _saveStatus = 'Unsaved changes';
+      _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
     });
   }
 
@@ -1062,24 +1074,25 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _setCurrentChapterIndex(_chapters.indexOf(current));
     _isDirty = true;
     _isLocalDirty = true;
-    _saveStatus = 'Unsaved changes';
+    _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
   }
 
   Future<bool> _confirmDeleteChapter(int index) async {
     if (_chapters.length <= 1) return false;
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete chapter?'),
-        content: const Text('This removes the chapter from this draft.'),
+        title: Text(l10n.deleteChapterTitle),
+        content: Text(l10n.deleteChapterBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -1093,7 +1106,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       );
       _isDirty = true;
       _isLocalDirty = true;
-      _saveStatus = 'Unsaved changes';
+      _saveStatus = l10n.unsavedChanges;
     });
     return true;
   }
@@ -1102,7 +1115,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final text = plainTextFromHtml(
       htmlFromDocument(chapter.controller.document),
     );
-    if (text.isEmpty) return 'No content yet';
+    if (text.isEmpty) return AppLocalizations.of(context)!.noContentYet;
     if (text.length <= 96) return text;
     return '${text.substring(0, 96).trim()}...';
   }
@@ -1126,9 +1139,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Future<void> _pickInlineImage() async {
+    final l10n = AppLocalizations.of(context)!;
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
-      _showSnack('Sign in before uploading images.');
+      _showSnack(l10n.signInBeforeUploadingImages);
       return;
     }
     final file = await _imagePicker.pickImage(source: ImageSource.gallery);
@@ -1141,18 +1155,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           .uploadImage(file: file, folder: 'books', userId: user.id);
       final url = optimizeCloudinaryImageUrl(uploaded);
       _insertEmbed(BlockEmbed.image(url));
-      _showSnack('Image inserted.');
+      _showSnack(l10n.imageInserted);
     } catch (error) {
-      _showSnack('Could not upload image: $error');
+      _showSnack(l10n.couldNotUploadImage('$error'));
     } finally {
       if (mounted) setState(() => _isUploadingInlineImage = false);
     }
   }
 
   Future<void> _pickCover() async {
+    final l10n = AppLocalizations.of(context)!;
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
-      _showSnack('Sign in before uploading a cover.');
+      _showSnack(l10n.signInBeforeUploadingCover);
       return;
     }
     final file = await _imagePicker.pickImage(source: ImageSource.gallery);
@@ -1169,36 +1184,35 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       );
       setState(() => _coverUrl = url);
       _markDirty();
-      _showSnack('Cover uploaded.');
+      _showSnack(l10n.coverUploaded);
     } catch (error) {
-      _showSnack('Could not upload cover: $error');
+      _showSnack(l10n.couldNotUploadCover('$error'));
     } finally {
       if (mounted) setState(() => _isUploadingCover = false);
     }
   }
 
   Future<void> _showMediaInsertDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Insert media'),
+        title: Text(l10n.insertMedia),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'YouTube, Instagram, or Spotify URL',
-          ),
+          decoration: InputDecoration(labelText: l10n.writerMediaUrlLabel),
           keyboardType: TextInputType.url,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Insert'),
+            child: Text(l10n.insert),
           ),
         ],
       ),
@@ -1211,7 +1225,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       return;
     }
     _insertText(result.trim());
-    _showSnack('Unsupported links are inserted as plain text.');
+    _showSnack(l10n.unsupportedLinksInsertedAsPlainText);
   }
 
   void _insertEmbed(BlockEmbed embed) {
@@ -1274,10 +1288,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     bool showSnack = true,
   }) async {
     if (_isSaving) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final title = _titleController.value.text.trim();
     if (title.isEmpty && !allowUntitled) {
-      _showSnack('Add a title before saving.');
+      _showSnack(l10n.addTitleBeforeSaving);
       setState(() => _setStep(1));
       return;
     }
@@ -1287,7 +1302,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
     setState(() {
       _isSaving = true;
-      _saveStatus = status == 'published' ? 'Publishing...' : 'Saving draft...';
+      _saveStatus = status == 'published'
+          ? l10n.writerPublishing
+          : l10n.writerSavingDraft;
     });
 
     try {
@@ -1311,7 +1328,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             userId: followerId,
             actor: user,
             type: 'new_creation',
-            text: 'published "${book.title}".',
+            text: l10n.publishedBookNotification(book.title),
             link: AppLinkHelper.book(_bookId!),
             targetId: _bookId,
             metadata: {'bookId': _bookId},
@@ -1326,19 +1343,25 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _isDirty = false;
         _isLocalDirty = false;
         _isSaving = false;
-        _saveStatus = status == 'published' ? 'Published' : 'Draft saved';
+        _saveStatus = status == 'published'
+            ? l10n.writerPublishedStatus
+            : l10n.writerDraft;
       });
       if (showSnack) {
-        _showSnack(status == 'published' ? 'Story published.' : 'Draft saved.');
+        _showSnack(
+          status == 'published' ? l10n.storyPublished : l10n.writerDraft,
+        );
       }
       if (closeAfterSave && mounted) Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _isSaving = false;
-        _saveStatus = 'Save failed';
+        _saveStatus = l10n.writerSaveFailed;
       });
-      if (showSnack) _showSnack('Could not save: $error');
+      if (showSnack) {
+        _showSnack(l10n.couldNotSave('$error'));
+      }
     }
   }
 
@@ -1359,11 +1382,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       if (!mounted) return;
       setState(() {
         _isLocalDirty = false;
-        _saveStatus = 'Saved on device';
+        _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _saveStatus = 'Local save failed');
+      setState(
+        () => _saveStatus = AppLocalizations.of(context)!.localSaveFailed,
+      );
     }
   }
 
@@ -1384,7 +1409,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         Chapter(
           id: draft.id ?? 'chapter_${now}_$i',
           title: draft.title.text.trim().isEmpty
-              ? 'Chapter ${i + 1}'
+              ? AppLocalizations.of(context)!.chapterNumber(i + 1)
               : draft.title.text.trim(),
           content: content,
           index: i,
@@ -1406,7 +1431,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return Book(
       id: _bookId ?? widget.book?.id ?? '',
       title: _titleController.value.text.trim().isEmpty
-          ? 'Untitled Story'
+          ? AppLocalizations.of(context)!.untitledStory
           : _titleController.value.text.trim(),
       description: _descriptionController.value.text.trim(),
       coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
@@ -1459,12 +1484,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       setState(() {
         _isDirty = true;
         _isLocalDirty = true;
-        _saveStatus = 'Unsaved changes';
+        _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
       });
     } else if (!_isLocalDirty) {
       setState(() {
         _isLocalDirty = true;
-        _saveStatus = 'Unsaved changes';
+        _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
       });
     }
   }
@@ -1575,6 +1600,7 @@ class _ChapterOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final borderColor = isCurrent
         ? Theme.of(context).colorScheme.primary
         : textColor.withValues(alpha: 0.18);
@@ -1628,7 +1654,7 @@ class _ChapterOverviewCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              'Editing',
+                              l10n.editing,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onPrimary,
                                 fontSize: 11,
@@ -1650,7 +1676,7 @@ class _ChapterOverviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$wordCount words',
+                      l10n.wordCountLabel(wordCount),
                       style: TextStyle(
                         color: textColor.withValues(alpha: 0.52),
                         fontSize: 12,
@@ -1661,7 +1687,7 @@ class _ChapterOverviewCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Delete chapter',
+                tooltip: l10n.deleteChapter,
                 onPressed: canDelete ? onDelete : null,
                 color: textColor.withValues(alpha: 0.74),
                 icon: const Icon(Icons.delete_outline_rounded),

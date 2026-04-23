@@ -222,21 +222,26 @@ class FirebaseFeedRepository implements FeedRepository {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final commentRef = _firestore.collection('comments').doc();
 
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) {
-        throw StateError('Post not found');
-      }
+    final postSnapshot = await postRef.get();
+    if (!postSnapshot.exists) {
+      throw StateError('Post not found');
+    }
 
-      transaction.set(commentRef, {
-        ...comment,
-        'feedPostId': postId,
-        'timestamp': timestamp,
-        'likes': const <String>[],
-        'replies': const <Map<String, dynamic>>[],
-      });
-      transaction.update(postRef, {'commentCount': FieldValue.increment(1)});
+    await commentRef.set({
+      ...comment,
+      'feedPostId': postId,
+      'timestamp': timestamp,
+      'likes': const <String>[],
+      'replies': const <Map<String, dynamic>>[],
     });
+
+    try {
+      await postRef.update({'commentCount': FieldValue.increment(1)});
+    } catch (error) {
+      debugPrint(
+        '[FirebaseFeedRepository] Comment saved but count update failed: $error',
+      );
+    }
   }
 
   @override
@@ -547,13 +552,17 @@ class FirebaseFeedRepository implements FeedRepository {
   Future<bool> _deleteTopLevelComment(String postId, String commentId) async {
     final commentRef = _firestore.collection('comments').doc(commentId);
     final postRef = _firestore.collection(_collection).doc(postId);
-    return _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(commentRef);
-      if (!snap.exists) return false;
-      transaction.delete(commentRef);
-      transaction.update(postRef, {'commentCount': FieldValue.increment(-1)});
-      return true;
-    });
+    final snap = await commentRef.get();
+    if (!snap.exists) return false;
+    await commentRef.delete();
+    try {
+      await postRef.update({'commentCount': FieldValue.increment(-1)});
+    } catch (error) {
+      debugPrint(
+        '[FirebaseFeedRepository] Comment deleted but count update failed: $error',
+      );
+    }
+    return true;
   }
 
   Future<bool> _updateTopLevelReplyText(

@@ -9,7 +9,7 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
-  String get appTitle => 'Wreadom';
+  String get appTitle => 'रीडम्';
 
   @override
   String get login => 'लॉग इन';
@@ -78,7 +78,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get posts => 'पोस्ट';
 
   @override
-  String get history => 'इतिहास';
+  String get history => 'पढ़ी गई रचनाएँ';
 
   @override
   String get saved => 'सेव किए गए';
@@ -180,7 +180,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get notifications => 'सूचनाएं';
 
   @override
-  String get searchBooks => 'किताबें खोजें';
+  String get searchBooks => 'रचनाएँ खोजें';
 
   @override
   String get mine => 'मेरी';
@@ -211,20 +211,20 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discover => 'खोजें';
 
   @override
-  String get searchBooksAuthors => 'किताबें और लेखक खोजें';
+  String get searchBooksAuthors => 'रचनाएँ और लेखक खोजें';
 
   @override
-  String get searchHint => 'किताबें, लेखक खोजें...';
+  String get searchHint => 'रचनाएँ, लेखक खोजें...';
 
   @override
-  String get suggestedBooks => 'सुझाई गई किताबें';
+  String get suggestedBooks => 'सुझाई गई रचनाएँ';
 
   @override
-  String get noSuggestedBooks => 'कोई सुझाई गई किताबें नहीं मिलीं।';
+  String get noSuggestedBooks => 'कोई सुझाई गई रचनाएँ नहीं मिलीं।';
 
   @override
   String noBooksFoundIn(String genre) {
-    return '$genre में कोई किताबें नहीं मिलीं।';
+    return '$genre में कोई रचनाएँ नहीं मिलीं।';
   }
 
   @override
@@ -233,10 +233,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get originalBooks => 'मूल किताबें';
+  String get originalBooks => 'मूल रचनाएँ';
 
   @override
-  String get moreBooks => 'और किताबें';
+  String get moreBooks => 'और रचनाएँ';
 
   @override
   String get profiles => 'प्रोफाइल';
@@ -248,17 +248,17 @@ class AppLocalizationsHi extends AppLocalizations {
   String get internetArchive => 'इंटरनेट आर्काइव';
 
   @override
-  String get bookNotFound => 'किताब नहीं मिली';
+  String get bookNotFound => 'रचना नहीं मिली';
 
   @override
-  String get editBook => 'किताब संपादित करें';
+  String get editBook => 'रचना संपादित करें';
 
   @override
-  String get reportBook => 'किताब की रिपोर्ट करें';
+  String get reportBook => 'रचना की रिपोर्ट करें';
 
   @override
   String shareBookMessage(String title, String link) {
-    return 'Wreadom पर \"$title\" पढ़ें: $link';
+    return 'रीडम् पर \"$title\" पढ़ें: $link';
   }
 
   @override
@@ -278,18 +278,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get startReading => 'पढ़ना शुरू करें';
 
   @override
-  String get aboutThisBook => 'इस किताब के बारे में';
+  String get aboutThisBook => 'इस रचना के बारे में';
 
   @override
   String defaultShareMessage(String title) {
-    return 'मैं Wreadom पर \"$title\" पढ़ रहा हूँ। इसे देखें।';
+    return 'मैं रीडम् पर \"$title\" पढ़ रहा हूँ। इसे देखें।';
   }
 
   @override
   String get shareToFeed => 'फीड पर साझा करें';
 
   @override
-  String get signInToShare => 'इस किताब को साझा करने के लिए साइन इन करें।';
+  String get signInToShare => 'इस रचना को साझा करने के लिए साइन इन करें।';
 
   @override
   String get sendToChat => 'चैट पर भेजें';
@@ -304,7 +304,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get noMessagesYet => 'अभी कोई संदेश नहीं है';
 
   @override
-  String get sentYouABook => 'ने आपको एक किताब भेजी है।';
+  String get sentYouABook => 'ने आपको एक रचना भेजी है।';
 
   @override
   String sentBookSnack(String title) {
@@ -331,7 +331,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get internetArchivePreparation =>
-      'इंटरनेट आर्काइव की किताबों को तैयार होने में थोड़ा समय लग सकता है।';
+      'इंटरनेट आर्काइव की रचनाओं को तैयार होने में थोड़ा समय लग सकता है।';
 
   @override
   String get offline => 'ऑफलाइन';
@@ -394,7 +394,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get shelfCommunityClassics => 'सामुदायिक क्लासिक्स';
 
   @override
-  String get shelfOriginals => 'Wreadom मूल';
+  String get shelfOriginals => 'रीडम् मूल';
 
   @override
   String get shelfTrending => 'ट्रेंडिंग रचनाएं';
@@ -410,7 +410,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get heroBannerSubtitle =>
-      'हजारों मुफ्त किताबें और मूल कहानियां, आपके लिए चुनी गईं।';
+      'हजारों मुफ्त रचनाएँ और मूल कहानियां, आपके लिए चुनी गईं।';
 
   @override
   String get exploreNow => 'अभी खोजें';
@@ -458,14 +458,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get mostPublishedAuthors => 'सबसे ज्यादा प्रकाशित लेखक';
 
   @override
-  String get featuredWreadomAuthor => 'विशेष Wreadom लेखक।';
+  String get featuredWreadomAuthor => 'विशेष रीडम् लेखक।';
 
   @override
   String get authorSpotlight => 'लेखक स्पॉटलाइट';
 
   @override
   String authorBooks(String author) {
-    return '$author की किताबें';
+    return '$author की रचनाएँ';
   }
 
   @override
@@ -565,11 +565,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String checkOutPostOnWreadom(String link) {
-    return 'Wreadom पर यह पोस्ट देखें: $link';
+    return 'रीडम् पर यह पोस्ट देखें: $link';
   }
 
   @override
-  String get wreadomPost => 'Wreadom पोस्ट';
+  String get wreadomPost => 'रीडम् पोस्ट';
 
   @override
   String get repliedToYourComment => 'ने आपकी टिप्पणी का जवाब दिया।';
@@ -681,7 +681,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String readWithUserOnWreadom(String name, String link) {
-    return '$name के साथ Wreadom पर पढ़ें\n$link';
+    return '$name के साथ रीडम् पर पढ़ें\n$link';
   }
 
   @override
@@ -753,14 +753,14 @@ class AppLocalizationsHi extends AppLocalizations {
       'पूरी प्रोफ़ाइल देखने के लिए इस लेखक को फ़ॉलो करें';
 
   @override
-  String get books => 'किताबें';
+  String get books => 'रचनाएँ';
 
   @override
-  String get noPublishedBooksYet => 'अभी कोई प्रकाशित किताब नहीं है';
+  String get noPublishedBooksYet => 'अभी कोई प्रकाशित रचना नहीं है';
 
   @override
   String failedToLoadBooks(String error) {
-    return 'किताबें लोड नहीं हो सकीं: $error';
+    return 'रचनाएँ लोड नहीं हो सकीं: $error';
   }
 
   @override
@@ -777,7 +777,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get wreadomCreator => 'WREADOM क्रिएटर';
+  String get wreadomCreator => 'रीडम् क्रिएटर';
 
   @override
   String get officialLiteraryProfile =>
@@ -785,7 +785,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String shareProfileSubject(String name) {
-    return '$name Wreadom पर';
+    return '$name रीडम् पर';
   }
 
   @override
@@ -808,7 +808,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get enterQuoteHint => 'किताब से उद्धरण लिखें...';
+  String get enterQuoteHint => 'रचना से उद्धरण लिखें...';
 
   @override
   String get addThoughtsOptional => 'अपने विचार जोड़ें (वैकल्पिक)';
@@ -834,7 +834,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get reviewHint => 'इस किताब के बारे में आपके विचार';
+  String get reviewHint => 'इस रचना के बारे में आपके विचार';
 
   @override
   String get continueWithGoogle => 'Google से जारी रखें';
@@ -900,11 +900,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get postNotFoundOrDeleted => 'पोस्ट नहीं मिली या हटा दी गई है';
 
   @override
-  String get savedBooksTitle => 'सेव की गई किताबें';
+  String get savedBooksTitle => 'सेव की गई रचनाएँ';
 
   @override
   String get noSavedOrDownloadedBooksYet =>
-      'अभी कोई सेव या डाउनलोड की गई किताब नहीं है';
+      'अभी कोई सेव या डाउनलोड की गई रचना नहीं है';
 
   @override
   String get dailyTopicNotFound => 'आज का विषय नहीं मिला';
@@ -934,7 +934,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get noRatings => 'अभी कोई रेटिंग नहीं';
 
   @override
-  String get removeSavedBookTitle => 'सेव की गई किताब हटाएं?';
+  String get removeSavedBookTitle => 'सेव की गई रचना हटाएं?';
 
   @override
   String get removeSavedBookBody =>
@@ -945,7 +945,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get bookSavedDownloaded =>
-      'किताब सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।';
+      'रचना सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।';
 
   @override
   String get published => 'प्रकाशित';
@@ -970,7 +970,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String failedToLoadSavedBooks(String error) {
-    return 'सेव की गई किताबें लोड नहीं हो सकीं: $error';
+    return 'सेव की गई रचनाएँ लोड नहीं हो सकीं: $error';
   }
 
   @override
@@ -1006,7 +1006,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get noPostNotificationsYet => 'अभी कोई पोस्ट नोटिफ़िकेशन नहीं';
 
   @override
-  String get noBookNotificationsYet => 'अभी कोई किताब नोटिफ़िकेशन नहीं';
+  String get noBookNotificationsYet => 'अभी कोई रचना नोटिफ़िकेशन नहीं';
 
   @override
   String get showLess => 'कम दिखाएं';
@@ -1049,7 +1049,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String writeOnDailyTopic(String topic, String link) {
-    return 'Wreadom पर \"$topic\" पर लिखें: $link';
+    return 'रीडम् पर \"$topic\" पर लिखें: $link';
   }
 
   @override
@@ -1086,32 +1086,299 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteChapterTitle => 'अध्याय हटाएं?';
 
   @override
-  String get unsavedChanges => 'बिना सेव किए बदलाव';
+  String get unsavedChanges => 'बदलाव सेव नहीं हुए';
 
   @override
   String get draftSaved => 'ड्राफ़्ट सेव हो गया';
 
   @override
-  String get noSavedBooksYet => 'अभी कोई सेव की गई किताब नहीं है।';
+  String get noSavedBooksYet => 'अभी कोई सेव की गई रचना नहीं है।';
 
   @override
   String get noPostsYetStartSharing =>
       'अभी कोई पोस्ट नहीं है।\nअपनी पढ़ने की यात्रा शेयर करना शुरू करें!';
 
   @override
-  String get changeProfilePicture => '????????? ?????? ?????';
+  String get changeProfilePicture => '?????? ????? ????';
 
   @override
-  String get changeCoverPicture => '??? ?????? ?????';
+  String get changeCoverPicture => '??? ????? ????';
 
   @override
-  String get profilePictureUpdated => '????????? ?????? ????? ?? ???';
+  String get profilePictureUpdated => '?????? ????? ???? ?? ???';
 
   @override
-  String get coverPictureUpdated => '??? ?????? ????? ?? ???';
+  String get coverPictureUpdated => '??? ????? ???? ?? ???';
 
   @override
   String couldNotUpdatePicture(String error) {
-    return '?????? ????? ???? ?? ???: $error';
+    return '????? ???? ???? ?? ???: $error';
+  }
+
+  @override
+  String get writerWritingEditor => 'लेखन एडिटर';
+
+  @override
+  String get writerContentDetails => 'रचना विवरण';
+
+  @override
+  String get writerSaving => 'सेव हो रहा है...';
+
+  @override
+  String get writerConvertToDraft => 'ड्राफ़्ट में बदलें';
+
+  @override
+  String get writerDraft => 'ड्राफ़्ट';
+
+  @override
+  String get writerNext => 'आगे';
+
+  @override
+  String get writerPublish => 'प्रकाशित करें';
+
+  @override
+  String writerChapterTitleHint(int number) {
+    return 'अध्याय $number का शीर्षक';
+  }
+
+  @override
+  String get writerChapters => 'अध्याय';
+
+  @override
+  String get writerStartWriting => 'लिखना शुरू करें...';
+
+  @override
+  String get writerContentIdentity => 'रचना की पहचान';
+
+  @override
+  String get title => 'शीर्षक';
+
+  @override
+  String get synopsis => 'सारांश';
+
+  @override
+  String get writerTitleHint => 'अपनी रचना को शीर्षक दें';
+
+  @override
+  String get writerSynopsisHint => 'पाठकों के लिए छोटा परिचय';
+
+  @override
+  String get writerCoverOptional => 'कवर (वैकल्पिक)';
+
+  @override
+  String get writerUploading => 'अपलोड हो रहा है...';
+
+  @override
+  String get writerUploadCover => 'कवर अपलोड करें';
+
+  @override
+  String get remove => 'हटाएं';
+
+  @override
+  String get writerDiscovery => 'खोज';
+
+  @override
+  String get contentType => 'रचना का प्रकार';
+
+  @override
+  String get category => 'श्रेणी';
+
+  @override
+  String get topicsOptional => 'विषय (वैकल्पिक)';
+
+  @override
+  String get topicsHint => 'जादू, दोस्ती, संघर्ष';
+
+  @override
+  String get publishContent => 'रचना प्रकाशित करें';
+
+  @override
+  String get saveDraft => 'ड्राफ़्ट सेव करें';
+
+  @override
+  String get insertImage => 'चित्र जोड़ें';
+
+  @override
+  String get insertMedia => 'मीडिया जोड़ें';
+
+  @override
+  String get deleteChapterBody => 'यह अध्याय इस ड्राफ़्ट से हट जाएगा।';
+
+  @override
+  String get signInBeforeUploadingImages =>
+      'चित्र अपलोड करने से पहले लॉग इन करें।';
+
+  @override
+  String get imageInserted => 'चित्र जोड़ दिया गया।';
+
+  @override
+  String couldNotUploadImage(String error) {
+    return 'चित्र अपलोड नहीं हो सका: $error';
+  }
+
+  @override
+  String get signInBeforeUploadingCover =>
+      'कवर अपलोड करने से पहले लॉग इन करें।';
+
+  @override
+  String get coverUploaded => 'कवर अपलोड हो गया।';
+
+  @override
+  String couldNotUploadCover(String error) {
+    return 'कवर अपलोड नहीं हो सका: $error';
+  }
+
+  @override
+  String get writerMediaUrlLabel => 'YouTube, Instagram या Spotify URL';
+
+  @override
+  String get insert => 'जोड़ें';
+
+  @override
+  String get unsupportedLinksInsertedAsPlainText =>
+      'समर्थित नहीं लिंक सामान्य टेक्स्ट के रूप में जोड़े गए।';
+
+  @override
+  String get addTitleBeforeSaving => 'सेव करने से पहले शीर्षक जोड़ें।';
+
+  @override
+  String get writerPublishing => 'प्रकाशित हो रहा है...';
+
+  @override
+  String get writerSavingDraft => 'ड्राफ़्ट सेव हो रहा है...';
+
+  @override
+  String get writerPublishedStatus => 'प्रकाशित';
+
+  @override
+  String get storyPublished => 'रचना प्रकाशित हो गई।';
+
+  @override
+  String couldNotSave(String error) {
+    return 'सेव नहीं हो सका: $error';
+  }
+
+  @override
+  String get savedOnDevice => 'डिवाइस पर सेव हो गया';
+
+  @override
+  String get localSaveFailed => 'लोकल सेव असफल रहा';
+
+  @override
+  String get follow => 'फ़ॉलो करें';
+
+  @override
+  String get unfollow => 'फ़ॉलो हटाएं';
+
+  @override
+  String get signInToContinueAction => 'जारी रखने के लिए लॉग इन करें।';
+
+  @override
+  String followActionFailed(String error) {
+    return 'फ़ॉलो अपडेट नहीं हो सका: $error';
+  }
+
+  @override
+  String get startedFollowingYou => 'ने आपको फ़ॉलो करना शुरू किया।';
+
+  @override
+  String get back => 'वापस';
+
+  @override
+  String get chapterOverview => 'अध्याय सूची';
+
+  @override
+  String chapterCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अध्याय',
+      one: '1 अध्याय',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addNewChapter => 'नया अध्याय जोड़ें';
+
+  @override
+  String get noContentYet => 'अभी कोई सामग्री नहीं';
+
+  @override
+  String get editing => 'संपादन';
+
+  @override
+  String wordCountLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count शब्द',
+      one: '1 शब्द',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get writerSaveFailed => 'सेव असफल रहा';
+
+  @override
+  String get untitledStory => 'बिना शीर्षक रचना';
+
+  @override
+  String publishedBookNotification(String title) {
+    return 'ने \"$title\" प्रकाशित की।';
+  }
+
+  @override
+  String get repliedToYourBookComment =>
+      'ने आपकी रचना वाली टिप्पणी का जवाब दिया।';
+
+  @override
+  String get reviewedYourBook => 'ने आपकी रचना की समीक्षा की।';
+
+  @override
+  String get updatedReviewOnYourBook => 'ने आपकी रचना पर समीक्षा अपडेट की।';
+
+  @override
+  String get authorsCannotReviewOwnBook =>
+      'लेखक अपनी रचना की समीक्षा नहीं कर सकते।';
+
+  @override
+  String get feedTypePost => 'पोस्ट';
+
+  @override
+  String get feedTypeComment => 'टिप्पणी';
+
+  @override
+  String get feedTypeQuote => 'उद्धरण';
+
+  @override
+  String get feedTypeReview => 'समीक्षा';
+
+  @override
+  String get feedTypeTestimony => 'प्रशंसा';
+
+  @override
+  String get noRatingsYet => 'अभी कोई रेटिंग नहीं';
+
+  @override
+  String ratingMetric(String rating) {
+    return '$rating रेटिंग';
+  }
+
+  @override
+  String readsMetric(String count) {
+    return '$count पढ़ाई';
+  }
+
+  @override
+  String worksMetric(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count रचनाएं',
+      one: '1 रचना',
+    );
+    return '$_temp0';
   }
 }

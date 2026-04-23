@@ -107,7 +107,13 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
     final postId = widget.post.id;
     final text = _controller.value.text.trim();
     final user = ref.read(currentUserProvider).asData?.value;
-    if (postId == null || text.isEmpty || user == null) return;
+    if (postId == null || text.isEmpty) return;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
+      return;
+    }
 
     setState(() => _submitting = true);
     try {

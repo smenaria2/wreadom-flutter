@@ -78,7 +78,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get posts => 'Posts';
 
   @override
-  String get history => 'History';
+  String get history => 'Read Content';
 
   @override
   String get saved => 'Saved';
@@ -180,7 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifications => 'Notifications';
 
   @override
-  String get searchBooks => 'Search books';
+  String get searchBooks => 'Search content';
 
   @override
   String get mine => 'Mine';
@@ -210,20 +210,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discover => 'Discover';
 
   @override
-  String get searchBooksAuthors => 'Search books and authors';
+  String get searchBooksAuthors => 'Search content and authors';
 
   @override
-  String get searchHint => 'Search books, authors...';
+  String get searchHint => 'Search content, authors...';
 
   @override
-  String get suggestedBooks => 'Suggested Books';
+  String get suggestedBooks => 'Suggested Content';
 
   @override
-  String get noSuggestedBooks => 'No suggested books found.';
+  String get noSuggestedBooks => 'No suggested content found.';
 
   @override
   String noBooksFoundIn(String genre) {
-    return 'No books found in $genre.';
+    return 'No content found in $genre.';
   }
 
   @override
@@ -232,10 +232,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get originalBooks => 'Original Books';
+  String get originalBooks => 'Original Content';
 
   @override
-  String get moreBooks => 'More Books';
+  String get moreBooks => 'More Content';
 
   @override
   String get profiles => 'Profiles';
@@ -247,13 +247,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get internetArchive => 'Internet Archive';
 
   @override
-  String get bookNotFound => 'Book not found';
+  String get bookNotFound => 'Content not found';
 
   @override
-  String get editBook => 'Edit book';
+  String get editBook => 'Edit content';
 
   @override
-  String get reportBook => 'Report book';
+  String get reportBook => 'Report content';
 
   @override
   String shareBookMessage(String title, String link) {
@@ -277,7 +277,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startReading => 'Start Reading';
 
   @override
-  String get aboutThisBook => 'About this Book';
+  String get aboutThisBook => 'About this content';
 
   @override
   String defaultShareMessage(String title) {
@@ -288,7 +288,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareToFeed => 'Share to feed';
 
   @override
-  String get signInToShare => 'Sign in to share this book.';
+  String get signInToShare => 'Sign in to share this content.';
 
   @override
   String get sendToChat => 'Send to chat';
@@ -303,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMessagesYet => 'No messages yet';
 
   @override
-  String get sentYouABook => 'sent you a book.';
+  String get sentYouABook => 'sent you content.';
 
   @override
   String sentBookSnack(String title) {
@@ -329,7 +329,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get internetArchivePreparation =>
-      'Internet Archive books can take a moment to prepare.';
+      'Internet Archive content can take a moment to prepare.';
 
   @override
   String get offline => 'Offline';
@@ -408,7 +408,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get heroBannerSubtitle =>
-      'Thousands of free books and original stories, curated for you.';
+      'Thousands of free content and original stories, curated for you.';
 
   @override
   String get exploreNow => 'Explore Now';
@@ -463,7 +463,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String authorBooks(String author) {
-    return '$author\'s books';
+    return '$author\'s content';
   }
 
   @override
@@ -751,14 +751,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Follow this account to see their full profile.';
 
   @override
-  String get books => 'Books';
+  String get books => 'Content';
 
   @override
-  String get noPublishedBooksYet => 'No published books yet.';
+  String get noPublishedBooksYet => 'No published content yet.';
 
   @override
   String failedToLoadBooks(String error) {
-    return 'Failed to load books: $error';
+    return 'Failed to load content: $error';
   }
 
   @override
@@ -806,7 +806,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get enterQuoteHint => 'Enter the quote from the book...';
+  String get enterQuoteHint => 'Enter the quote from the content...';
 
   @override
   String get addThoughtsOptional => 'Add your thoughts (optional)';
@@ -832,7 +832,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reviewHint => 'What did you think of this book?';
+  String get reviewHint => 'What did you think of this content?';
 
   @override
   String get continueWithGoogle => 'Continue with Google';
@@ -899,10 +899,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postNotFoundOrDeleted => 'Post not found or deleted';
 
   @override
-  String get savedBooksTitle => 'Saved Books';
+  String get savedBooksTitle => 'Saved Content';
 
   @override
-  String get noSavedOrDownloadedBooksYet => 'No saved or downloaded books yet.';
+  String get noSavedOrDownloadedBooksYet =>
+      'No saved or downloaded content yet.';
 
   @override
   String get dailyTopicNotFound => 'Daily topic not found.';
@@ -932,7 +933,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRatings => 'No ratings';
 
   @override
-  String get removeSavedBookTitle => 'Remove saved book?';
+  String get removeSavedBookTitle => 'Remove saved content?';
 
   @override
   String get removeSavedBookBody =>
@@ -943,7 +944,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bookSavedDownloaded =>
-      'Book saved and downloaded for offline reading.';
+      'Content saved and downloaded for offline reading.';
 
   @override
   String get published => 'Published';
@@ -970,7 +971,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String failedToLoadSavedBooks(String error) {
-    return 'Failed to load saved books: $error';
+    return 'Failed to load saved content: $error';
   }
 
   @override
@@ -1006,7 +1007,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPostNotificationsYet => 'No post notifications yet';
 
   @override
-  String get noBookNotificationsYet => 'No book notifications yet';
+  String get noBookNotificationsYet => 'No content notifications yet';
 
   @override
   String get showLess => 'Show less';
@@ -1094,7 +1095,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get draftSaved => 'Draft saved';
 
   @override
-  String get noSavedBooksYet => 'No saved books yet.';
+  String get noSavedBooksYet => 'No saved content yet.';
 
   @override
   String get noPostsYetStartSharing =>
@@ -1115,5 +1116,269 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String couldNotUpdatePicture(String error) {
     return 'Could not update picture: $error';
+  }
+
+  @override
+  String get writerWritingEditor => 'Writing Editor';
+
+  @override
+  String get writerContentDetails => 'Content Details';
+
+  @override
+  String get writerSaving => 'Saving...';
+
+  @override
+  String get writerConvertToDraft => 'Convert to Draft';
+
+  @override
+  String get writerDraft => 'Draft';
+
+  @override
+  String get writerNext => 'Next';
+
+  @override
+  String get writerPublish => 'Publish';
+
+  @override
+  String writerChapterTitleHint(int number) {
+    return 'Chapter $number title';
+  }
+
+  @override
+  String get writerChapters => 'Chapters';
+
+  @override
+  String get writerStartWriting => 'Start writing...';
+
+  @override
+  String get writerContentIdentity => 'Content identity';
+
+  @override
+  String get title => 'Title';
+
+  @override
+  String get synopsis => 'Synopsis';
+
+  @override
+  String get writerTitleHint => 'Give your work a title';
+
+  @override
+  String get writerSynopsisHint => 'A short pitch for readers';
+
+  @override
+  String get writerCoverOptional => 'Cover (optional)';
+
+  @override
+  String get writerUploading => 'Uploading...';
+
+  @override
+  String get writerUploadCover => 'Upload cover';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get writerDiscovery => 'Discovery';
+
+  @override
+  String get contentType => 'Content type';
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get topicsOptional => 'Topics (optional)';
+
+  @override
+  String get topicsHint => 'magic, friendship, survival';
+
+  @override
+  String get publishContent => 'Publish Content';
+
+  @override
+  String get saveDraft => 'Save Draft';
+
+  @override
+  String get insertImage => 'Insert image';
+
+  @override
+  String get insertMedia => 'Insert media';
+
+  @override
+  String get deleteChapterBody => 'This removes the chapter from this draft.';
+
+  @override
+  String get signInBeforeUploadingImages => 'Sign in before uploading images.';
+
+  @override
+  String get imageInserted => 'Image inserted.';
+
+  @override
+  String couldNotUploadImage(String error) {
+    return 'Could not upload image: $error';
+  }
+
+  @override
+  String get signInBeforeUploadingCover => 'Sign in before uploading a cover.';
+
+  @override
+  String get coverUploaded => 'Cover uploaded.';
+
+  @override
+  String couldNotUploadCover(String error) {
+    return 'Could not upload cover: $error';
+  }
+
+  @override
+  String get writerMediaUrlLabel => 'YouTube, Instagram, or Spotify URL';
+
+  @override
+  String get insert => 'Insert';
+
+  @override
+  String get unsupportedLinksInsertedAsPlainText =>
+      'Unsupported links are inserted as plain text.';
+
+  @override
+  String get addTitleBeforeSaving => 'Add a title before saving.';
+
+  @override
+  String get writerPublishing => 'Publishing...';
+
+  @override
+  String get writerSavingDraft => 'Saving draft...';
+
+  @override
+  String get writerPublishedStatus => 'Published';
+
+  @override
+  String get storyPublished => 'Story published.';
+
+  @override
+  String couldNotSave(String error) {
+    return 'Could not save: $error';
+  }
+
+  @override
+  String get savedOnDevice => 'Saved on device';
+
+  @override
+  String get localSaveFailed => 'Local save failed';
+
+  @override
+  String get follow => 'Follow';
+
+  @override
+  String get unfollow => 'Unfollow';
+
+  @override
+  String get signInToContinueAction => 'Sign in to continue.';
+
+  @override
+  String followActionFailed(String error) {
+    return 'Could not update follow: $error';
+  }
+
+  @override
+  String get startedFollowingYou => 'started following you.';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get chapterOverview => 'Chapter overview';
+
+  @override
+  String chapterCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chapters',
+      one: '1 chapter',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addNewChapter => 'Add new chapter';
+
+  @override
+  String get noContentYet => 'No content yet';
+
+  @override
+  String get editing => 'Editing';
+
+  @override
+  String wordCountLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count words',
+      one: '1 word',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get writerSaveFailed => 'Save failed';
+
+  @override
+  String get untitledStory => 'Untitled content';
+
+  @override
+  String publishedBookNotification(String title) {
+    return 'published \"$title\".';
+  }
+
+  @override
+  String get repliedToYourBookComment => 'replied to your content comment.';
+
+  @override
+  String get reviewedYourBook => 'reviewed your content.';
+
+  @override
+  String get updatedReviewOnYourBook => 'updated a review on your content.';
+
+  @override
+  String get authorsCannotReviewOwnBook =>
+      'Authors cannot review their own content.';
+
+  @override
+  String get feedTypePost => 'Post';
+
+  @override
+  String get feedTypeComment => 'Comment';
+
+  @override
+  String get feedTypeQuote => 'Quote';
+
+  @override
+  String get feedTypeReview => 'Review';
+
+  @override
+  String get feedTypeTestimony => 'Testimony';
+
+  @override
+  String get noRatingsYet => 'No ratings yet';
+
+  @override
+  String ratingMetric(String rating) {
+    return '$rating rating';
+  }
+
+  @override
+  String readsMetric(String count) {
+    return '$count reads';
+  }
+
+  @override
+  String worksMetric(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count works',
+      one: '1 work',
+    );
+    return '$_temp0';
   }
 }

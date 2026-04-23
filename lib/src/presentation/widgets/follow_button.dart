@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
 import '../utils/notification_writer.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 class FollowButton extends ConsumerWidget {
   final String targetUserId;
@@ -17,6 +18,7 @@ class FollowButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final currentUserId = ref.watch(currentUserProvider).value?.id;
 
     // Don't show follow button for self
@@ -38,7 +40,7 @@ class FollowButton extends ConsumerWidget {
                     : Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
-              onPressed: () => _toggleFollow(ref, isFollowing),
+              onPressed: () => _toggleFollow(context, ref, isFollowing),
             )
           : OutlinedButton(
               style: OutlinedButton.styleFrom(
@@ -54,8 +56,8 @@ class FollowButton extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              onPressed: () => _toggleFollow(ref, isFollowing),
-              child: Text(isFollowing ? 'Unfollow' : 'Follow'),
+              onPressed: () => _toggleFollow(context, ref, isFollowing),
+              child: Text(isFollowing ? l10n.unfollow : l10n.follow),
             ),
       loading: () => const SizedBox(
         width: 20,
@@ -67,10 +69,20 @@ class FollowButton extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggleFollow(WidgetRef ref, bool isFollowing) async {
+  Future<void> _toggleFollow(
+    BuildContext context,
+    WidgetRef ref,
+    bool isFollowing,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
     final follower = ref.read(currentUserProvider).value;
     final followerId = follower?.id;
-    if (followerId == null || follower == null) return;
+    if (followerId == null || follower == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
+      return;
+    }
 
     final repo = ref.read(followRepositoryProvider);
 
@@ -90,7 +102,7 @@ class FollowButton extends ConsumerWidget {
           userId: targetUserId,
           actor: follower,
           type: 'follow',
-          text: 'started following you.',
+          text: l10n.startedFollowingYou,
           link: '',
           targetId: followerId,
           metadata: {'userId': followerId},
@@ -101,8 +113,12 @@ class FollowButton extends ConsumerWidget {
       ref.invalidate(isFollowingProvider(targetUserId));
       ref.invalidate(followingListProvider);
     } catch (e) {
-      // Handle error (could show a snackbar)
       debugPrint('Error toggling follow: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.followActionFailed(e.toString()))),
+        );
+      }
     }
   }
 }

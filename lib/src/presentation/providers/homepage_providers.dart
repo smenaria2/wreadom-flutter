@@ -123,11 +123,50 @@ final homepageAuthorsProvider = FutureProvider((ref) async {
 
 enum HomeAuthorRanking { topRated, mostRead, mostPublished }
 
+final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
+  final repo = ref.watch(bookRepositoryProvider);
+  final works = await repo.getOriginalBooks(limit: 240);
+  final unique = <String, Book>{};
+  for (final book in works.where(_isPublishedOriginal)) {
+    unique[book.id] = book;
+  }
+  return unique.values.toList();
+});
+
+final homepageAuthorBooksProvider = FutureProvider.family<List<Book>, String>((
+  ref,
+  authorId,
+) async {
+  final works = await ref.watch(homepageAuthorWorksProvider.future);
+  final books =
+      works.where((book) => book.authorId?.trim() == authorId).toList()
+        ..sort((a, b) {
+          final aTime = a.updatedAt ?? a.createdAt ?? 0;
+          final bTime = b.updatedAt ?? b.createdAt ?? 0;
+          return bTime.compareTo(aTime);
+        });
+  return books;
+});
+
+class HomeAuthorMetrics {
+  const HomeAuthorMetrics({
+    required this.works,
+    required this.reads,
+    required this.averageRating,
+    required this.ratingWeight,
+  });
+
+  final int works;
+  final int reads;
+  final double averageRating;
+  final int ratingWeight;
+}
+
 class RankedHomeAuthor {
-  const RankedHomeAuthor({required this.author, required this.metricLabel});
+  const RankedHomeAuthor({required this.author, required this.metrics});
 
   final UserModel author;
-  final String metricLabel;
+  final HomeAuthorMetrics metrics;
 }
 
 final homepageRankedAuthorsProvider =
@@ -136,14 +175,14 @@ final homepageRankedAuthorsProvider =
       ranking,
     ) async {
       final metadata = await ref.watch(homepageMetadataProvider.future);
-      final books = await ref.watch(homepageBooksProvider.future);
+      final books = await ref.watch(homepageAuthorWorksProvider.future);
       final stats = <String, _AuthorStats>{};
 
       for (final book in books.where(_isPublishedOriginal)) {
         final authorId = book.authorId?.trim();
         if (authorId == null || authorId.isEmpty) continue;
         final authorStats = stats.putIfAbsent(authorId, _AuthorStats.new);
-        authorStats.published += 1;
+        authorStats.works += 1;
         authorStats.reads += book.viewCount ?? 0;
         final rating = book.averageRating ?? 0;
         final ratingsCount = book.ratingsCount ?? 0;
@@ -162,21 +201,7 @@ final homepageRankedAuthorsProvider =
         return switch (ranking) {
           HomeAuthorRanking.topRated => authorStats.weightedRatingScore,
           HomeAuthorRanking.mostRead => authorStats.reads.toDouble(),
-          HomeAuthorRanking.mostPublished => authorStats.published.toDouble(),
-        };
-      }
-
-      String metric(UserModel author) {
-        final authorStats = stats[author.id] ?? _AuthorStats();
-        return switch (ranking) {
-          HomeAuthorRanking.topRated =>
-            authorStats.ratingWeight == 0
-                ? 'No ratings yet'
-                : '${authorStats.averageRating.toStringAsFixed(1)} rating',
-          HomeAuthorRanking.mostRead =>
-            '${_compactCount(authorStats.reads)} reads',
-          HomeAuthorRanking.mostPublished =>
-            '${authorStats.published} ${authorStats.published == 1 ? 'work' : 'works'}',
+          HomeAuthorRanking.mostPublished => authorStats.works.toDouble(),
         };
       }
 
@@ -191,8 +216,10 @@ final homepageRankedAuthorsProvider =
       return authors
           .take(20)
           .map(
-            (author) =>
-                RankedHomeAuthor(author: author, metricLabel: metric(author)),
+            (author) => RankedHomeAuthor(
+              author: author,
+              metrics: (stats[author.id] ?? _AuthorStats()).toMetrics(),
+            ),
           )
           .toList();
     });
@@ -230,14 +257,8 @@ bool _isPublishedOriginal(Book book) {
   return status == null || status.isEmpty || status == 'published';
 }
 
-String _compactCount(int value) {
-  if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
-  if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
-  return '$value';
-}
-
 class _AuthorStats {
-  int published = 0;
+  int works = 0;
   int reads = 0;
   double ratingTotal = 0;
   int ratingWeight = 0;
@@ -248,6 +269,15 @@ class _AuthorStats {
   double get weightedRatingScore {
     if (ratingWeight == 0) return 0;
     return averageRating * math.log(ratingWeight + 1) / math.ln10;
+  }
+
+  HomeAuthorMetrics toMetrics() {
+    return HomeAuthorMetrics(
+      works: works,
+      reads: reads,
+      averageRating: averageRating,
+      ratingWeight: ratingWeight,
+    );
   }
 }
 

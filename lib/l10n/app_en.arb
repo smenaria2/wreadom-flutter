@@ -25,7 +25,7 @@
   "works": "Works",
   "about": "About",
   "posts": "Posts",
-  "history": "History",
+  "history": "Read Content",
   "saved": "Saved",
   "profileSettings": "Profile Settings",
   "displayName": "Display Name",
@@ -59,7 +59,7 @@
   "loginLink": "Login",
   "feed": "Feed",
   "notifications": "Notifications",
-  "searchBooks": "Search books",
+  "searchBooks": "Search content",
   "mine": "Mine",
   "noFollowingPosts": "No posts from people you follow yet",
   "noPosts": "No posts yet",
@@ -69,11 +69,11 @@
   "tryAgain": "Try Again",
   "post": "Post",
   "discover": "Discover",
-  "searchBooksAuthors": "Search books and authors",
-  "searchHint": "Search books, authors...",
-  "suggestedBooks": "Suggested Books",
-  "noSuggestedBooks": "No suggested books found.",
-  "noBooksFoundIn": "No books found in {genre}.",
+  "searchBooksAuthors": "Search content and authors",
+  "searchHint": "Search content, authors...",
+  "suggestedBooks": "Suggested Content",
+  "noSuggestedBooks": "No suggested content found.",
+  "noBooksFoundIn": "No content found in {genre}.",
   "@noBooksFoundIn": {
     "placeholders": {
       "genre": {
@@ -89,14 +89,14 @@
       }
     }
   },
-  "originalBooks": "Original Books",
-  "moreBooks": "More Books",
+  "originalBooks": "Original Content",
+  "moreBooks": "More Content",
   "profiles": "Profiles",
   "unknownAuthor": "Unknown Author",
   "internetArchive": "Internet Archive",
-  "bookNotFound": "Book not found",
-  "editBook": "Edit book",
-  "reportBook": "Report book",
+  "bookNotFound": "Content not found",
+  "editBook": "Edit content",
+  "reportBook": "Report content",
   "shareBookMessage": "Read \"{title}\" on Wreadom: {link}",
   "@shareBookMessage": {
     "placeholders": {
@@ -126,7 +126,7 @@
   },
   "continueReading": "Continue Reading",
   "startReading": "Start Reading",
-  "aboutThisBook": "About this Book",
+  "aboutThisBook": "About this content",
   "defaultShareMessage": "I'm reading \"{title}\" on Wreadom. Check it out.",
   "@defaultShareMessage": {
     "placeholders": {
@@ -136,12 +136,12 @@
     }
   },
   "shareToFeed": "Share to feed",
-  "signInToShare": "Sign in to share this book.",
+  "signInToShare": "Sign in to share this content.",
   "sendToChat": "Send to chat",
   "noRecentConversations": "No recent conversations yet.",
   "conversation": "Conversation",
   "noMessagesYet": "No messages yet",
-  "sentYouABook": "sent you a book.",
+  "sentYouABook": "sent you content.",
   "sentBookSnack": "Sent \"{title}\".",
   "@sentBookSnack": {
     "placeholders": {
@@ -162,7 +162,7 @@
     }
   },
   "fetchingPublicDomain": "Fetching public-domain text...",
-  "internetArchivePreparation": "Internet Archive books can take a moment to prepare.",
+  "internetArchivePreparation": "Internet Archive content can take a moment to prepare.",
   "offline": "Offline",
   "readAloud": "Read aloud",
   "stop": "Stop",
@@ -188,7 +188,7 @@
   "shelfPopular": "Popular Now",
   "shelfRecentlyAdded": "Recently Added",
   "keepReading": "Keep Reading",
-  "heroBannerSubtitle": "Thousands of free books and original stories, curated for you.",
+  "heroBannerSubtitle": "Thousands of free content and original stories, curated for you.",
   "exploreNow": "Explore Now",
   "dailyTopic": "Daily Topic",
   "readMore": "Read More",
@@ -225,7 +225,7 @@
   "mostPublishedAuthors": "Most Published Authors",
   "featuredWreadomAuthor": "Featured Wreadom author.",
   "authorSpotlight": "Author Spotlight",
-  "authorBooks": "{author}'s books",
+  "authorBooks": "{author}'s content",
   "@authorBooks": {
     "placeholders": {
       "author": {
@@ -440,9 +440,9 @@
   },
   "privateAccountNotice": "This account is private. Only basic profile info is visible.",
   "followToSeeFullProfile": "Follow this account to see their full profile.",
-  "books": "Books",
-  "noPublishedBooksYet": "No published books yet.",
-  "failedToLoadBooks": "Failed to load books: {error}",
+  "books": "Content",
+  "noPublishedBooksYet": "No published content yet.",
+  "failedToLoadBooks": "Failed to load content: {error}",
   "@failedToLoadBooks": {
     "placeholders": {
       "error": {
@@ -496,7 +496,7 @@
       }
     }
   },
-  "enterQuoteHint": "Enter the quote from the book...",
+  "enterQuoteHint": "Enter the quote from the content...",
   "addThoughtsOptional": "Add your thoughts (optional)",
   "postQuote": "Post quote",
   "pleaseSelectRating": "Please select a rating",
@@ -511,7 +511,7 @@
       }
     }
   },
-  "reviewHint": "What did you think of this book?",
+  "reviewHint": "What did you think of this content?",
   "continueWithGoogle": "Continue with Google",
   "mustBeLoggedInToReportContent": "You must be logged in to report content.",
   "reportSubmittedThanks": "Thank you for your report. We will review it shortly.",
@@ -545,8 +545,8 @@
   "deleteChatTitle": "Delete chat?",
   "noConversationsYet": "No conversations yet. Start from a user profile.",
   "postNotFoundOrDeleted": "Post not found or deleted",
-  "savedBooksTitle": "Saved Books",
-  "noSavedOrDownloadedBooksYet": "No saved or downloaded books yet.",
+  "savedBooksTitle": "Saved Content",
+  "noSavedOrDownloadedBooksYet": "No saved or downloaded content yet.",
   "dailyTopicNotFound": "Daily topic not found.",
   "participateNow": "Participate now",
   "noSubmissionsYet": "No submissions received yet.",
@@ -556,10 +556,10 @@
   "block": "Block",
   "userBlocked": "User blocked.",
   "noRatings": "No ratings",
-  "removeSavedBookTitle": "Remove saved book?",
+  "removeSavedBookTitle": "Remove saved content?",
   "removeSavedBookBody": "The offline download will stay available unless you remove it separately.",
   "unsave": "Unsave",
-  "bookSavedDownloaded": "Book saved and downloaded for offline reading.",
+  "bookSavedDownloaded": "Content saved and downloaded for offline reading.",
   "published": "Published",
   "drafts": "Drafts",
   "reads": "Reads",
@@ -567,7 +567,7 @@
   "deleteDraftBody": "This draft will be removed from your dashboard.",
   "draftDeleted": "Draft deleted.",
   "deleteConversationBody": "This removes the conversation from your messages.",
-  "failedToLoadSavedBooks": "Failed to load saved books: {error}",
+  "failedToLoadSavedBooks": "Failed to load saved content: {error}",
   "@failedToLoadSavedBooks": {
     "placeholders": {
       "error": {
@@ -614,7 +614,7 @@
   "noNotificationsYet": "No notifications yet",
   "noMessageNotificationsYet": "No message notifications yet",
   "noPostNotificationsYet": "No post notifications yet",
-  "noBookNotificationsYet": "No book notifications yet",
+  "noBookNotificationsYet": "No content notifications yet",
   "showLess": "Show less",
   "saveFailed": "Save failed: {error}",
   "writerDashboard": "Writer Dashboard",
@@ -640,7 +640,7 @@
   "unsavedChanges": "Unsaved changes",
   "draftSaved": "Draft saved",
   "@saveFailed": {
-    "description": "Shown when saving a book fails",
+    "description": "Shown when saving a content fails",
     "placeholders": {
       "error": {
         "type": "String"
@@ -682,7 +682,7 @@
       }
     }
   },
-  "noSavedBooksYet": "No saved books yet.",
+  "noSavedBooksYet": "No saved content yet.",
   "noPostsYetStartSharing": "No posts yet.\nStart sharing your reading journey!",
   "changeProfilePicture": "Change profile picture",
   "changeCoverPicture": "Change cover picture",
@@ -693,6 +693,157 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "writerWritingEditor": "Writing Editor",
+  "writerContentDetails": "Content Details",
+  "writerSaving": "Saving...",
+  "writerConvertToDraft": "Convert to Draft",
+  "writerDraft": "Draft",
+  "writerNext": "Next",
+  "writerPublish": "Publish",
+  "writerChapterTitleHint": "Chapter {number} title",
+  "@writerChapterTitleHint": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "writerChapters": "Chapters",
+  "writerStartWriting": "Start writing...",
+  "writerContentIdentity": "Content identity",
+  "title": "Title",
+  "synopsis": "Synopsis",
+  "writerTitleHint": "Give your work a title",
+  "writerSynopsisHint": "A short pitch for readers",
+  "writerCoverOptional": "Cover (optional)",
+  "writerUploading": "Uploading...",
+  "writerUploadCover": "Upload cover",
+  "remove": "Remove",
+  "writerDiscovery": "Discovery",
+  "contentType": "Content type",
+  "category": "Category",
+  "topicsOptional": "Topics (optional)",
+  "topicsHint": "magic, friendship, survival",
+  "publishContent": "Publish Content",
+  "saveDraft": "Save Draft",
+  "insertImage": "Insert image",
+  "insertMedia": "Insert media",
+  "deleteChapterBody": "This removes the chapter from this draft.",
+  "signInBeforeUploadingImages": "Sign in before uploading images.",
+  "imageInserted": "Image inserted.",
+  "couldNotUploadImage": "Could not upload image: {error}",
+  "@couldNotUploadImage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInBeforeUploadingCover": "Sign in before uploading a cover.",
+  "coverUploaded": "Cover uploaded.",
+  "couldNotUploadCover": "Could not upload cover: {error}",
+  "@couldNotUploadCover": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "writerMediaUrlLabel": "YouTube, Instagram, or Spotify URL",
+  "insert": "Insert",
+  "unsupportedLinksInsertedAsPlainText": "Unsupported links are inserted as plain text.",
+  "addTitleBeforeSaving": "Add a title before saving.",
+  "writerPublishing": "Publishing...",
+  "writerSavingDraft": "Saving draft...",
+  "writerPublishedStatus": "Published",
+  "storyPublished": "Story published.",
+  "couldNotSave": "Could not save: {error}",
+  "@couldNotSave": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedOnDevice": "Saved on device",
+  "localSaveFailed": "Local save failed",
+  "follow": "Follow",
+  "unfollow": "Unfollow",
+  "signInToContinueAction": "Sign in to continue.",
+  "followActionFailed": "Could not update follow: {error}",
+  "@followActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "startedFollowingYou": "started following you.",
+  "back": "Back",
+  "chapterOverview": "Chapter overview",
+  "chapterCount": "{count, plural, =1{1 chapter} other{{count} chapters}}",
+  "@chapterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addNewChapter": "Add new chapter",
+  "noContentYet": "No content yet",
+  "editing": "Editing",
+  "wordCountLabel": "{count, plural, =1{1 word} other{{count} words}}",
+  "@wordCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "writerSaveFailed": "Save failed",
+  "untitledStory": "Untitled content",
+  "publishedBookNotification": "published \"{title}\".",
+  "@publishedBookNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "repliedToYourBookComment": "replied to your content comment.",
+  "reviewedYourBook": "reviewed your content.",
+  "updatedReviewOnYourBook": "updated a review on your content.",
+  "authorsCannotReviewOwnBook": "Authors cannot review their own content.",
+  "feedTypePost": "Post",
+  "feedTypeComment": "Comment",
+  "feedTypeQuote": "Quote",
+  "feedTypeReview": "Review",
+  "feedTypeTestimony": "Testimony",
+  "noRatingsYet": "No ratings yet",
+  "ratingMetric": "{rating} rating",
+  "@ratingMetric": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "readsMetric": "{count} reads",
+  "@readsMetric": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "worksMetric": "{count, plural, =1{1 work} other{{count} works}}",
+  "@worksMetric": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

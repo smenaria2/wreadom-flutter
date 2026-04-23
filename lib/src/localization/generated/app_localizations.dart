@@ -239,7 +239,7 @@ abstract class AppLocalizations {
   /// No description provided for @history.
   ///
   /// In en, this message translates to:
-  /// **'History'**
+  /// **'Read Content'**
   String get history;
 
   /// No description provided for @saved.
@@ -443,7 +443,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchBooks.
   ///
   /// In en, this message translates to:
-  /// **'Search books'**
+  /// **'Search content'**
   String get searchBooks;
 
   /// No description provided for @mine.
@@ -503,31 +503,31 @@ abstract class AppLocalizations {
   /// No description provided for @searchBooksAuthors.
   ///
   /// In en, this message translates to:
-  /// **'Search books and authors'**
+  /// **'Search content and authors'**
   String get searchBooksAuthors;
 
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search books, authors...'**
+  /// **'Search content, authors...'**
   String get searchHint;
 
   /// No description provided for @suggestedBooks.
   ///
   /// In en, this message translates to:
-  /// **'Suggested Books'**
+  /// **'Suggested Content'**
   String get suggestedBooks;
 
   /// No description provided for @noSuggestedBooks.
   ///
   /// In en, this message translates to:
-  /// **'No suggested books found.'**
+  /// **'No suggested content found.'**
   String get noSuggestedBooks;
 
   /// No description provided for @noBooksFoundIn.
   ///
   /// In en, this message translates to:
-  /// **'No books found in {genre}.'**
+  /// **'No content found in {genre}.'**
   String noBooksFoundIn(String genre);
 
   /// No description provided for @noResultsFor.
@@ -539,13 +539,13 @@ abstract class AppLocalizations {
   /// No description provided for @originalBooks.
   ///
   /// In en, this message translates to:
-  /// **'Original Books'**
+  /// **'Original Content'**
   String get originalBooks;
 
   /// No description provided for @moreBooks.
   ///
   /// In en, this message translates to:
-  /// **'More Books'**
+  /// **'More Content'**
   String get moreBooks;
 
   /// No description provided for @profiles.
@@ -569,19 +569,19 @@ abstract class AppLocalizations {
   /// No description provided for @bookNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Book not found'**
+  /// **'Content not found'**
   String get bookNotFound;
 
   /// No description provided for @editBook.
   ///
   /// In en, this message translates to:
-  /// **'Edit book'**
+  /// **'Edit content'**
   String get editBook;
 
   /// No description provided for @reportBook.
   ///
   /// In en, this message translates to:
-  /// **'Report book'**
+  /// **'Report content'**
   String get reportBook;
 
   /// No description provided for @shareBookMessage.
@@ -617,7 +617,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutThisBook.
   ///
   /// In en, this message translates to:
-  /// **'About this Book'**
+  /// **'About this content'**
   String get aboutThisBook;
 
   /// No description provided for @defaultShareMessage.
@@ -635,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @signInToShare.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to share this book.'**
+  /// **'Sign in to share this content.'**
   String get signInToShare;
 
   /// No description provided for @sendToChat.
@@ -665,7 +665,7 @@ abstract class AppLocalizations {
   /// No description provided for @sentYouABook.
   ///
   /// In en, this message translates to:
-  /// **'sent you a book.'**
+  /// **'sent you content.'**
   String get sentYouABook;
 
   /// No description provided for @sentBookSnack.
@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @internetArchivePreparation.
   ///
   /// In en, this message translates to:
-  /// **'Internet Archive books can take a moment to prepare.'**
+  /// **'Internet Archive content can take a moment to prepare.'**
   String get internetArchivePreparation;
 
   /// No description provided for @offline.
@@ -863,7 +863,7 @@ abstract class AppLocalizations {
   /// No description provided for @heroBannerSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Thousands of free books and original stories, curated for you.'**
+  /// **'Thousands of free content and original stories, curated for you.'**
   String get heroBannerSubtitle;
 
   /// No description provided for @exploreNow.
@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @authorBooks.
   ///
   /// In en, this message translates to:
-  /// **'{author}\'s books'**
+  /// **'{author}\'s content'**
   String authorBooks(String author);
 
   /// No description provided for @couldNotLoad.
@@ -1457,19 +1457,19 @@ abstract class AppLocalizations {
   /// No description provided for @books.
   ///
   /// In en, this message translates to:
-  /// **'Books'**
+  /// **'Content'**
   String get books;
 
   /// No description provided for @noPublishedBooksYet.
   ///
   /// In en, this message translates to:
-  /// **'No published books yet.'**
+  /// **'No published content yet.'**
   String get noPublishedBooksYet;
 
   /// No description provided for @failedToLoadBooks.
   ///
   /// In en, this message translates to:
-  /// **'Failed to load books: {error}'**
+  /// **'Failed to load content: {error}'**
   String failedToLoadBooks(String error);
 
   /// No description provided for @failedToLoadPosts.
@@ -1541,7 +1541,7 @@ abstract class AppLocalizations {
   /// No description provided for @enterQuoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter the quote from the book...'**
+  /// **'Enter the quote from the content...'**
   String get enterQuoteHint;
 
   /// No description provided for @addThoughtsOptional.
@@ -1589,7 +1589,7 @@ abstract class AppLocalizations {
   /// No description provided for @reviewHint.
   ///
   /// In en, this message translates to:
-  /// **'What did you think of this book?'**
+  /// **'What did you think of this content?'**
   String get reviewHint;
 
   /// No description provided for @continueWithGoogle.
@@ -1709,13 +1709,13 @@ abstract class AppLocalizations {
   /// No description provided for @savedBooksTitle.
   ///
   /// In en, this message translates to:
-  /// **'Saved Books'**
+  /// **'Saved Content'**
   String get savedBooksTitle;
 
   /// No description provided for @noSavedOrDownloadedBooksYet.
   ///
   /// In en, this message translates to:
-  /// **'No saved or downloaded books yet.'**
+  /// **'No saved or downloaded content yet.'**
   String get noSavedOrDownloadedBooksYet;
 
   /// No description provided for @dailyTopicNotFound.
@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @removeSavedBookTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove saved book?'**
+  /// **'Remove saved content?'**
   String get removeSavedBookTitle;
 
   /// No description provided for @removeSavedBookBody.
@@ -1793,7 +1793,7 @@ abstract class AppLocalizations {
   /// No description provided for @bookSavedDownloaded.
   ///
   /// In en, this message translates to:
-  /// **'Book saved and downloaded for offline reading.'**
+  /// **'Content saved and downloaded for offline reading.'**
   String get bookSavedDownloaded;
 
   /// No description provided for @published.
@@ -1841,7 +1841,7 @@ abstract class AppLocalizations {
   /// No description provided for @failedToLoadSavedBooks.
   ///
   /// In en, this message translates to:
-  /// **'Failed to load saved books: {error}'**
+  /// **'Failed to load saved content: {error}'**
   String failedToLoadSavedBooks(String error);
 
   /// No description provided for @failedToLoadPost.
@@ -1895,7 +1895,7 @@ abstract class AppLocalizations {
   /// No description provided for @noBookNotificationsYet.
   ///
   /// In en, this message translates to:
-  /// **'No book notifications yet'**
+  /// **'No content notifications yet'**
   String get noBookNotificationsYet;
 
   /// No description provided for @showLess.
@@ -1904,7 +1904,7 @@ abstract class AppLocalizations {
   /// **'Show less'**
   String get showLess;
 
-  /// Shown when saving a book fails
+  /// Shown when saving a content fails
   ///
   /// In en, this message translates to:
   /// **'Save failed: {error}'**
@@ -2045,7 +2045,7 @@ abstract class AppLocalizations {
   /// No description provided for @noSavedBooksYet.
   ///
   /// In en, this message translates to:
-  /// **'No saved books yet.'**
+  /// **'No saved content yet.'**
   String get noSavedBooksYet;
 
   /// No description provided for @noPostsYetStartSharing.
@@ -2083,6 +2083,450 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not update picture: {error}'**
   String couldNotUpdatePicture(String error);
+
+  /// No description provided for @writerWritingEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing Editor'**
+  String get writerWritingEditor;
+
+  /// No description provided for @writerContentDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Content Details'**
+  String get writerContentDetails;
+
+  /// No description provided for @writerSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get writerSaving;
+
+  /// No description provided for @writerConvertToDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to Draft'**
+  String get writerConvertToDraft;
+
+  /// No description provided for @writerDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get writerDraft;
+
+  /// No description provided for @writerNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get writerNext;
+
+  /// No description provided for @writerPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get writerPublish;
+
+  /// No description provided for @writerChapterTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {number} title'**
+  String writerChapterTitleHint(int number);
+
+  /// No description provided for @writerChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters'**
+  String get writerChapters;
+
+  /// No description provided for @writerStartWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Start writing...'**
+  String get writerStartWriting;
+
+  /// No description provided for @writerContentIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Content identity'**
+  String get writerContentIdentity;
+
+  /// No description provided for @title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get title;
+
+  /// No description provided for @synopsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Synopsis'**
+  String get synopsis;
+
+  /// No description provided for @writerTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Give your work a title'**
+  String get writerTitleHint;
+
+  /// No description provided for @writerSynopsisHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A short pitch for readers'**
+  String get writerSynopsisHint;
+
+  /// No description provided for @writerCoverOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover (optional)'**
+  String get writerCoverOptional;
+
+  /// No description provided for @writerUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get writerUploading;
+
+  /// No description provided for @writerUploadCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload cover'**
+  String get writerUploadCover;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @writerDiscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery'**
+  String get writerDiscovery;
+
+  /// No description provided for @contentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Content type'**
+  String get contentType;
+
+  /// No description provided for @category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get category;
+
+  /// No description provided for @topicsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics (optional)'**
+  String get topicsOptional;
+
+  /// No description provided for @topicsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'magic, friendship, survival'**
+  String get topicsHint;
+
+  /// No description provided for @publishContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Content'**
+  String get publishContent;
+
+  /// No description provided for @saveDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Draft'**
+  String get saveDraft;
+
+  /// No description provided for @insertImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert image'**
+  String get insertImage;
+
+  /// No description provided for @insertMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert media'**
+  String get insertMedia;
+
+  /// No description provided for @deleteChapterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the chapter from this draft.'**
+  String get deleteChapterBody;
+
+  /// No description provided for @signInBeforeUploadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in before uploading images.'**
+  String get signInBeforeUploadingImages;
+
+  /// No description provided for @imageInserted.
+  ///
+  /// In en, this message translates to:
+  /// **'Image inserted.'**
+  String get imageInserted;
+
+  /// No description provided for @couldNotUploadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upload image: {error}'**
+  String couldNotUploadImage(String error);
+
+  /// No description provided for @signInBeforeUploadingCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in before uploading a cover.'**
+  String get signInBeforeUploadingCover;
+
+  /// No description provided for @coverUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover uploaded.'**
+  String get coverUploaded;
+
+  /// No description provided for @couldNotUploadCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upload cover: {error}'**
+  String couldNotUploadCover(String error);
+
+  /// No description provided for @writerMediaUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube, Instagram, or Spotify URL'**
+  String get writerMediaUrlLabel;
+
+  /// No description provided for @insert.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert'**
+  String get insert;
+
+  /// No description provided for @unsupportedLinksInsertedAsPlainText.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported links are inserted as plain text.'**
+  String get unsupportedLinksInsertedAsPlainText;
+
+  /// No description provided for @addTitleBeforeSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a title before saving.'**
+  String get addTitleBeforeSaving;
+
+  /// No description provided for @writerPublishing.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing...'**
+  String get writerPublishing;
+
+  /// No description provided for @writerSavingDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving draft...'**
+  String get writerSavingDraft;
+
+  /// No description provided for @writerPublishedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get writerPublishedStatus;
+
+  /// No description provided for @storyPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Story published.'**
+  String get storyPublished;
+
+  /// No description provided for @couldNotSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save: {error}'**
+  String couldNotSave(String error);
+
+  /// No description provided for @savedOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on device'**
+  String get savedOnDevice;
+
+  /// No description provided for @localSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Local save failed'**
+  String get localSaveFailed;
+
+  /// No description provided for @follow.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow'**
+  String get follow;
+
+  /// No description provided for @unfollow.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfollow'**
+  String get unfollow;
+
+  /// No description provided for @signInToContinueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue.'**
+  String get signInToContinueAction;
+
+  /// No description provided for @followActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update follow: {error}'**
+  String followActionFailed(String error);
+
+  /// No description provided for @startedFollowingYou.
+  ///
+  /// In en, this message translates to:
+  /// **'started following you.'**
+  String get startedFollowingYou;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @chapterOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter overview'**
+  String get chapterOverview;
+
+  /// No description provided for @chapterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 chapter} other{{count} chapters}}'**
+  String chapterCount(int count);
+
+  /// No description provided for @addNewChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Add new chapter'**
+  String get addNewChapter;
+
+  /// No description provided for @noContentYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No content yet'**
+  String get noContentYet;
+
+  /// No description provided for @editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing'**
+  String get editing;
+
+  /// No description provided for @wordCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 word} other{{count} words}}'**
+  String wordCountLabel(int count);
+
+  /// No description provided for @writerSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get writerSaveFailed;
+
+  /// No description provided for @untitledStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled content'**
+  String get untitledStory;
+
+  /// No description provided for @publishedBookNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'published \"{title}\".'**
+  String publishedBookNotification(String title);
+
+  /// No description provided for @repliedToYourBookComment.
+  ///
+  /// In en, this message translates to:
+  /// **'replied to your content comment.'**
+  String get repliedToYourBookComment;
+
+  /// No description provided for @reviewedYourBook.
+  ///
+  /// In en, this message translates to:
+  /// **'reviewed your content.'**
+  String get reviewedYourBook;
+
+  /// No description provided for @updatedReviewOnYourBook.
+  ///
+  /// In en, this message translates to:
+  /// **'updated a review on your content.'**
+  String get updatedReviewOnYourBook;
+
+  /// No description provided for @authorsCannotReviewOwnBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors cannot review their own content.'**
+  String get authorsCannotReviewOwnBook;
+
+  /// No description provided for @feedTypePost.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get feedTypePost;
+
+  /// No description provided for @feedTypeComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get feedTypeComment;
+
+  /// No description provided for @feedTypeQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get feedTypeQuote;
+
+  /// No description provided for @feedTypeReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get feedTypeReview;
+
+  /// No description provided for @feedTypeTestimony.
+  ///
+  /// In en, this message translates to:
+  /// **'Testimony'**
+  String get feedTypeTestimony;
+
+  /// No description provided for @noRatingsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No ratings yet'**
+  String get noRatingsYet;
+
+  /// No description provided for @ratingMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating} rating'**
+  String ratingMetric(String rating);
+
+  /// No description provided for @readsMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} reads'**
+  String readsMetric(String count);
+
+  /// No description provided for @worksMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 work} other{{count} works}}'**
+  String worksMetric(int count);
 }
 
 class _AppLocalizationsDelegate

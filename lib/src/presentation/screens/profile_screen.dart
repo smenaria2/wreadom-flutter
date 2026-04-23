@@ -311,8 +311,12 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
       children: [
         if (hasCover)
           ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-            child: CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover),
+            imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+            child: CachedNetworkImage(
+              imageUrl: coverUrl,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+            ),
           )
         else
           ColoredBox(
@@ -323,7 +327,7 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
         if (hasCover)
           DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.62),
+              color: theme.colorScheme.surface.withValues(alpha: 0.42),
             ),
           ),
         Positioned(

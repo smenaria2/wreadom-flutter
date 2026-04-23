@@ -1,0 +1,252 @@
+rules_version = '2';
+
+// Shared Firestore rules for the Librebook Android app and web app.
+// Keep this file aligned in both project directories and deploy the same
+// ruleset for both clients so behavior stays consistent across platforms.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic helper functions
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function ownsExisting(field) {
+      return signedIn() && resource.data[field] == uid();
+    }
+
+    function ownsIncoming(field) {
+      return signedIn() && request.resource.data[field] == uid();
+    }
+
+    function ownsIncomingAny(primary, fallback) {
+      return signedIn() && (
+        request.resource.data[primary] == uid() ||
+        request.resource.data[fallback] == uid()
+      );
+    }
+
+    function ownsExistingAny(primary, fallback) {
+      return signedIn() && (
+        resource.data[primary] == uid() ||
+        resource.data[fallback] == uid()
+      );
+    }
+
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function isPublicFeedPost() {
+      return !('visibility' in resource.data) ||
+        resource.data.visibility == 'public' ||
+        resource.data.privacy == 'public';
+    }
+
+    function validCounterDelta(field, minDelta, maxDelta) {
+      let before = resource.data.get(field, 0);
+      let after = request.resource.data.get(field, 0);
+      return before is int &&
+        after is int &&
+        after - before >= minDelta &&
+        after - before <= maxDelta;
+    }
+
+    function validExistingCounterDelta(field, minDelta, maxDelta) {
+      return request.resource.data[field] is int &&
+        resource.data[field] is int &&
+        request.resource.data[field] - resource.data[field] >= minDelta &&
+        request.resource.data[field] - resource.data[field] <= maxDelta;
+    }
+
+    function isBookAuthor(bookId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/books/$(bookId)) &&
+        get(/databases/$(database)/documents/books/$(bookId)).data.authorId == uid();
+    }
+
+    function allowsLegacyEmbeddedFeedCommentMutation() {
+      return signedIn() &&
+        request.resource.data.comments is list &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'comments',
+          'commentCount',
+          'updatedAt'
+        ]) &&
+        (
+          !('commentCount' in request.resource.data) ||
+          !('commentCount' in resource.data) ||
+          validCounterDelta('commentCount', -1, 1)
+        );
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if signedIn() && userId == uid();
+      allow update: if signedIn() && (
+        userId == uid() ||
+        (
+          onlyChanges(['followersCount']) &&
+          validExistingCounterDelta('followersCount', -1, 1)
+        ) ||
+        (
+          onlyChanges(['followingCount']) &&
+          validExistingCounterDelta('followingCount', -1, 1)
+        )
+      );
+      allow delete: if signedIn() && userId == uid();
+    }
+
+    // Follows collection
+    match /follows/{followId} {
+      allow read: if true;
+      allow create: if ownsIncoming('followerId') &&
+        request.resource.data.followingId is string &&
+        request.resource.data.followingId != uid();
+      allow update: if false;
+      allow delete: if ownsExisting('followerId');
+    }
+
+    // Social feed posts
+    match /feed/{postId} {
+      allow read: if isPublicFeedPost() || ownsExisting('userId');
+      allow create: if ownsIncoming('userId');
+      allow update: if signedIn() && (
+        ownsExisting('userId') ||
+        (
+          onlyChanges(['likes']) &&
+          request.resource.data.likes is list
+        ) ||
+        (
+          onlyChanges(['commentCount']) &&
+          validCounterDelta('commentCount', -1, 1)
+        ) ||
+        allowsLegacyEmbeddedFeedCommentMutation()
+      );
+      allow delete: if ownsExisting('userId');
+    }
+
+    // Comments for books or feed posts
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if ownsIncoming('userId') &&
+        (
+          request.resource.data.bookId is string ||
+          request.resource.data.feedPostId is string
+        );
+      allow update: if signedIn() && (
+        ownsExisting('userId') ||
+        (
+          onlyChanges(['likes']) &&
+          request.resource.data.likes is list
+        ) ||
+        (
+          onlyChanges(['replies']) &&
+          request.resource.data.replies is list
+        ) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'isHighlighted',
+            'highlightedAt',
+            'highlightedByUserId'
+          ]) &&
+          request.resource.data.bookId is string &&
+          request.resource.data.highlightedByUserId == uid() &&
+          isBookAuthor(request.resource.data.bookId)
+        )
+      );
+      allow delete: if ownsExisting('userId');
+    }
+
+    // Books and their sub-collections
+    match /books/{bookId} {
+      allow read: if true;
+      allow create: if ownsIncomingAny('authorId', 'userId');
+      allow update: if (signedIn() && ownsExistingAny('authorId', 'userId')) ||
+        (
+          onlyChanges(['viewCount']) &&
+          validCounterDelta('viewCount', 0, 1)
+        );
+      allow delete: if ownsExistingAny('authorId', 'userId');
+
+      // Sub-collection for tracking unique views
+      match /views/{viewerKey} {
+        allow read, create: if true;
+      }
+
+      // Sub-collection for book chapters
+      match /chapters/{chapterId} {
+        allow read: if true;
+        allow write: if signedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.authorId == uid();
+      }
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == uid();
+      allow create: if signedIn() && request.resource.data.actorId == uid();
+      allow update: if signedIn() &&
+        resource.data.userId == uid() &&
+        onlyChanges(['isRead']);
+      allow delete: if signedIn() && resource.data.userId == uid();
+    }
+
+    // Reports for abuse/errors
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if signedIn() && (
+        request.resource.data.reporterId == uid() ||
+        request.resource.data.userId == uid()
+      );
+      allow update, delete: if false;
+    }
+
+    // User bookmarks/library
+    match /bookmarks/{bookmarkId} {
+      allow read: if ownsExisting('userId');
+      allow create: if ownsIncoming('userId');
+      allow update, delete: if ownsExisting('userId');
+    }
+
+    // Private Messaging
+    match /conversations/{conversationId} {
+      allow read: if signedIn() && uid() in resource.data.participants;
+      allow create: if signedIn() && uid() in request.resource.data.participants;
+      allow update: if signedIn() &&
+        uid() in resource.data.participants &&
+        uid() in request.resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn() &&
+          uid() in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if ownsIncoming('senderId') &&
+          uid() in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow update, delete: if false;
+      }
+    }
+
+    // Global settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // IA Upvotes cache
+    match /ia_upvotes/{bookId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Catch-all read-only for other collections (e.g. metadata)
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
@@ -46,11 +47,13 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           localizationsDelegates: const [
+            ...AppLocalizations.localizationsDelegates,
             GlobalMaterialLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             FlutterQuillLocalizations.delegate,
           ],
+          supportedLocales: AppLocalizations.supportedLocales,
           home: WriterPadScreen(book: book),
         ),
       ),
