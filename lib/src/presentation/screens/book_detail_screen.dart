@@ -285,7 +285,7 @@ class _BookDetailBody extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () => _openReader(context, userAsync),
+                      onPressed: () => _openReader(context, ref, userAsync),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -344,17 +344,22 @@ class _BookDetailBody extends ConsumerWidget {
     return null;
   }
 
-  void _openReader(BuildContext context, AsyncValue<dynamic> userAsync) {
+  Future<void> _openReader(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<dynamic> userAsync,
+  ) async {
     final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
       data: (u) => _progressForBook(u?.readingProgress, book.id),
       orElse: () => null,
     );
     var startChapter = 0;
     startChapter = (progress?['chapterIndex'] as num?)?.toInt() ?? 0;
-    Navigator.of(context).pushNamed(
+    await Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArguments(book: book, initialChapterIndex: startChapter),
     );
+    ref.invalidate(currentUserProvider);
   }
 
   Future<void> _showSendToChatSheet(

@@ -88,7 +88,6 @@ class PublicProfileScreen extends ConsumerWidget {
                                   arguments: ConversationArguments(
                                     conversationId: conversationId,
                                     title: user.displayName ?? user.username,
-                                    subtitle: '@${user.username}',
                                   ),
                                 );
                               }
@@ -149,12 +148,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '@${user.username}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
                       if ((user.penName ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 8),
                         Text('Pen name: ${user.penName}'),
                       ],
                       if ((user.bio ?? '').isNotEmpty) ...[

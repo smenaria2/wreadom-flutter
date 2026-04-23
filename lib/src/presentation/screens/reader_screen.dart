@@ -102,7 +102,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _chapterIndex = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
@@ -303,7 +302,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       chapterIndex: chapterIndex,
       position: resolvedPosition,
     );
-    if (mounted) ref.invalidate(currentUserProvider);
   }
 
   void _saveProgressSilently(String operationName, {String? userId}) {
@@ -410,10 +408,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
     WidgetsBinding.instance.removeObserver(this);
     _flushProgressSave(
       'dispose',

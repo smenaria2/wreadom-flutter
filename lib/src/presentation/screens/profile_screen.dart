@@ -115,16 +115,6 @@ class ProfileScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Text(
-                                '@${user.username}',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.6),
-                                  fontSize: 12,
-                                ),
-                              ),
                             ],
                           ),
                         ),
