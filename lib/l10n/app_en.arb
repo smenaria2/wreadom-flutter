@@ -683,5 +683,17 @@
     }
   },
   "noSavedBooksYet": "No saved books yet.",
-  "noPostsYetStartSharing": "No posts yet.\nStart sharing your reading journey!"
+  "noPostsYetStartSharing": "No posts yet.\nStart sharing your reading journey!",
+  "changeProfilePicture": "Change profile picture",
+  "changeCoverPicture": "Change cover picture",
+  "profilePictureUpdated": "Profile picture updated.",
+  "coverPictureUpdated": "Cover picture updated.",
+  "couldNotUpdatePicture": "Could not update picture: {error}",
+  "@couldNotUpdatePicture": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

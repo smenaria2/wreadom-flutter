@@ -167,18 +167,18 @@ class FirebaseCommentRepository implements CommentRepository {
 
   @override
   Future<List<Comment>> getFeedPostComments(String postId) async {
+    final itemsById = <String, Comment>{};
+
     final postDoc = await _firestore.collection('feed').doc(postId).get();
     if (postDoc.exists) {
       final postData = postDoc.data() ?? {};
       final embedded = List<dynamic>.from(postData['comments'] ?? const []);
-      if (embedded.isNotEmpty) {
-        final items = embedded.whereType<Map>().map((raw) {
-          final data = Map<String, dynamic>.from(raw);
-          data['feedPostId'] = postId;
-          return Comment.fromJson(data);
-        }).toList();
-        items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-        return items;
+      for (final raw in embedded.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(raw);
+        data['feedPostId'] = postId;
+        final comment = Comment.fromJson(data);
+        itemsById[comment.id ?? '${comment.timestamp}_${comment.userId}'] =
+            comment;
       }
     }
 
@@ -188,10 +188,12 @@ class FirebaseCommentRepository implements CommentRepository {
         .collection('comments')
         .where('feedPostId', whereIn: ids)
         .get();
-    final items = snapshot.docs.map((doc) {
+    for (final doc in snapshot.docs) {
       final data = mapFirestoreData(doc.data(), doc.id);
-      return Comment.fromJson(data);
-    }).toList();
+      final comment = Comment.fromJson(data);
+      itemsById[comment.id ?? doc.id] = comment;
+    }
+    final items = itemsById.values.toList();
     items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return items;
   }

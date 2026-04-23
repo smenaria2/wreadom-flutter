@@ -212,6 +212,13 @@ class FirebaseProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<void> updateCoverPhoto(String userId, String? coverPhotoURL) async {
+    await _firestore.collection('users').doc(userId).update({
+      'coverPhotoURL': coverPhotoURL,
+    });
+  }
+
+  @override
   Future<void> updateProfileDetails({
     required String userId,
     String? bio,

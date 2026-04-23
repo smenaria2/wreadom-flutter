@@ -1295,7 +1295,7 @@ as String?,
 /// @nodoc
 mixin _$UserModel {
 
- String get id; String get username; String get email; String? get displayName; String? get photoURL; String? get bio; String? get penName; String? get privacyLevel; bool? get isDeactivated; ProfileVisibility? get profileVisibility; int? get followersCount; int? get followingCount; List<dynamic> get readingHistory; List<dynamic> get savedBooks; List<Bookmark> get bookmarks; String? get preferredLanguage; List<String>? get pinnedWorks; int? get createdAt; int? get lastLogin; Map<String, dynamic>? get readingProgress; List<String>? get fcmTokens; NotificationSettings? get notificationSettings;
+ String get id; String get username; String get email; String? get displayName; String? get photoURL; String? get coverPhotoURL; String? get bio; String? get penName; String? get privacyLevel; bool? get isDeactivated; ProfileVisibility? get profileVisibility; int? get followersCount; int? get followingCount; List<dynamic> get readingHistory; List<dynamic> get savedBooks; List<Bookmark> get bookmarks; String? get preferredLanguage; List<String>? get pinnedWorks; int? get createdAt; int? get lastLogin; Map<String, dynamic>? get readingProgress; List<String>? get fcmTokens; NotificationSettings? get notificationSettings;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1308,16 +1308,16 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoURL, photoURL) || other.photoURL == photoURL)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.privacyLevel, privacyLevel) || other.privacyLevel == privacyLevel)&&(identical(other.isDeactivated, isDeactivated) || other.isDeactivated == isDeactivated)&&(identical(other.profileVisibility, profileVisibility) || other.profileVisibility == profileVisibility)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&const DeepCollectionEquality().equals(other.readingHistory, readingHistory)&&const DeepCollectionEquality().equals(other.savedBooks, savedBooks)&&const DeepCollectionEquality().equals(other.bookmarks, bookmarks)&&(identical(other.preferredLanguage, preferredLanguage) || other.preferredLanguage == preferredLanguage)&&const DeepCollectionEquality().equals(other.pinnedWorks, pinnedWorks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin)&&const DeepCollectionEquality().equals(other.readingProgress, readingProgress)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.notificationSettings, notificationSettings) || other.notificationSettings == notificationSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoURL, photoURL) || other.photoURL == photoURL)&&(identical(other.coverPhotoURL, coverPhotoURL) || other.coverPhotoURL == coverPhotoURL)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.privacyLevel, privacyLevel) || other.privacyLevel == privacyLevel)&&(identical(other.isDeactivated, isDeactivated) || other.isDeactivated == isDeactivated)&&(identical(other.profileVisibility, profileVisibility) || other.profileVisibility == profileVisibility)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&const DeepCollectionEquality().equals(other.readingHistory, readingHistory)&&const DeepCollectionEquality().equals(other.savedBooks, savedBooks)&&const DeepCollectionEquality().equals(other.bookmarks, bookmarks)&&(identical(other.preferredLanguage, preferredLanguage) || other.preferredLanguage == preferredLanguage)&&const DeepCollectionEquality().equals(other.pinnedWorks, pinnedWorks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin)&&const DeepCollectionEquality().equals(other.readingProgress, readingProgress)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.notificationSettings, notificationSettings) || other.notificationSettings == notificationSettings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,username,email,displayName,photoURL,bio,penName,privacyLevel,isDeactivated,profileVisibility,followersCount,followingCount,const DeepCollectionEquality().hash(readingHistory),const DeepCollectionEquality().hash(savedBooks),const DeepCollectionEquality().hash(bookmarks),preferredLanguage,const DeepCollectionEquality().hash(pinnedWorks),createdAt,lastLogin,const DeepCollectionEquality().hash(readingProgress),const DeepCollectionEquality().hash(fcmTokens),notificationSettings]);
+int get hashCode => Object.hashAll([runtimeType,id,username,email,displayName,photoURL,coverPhotoURL,bio,penName,privacyLevel,isDeactivated,profileVisibility,followersCount,followingCount,const DeepCollectionEquality().hash(readingHistory),const DeepCollectionEquality().hash(savedBooks),const DeepCollectionEquality().hash(bookmarks),preferredLanguage,const DeepCollectionEquality().hash(pinnedWorks),createdAt,lastLogin,const DeepCollectionEquality().hash(readingProgress),const DeepCollectionEquality().hash(fcmTokens),notificationSettings]);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, username: $username, email: $email, displayName: $displayName, photoURL: $photoURL, bio: $bio, penName: $penName, privacyLevel: $privacyLevel, isDeactivated: $isDeactivated, profileVisibility: $profileVisibility, followersCount: $followersCount, followingCount: $followingCount, readingHistory: $readingHistory, savedBooks: $savedBooks, bookmarks: $bookmarks, preferredLanguage: $preferredLanguage, pinnedWorks: $pinnedWorks, createdAt: $createdAt, lastLogin: $lastLogin, readingProgress: $readingProgress, fcmTokens: $fcmTokens, notificationSettings: $notificationSettings)';
+  return 'UserModel(id: $id, username: $username, email: $email, displayName: $displayName, photoURL: $photoURL, coverPhotoURL: $coverPhotoURL, bio: $bio, penName: $penName, privacyLevel: $privacyLevel, isDeactivated: $isDeactivated, profileVisibility: $profileVisibility, followersCount: $followersCount, followingCount: $followingCount, readingHistory: $readingHistory, savedBooks: $savedBooks, bookmarks: $bookmarks, preferredLanguage: $preferredLanguage, pinnedWorks: $pinnedWorks, createdAt: $createdAt, lastLogin: $lastLogin, readingProgress: $readingProgress, fcmTokens: $fcmTokens, notificationSettings: $notificationSettings)';
 }
 
 
@@ -1328,7 +1328,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String username, String email, String? displayName, String? photoURL, String? bio, String? penName, String? privacyLevel, bool? isDeactivated, ProfileVisibility? profileVisibility, int? followersCount, int? followingCount, List<dynamic> readingHistory, List<dynamic> savedBooks, List<Bookmark> bookmarks, String? preferredLanguage, List<String>? pinnedWorks, int? createdAt, int? lastLogin, Map<String, dynamic>? readingProgress, List<String>? fcmTokens, NotificationSettings? notificationSettings
+ String id, String username, String email, String? displayName, String? photoURL, String? coverPhotoURL, String? bio, String? penName, String? privacyLevel, bool? isDeactivated, ProfileVisibility? profileVisibility, int? followersCount, int? followingCount, List<dynamic> readingHistory, List<dynamic> savedBooks, List<Bookmark> bookmarks, String? preferredLanguage, List<String>? pinnedWorks, int? createdAt, int? lastLogin, Map<String, dynamic>? readingProgress, List<String>? fcmTokens, NotificationSettings? notificationSettings
 });
 
 
@@ -1345,13 +1345,14 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? displayName = freezed,Object? photoURL = freezed,Object? bio = freezed,Object? penName = freezed,Object? privacyLevel = freezed,Object? isDeactivated = freezed,Object? profileVisibility = freezed,Object? followersCount = freezed,Object? followingCount = freezed,Object? readingHistory = null,Object? savedBooks = null,Object? bookmarks = null,Object? preferredLanguage = freezed,Object? pinnedWorks = freezed,Object? createdAt = freezed,Object? lastLogin = freezed,Object? readingProgress = freezed,Object? fcmTokens = freezed,Object? notificationSettings = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? displayName = freezed,Object? photoURL = freezed,Object? coverPhotoURL = freezed,Object? bio = freezed,Object? penName = freezed,Object? privacyLevel = freezed,Object? isDeactivated = freezed,Object? profileVisibility = freezed,Object? followersCount = freezed,Object? followingCount = freezed,Object? readingHistory = null,Object? savedBooks = null,Object? bookmarks = null,Object? preferredLanguage = freezed,Object? pinnedWorks = freezed,Object? createdAt = freezed,Object? lastLogin = freezed,Object? readingProgress = freezed,Object? fcmTokens = freezed,Object? notificationSettings = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,photoURL: freezed == photoURL ? _self.photoURL : photoURL // ignore: cast_nullable_to_non_nullable
+as String?,coverPhotoURL: freezed == coverPhotoURL ? _self.coverPhotoURL : coverPhotoURL // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,penName: freezed == penName ? _self.penName : penName // ignore: cast_nullable_to_non_nullable
 as String?,privacyLevel: freezed == privacyLevel ? _self.privacyLevel : privacyLevel // ignore: cast_nullable_to_non_nullable
@@ -1478,10 +1479,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? coverPhotoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
+return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.coverPhotoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
   return orElse();
 
 }
@@ -1499,10 +1500,10 @@ return $default(_that.id,_that.username,_that.email,_that.displayName,_that.phot
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? coverPhotoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
+return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.coverPhotoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1519,10 +1520,10 @@ return $default(_that.id,_that.username,_that.email,_that.displayName,_that.phot
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String email,  String? displayName,  String? photoURL,  String? coverPhotoURL,  String? bio,  String? penName,  String? privacyLevel,  bool? isDeactivated,  ProfileVisibility? profileVisibility,  int? followersCount,  int? followingCount,  List<dynamic> readingHistory,  List<dynamic> savedBooks,  List<Bookmark> bookmarks,  String? preferredLanguage,  List<String>? pinnedWorks,  int? createdAt,  int? lastLogin,  Map<String, dynamic>? readingProgress,  List<String>? fcmTokens,  NotificationSettings? notificationSettings)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
+return $default(_that.id,_that.username,_that.email,_that.displayName,_that.photoURL,_that.coverPhotoURL,_that.bio,_that.penName,_that.privacyLevel,_that.isDeactivated,_that.profileVisibility,_that.followersCount,_that.followingCount,_that.readingHistory,_that.savedBooks,_that.bookmarks,_that.preferredLanguage,_that.pinnedWorks,_that.createdAt,_that.lastLogin,_that.readingProgress,_that.fcmTokens,_that.notificationSettings);case _:
   return null;
 
 }
@@ -1534,7 +1535,7 @@ return $default(_that.id,_that.username,_that.email,_that.displayName,_that.phot
 @JsonSerializable()
 
 class _UserModel implements UserModel {
-  const _UserModel({required this.id, required this.username, required this.email, this.displayName, this.photoURL, this.bio, this.penName, this.privacyLevel, this.isDeactivated, this.profileVisibility, this.followersCount, this.followingCount, required final  List<dynamic> readingHistory, required final  List<dynamic> savedBooks, required final  List<Bookmark> bookmarks, this.preferredLanguage, final  List<String>? pinnedWorks, this.createdAt, this.lastLogin, final  Map<String, dynamic>? readingProgress, final  List<String>? fcmTokens, this.notificationSettings}): _readingHistory = readingHistory,_savedBooks = savedBooks,_bookmarks = bookmarks,_pinnedWorks = pinnedWorks,_readingProgress = readingProgress,_fcmTokens = fcmTokens;
+  const _UserModel({required this.id, required this.username, required this.email, this.displayName, this.photoURL, this.coverPhotoURL, this.bio, this.penName, this.privacyLevel, this.isDeactivated, this.profileVisibility, this.followersCount, this.followingCount, required final  List<dynamic> readingHistory, required final  List<dynamic> savedBooks, required final  List<Bookmark> bookmarks, this.preferredLanguage, final  List<String>? pinnedWorks, this.createdAt, this.lastLogin, final  Map<String, dynamic>? readingProgress, final  List<String>? fcmTokens, this.notificationSettings}): _readingHistory = readingHistory,_savedBooks = savedBooks,_bookmarks = bookmarks,_pinnedWorks = pinnedWorks,_readingProgress = readingProgress,_fcmTokens = fcmTokens;
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 @override final  String id;
@@ -1542,6 +1543,7 @@ class _UserModel implements UserModel {
 @override final  String email;
 @override final  String? displayName;
 @override final  String? photoURL;
+@override final  String? coverPhotoURL;
 @override final  String? bio;
 @override final  String? penName;
 @override final  String? privacyLevel;
@@ -1615,16 +1617,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoURL, photoURL) || other.photoURL == photoURL)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.privacyLevel, privacyLevel) || other.privacyLevel == privacyLevel)&&(identical(other.isDeactivated, isDeactivated) || other.isDeactivated == isDeactivated)&&(identical(other.profileVisibility, profileVisibility) || other.profileVisibility == profileVisibility)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&const DeepCollectionEquality().equals(other._readingHistory, _readingHistory)&&const DeepCollectionEquality().equals(other._savedBooks, _savedBooks)&&const DeepCollectionEquality().equals(other._bookmarks, _bookmarks)&&(identical(other.preferredLanguage, preferredLanguage) || other.preferredLanguage == preferredLanguage)&&const DeepCollectionEquality().equals(other._pinnedWorks, _pinnedWorks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin)&&const DeepCollectionEquality().equals(other._readingProgress, _readingProgress)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.notificationSettings, notificationSettings) || other.notificationSettings == notificationSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoURL, photoURL) || other.photoURL == photoURL)&&(identical(other.coverPhotoURL, coverPhotoURL) || other.coverPhotoURL == coverPhotoURL)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.privacyLevel, privacyLevel) || other.privacyLevel == privacyLevel)&&(identical(other.isDeactivated, isDeactivated) || other.isDeactivated == isDeactivated)&&(identical(other.profileVisibility, profileVisibility) || other.profileVisibility == profileVisibility)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&const DeepCollectionEquality().equals(other._readingHistory, _readingHistory)&&const DeepCollectionEquality().equals(other._savedBooks, _savedBooks)&&const DeepCollectionEquality().equals(other._bookmarks, _bookmarks)&&(identical(other.preferredLanguage, preferredLanguage) || other.preferredLanguage == preferredLanguage)&&const DeepCollectionEquality().equals(other._pinnedWorks, _pinnedWorks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin)&&const DeepCollectionEquality().equals(other._readingProgress, _readingProgress)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.notificationSettings, notificationSettings) || other.notificationSettings == notificationSettings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,username,email,displayName,photoURL,bio,penName,privacyLevel,isDeactivated,profileVisibility,followersCount,followingCount,const DeepCollectionEquality().hash(_readingHistory),const DeepCollectionEquality().hash(_savedBooks),const DeepCollectionEquality().hash(_bookmarks),preferredLanguage,const DeepCollectionEquality().hash(_pinnedWorks),createdAt,lastLogin,const DeepCollectionEquality().hash(_readingProgress),const DeepCollectionEquality().hash(_fcmTokens),notificationSettings]);
+int get hashCode => Object.hashAll([runtimeType,id,username,email,displayName,photoURL,coverPhotoURL,bio,penName,privacyLevel,isDeactivated,profileVisibility,followersCount,followingCount,const DeepCollectionEquality().hash(_readingHistory),const DeepCollectionEquality().hash(_savedBooks),const DeepCollectionEquality().hash(_bookmarks),preferredLanguage,const DeepCollectionEquality().hash(_pinnedWorks),createdAt,lastLogin,const DeepCollectionEquality().hash(_readingProgress),const DeepCollectionEquality().hash(_fcmTokens),notificationSettings]);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, username: $username, email: $email, displayName: $displayName, photoURL: $photoURL, bio: $bio, penName: $penName, privacyLevel: $privacyLevel, isDeactivated: $isDeactivated, profileVisibility: $profileVisibility, followersCount: $followersCount, followingCount: $followingCount, readingHistory: $readingHistory, savedBooks: $savedBooks, bookmarks: $bookmarks, preferredLanguage: $preferredLanguage, pinnedWorks: $pinnedWorks, createdAt: $createdAt, lastLogin: $lastLogin, readingProgress: $readingProgress, fcmTokens: $fcmTokens, notificationSettings: $notificationSettings)';
+  return 'UserModel(id: $id, username: $username, email: $email, displayName: $displayName, photoURL: $photoURL, coverPhotoURL: $coverPhotoURL, bio: $bio, penName: $penName, privacyLevel: $privacyLevel, isDeactivated: $isDeactivated, profileVisibility: $profileVisibility, followersCount: $followersCount, followingCount: $followingCount, readingHistory: $readingHistory, savedBooks: $savedBooks, bookmarks: $bookmarks, preferredLanguage: $preferredLanguage, pinnedWorks: $pinnedWorks, createdAt: $createdAt, lastLogin: $lastLogin, readingProgress: $readingProgress, fcmTokens: $fcmTokens, notificationSettings: $notificationSettings)';
 }
 
 
@@ -1635,7 +1637,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String username, String email, String? displayName, String? photoURL, String? bio, String? penName, String? privacyLevel, bool? isDeactivated, ProfileVisibility? profileVisibility, int? followersCount, int? followingCount, List<dynamic> readingHistory, List<dynamic> savedBooks, List<Bookmark> bookmarks, String? preferredLanguage, List<String>? pinnedWorks, int? createdAt, int? lastLogin, Map<String, dynamic>? readingProgress, List<String>? fcmTokens, NotificationSettings? notificationSettings
+ String id, String username, String email, String? displayName, String? photoURL, String? coverPhotoURL, String? bio, String? penName, String? privacyLevel, bool? isDeactivated, ProfileVisibility? profileVisibility, int? followersCount, int? followingCount, List<dynamic> readingHistory, List<dynamic> savedBooks, List<Bookmark> bookmarks, String? preferredLanguage, List<String>? pinnedWorks, int? createdAt, int? lastLogin, Map<String, dynamic>? readingProgress, List<String>? fcmTokens, NotificationSettings? notificationSettings
 });
 
 
@@ -1652,13 +1654,14 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? displayName = freezed,Object? photoURL = freezed,Object? bio = freezed,Object? penName = freezed,Object? privacyLevel = freezed,Object? isDeactivated = freezed,Object? profileVisibility = freezed,Object? followersCount = freezed,Object? followingCount = freezed,Object? readingHistory = null,Object? savedBooks = null,Object? bookmarks = null,Object? preferredLanguage = freezed,Object? pinnedWorks = freezed,Object? createdAt = freezed,Object? lastLogin = freezed,Object? readingProgress = freezed,Object? fcmTokens = freezed,Object? notificationSettings = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? displayName = freezed,Object? photoURL = freezed,Object? coverPhotoURL = freezed,Object? bio = freezed,Object? penName = freezed,Object? privacyLevel = freezed,Object? isDeactivated = freezed,Object? profileVisibility = freezed,Object? followersCount = freezed,Object? followingCount = freezed,Object? readingHistory = null,Object? savedBooks = null,Object? bookmarks = null,Object? preferredLanguage = freezed,Object? pinnedWorks = freezed,Object? createdAt = freezed,Object? lastLogin = freezed,Object? readingProgress = freezed,Object? fcmTokens = freezed,Object? notificationSettings = freezed,}) {
   return _then(_UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,photoURL: freezed == photoURL ? _self.photoURL : photoURL // ignore: cast_nullable_to_non_nullable
+as String?,coverPhotoURL: freezed == coverPhotoURL ? _self.coverPhotoURL : coverPhotoURL // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,penName: freezed == penName ? _self.penName : penName // ignore: cast_nullable_to_non_nullable
 as String?,privacyLevel: freezed == privacyLevel ? _self.privacyLevel : privacyLevel // ignore: cast_nullable_to_non_nullable

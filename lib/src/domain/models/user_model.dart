@@ -73,6 +73,7 @@ abstract class UserModel with _$UserModel {
     required String email,
     String? displayName,
     String? photoURL,
+    String? coverPhotoURL,
     String? bio,
     String? penName,
     String? privacyLevel,

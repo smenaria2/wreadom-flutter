@@ -1099,4 +1099,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noPostsYetStartSharing =>
       'No posts yet.\nStart sharing your reading journey!';
+
+  @override
+  String get changeProfilePicture => 'Change profile picture';
+
+  @override
+  String get changeCoverPicture => 'Change cover picture';
+
+  @override
+  String get profilePictureUpdated => 'Profile picture updated.';
+
+  @override
+  String get coverPictureUpdated => 'Cover picture updated.';
+
+  @override
+  String couldNotUpdatePicture(String error) {
+    return 'Could not update picture: $error';
+  }
 }

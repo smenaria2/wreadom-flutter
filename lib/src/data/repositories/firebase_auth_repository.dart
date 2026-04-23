@@ -10,6 +10,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final firebase.FirebaseAuth _auth = firebase.FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const int _maxFanOutWritesPerBatch = 450;
 
   FirebaseAuthRepository() {
     // Web-only: GIS renderButton delivers sign-in via authenticationEvents.
@@ -275,10 +276,24 @@ class FirebaseAuthRepository implements AuthRepository {
 
     if (updates.isEmpty) return;
 
-    await _firestore.collection('users').doc(userId).update(updates);
+    final batches = <WriteBatch>[];
+    var currentBatch = _firestore.batch();
+    var currentWriteCount = 0;
 
-    // Porting the fan-out update logic
-    final batch = _firestore.batch();
+    void queueUpdate(
+      DocumentReference<Map<String, dynamic>> reference,
+      Map<String, dynamic> data,
+    ) {
+      if (currentWriteCount >= _maxFanOutWritesPerBatch) {
+        batches.add(currentBatch);
+        currentBatch = _firestore.batch();
+        currentWriteCount = 0;
+      }
+      currentBatch.update(reference, data);
+      currentWriteCount++;
+    }
+
+    queueUpdate(_firestore.collection('users').doc(userId), updates);
 
     // 1. Comments
     final comments = await _firestore
@@ -289,7 +304,7 @@ class FirebaseAuthRepository implements AuthRepository {
       final commentUpdate = <String, dynamic>{};
       if (displayName != null) commentUpdate['username'] = displayName;
       if (photoURL != null) commentUpdate['userPhotoURL'] = photoURL;
-      batch.update(doc.reference, commentUpdate);
+      queueUpdate(doc.reference, commentUpdate);
     }
 
     // 2. Feed Posts
@@ -301,10 +316,13 @@ class FirebaseAuthRepository implements AuthRepository {
       final feedUpdate = <String, dynamic>{};
       if (displayName != null) feedUpdate['username'] = displayName;
       if (photoURL != null) feedUpdate['userPhotoURL'] = photoURL;
-      batch.update(doc.reference, feedUpdate);
+      queueUpdate(doc.reference, feedUpdate);
     }
 
-    await batch.commit();
+    if (currentWriteCount > 0) batches.add(currentBatch);
+    for (final batch in batches) {
+      await batch.commit();
+    }
   }
 
   @override

@@ -11,6 +11,7 @@ abstract class ProfileRepository {
     String? penName,
     String? displayName,
   });
+  Future<void> updateCoverPhoto(String userId, String? coverPhotoURL);
   Future<void> updatePrivacyLevel(String userId, String privacyLevel);
   Future<void> deactivateProfile(String userId);
   Future<void> reactivateProfile(String userId);

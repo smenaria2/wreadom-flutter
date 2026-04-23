@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../domain/models/user_model.dart';
@@ -10,8 +13,10 @@ import '../providers/auth_controller.dart';
 import '../providers/book_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/notification_providers.dart';
+import '../providers/profile_providers.dart';
 import '../providers/report_providers.dart';
 import '../providers/theme_provider.dart';
+import '../providers/writer_providers.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_log_collector.dart';
 import '../routing/app_routes.dart';
@@ -75,53 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      background: Container(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.3),
-                        child: SafeArea(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Avatar
-                              CircleAvatar(
-                                radius: 42,
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.1),
-                                backgroundImage: user.photoURL != null
-                                    ? CachedNetworkImageProvider(user.photoURL!)
-                                    : null,
-                                child: user.photoURL == null
-                                    ? Text(
-                                        (user.displayName ?? user.username)[0]
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                user.displayName ?? user.username,
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      background: _ProfileHeader(user: user),
                     ),
                     actions: [
                       IconButton(
@@ -252,6 +211,213 @@ class _NotificationAction extends ConsumerWidget {
     );
     if (unread <= 0) return btn;
     return Badge(label: Text(unread > 99 ? '99+' : '$unread'), child: btn);
+  }
+}
+
+class _ProfileHeader extends ConsumerStatefulWidget {
+  const _ProfileHeader({required this.user});
+
+  final UserModel user;
+
+  @override
+  ConsumerState<_ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
+  final ImagePicker _picker = ImagePicker();
+  bool _uploadingAvatar = false;
+  bool _uploadingCover = false;
+
+  Future<void> _changeProfilePicture() async {
+    await _pickAndUpload(isCover: false);
+  }
+
+  Future<void> _changeCoverPicture() async {
+    await _pickAndUpload(isCover: true);
+  }
+
+  Future<void> _pickAndUpload({required bool isCover}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: isCover ? 1800 : 900,
+      imageQuality: 86,
+    );
+    if (file == null) return;
+
+    setState(() {
+      if (isCover) {
+        _uploadingCover = true;
+      } else {
+        _uploadingAvatar = true;
+      }
+    });
+
+    try {
+      final url = await ref
+          .read(cloudinaryUploadServiceProvider)
+          .uploadImage(
+            file: file,
+            folder: isCover ? 'profile_covers' : 'profile_photos',
+            userId: widget.user.id,
+          );
+      if (isCover) {
+        await ref
+            .read(profileRepositoryProvider)
+            .updateCoverPhoto(widget.user.id, url);
+      } else {
+        await ref
+            .read(authRepositoryProvider)
+            .updateUserProfile(widget.user.id, photoURL: url);
+      }
+      ref.invalidate(currentUserProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isCover ? l10n.coverPictureUpdated : l10n.profilePictureUpdated,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.couldNotUpdatePicture(error.toString()))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isCover) {
+            _uploadingCover = false;
+          } else {
+            _uploadingAvatar = false;
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final user = widget.user;
+    final coverUrl = user.coverPhotoURL;
+    final hasCover = coverUrl != null && coverUrl.isNotEmpty;
+    final displayName = user.displayName ?? user.username;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (hasCover)
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+            child: CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover),
+          )
+        else
+          ColoredBox(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+          ),
+        if (hasCover)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.62),
+            ),
+          ),
+        Positioned(
+          right: 16,
+          top: MediaQuery.of(context).padding.top + 12,
+          child: IconButton.filledTonal(
+            tooltip: l10n.changeCoverPicture,
+            onPressed: _uploadingCover ? null : _changeCoverPicture,
+            icon: _uploadingCover
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.photo_camera_outlined),
+          ),
+        ),
+        SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: theme.colorScheme.surface,
+                    child: CircleAvatar(
+                      radius: 42,
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      backgroundImage: user.photoURL != null
+                          ? CachedNetworkImageProvider(user.photoURL!)
+                          : null,
+                      child: user.photoURL == null
+                          ? Text(
+                              displayName.characters.first.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  Positioned(
+                    right: -8,
+                    bottom: -4,
+                    child: IconButton.filled(
+                      tooltip: l10n.changeProfilePicture,
+                      onPressed: _uploadingAvatar
+                          ? null
+                          : _changeProfilePicture,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 36,
+                        height: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: _uploadingAvatar
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.photo_camera_outlined),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                displayName,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  shadows: hasCover
+                      ? [
+                          Shadow(
+                            color: theme.colorScheme.surface.withValues(
+                              alpha: 0.8,
+                            ),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

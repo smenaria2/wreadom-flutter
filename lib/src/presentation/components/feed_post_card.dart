@@ -105,9 +105,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
           _optimisticLikesCount = prevCount;
         });
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.errorWithDetails(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorWithDetails(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _liking = false);
@@ -161,9 +161,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       if (mounted) {
         setState(() => _deleting = false);
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.couldNotDeletePost(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.couldNotDeletePost(e.toString()))),
+        );
       }
     }
   }
@@ -268,7 +268,11 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       if (mounted) {
                         final innerL10n = AppLocalizations.of(this.context)!;
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(content: Text(innerL10n.couldNotDeletePost(e.toString()))), // Using delete error key as generic error for now or add edit error key
+                          SnackBar(
+                            content: Text(
+                              innerL10n.couldNotDeletePost(e.toString()),
+                            ),
+                          ), // Using delete error key as generic error for now or add edit error key
                         );
                       }
                     } finally {
@@ -316,7 +320,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         _optimisticLiked ??
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
-    final commentsCount = post.comments?.length ?? post.commentCount ?? 0;
+    final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -504,7 +508,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                               value: 'report',
                               child: Row(
                                 children: [
-                                  const Icon(Icons.report_problem_outlined, size: 20),
+                                  const Icon(
+                                    Icons.report_problem_outlined,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(l10n.reportPost),
                                 ],
@@ -670,7 +677,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       onPressed: () {
                         if (post.id != null) {
                           Share.share(
-                            l10n.checkOutPostOnWreadom(AppLinkHelper.post(post.id!)),
+                            l10n.checkOutPostOnWreadom(
+                              AppLinkHelper.post(post.id!),
+                            ),
                             subject: l10n.wreadomPost,
                           );
                         }
@@ -903,9 +912,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.errorSubmittingComment(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorSubmittingComment(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -950,17 +959,17 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           Flexible(
             child: commentsAsync.when(
               data: (comments) {
-                  if (comments.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: Text(
-                          l10n.noCommentsYet,
-                          style: const TextStyle(color: Colors.grey),
-                        ),
+                if (comments.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Text(
+                        l10n.noCommentsYet,
+                        style: const TextStyle(color: Colors.grey),
                       ),
-                    );
-                  }
+                    ),
+                  );
+                }
                 return ListView.builder(
                   itemCount: comments.length,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -981,7 +990,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(32),
-                child: Center(child: Text(l10n.errorLoadingComments(e.toString()))),
+                child: Center(
+                  child: Text(l10n.errorLoadingComments(e.toString())),
+                ),
               ),
             ),
           ),
@@ -993,7 +1004,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                 children: [
                   Expanded(
                     child: Text(
-                      l10n.replyingTo(_replyingTo!.displayName ?? _replyingTo!.username),
+                      l10n.replyingTo(
+                        _replyingTo!.displayName ?? _replyingTo!.username,
+                      ),
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ),

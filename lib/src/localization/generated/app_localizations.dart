@@ -2053,6 +2053,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No posts yet.\nStart sharing your reading journey!'**
   String get noPostsYetStartSharing;
+
+  /// No description provided for @changeProfilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Change profile picture'**
+  String get changeProfilePicture;
+
+  /// No description provided for @changeCoverPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Change cover picture'**
+  String get changeCoverPicture;
+
+  /// No description provided for @profilePictureUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture updated.'**
+  String get profilePictureUpdated;
+
+  /// No description provided for @coverPictureUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover picture updated.'**
+  String get coverPictureUpdated;
+
+  /// No description provided for @couldNotUpdatePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update picture: {error}'**
+  String couldNotUpdatePicture(String error);
 }
 
 class _AppLocalizationsDelegate

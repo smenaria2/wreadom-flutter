@@ -11,11 +11,23 @@ class FirebaseMessageRepository implements MessageRepository {
 
   final FirebaseFirestore _firestore;
 
+  String _directConversationId(String firstUserId, String secondUserId) {
+    final ids = [firstUserId, secondUserId]..sort();
+    return 'direct_${ids[0]}_${ids[1]}';
+  }
+
   @override
   Future<String> getOrCreateDirectConversation({
     required UserModel currentUser,
     required UserModel otherUser,
   }) async {
+    final deterministicId = _directConversationId(currentUser.id, otherUser.id);
+    final deterministicRef = _firestore
+        .collection('conversations')
+        .doc(deterministicId);
+    final deterministicSnap = await deterministicRef.get();
+    if (deterministicSnap.exists) return deterministicId;
+
     final existing = await _firestore
         .collection('conversations')
         .where('type', isEqualTo: 'direct')
@@ -32,29 +44,36 @@ class FirebaseMessageRepository implements MessageRepository {
     }
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    final ref = await _firestore.collection('conversations').add({
-      'participants': [currentUser.id, otherUser.id],
-      'participantDetails': {
-        currentUser.id: {
-          'username': currentUser.username,
-          'displayName': currentUser.displayName,
-          'penName': currentUser.penName,
-          'photoURL': currentUser.photoURL,
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(deterministicRef);
+      if (snap.exists) return;
+
+      transaction.set(deterministicRef, {
+        'participants': [currentUser.id, otherUser.id],
+        'participantDetails': {
+          currentUser.id: {
+            'username': currentUser.username,
+            'displayName': currentUser.displayName,
+            'penName': currentUser.penName,
+            'photoURL': currentUser.photoURL,
+          },
+          otherUser.id: {
+            'username': otherUser.username,
+            'displayName': otherUser.displayName,
+            'penName': otherUser.penName,
+            'photoURL': otherUser.photoURL,
+          },
         },
-        otherUser.id: {
-          'username': otherUser.username,
-          'displayName': otherUser.displayName,
-          'penName': otherUser.penName,
-          'photoURL': otherUser.photoURL,
-        },
-      },
-      'memberStatus': {currentUser.id: 'accepted', otherUser.id: 'accepted'},
-      'type': 'direct',
-      'createdAt': now,
-      'updatedAt': now,
-      'createdBy': currentUser.id,
+        'memberStatus': {currentUser.id: 'accepted', otherUser.id: 'accepted'},
+        'type': 'direct',
+        'createdAt': now,
+        'updatedAt': now,
+        'createdBy': currentUser.id,
+        'firstMessageSenderId': null,
+        'recipientHasReplied': false,
+      });
     });
-    return ref.id;
+    return deterministicId;
   }
 
   @override
@@ -63,29 +82,25 @@ class FirebaseMessageRepository implements MessageRepository {
     required UserModel sender,
     required String text,
   }) async {
-    await _assertCanSend(conversationId: conversationId, senderId: sender.id);
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final conversationRef = _firestore
-        .collection('conversations')
-        .doc(conversationId);
-    await conversationRef.collection('messages').add({
-      'senderId': sender.id,
-      'senderName': sender.displayName ?? sender.username,
-      'senderPhotoURL': sender.photoURL,
-      'text': text,
-      'timestamp': now,
-      'type': 'text',
-      'readBy': [sender.id],
-    });
-    await conversationRef.update({
-      'updatedAt': now,
-      'lastMessage': {
+    await _sendMessageDocument(
+      conversationId: conversationId,
+      senderId: sender.id,
+      messageDataBuilder: (now) => {
+        'senderId': sender.id,
+        'senderName': sender.displayName ?? sender.username,
+        'senderPhotoURL': sender.photoURL,
+        'text': text,
+        'timestamp': now,
+        'type': 'text',
+        'readBy': [sender.id],
+      },
+      lastMessageBuilder: (now) => {
         'text': text,
         'senderId': sender.id,
         'timestamp': now,
         'readBy': [sender.id],
       },
-    });
+    );
   }
 
   @override
@@ -94,31 +109,27 @@ class FirebaseMessageRepository implements MessageRepository {
     required UserModel sender,
     required MessageStoryData storyData,
   }) async {
-    await _assertCanSend(conversationId: conversationId, senderId: sender.id);
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final conversationRef = _firestore
-        .collection('conversations')
-        .doc(conversationId);
     final previewText = 'Sent a book: ${storyData.title}';
-    await conversationRef.collection('messages').add({
-      'senderId': sender.id,
-      'senderName': sender.displayName ?? sender.username,
-      'senderPhotoURL': sender.photoURL,
-      'text': previewText,
-      'timestamp': now,
-      'type': 'story',
-      'storyData': storyData.toJson(),
-      'readBy': [sender.id],
-    });
-    await conversationRef.update({
-      'updatedAt': now,
-      'lastMessage': {
+    await _sendMessageDocument(
+      conversationId: conversationId,
+      senderId: sender.id,
+      messageDataBuilder: (now) => {
+        'senderId': sender.id,
+        'senderName': sender.displayName ?? sender.username,
+        'senderPhotoURL': sender.photoURL,
+        'text': previewText,
+        'timestamp': now,
+        'type': 'story',
+        'storyData': storyData.toJson(),
+        'readBy': [sender.id],
+      },
+      lastMessageBuilder: (now) => {
         'text': previewText,
         'senderId': sender.id,
         'timestamp': now,
         'readBy': [sender.id],
       },
-    });
+    );
   }
 
   @override
@@ -200,39 +211,79 @@ class FirebaseMessageRepository implements MessageRepository {
         });
   }
 
-  Future<void> _assertCanSend({
+  Future<void> _sendMessageDocument({
     required String conversationId,
     required String senderId,
+    required Map<String, dynamic> Function(int now) messageDataBuilder,
+    required Map<String, dynamic> Function(int now) lastMessageBuilder,
   }) async {
     if (conversationId.isEmpty) return;
     final conversationRef = _firestore
         .collection('conversations')
         .doc(conversationId);
-    final conversation = await conversationRef.get();
-    final data = conversation.data();
-    if (data == null) return;
+    final messageRef = conversationRef.collection('messages').doc();
+    await _firestore.runTransaction((transaction) async {
+      final conversation = await transaction.get(conversationRef);
+      final data = conversation.data();
+      if (data == null) return;
+      _assertCanSend(data: data, senderId: senderId);
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      transaction.set(messageRef, messageDataBuilder(now));
+      transaction.update(conversationRef, {
+        'updatedAt': now,
+        'lastMessage': lastMessageBuilder(now),
+        ..._messageLimitStateUpdates(data: data, senderId: senderId),
+      });
+    });
+  }
+
+  void _assertCanSend({
+    required Map<String, dynamic> data,
+    required String senderId,
+  }) {
     final memberStatus = data['memberStatus'];
     if (memberStatus is Map && memberStatus[senderId] == 'blocked') {
       throw const MessageLimitException(
         'You can\'t send messages in this conversation.',
       );
     }
-    if (data['type'] != 'direct' || data['createdBy'] != senderId) return;
+    if (data['type'] != 'direct') return;
 
-    final messages = await conversationRef
-        .collection('messages')
-        .orderBy('timestamp')
-        .limit(20)
-        .get();
-    if (messages.docs.isEmpty) return;
+    final createdBy = data['createdBy']?.toString();
+    if (createdBy != senderId) return;
 
-    final hasRecipientReply = messages.docs.any((doc) {
-      return doc.data()['senderId'] != senderId;
-    });
-    if (hasRecipientReply) return;
+    final firstMessageSenderId = data['firstMessageSenderId']?.toString();
+    final recipientHasReplied = data['recipientHasReplied'] == true;
+    final lastMessage = data['lastMessage'];
+    final legacyCreatorAlreadySent =
+        firstMessageSenderId == null &&
+        lastMessage is Map &&
+        lastMessage['senderId']?.toString() == senderId;
+    final creatorAlreadySent =
+        firstMessageSenderId == senderId || legacyCreatorAlreadySent;
 
-    throw const MessageLimitException(
-      'Only one message allowed unless recipient replies.',
-    );
+    if (creatorAlreadySent && !recipientHasReplied) {
+      throw const MessageLimitException(
+        'Only one message allowed unless recipient replies.',
+      );
+    }
+  }
+
+  Map<String, dynamic> _messageLimitStateUpdates({
+    required Map<String, dynamic> data,
+    required String senderId,
+  }) {
+    if (data['type'] != 'direct') return const {};
+
+    final createdBy = data['createdBy']?.toString();
+    final firstMessageSenderId = data['firstMessageSenderId']?.toString();
+    if (createdBy == senderId && firstMessageSenderId == null) {
+      return {'firstMessageSenderId': senderId};
+    }
+    if (createdBy != null && createdBy != senderId) {
+      return {'recipientHasReplied': true};
+    }
+    return const {};
   }
 }

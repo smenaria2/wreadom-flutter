@@ -399,6 +399,79 @@ void main() {
     expect(source, isNot(contains("'commentCount': FieldValue.increment(-1)")));
   });
 
+  test('follow repository uses idempotent relationship writes', () {
+    final source = File(
+      'lib/src/data/repositories/firebase_follow_repository.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_followDocId'));
+    expect(source, contains('transaction.get(followRef)'));
+    expect(source, contains('if (existing.exists) return;'));
+    expect(source, contains('if (deletedCount == 0) return;'));
+    expect(source, contains('FieldValue.increment(-deletedCount)'));
+    expect(source, isNot(contains(".collection('follows').doc(), {")));
+  });
+
+  test(
+    'message repository uses deterministic direct chats and atomic sends',
+    () {
+      final source = File(
+        'lib/src/data/repositories/firebase_message_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('_directConversationId'));
+      expect(source, contains("return 'direct_\${ids[0]}_\${ids[1]}'"));
+      expect(source, contains('runTransaction((transaction) async'));
+      expect(source, contains('firstMessageSenderId'));
+      expect(source, contains('recipientHasReplied'));
+      expect(source, contains('_sendMessageDocument'));
+      expect(source, contains('transaction.set(messageRef'));
+      expect(source, contains('transaction.update(conversationRef'));
+      expect(source, isNot(contains(".collection('conversations').add")));
+      expect(source, isNot(contains('await _assertCanSend(')));
+    },
+  );
+
+  test('profile fan-out updates are chunked below Firestore batch limits', () {
+    final source = File(
+      'lib/src/data/repositories/firebase_auth_repository.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_maxFanOutWritesPerBatch = 450'));
+    expect(source, contains('void queueUpdate('));
+    expect(
+      source,
+      contains('if (currentWriteCount >= _maxFanOutWritesPerBatch)'),
+    );
+    expect(source, contains('for (final batch in batches)'));
+    expect(source, isNot(contains('final batch = _firestore.batch();')));
+  });
+
+  test(
+    'feed comments use top-level comment docs instead of embedded rewrites',
+    () {
+      final feedSource = File(
+        'lib/src/data/repositories/firebase_feed_repository.dart',
+      ).readAsStringSync();
+      final commentSource = File(
+        'lib/src/data/repositories/firebase_comment_repository.dart',
+      ).readAsStringSync();
+
+      expect(feedSource, contains("_firestore.collection('comments').doc()"));
+      expect(feedSource, contains("'feedPostId': postId"));
+      expect(feedSource, contains("'commentCount': FieldValue.increment(1)"));
+      expect(feedSource, contains('_addTopLevelCommentReply'));
+      expect(feedSource, contains('_updateTopLevelReplies'));
+      expect(
+        feedSource,
+        isNot(contains("'comments': [...comments, embeddedComment]")),
+      );
+      expect(commentSource, contains('itemsById'));
+      expect(commentSource, contains("collection('comments')"));
+      expect(commentSource, contains("where('feedPostId', whereIn: ids)"));
+    },
+  );
+
   test('reader sharing, chrome, tts, and unique views stay wired', () {
     final readerSource = File(
       'lib/src/presentation/screens/reader_screen.dart',

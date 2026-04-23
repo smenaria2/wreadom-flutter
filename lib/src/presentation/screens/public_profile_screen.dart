@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -111,37 +113,7 @@ class PublicProfileScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  background: Container(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-                    child: SafeArea(
-                      child: Center(
-                        child: CircleAvatar(
-                          radius: 42,
-                          backgroundColor: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
-                          backgroundImage: user.photoURL != null
-                              ? CachedNetworkImageProvider(user.photoURL!)
-                              : null,
-                          child: user.photoURL == null
-                              ? Text(
-                                  (user.displayName ?? user.username)
-                                      .characters
-                                      .first
-                                      .toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ),
+                  background: _PublicProfileHeader(user: user),
                 ),
               ),
               SliverToBoxAdapter(
@@ -334,6 +306,70 @@ class _PrivacyNoticeCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PublicProfileHeader extends StatelessWidget {
+  const _PublicProfileHeader({required this.user});
+
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final coverUrl = user.coverPhotoURL;
+    final hasCover = coverUrl != null && coverUrl.isNotEmpty;
+    final displayName = user.displayName ?? user.username;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (hasCover)
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+            child: CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover),
+          )
+        else
+          ColoredBox(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+          ),
+        if (hasCover)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.62),
+            ),
+          ),
+        SafeArea(
+          child: Center(
+            child: CircleAvatar(
+              radius: 44,
+              backgroundColor: theme.colorScheme.surface,
+              child: CircleAvatar(
+                radius: 42,
+                backgroundColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.1,
+                ),
+                backgroundImage: user.photoURL != null
+                    ? CachedNetworkImageProvider(user.photoURL!)
+                    : null,
+                child: user.photoURL == null
+                    ? Text(
+                        displayName.characters.first.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
