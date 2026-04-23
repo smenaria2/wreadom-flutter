@@ -39,10 +39,7 @@ void main() {
     });
 
     test('word count handles html and non-breaking whitespace', () {
-      expect(
-        wordCountFromHtml('<p>One\u00A0two\tthree</p><p>four</p>'),
-        4,
-      );
+      expect(wordCountFromHtml('<p>One\u00A0two\tthree</p><p>four</p>'), 4);
       expect(wordCountFromHtml('<p>&nbsp;</p>'), 0);
     });
   });

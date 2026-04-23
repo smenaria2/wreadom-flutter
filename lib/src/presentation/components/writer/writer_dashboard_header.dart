@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_providers.dart';
+import '../../providers/writer_providers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class WriterDashboardHeader extends ConsumerWidget {
@@ -14,6 +15,14 @@ class WriterDashboardHeader extends ConsumerWidget {
     return userAsync.when(
       data: (user) {
         if (user == null) return const SizedBox.shrink();
+        final books = ref.watch(myBooksProvider).asData?.value ?? const [];
+        final published = books
+            .where((book) => book.status == 'published')
+            .length;
+        final reads = books.fold<int>(
+          0,
+          (sum, book) => sum + (book.viewCount ?? 0),
+        );
 
         return Container(
           width: double.infinity,
@@ -80,7 +89,11 @@ class WriterDashboardHeader extends ConsumerWidget {
                           ? CachedNetworkImageProvider(user.photoURL!)
                           : null,
                       child: user.photoURL == null
-                          ? Icon(Icons.person, size: 32, color: theme.primaryColor)
+                          ? Icon(
+                              Icons.person,
+                              size: 32,
+                              color: theme.primaryColor,
+                            )
                           : null,
                     ),
                   ),
@@ -91,17 +104,25 @@ class WriterDashboardHeader extends ConsumerWidget {
                 child: Row(
                   children: [
                     _InfoItem(
-                      label: 'Points',
-                      value: '${user.totalPoints ?? 0}',
-                      icon: Icons.stars_rounded,
+                      label: 'Published',
+                      value: '$published',
+                      icon: Icons.library_books_rounded,
                     ),
-                    VerticalDivider(color: Colors.white.withValues(alpha: 0.3), indent: 8, endIndent: 8),
+                    VerticalDivider(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      indent: 8,
+                      endIndent: 8,
+                    ),
                     _InfoItem(
-                      label: 'Tier',
-                      value: '${user.tier ?? 1}',
-                      icon: Icons.military_tech_rounded,
+                      label: 'Reads',
+                      value: '$reads',
+                      icon: Icons.visibility_rounded,
                     ),
-                    VerticalDivider(color: Colors.white.withValues(alpha: 0.3), indent: 8, endIndent: 8),
+                    VerticalDivider(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      indent: 8,
+                      endIndent: 8,
+                    ),
                     _InfoItem(
                       label: 'Followers',
                       value: '${user.followersCount ?? 0}',

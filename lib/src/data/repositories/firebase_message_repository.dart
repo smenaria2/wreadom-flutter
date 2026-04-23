@@ -232,7 +232,7 @@ class FirebaseMessageRepository implements MessageRepository {
     if (hasRecipientReply) return;
 
     throw const MessageLimitException(
-      'The recipient will receive only one message from you unless they reply.',
+      'Only one message allowed unless recipient replies.',
     );
   }
 }

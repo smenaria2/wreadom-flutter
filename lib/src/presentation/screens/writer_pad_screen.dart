@@ -10,11 +10,14 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
+import '../providers/follow_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
+import '../utils/notification_writer.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/writer_media_embed.dart';
+import '../../utils/app_link_helper.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
   const WriterPadScreen({super.key, this.book, this.initialTopic});
@@ -46,7 +49,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final RestorableInt _restorableCurrentChapterIndex = RestorableInt(0);
   final RestorableString _restorableContentType = RestorableString('story');
   final RestorableString _restorableCategory = RestorableString('Romance');
-  final RestorableString _restorableLanguage = RestorableString('English');
+  final RestorableString _restorableLanguage = RestorableString('Hindi');
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -69,7 +72,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
   String _category = 'Romance';
-  String _language = 'English';
+  String _language = 'Hindi';
   String? _coverUrl;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
@@ -114,7 +117,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _category = _restorableCategory.value;
     if (!_currentCategories.contains(_category)) _category = _defaultCategory;
     _language = _restorableLanguage.value.trim().isEmpty
-        ? 'English'
+        ? 'Hindi'
         : _restorableLanguage.value;
     _attachMetadataListeners();
   }
@@ -327,6 +330,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 ? null
                 : () {
                     if (_step == 0) {
+                      _populateSynopsisFromFirstLines();
                       unawaited(_syncDraftCheckpoint());
                       setState(() => _setStep(1));
                     } else {
@@ -529,7 +533,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Cover',
+                'Cover (optional)',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _onWriterSurfaceColor(context),
                   fontWeight: FontWeight.w800,
@@ -660,7 +664,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               const SizedBox(height: 14),
               _darkField(
                 controller: _topicsController.value,
-                label: 'Topics',
+                label: 'Topics (optional)',
                 hint: 'magic, friendship, survival',
               ),
             ],
@@ -737,6 +741,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   showRedo: true,
                   showDirection: false,
                   showSearchButton: false,
+                  showLink: false,
                   showSubscript: false,
                   showSuperscript: false,
                   color: toolbarColor,
@@ -1102,6 +1107,24 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return '${text.substring(0, 96).trim()}...';
   }
 
+  void _populateSynopsisFromFirstLines() {
+    if (_descriptionController.value.text.trim().isNotEmpty) return;
+    for (final chapter in _chapters) {
+      final text =
+          plainTextFromHtml(htmlFromDocument(chapter.controller.document))
+              .split('\n')
+              .map((line) => line.trim())
+              .where((line) => line.isNotEmpty)
+              .join(' ');
+      if (text.isEmpty) continue;
+      _descriptionController.value.text = text.length <= 260
+          ? text
+          : '${text.substring(0, 260).trimRight()}...';
+      _markDirty();
+      return;
+    }
+  }
+
   Future<void> _pickInlineImage() async {
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
@@ -1270,11 +1293,30 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     try {
       final localDraftKey = _draftKey(user.id);
       final book = _buildBookForSave(user, status: status);
+      final shouldNotifyFollowers =
+          status == 'published' && widget.book?.status != 'published';
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
       } else {
         await ref.read(writerRepositoryProvider).updateBook(_bookId!, book);
+      }
+      if (shouldNotifyFollowers && _bookId != null) {
+        final followers = await ref
+            .read(followRepositoryProvider)
+            .getFollowersList(user.id);
+        for (final followerId in followers) {
+          await createAppNotification(
+            ref,
+            userId: followerId,
+            actor: user,
+            type: 'new_creation',
+            text: 'published "${book.title}".',
+            link: AppLinkHelper.book(_bookId!),
+            targetId: _bookId,
+            metadata: {'bookId': _bookId},
+          );
+        }
       }
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
@@ -1470,7 +1512,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   String _languageFromBook(String? value) {
     final normalized = value?.trim().toLowerCase();
-    if (normalized == null || normalized.isEmpty) return 'English';
+    if (normalized == null || normalized.isEmpty) return 'Hindi';
     const aliases = {
       'en': 'English',
       'eng': 'English',

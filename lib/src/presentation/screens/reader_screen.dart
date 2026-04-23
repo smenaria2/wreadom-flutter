@@ -19,6 +19,7 @@ import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../utils/writer_media_utils.dart';
+import '../utils/notification_writer.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -54,6 +55,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final GlobalKey _chapterContentEndKey = GlobalKey();
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
+  Comment? _existingUserReview;
   int _chapterRating = 5;
   String? _selectedQuote;
   String _selectedText = "";
@@ -63,6 +65,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
+  bool _isReviewEditMode = true;
   bool _isTtsPlaying = false;
   bool _isTtsPreparing = false;
   bool _isTtsSequencing = false;
@@ -725,12 +728,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                   : null;
                               final buttonItems = <ContextMenuButtonItem>[
                                 ContextMenuButtonItem(
-                                  label: 'Read selected',
+                                  label: 'Share Quote',
                                   onPressed: selected.isEmpty
                                       ? null
                                       : () {
                                           selectableRegionState.hideToolbar();
-                                          _speakSelectedText(selected);
+                                          _shareSelectedQuote(
+                                            ctxChapter,
+                                            selected,
+                                          );
                                         },
                                 ),
                                 ContextMenuButtonItem(
@@ -755,15 +761,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         },
                                 ),
                                 ContextMenuButtonItem(
-                                  label: 'Share Quote',
+                                  label: 'Read aloud',
                                   onPressed: selected.isEmpty
                                       ? null
                                       : () {
                                           selectableRegionState.hideToolbar();
-                                          _shareSelectedQuote(
-                                            ctxChapter,
-                                            selected,
-                                          );
+                                          _speakSelectedText(selected);
                                         },
                                 ),
                               ];
@@ -1711,6 +1714,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (_replyingTo != null) return;
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null || _isOwnOriginalBook(user.id)) {
+      _existingUserReview = null;
+      _isReviewEditMode = true;
       _chapterRating = 5;
       return;
     }
@@ -1728,14 +1733,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         )
         .firstOrNull;
     if (existingReview == null) {
+      _existingUserReview = null;
+      _isReviewEditMode = true;
       _chapterRating = 5;
       return;
     }
 
+    _existingUserReview = existingReview;
+    _isReviewEditMode = false;
     _chapterRating = existingReview.rating ?? 5;
-    if (_commentController.value.text.trim().isEmpty) {
-      _commentController.value.text = existingReview.text;
-    }
+    _commentController.value.text = existingReview.text;
     _selectedQuote ??= existingReview.quote;
   }
 
@@ -1746,6 +1753,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (!mounted) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
+    final wasReply = _replyingTo != null;
 
     if (_replyingTo != null) {
       await ref
@@ -1762,6 +1770,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               userPhotoURL: user.photoURL,
             ),
           );
+      await createAppNotification(
+        ref,
+        userId: _replyingTo!.userId,
+        actor: user,
+        type: 'book_reply',
+        text: 'replied to your book comment.',
+        link: AppLinkHelper.book(widget.book.id),
+        targetId: widget.book.id,
+        metadata: {'bookId': widget.book.id, 'commentId': _replyingTo!.id},
+      );
       setState(() => _replyingTo = null);
     } else {
       if (_isOwnOriginalBook(user.id)) {
@@ -1778,6 +1796,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         );
         return;
       }
+      if (_existingUserReview != null && !_isReviewEditMode) return;
       final existingReview = await ref
           .read(commentRepositoryProvider)
           .getUserBookReview(widget.book.id, user.id);
@@ -1798,7 +1817,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         userPhotoURL: user.photoURL,
       );
 
-      await ref.read(commentRepositoryProvider).upsertBookReview(comment);
+      final savedReviewId = await ref
+          .read(commentRepositoryProvider)
+          .upsertBookReview(comment);
 
       if (existingReview == null) {
         await ref
@@ -1826,14 +1847,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             );
         ref.invalidate(feedPostsProvider);
       }
+      if (_bookAuthorId != null) {
+        await createAppNotification(
+          ref,
+          userId: _bookAuthorId!,
+          actor: user,
+          type: existingReview == null ? 'book_review' : 'book_comment',
+          text: existingReview == null
+              ? 'reviewed your book.'
+              : 'updated a review on your book.',
+          link: AppLinkHelper.book(widget.book.id),
+          targetId: widget.book.id,
+          metadata: {'bookId': widget.book.id},
+        );
+      }
 
       setState(() {
+        _existingUserReview = comment.copyWith(id: savedReviewId);
+        _commentController.value.text = text;
+        _isReviewEditMode = false;
         _selectedQuote = null;
-        _chapterRating = 5;
       });
     }
     await HapticFeedback.lightImpact();
-    _commentController.value.clear();
+    if (wasReply) {
+      _commentController.value.clear();
+    }
     ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
@@ -2039,12 +2078,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     ...List.generate(5, (index) {
                                       final active = index < _chapterRating;
                                       return GestureDetector(
-                                        onTap: () {
-                                          setState(
-                                            () => _chapterRating = index + 1,
-                                          );
-                                          setModalState(() {});
-                                        },
+                                        onTap:
+                                            _existingUserReview != null &&
+                                                !_isReviewEditMode
+                                            ? null
+                                            : () {
+                                                setState(
+                                                  () => _chapterRating =
+                                                      index + 1,
+                                                );
+                                                setModalState(() {});
+                                              },
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 2,
@@ -2061,6 +2105,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         ),
                                       );
                                     }),
+                                    if (_existingUserReview != null) ...[
+                                      const Spacer(),
+                                      TextButton.icon(
+                                        onPressed: _isReviewEditMode
+                                            ? null
+                                            : () {
+                                                setState(
+                                                  () =>
+                                                      _isReviewEditMode = true,
+                                                );
+                                                setModalState(() {});
+                                                _commentFocusNode
+                                                    .requestFocus();
+                                              },
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Edit'),
+                                      ),
+                                    ],
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -2068,6 +2133,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               TextField(
                                 controller: _commentController.value,
                                 focusNode: _commentFocusNode,
+                                readOnly:
+                                    _replyingTo == null &&
+                                    _existingUserReview != null &&
+                                    !_isReviewEditMode,
                                 minLines: 2,
                                 maxLines: 4,
                                 decoration: InputDecoration(
@@ -2087,17 +2156,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     child: IconButton(
                                       icon: Icon(
                                         Icons.send_rounded,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(
+                                              alpha:
+                                                  _replyingTo == null &&
+                                                      _existingUserReview !=
+                                                          null &&
+                                                      !_isReviewEditMode
+                                                  ? 0.35
+                                                  : 1,
+                                            ),
                                       ),
-                                      onPressed: () async {
-                                        await _submitComment(
-                                          chapter,
-                                          chapterIndex: chapterIndex,
-                                        );
-                                        setModalState(() {});
-                                      },
+                                      onPressed:
+                                          _replyingTo == null &&
+                                              _existingUserReview != null &&
+                                              !_isReviewEditMode
+                                          ? null
+                                          : () async {
+                                              await _submitComment(
+                                                chapter,
+                                                chapterIndex: chapterIndex,
+                                              );
+                                              setModalState(() {});
+                                            },
                                     ),
                                   ),
                                 ),

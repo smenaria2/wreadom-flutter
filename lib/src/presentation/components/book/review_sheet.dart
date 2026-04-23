@@ -39,9 +39,9 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a rating')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a rating')));
       return;
     }
 
@@ -55,9 +55,9 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
 
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to review')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please log in to review')));
       return;
     }
 
@@ -132,21 +132,24 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                   'Review: ${widget.book.title}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               if (_isSubmitting)
-                const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               else
-                TextButton(
-                  onPressed: _submit,
-                  child: const Text('Post'),
-                ),
+                TextButton(onPressed: _submit, child: const Text('Post')),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Rating Selector
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -162,7 +165,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
               );
             }),
           ),
-          
+
           const SizedBox(height: 16),
           TextField(
             controller: _textController,

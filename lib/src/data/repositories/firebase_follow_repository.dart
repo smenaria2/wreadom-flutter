@@ -4,7 +4,7 @@ import '../../domain/repositories/follow_repository.dart';
 
 class FirebaseFollowRepository implements FollowRepository {
   FirebaseFollowRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -28,20 +28,12 @@ class FirebaseFollowRepository implements FollowRepository {
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
 
-      transaction.set(
-        _firestore.collection('users').doc(followerId),
-        {
-          'followingCount': FieldValue.increment(1),
-        },
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        _firestore.collection('users').doc(followingId),
-        {
-          'followersCount': FieldValue.increment(1),
-        },
-        SetOptions(merge: true),
-      );
+      transaction.set(_firestore.collection('users').doc(followerId), {
+        'followingCount': FieldValue.increment(1),
+      }, SetOptions(merge: true));
+      transaction.set(_firestore.collection('users').doc(followingId), {
+        'followersCount': FieldValue.increment(1),
+      }, SetOptions(merge: true));
     });
   }
 
@@ -62,7 +54,9 @@ class FirebaseFollowRepository implements FollowRepository {
         .collection('follows')
         .where('followerId', isEqualTo: followerId)
         .get();
-    return snapshot.docs.map((doc) => doc.data()['followingId'] as String).toList();
+    return snapshot.docs
+        .map((doc) => doc.data()['followingId'] as String)
+        .toList();
   }
 
   @override
@@ -71,7 +65,9 @@ class FirebaseFollowRepository implements FollowRepository {
         .collection('follows')
         .where('followingId', isEqualTo: followingId)
         .get();
-    return snapshot.docs.map((doc) => doc.data()['followerId'] as String).toList();
+    return snapshot.docs
+        .map((doc) => doc.data()['followerId'] as String)
+        .toList();
   }
 
   @override
@@ -89,20 +85,12 @@ class FirebaseFollowRepository implements FollowRepository {
       for (final doc in snapshot.docs) {
         transaction.delete(doc.reference);
       }
-      transaction.set(
-        _firestore.collection('users').doc(followerId),
-        {
-          'followingCount': FieldValue.increment(-1),
-        },
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        _firestore.collection('users').doc(followingId),
-        {
-          'followersCount': FieldValue.increment(-1),
-        },
-        SetOptions(merge: true),
-      );
+      transaction.set(_firestore.collection('users').doc(followerId), {
+        'followingCount': FieldValue.increment(-1),
+      }, SetOptions(merge: true));
+      transaction.set(_firestore.collection('users').doc(followingId), {
+        'followersCount': FieldValue.increment(-1),
+      }, SetOptions(merge: true));
     });
   }
 }

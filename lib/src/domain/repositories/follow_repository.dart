@@ -1,4 +1,3 @@
-
 abstract class FollowRepository {
   Future<bool> isFollowing(String followerId, String followingId);
   Future<List<String>> getFollowingList(String followerId);

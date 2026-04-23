@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 Future<void> migrateComments() async {
   debugPrint('--- Starting Migration: Feed Comments ---');
   final firestore = FirebaseFirestore.instance;
-  
+
   final feedSnapshot = await firestore.collection('feed').get();
   debugPrint('Found ${feedSnapshot.docs.length} feed posts.');
 
@@ -17,7 +17,9 @@ Future<void> migrateComments() async {
 
     if (embeddedComments == null || embeddedComments.isEmpty) continue;
 
-    debugPrint('Processing post ${postDoc.id} (${embeddedComments.length} comments)...');
+    debugPrint(
+      'Processing post ${postDoc.id} (${embeddedComments.length} comments)...',
+    );
 
     for (final commentData in embeddedComments) {
       if (commentData is! Map<String, dynamic>) continue;

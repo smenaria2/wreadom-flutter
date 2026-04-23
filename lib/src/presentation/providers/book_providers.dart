@@ -6,7 +6,6 @@ import '../../data/repositories/composite_book_repository.dart';
 import 'auth_providers.dart';
 import '../../data/services/offline_service.dart';
 
-
 final bookRepositoryProvider = Provider<BookRepository>((ref) {
   return CompositeBookRepository();
 });
@@ -28,22 +27,31 @@ final recentBooksProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getRecentBooks();
 });
 
-final bookDetailProvider = FutureProvider.family<Book?, String>((ref, bookId) async {
+final bookDetailProvider = FutureProvider.family<Book?, String>((
+  ref,
+  bookId,
+) async {
   return ref.watch(bookRepositoryProvider).getBook(bookId);
 });
 
-final booksByBookshelfProvider =
-    FutureProvider.family<List<Book>, String>((ref, bookshelf) async {
+final booksByBookshelfProvider = FutureProvider.family<List<Book>, String>((
+  ref,
+  bookshelf,
+) async {
   return ref.watch(bookRepositoryProvider).getBooksByBookshelf(bookshelf);
 });
 
-final userBooksProvider =
-    FutureProvider.family<List<Book>, String>((ref, userId) async {
+final userBooksProvider = FutureProvider.family<List<Book>, String>((
+  ref,
+  userId,
+) async {
   return ref.watch(bookRepositoryProvider).getUserBooks(userId);
 });
 
-final bookSearchProvider =
-    FutureProvider.family<List<Book>, String>((ref, query) async {
+final bookSearchProvider = FutureProvider.family<List<Book>, String>((
+  ref,
+  query,
+) async {
   if (query.isEmpty) return [];
   return ref.watch(bookRepositoryProvider).searchBooks(query);
 });
@@ -62,7 +70,9 @@ final savedBooksProvider = FutureProvider<List<Book>>((ref) async {
   if (user == null || user.savedBooks.isEmpty) return offlineBooks;
 
   final ids = user.savedBooks.map((id) => id.toString()).toList();
-  final remoteBooks = await ref.watch(bookRepositoryProvider).getBooksByIds(ids);
+  final remoteBooks = await ref
+      .watch(bookRepositoryProvider)
+      .getBooksByIds(ids);
   final byId = <String, Book>{
     for (final book in offlineBooks) book.id: book,
     for (final book in remoteBooks) book.id: book,
@@ -85,16 +95,22 @@ final pinnedBooksProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getBooksByIds(user.pinnedWorks!);
 });
 
-final booksByGenreProvider =
-    FutureProvider.family<List<Book>, String>((ref, genre) async {
+final booksByGenreProvider = FutureProvider.family<List<Book>, String>((
+  ref,
+  genre,
+) async {
   return ref.watch(bookRepositoryProvider).getBooksByGenre(genre);
 });
-final bookChaptersProvider =
-    FutureProvider.family<List<Chapter>, String>((ref, bookId) async {
+final bookChaptersProvider = FutureProvider.family<List<Chapter>, String>((
+  ref,
+  bookId,
+) async {
   return ref.watch(bookRepositoryProvider).getChapters(bookId);
 });
 
-final offlineChaptersProvider =
-    FutureProvider.family<List<Chapter>, String>((ref, bookId) async {
+final offlineChaptersProvider = FutureProvider.family<List<Chapter>, String>((
+  ref,
+  bookId,
+) async {
   return ref.watch(offlineServiceProvider).getDownloadedChapters(bookId);
 });

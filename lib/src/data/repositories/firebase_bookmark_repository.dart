@@ -6,7 +6,7 @@ import '../utils/firestore_utils.dart';
 
 class FirebaseBookmarkRepository implements BookmarkRepository {
   FirebaseBookmarkRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 

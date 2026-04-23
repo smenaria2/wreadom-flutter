@@ -64,8 +64,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
     storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
-    androidClientId: '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
-    iosClientId: '601247128838-dks8dmicdnb04t4isqbqr0s8cgp7m7p5.apps.googleusercontent.com',
+    androidClientId:
+        '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
+    iosClientId:
+        '601247128838-dks8dmicdnb04t4isqbqr0s8cgp7m7p5.apps.googleusercontent.com',
     iosBundleId: 'in.wreadom.librebookFlutter',
   );
 
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
     storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
-    androidClientId: '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
-    iosClientId: '601247128838-dks8dmicdnb04t4isqbqr0s8cgp7m7p5.apps.googleusercontent.com',
+    androidClientId:
+        '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
+    iosClientId:
+        '601247128838-dks8dmicdnb04t4isqbqr0s8cgp7m7p5.apps.googleusercontent.com',
     iosBundleId: 'in.wreadom.librebookFlutter',
   );
 
@@ -89,5 +93,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
     measurementId: 'G-1VZNP1KDKD',
   );
-
 }

@@ -8,12 +8,16 @@ final commentRepositoryProvider = Provider<CommentRepository>((ref) {
   return FirebaseCommentRepository();
 });
 
-final bookCommentsProvider =
-    FutureProvider.family<List<Comment>, String>((ref, bookId) async {
+final bookCommentsProvider = FutureProvider.family<List<Comment>, String>((
+  ref,
+  bookId,
+) async {
   return ref.watch(commentRepositoryProvider).getBookComments(bookId);
 });
 
-final feedPostCommentsProvider =
-    FutureProvider.family<List<Comment>, String>((ref, postId) async {
+final feedPostCommentsProvider = FutureProvider.family<List<Comment>, String>((
+  ref,
+  postId,
+) async {
   return ref.watch(commentRepositoryProvider).getFeedPostComments(postId);
 });

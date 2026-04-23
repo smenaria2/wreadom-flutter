@@ -37,9 +37,15 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           if (user == null) {
             return const Center(child: Text('Please sign in'));
           }
-          _bioController.text = _bioController.text.isEmpty ? user.bio ?? '' : _bioController.text;
-          _penNameController.text = _penNameController.text.isEmpty ? user.penName ?? '' : _penNameController.text;
-          _displayNameController.text = _displayNameController.text.isEmpty ? user.displayName ?? '' : _displayNameController.text;
+          _bioController.text = _bioController.text.isEmpty
+              ? user.bio ?? ''
+              : _bioController.text;
+          _penNameController.text = _penNameController.text.isEmpty
+              ? user.penName ?? ''
+              : _penNameController.text;
+          _displayNameController.text = _displayNameController.text.isEmpty
+              ? user.displayName ?? ''
+              : _displayNameController.text;
           _privacy = user.privacyLevel ?? _privacy;
 
           return ListView(
@@ -79,7 +85,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () async {
-                  await ref.read(profileRepositoryProvider).updateProfileDetails(
+                  await ref
+                      .read(profileRepositoryProvider)
+                      .updateProfileDetails(
                         userId: user.id,
                         bio: _bioController.text.trim(),
                         penName: _penNameController.text.trim(),

@@ -68,6 +68,46 @@ class FirebaseCommentRepository implements CommentRepository {
   }
 
   @override
+  Future<void> updateCommentText(String commentId, String text) async {
+    await _firestore.collection('comments').doc(commentId).update({
+      'text': text,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  @override
+  Future<void> updateReplyText(
+    String commentId,
+    String replyId,
+    String text,
+  ) async {
+    final ref = _firestore.collection('comments').doc(commentId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(ref);
+      if (!snap.exists) return;
+      final data = snap.data() ?? {};
+      final replies = List<dynamic>.from(data['replies'] ?? const []);
+      var changed = false;
+
+      final updated = replies.map((raw) {
+        if (raw is! Map) return raw;
+        final reply = Map<String, dynamic>.from(raw);
+        final id = reply['id']?.toString();
+        final timestamp = reply['timestamp']?.toString();
+        if (id != replyId && timestamp != replyId) return raw;
+        reply['text'] = text;
+        reply['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+        changed = true;
+        return reply;
+      }).toList();
+
+      if (changed) {
+        transaction.update(ref, {'replies': updated});
+      }
+    });
+  }
+
+  @override
   Future<List<Comment>> getBookComments(String bookId) async {
     final idAsInt = int.tryParse(bookId);
     final ids = [bookId, ?idAsInt];

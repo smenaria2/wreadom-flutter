@@ -11,7 +11,8 @@ abstract class ChapterVersion with _$ChapterVersion {
     required int wordCount,
   }) = _ChapterVersion;
 
-  factory ChapterVersion.fromJson(Map<String, dynamic> json) => _$ChapterVersionFromJson(json);
+  factory ChapterVersion.fromJson(Map<String, dynamic> json) =>
+      _$ChapterVersionFromJson(json);
 }
 
 @freezed
@@ -28,5 +29,6 @@ abstract class Chapter with _$Chapter {
     String? originalBookId,
   }) = _Chapter;
 
-  factory Chapter.fromJson(Map<String, dynamic> json) => _$ChapterFromJson(json);
+  factory Chapter.fromJson(Map<String, dynamic> json) =>
+      _$ChapterFromJson(json);
 }

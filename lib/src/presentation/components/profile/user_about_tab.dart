@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/gamification_constants.dart';
 import '../../../domain/models/user_model.dart';
 
 class UserAboutTab extends StatelessWidget {
@@ -10,11 +9,6 @@ class UserAboutTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final points = user.totalPoints ?? 0;
-    final tier = GamificationConstants.getTier(points);
-    final tierName = tier['name']?.toString() ?? 'Beginner';
-    final tierLevel = user.tier ?? tier['level'] as int? ?? 1;
-
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       children: [
@@ -33,7 +27,7 @@ class UserAboutTab extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Progress',
+          'Activity',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 12),
@@ -42,16 +36,16 @@ class UserAboutTab extends StatelessWidget {
             Expanded(
               child: _ProgressTile(
                 icon: Icons.stars_rounded,
-                label: 'Points',
-                value: points.toString(),
+                label: 'Followers',
+                value: '${user.followersCount ?? 0}',
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _ProgressTile(
                 icon: Icons.military_tech_rounded,
-                label: 'Tier $tierLevel',
-                value: tierName,
+                label: 'Following',
+                value: '${user.followingCount ?? 0}',
               ),
             ),
           ],

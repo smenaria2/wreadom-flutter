@@ -12,7 +12,7 @@ dynamic ensureStringMap(dynamic data) {
       }
       return newMap;
     }
-    
+
     final Map<String, dynamic> newMap = {};
     for (final entry in data.entries) {
       newMap[entry.key.toString()] = ensureStringMap(entry.value);
@@ -21,7 +21,7 @@ dynamic ensureStringMap(dynamic data) {
   } else if (data is List) {
     return data.map((e) => ensureStringMap(e)).toList();
   } else if (data is Timestamp) {
-    // Keep timestamps as is, or convert if needed. 
+    // Keep timestamps as is, or convert if needed.
     // Most models expect int (milliseconds) or Timestamp.
     return data;
   }

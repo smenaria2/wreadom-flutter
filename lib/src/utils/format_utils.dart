@@ -29,7 +29,7 @@ class FormatUtils {
     if (date == null) return '';
     return DateFormat('dd MMM yyyy').format(date);
   }
-  
+
   /// Formats timestamp in ms to date
   static String formatTimestamp(int? timestamp) {
     if (timestamp == null) return '';

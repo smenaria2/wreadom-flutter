@@ -20,6 +20,7 @@ import '../components/generated_book_cover.dart';
 enum _HomeShelfDestination {
   communityClassics,
   originals,
+  trending,
   popular,
   recent;
 
@@ -29,6 +30,8 @@ enum _HomeShelfDestination {
         return 'Community Classics';
       case _HomeShelfDestination.originals:
         return 'Wreadom Originals';
+      case _HomeShelfDestination.trending:
+        return 'Trending Works';
       case _HomeShelfDestination.popular:
         return 'Popular Now';
       case _HomeShelfDestination.recent:
@@ -42,6 +45,8 @@ enum _HomeShelfDestination {
         return 'community-classics';
       case _HomeShelfDestination.originals:
         return 'wreadom-originals';
+      case _HomeShelfDestination.trending:
+        return 'trending-works';
       case _HomeShelfDestination.popular:
         return 'popular-now';
       case _HomeShelfDestination.recent:
@@ -80,9 +85,9 @@ class HomeBooksScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final originalsAsync = ref.watch(originalBooksProvider);
     final popularAsync = ref.watch(homepagePopularProvider);
+    final trendingAsync = ref.watch(homepageTrendingWorksProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
     final iaAsync = ref.watch(homepageIABooksProvider);
-    final authorsAsync = ref.watch(homepageAuthorsProvider);
     final fantasyAsync = ref.watch(homepageGenreProvider('fantasy'));
     final romanceAsync = ref.watch(homepageGenreProvider('romance'));
     final sciFiAsync = ref.watch(homepageGenreProvider('sci-fi'));
@@ -133,6 +138,7 @@ class HomeBooksScreen extends ConsumerWidget {
           ref.invalidate(homepageBooksProvider);
           ref.invalidate(homepageIABooksProvider);
           ref.invalidate(homepageAuthorsProvider);
+          ref.invalidate(homepageTrendingWorksProvider);
           ref.invalidate(homepageDownloadedBooksProvider);
           ref.invalidate(readingHistoryBooksProvider);
           ref.invalidate(originalBooksProvider);
@@ -170,6 +176,18 @@ class HomeBooksScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 28),
 
+              _BookshelfSection(
+                title: _HomeShelfDestination.trending.category,
+                booksAsync: trendingAsync,
+                sectionId: _HomeShelfDestination.trending.sectionId,
+                onRetry: () => ref.invalidate(homepageTrendingWorksProvider),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.trending,
+                ),
+              ),
+              const SizedBox(height: 28),
+
               // ─── Popular Books ────────────────────────────────────────
               _BookshelfSection(
                 title: _HomeShelfDestination.popular.category,
@@ -203,7 +221,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 genre: 'Fantasy',
                 sectionId: 'fantasy',
               ),
-              _AuthorsSection(authorsAsync: authorsAsync),
+              const _AuthorsSection(),
               const SizedBox(height: 28),
               _GenreSection(
                 title: 'Romance',
@@ -792,36 +810,77 @@ class _SavedBooksSection extends ConsumerWidget {
 }
 
 // ─── Bookshelf Row ────────────────────────────────────────────────────────────
-class _AuthorsSection extends ConsumerWidget {
-  const _AuthorsSection({required this.authorsAsync});
-
-  final AsyncValue<List<UserModel>> authorsAsync;
+class _AuthorsSection extends ConsumerStatefulWidget {
+  const _AuthorsSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AuthorsSection> createState() => _AuthorsSectionState();
+}
+
+class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
+  HomeAuthorRanking _ranking = HomeAuthorRanking.topRated;
+
+  String _rankingLabel(HomeAuthorRanking ranking) {
+    return switch (ranking) {
+      HomeAuthorRanking.topRated => 'Top Rated Authors',
+      HomeAuthorRanking.mostRead => 'Most Read Authors',
+      HomeAuthorRanking.mostPublished => 'Most Published Authors',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authorsAsync = ref.watch(homepageRankedAuthorsProvider(_ranking));
     return authorsAsync.when(
-      data: (authors) {
-        if (authors.isEmpty) return const SizedBox.shrink();
+      data: (rankedAuthors) {
+        if (rankedAuthors.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Writers to Follow',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Authors to Follow',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  DropdownButton<HomeAuthorRanking>(
+                    value: _ranking,
+                    underline: const SizedBox.shrink(),
+                    borderRadius: BorderRadius.circular(8),
+                    items: HomeAuthorRanking.values
+                        .map(
+                          (ranking) => DropdownMenuItem(
+                            value: ranking,
+                            child: Text(_rankingLabel(ranking)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _ranking = value);
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 112,
+              height: 132,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
-                itemCount: authors.length,
+                itemCount: rankedAuthors.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
                 itemBuilder: (context, index) {
-                  final author = authors[index];
+                  final ranked = rankedAuthors[index];
+                  final author = ranked.author;
                   final displayName = author.displayName;
                   final penName = author.penName;
                   final name = (displayName != null && displayName.isNotEmpty)
@@ -867,6 +926,18 @@ class _AuthorsSection extends ConsumerWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const SizedBox(height: 3),
+                          Text(
+                            ranked.metricLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -879,8 +950,8 @@ class _AuthorsSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
-        title: 'Writers to Follow',
-        onRetry: () => ref.invalidate(homepageAuthorsProvider),
+        title: 'Authors to Follow',
+        onRetry: () => ref.invalidate(homepageRankedAuthorsProvider(_ranking)),
       ),
     );
   }

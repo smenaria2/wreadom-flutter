@@ -39,7 +39,8 @@ class NotificationTargetResolver {
     final type = notification.type.toLowerCase();
     final targetId = _clean(notification.targetId);
 
-    final isBookActivity = type.contains('book') ||
+    final isBookActivity =
+        type.contains('book') ||
         type.contains('chapter') ||
         type.contains('quote') ||
         type.contains('review') ||
@@ -54,7 +55,8 @@ class NotificationTargetResolver {
       return NotificationTarget(AppRoutes.publicProfile, userId);
     }
 
-    final isPostActivity = type == 'post' ||
+    final isPostActivity =
+        type == 'post' ||
         type == 'feedpost' ||
         type.contains('post') ||
         type == 'like' ||

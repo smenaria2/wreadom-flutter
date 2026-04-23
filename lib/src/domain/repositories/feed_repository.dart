@@ -24,6 +24,26 @@ abstract class FeedRepository {
     String commentId,
     CommentReply reply,
   );
+  Future<void> updateCommentText(String postId, String commentId, String text);
+  Future<void> deleteComment(String postId, String commentId);
+  Future<void> updateReplyText(
+    String postId,
+    String commentId,
+    String replyId,
+    String text,
+  );
+  Future<void> deleteReply(String postId, String commentId, String replyId);
+  Future<void> toggleCommentLike(
+    String postId,
+    String commentId,
+    String userId,
+  );
+  Future<void> toggleReplyLike(
+    String postId,
+    String commentId,
+    String replyId,
+    String userId,
+  );
   Future<String> uploadPostImage(Uint8List bytes, String fileName);
   Future<FeedPost?> getFeedPost(String postId);
 }

@@ -14,5 +14,6 @@ abstract class HomepageMetadata with _$HomepageMetadata {
     String? appVersion,
   }) = _HomepageMetadata;
 
-  factory HomepageMetadata.fromJson(Map<String, dynamic> json) => _$HomepageMetadataFromJson(json);
+  factory HomepageMetadata.fromJson(Map<String, dynamic> json) =>
+      _$HomepageMetadataFromJson(json);
 }

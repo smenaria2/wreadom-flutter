@@ -13,7 +13,8 @@ abstract class StoryImage with _$StoryImage {
     required List<String> likes,
   }) = _StoryImage;
 
-  factory StoryImage.fromJson(Map<String, dynamic> json) => _$StoryImageFromJson(json);
+  factory StoryImage.fromJson(Map<String, dynamic> json) =>
+      _$StoryImageFromJson(json);
 }
 
 @freezed
@@ -22,7 +23,8 @@ abstract class FeedPost with _$FeedPost {
     String? id,
     required String userId,
     required String username,
-    required String type, // 'comment' | 'quote' | 'review' | 'testimony' | 'post'
+    required String
+    type, // 'comment' | 'quote' | 'review' | 'testimony' | 'post'
     dynamic bookId,
     String? bookTitle,
     String? bookCover,
@@ -49,5 +51,6 @@ abstract class FeedPost with _$FeedPost {
     Map<String, String>? mentions,
   }) = _FeedPost;
 
-  factory FeedPost.fromJson(Map<String, dynamic> json) => _$FeedPostFromJson(json);
+  factory FeedPost.fromJson(Map<String, dynamic> json) =>
+      _$FeedPostFromJson(json);
 }

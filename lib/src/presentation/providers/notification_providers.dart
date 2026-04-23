@@ -9,7 +9,9 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return FirebaseNotificationRepository();
 });
 
-final notificationsProvider = StreamProvider<List<AppNotification>>((ref) async* {
+final notificationsProvider = StreamProvider<List<AppNotification>>((
+  ref,
+) async* {
   final user = await ref.watch(currentUserProvider.future);
   if (user == null) {
     yield const [];

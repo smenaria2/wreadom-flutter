@@ -80,7 +80,8 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load ${widget.title}: $error')),
+        error: (error, _) =>
+            Center(child: Text('Failed to load ${widget.title}: $error')),
       ),
     );
   }

@@ -8,8 +8,10 @@ final followRepositoryProvider = Provider<FollowRepository>((ref) {
   return FirebaseFollowRepository();
 });
 
-final isFollowingProvider =
-    FutureProvider.family<bool, String>((ref, targetUserId) async {
+final isFollowingProvider = FutureProvider.family<bool, String>((
+  ref,
+  targetUserId,
+) async {
   final followingList = await ref.watch(followingListProvider.future);
   return followingList.contains(targetUserId);
 });
@@ -20,12 +22,16 @@ final followingListProvider = FutureProvider<List<String>>((ref) async {
   return ref.read(followRepositoryProvider).getFollowingList(user.id);
 });
 
-final userFollowingListProvider =
-    FutureProvider.family<List<String>, String>((ref, userId) async {
+final userFollowingListProvider = FutureProvider.family<List<String>, String>((
+  ref,
+  userId,
+) async {
   return ref.read(followRepositoryProvider).getFollowingList(userId);
 });
 
-final userFollowersListProvider =
-    FutureProvider.family<List<String>, String>((ref, userId) async {
+final userFollowersListProvider = FutureProvider.family<List<String>, String>((
+  ref,
+  userId,
+) async {
   return ref.read(followRepositoryProvider).getFollowersList(userId);
 });

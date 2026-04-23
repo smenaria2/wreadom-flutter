@@ -15,9 +15,13 @@ final userBookmarksProvider = FutureProvider<List<Bookmark>>((ref) async {
   return ref.watch(bookmarkRepositoryProvider).getUserBookmarks(user.id);
 });
 
-final bookBookmarksProvider =
-    FutureProvider.family<List<Bookmark>, String>((ref, bookId) async {
+final bookBookmarksProvider = FutureProvider.family<List<Bookmark>, String>((
+  ref,
+  bookId,
+) async {
   final user = await ref.watch(currentUserProvider.future);
   if (user == null) return [];
-  return ref.watch(bookmarkRepositoryProvider).getBookBookmarks(user.id, bookId);
+  return ref
+      .watch(bookmarkRepositoryProvider)
+      .getBookBookmarks(user.id, bookId);
 });

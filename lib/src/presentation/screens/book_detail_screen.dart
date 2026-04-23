@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/comment.dart';
+import '../../domain/models/feed_post.dart';
 import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
@@ -14,10 +15,12 @@ import '../../utils/app_link_helper.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/feed_providers.dart';
 import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/notification_writer.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
@@ -372,6 +375,9 @@ class _BookDetailBody extends ConsumerWidget {
         .where((name) => name.isNotEmpty)
         .join(', ');
     final rootContext = context;
+    final feedMessageController = TextEditingController(
+      text: 'I\'m reading "${book.title}" on Wreadom. Check it out.',
+    );
 
     await showModalBottomSheet<void>(
       context: context,
@@ -382,24 +388,100 @@ class _BookDetailBody extends ConsumerWidget {
             final conversationsAsync = ref.watch(conversationsProvider);
             final currentUser = ref.watch(currentUserProvider).asData?.value;
 
+            Future<void> shareToFeed() async {
+              final sender = await ref.read(currentUserProvider.future);
+              if (sender == null) return;
+              final text = feedMessageController.text.trim();
+              if (text.isEmpty) return;
+              await ref
+                  .read(feedRepositoryProvider)
+                  .createFeedPost(
+                    FeedPost(
+                      userId: sender.id,
+                      username: sender.username,
+                      displayName: sender.displayName,
+                      penName: sender.penName,
+                      userPhotoURL: sender.photoURL,
+                      type: 'post',
+                      text: text,
+                      bookId: book.id,
+                      bookTitle: book.title,
+                      bookCover: book.coverUrl,
+                      timestamp: DateTime.now().millisecondsSinceEpoch,
+                      likes: const [],
+                      visibility: 'public',
+                      privacy: 'public',
+                    ),
+                  );
+              ref.invalidate(feedPostsProvider);
+              ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
+              ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+              if (!sheetContext.mounted) return;
+              Navigator.of(sheetContext).pop();
+              if (!rootContext.mounted) return;
+              ScaffoldMessenger.of(
+                rootContext,
+              ).showSnackBar(const SnackBar(content: Text('Shared to feed.')));
+            }
+
             return SafeArea(
               child: conversationsAsync.when(
                 data: (conversations) {
-                  if (conversations.isEmpty || currentUser == null) {
+                  if (currentUser == null) {
                     return const Padding(
                       padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: Text('No recent conversations yet.'),
-                      ),
+                      child: Center(child: Text('Sign in to share this book.')),
                     );
                   }
 
                   return ListView.separated(
                     shrinkWrap: true,
-                    itemCount: conversations.length,
+                    itemCount: conversations.isEmpty
+                        ? 3
+                        : conversations.length + 2,
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final conversation = conversations[index];
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: feedMessageController,
+                                maxLines: 3,
+                                decoration: const InputDecoration(
+                                  labelText: 'Share to feed',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              FilledButton.icon(
+                                onPressed: shareToFeed,
+                                icon: const Icon(Icons.dynamic_feed_outlined),
+                                label: const Text('Share to feed'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      if (index == 1) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                          child: Text(
+                            'Send to chat',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        );
+                      }
+                      if (conversations.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
+                          child: Text('No recent conversations yet.'),
+                        );
+                      }
+                      final conversation = conversations[index - 2];
                       final otherId = conversation.participants.firstWhere(
                         (id) => id != currentUser.id,
                         orElse: () => conversation.participants.first,
@@ -440,6 +522,19 @@ class _BookDetailBody extends ConsumerWidget {
                                         : authors,
                                   ),
                                 );
+                            await createAppNotification(
+                              ref,
+                              userId: otherId,
+                              actor: sender,
+                              type: 'book_message',
+                              text: 'sent you a book.',
+                              link: AppLinkHelper.book(book.id),
+                              targetId: book.id,
+                              metadata: {
+                                'bookId': book.id,
+                                'conversationId': conversation.id,
+                              },
+                            );
                           } on MessageLimitException catch (error) {
                             if (!rootContext.mounted) return;
                             ScaffoldMessenger.of(rootContext).showSnackBar(
@@ -472,6 +567,7 @@ class _BookDetailBody extends ConsumerWidget {
         );
       },
     );
+    feedMessageController.dispose();
   }
 }
 

@@ -10,23 +10,27 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
   @override
   FutureOr<List<DailyTopic>> build() async {
     final metadata = await ref.watch(homepageMetadataProvider.future);
-    final metadataTopics = metadata.dailyTopics.where((t) => t.isEnabled).toList();
+    final metadataTopics = metadata.dailyTopics
+        .where((t) => t.isEnabled)
+        .toList();
     final remoteTopics = await _fetchRemoteTopics();
     final allTopics = _mergeTopics(remoteTopics, metadataTopics);
-    
+
     return allTopics.take(_limit).toList();
   }
 
   Future<void> fetchMore() async {
     if (state.isLoading || !state.hasValue) return;
-    
+
     final metadata = await ref.read(homepageMetadataProvider.future);
-    final metadataTopics = metadata.dailyTopics.where((t) => t.isEnabled).toList();
+    final metadataTopics = metadata.dailyTopics
+        .where((t) => t.isEnabled)
+        .toList();
     final remoteTopics = await _fetchRemoteTopics();
     final allTopics = _mergeTopics(remoteTopics, metadataTopics);
-    
+
     if (_limit >= allTopics.length) return;
-    
+
     _limit += 3;
     state = AsyncValue.data(allTopics.take(_limit).toList());
   }
@@ -62,6 +66,7 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
   }
 }
 
-final dailyTopicsProvider = AsyncNotifierProvider<DailyTopicsNotifier, List<DailyTopic>>(() {
-  return DailyTopicsNotifier();
-});
+final dailyTopicsProvider =
+    AsyncNotifierProvider<DailyTopicsNotifier, List<DailyTopic>>(() {
+      return DailyTopicsNotifier();
+    });

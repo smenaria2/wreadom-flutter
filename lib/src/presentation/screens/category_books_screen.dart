@@ -29,6 +29,10 @@ class CategoryBooksScreen extends ConsumerWidget {
         case 'popular':
           ref.invalidate(homepagePopularProvider);
           break;
+        case 'trending works':
+        case 'trending':
+          ref.invalidate(homepageTrendingWorksProvider);
+          break;
         case 'recently added':
         case 'recent':
           ref.invalidate(homepageRecentProvider);
@@ -44,6 +48,8 @@ class CategoryBooksScreen extends ConsumerWidget {
 
     final booksAsync = switch (normalized) {
       'wreadom originals' || 'originals' => ref.watch(originalBooksProvider),
+      'trending works' ||
+      'trending' => ref.watch(homepageTrendingWorksProvider),
       'popular now' || 'popular' => ref.watch(homepagePopularProvider),
       'recently added' || 'recent' => ref.watch(homepageRecentProvider),
       'community classics' || 'archive' => ref.watch(homepageIABooksProvider),

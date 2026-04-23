@@ -70,7 +70,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           gradient: LinearGradient(
             colors: [
               Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+              Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.2),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -101,10 +103,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  _isLogin ? 'Sign in to continue reading' : 'Join our community of readers',
+                  _isLogin
+                      ? 'Sign in to continue reading'
+                      : 'Join our community of readers',
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 SizedBox(height: 48.h),
@@ -113,21 +119,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _usernameController,
                     hintText: 'Username',
                     prefixIcon: Icons.person_outline,
-                    validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+                    validator: (val) =>
+                        (val == null || val.isEmpty) ? 'Required' : null,
                   ),
                 AuthTextField(
                   controller: _emailController,
                   hintText: 'Email Address',
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (val) => (val == null || !val.contains('@')) ? 'Invalid email' : null,
+                  validator: (val) => (val == null || !val.contains('@'))
+                      ? 'Invalid email'
+                      : null,
                 ),
                 AuthTextField(
                   controller: _passwordController,
                   hintText: 'Password',
                   prefixIcon: Icons.lock_outline,
                   obscureText: true,
-                  validator: (val) => (val == null || val.length < 6) ? 'Min 6 chars' : null,
+                  validator: (val) =>
+                      (val == null || val.length < 6) ? 'Min 6 chars' : null,
                 ),
                 SizedBox(height: 32.h),
                 PrimaryButton(
@@ -162,7 +172,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       final email = _emailController.text.trim();
                       if (email.isEmpty) {
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('Enter your email first')),
+                          const SnackBar(
+                            content: Text('Enter your email first'),
+                          ),
                         );
                         return;
                       }
@@ -202,7 +214,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: () => setState(() => _isLogin = !_isLogin),
                   child: RichText(
                     text: TextSpan(
-                      text: _isLogin ? "Don't have an account? " : "Already have an account? ",
+                      text: _isLogin
+                          ? "Don't have an account? "
+                          : "Already have an account? ",
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 14.sp,

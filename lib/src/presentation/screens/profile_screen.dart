@@ -174,10 +174,8 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           _StatItem(
-                            label: 'Points',
-                            value: FormatUtils.formatNumber(
-                              user.totalPoints ?? 0,
-                            ),
+                            label: 'Works',
+                            value: FormatUtils.formatNumber(worksCount),
                           ),
                         ],
                       ),

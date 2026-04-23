@@ -6,11 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/constants/cloudinary_constants.dart';
 
 class CloudinaryUploadService {
-  CloudinaryUploadService({
-    http.Client? client,
-    String? cloudName,
-  }) : _client = client ?? http.Client(),
-       _cloudName = cloudName ?? CloudinaryConstants.cloudName;
+  CloudinaryUploadService({http.Client? client, String? cloudName})
+    : _client = client ?? http.Client(),
+      _cloudName = cloudName ?? CloudinaryConstants.cloudName;
 
   static const int maxImageBytes = 10 * 1024 * 1024;
   static const String uploadPreset = CloudinaryConstants.uploadPreset;

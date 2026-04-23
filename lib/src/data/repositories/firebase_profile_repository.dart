@@ -20,9 +20,6 @@ class FirebaseProfileRepository implements ProfileRepository {
       savedBooks: [],
       bookmarks: [],
       pinnedWorks: [],
-      totalPoints: null,
-      tier: null,
-      pointsLastUpdatedAt: null,
     );
   }
 

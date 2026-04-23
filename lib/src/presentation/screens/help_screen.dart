@@ -136,22 +136,36 @@ class _HelpScreenState extends State<HelpScreen> {
 
   List<_HelpCategory> get _filteredCategories {
     if (_searchQuery.isEmpty) return _categories;
-    
-    return _categories.map((category) {
-      final matchesFaqs = category.faqs.where((faq) =>
-          faq.question.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          faq.answer.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-      
-      if (category.title.toLowerCase().contains(_searchQuery.toLowerCase()) || matchesFaqs.isNotEmpty) {
-        return _HelpCategory(
-          title: category.title,
-          icon: category.icon,
-          color: category.color,
-          faqs: matchesFaqs.isNotEmpty ? matchesFaqs : category.faqs,
-        );
-      }
-      return null;
-    }).whereType<_HelpCategory>().toList();
+
+    return _categories
+        .map((category) {
+          final matchesFaqs = category.faqs
+              .where(
+                (faq) =>
+                    faq.question.toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ||
+                    faq.answer.toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ),
+              )
+              .toList();
+
+          if (category.title.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ||
+              matchesFaqs.isNotEmpty) {
+            return _HelpCategory(
+              title: category.title,
+              icon: category.icon,
+              color: category.color,
+              faqs: matchesFaqs.isNotEmpty ? matchesFaqs : category.faqs,
+            );
+          }
+          return null;
+        })
+        .whereType<_HelpCategory>()
+        .toList();
   }
 
   @override
@@ -166,10 +180,7 @@ class _HelpScreenState extends State<HelpScreen> {
     final filtered = _filteredCategories;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Help & Support'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Help & Support'), centerTitle: true),
       body: Column(
         children: [
           _buildSearchHeader(theme),
@@ -220,7 +231,9 @@ class _HelpScreenState extends State<HelpScreen> {
                 )
               : null,
           filled: true,
-          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.4,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -231,7 +244,11 @@ class _HelpScreenState extends State<HelpScreen> {
     );
   }
 
-  Widget _buildCategorySection(BuildContext context, _HelpCategory category, ThemeData theme) {
+  Widget _buildCategorySection(
+    BuildContext context,
+    _HelpCategory category,
+    ThemeData theme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -262,7 +279,9 @@ class _HelpScreenState extends State<HelpScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: ExpansionTile(
         title: Text(
@@ -293,7 +312,9 @@ class _HelpScreenState extends State<HelpScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: Row(
         children: [
@@ -316,7 +337,9 @@ class _HelpScreenState extends State<HelpScreen> {
           FilledButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Support contact feature coming soon!')),
+                const SnackBar(
+                  content: Text('Support contact feature coming soon!'),
+                ),
               );
             },
             icon: const Icon(Icons.mail_outline_rounded, size: 18),
@@ -339,7 +362,10 @@ class _HelpScreenState extends State<HelpScreen> {
           const SizedBox(height: 16),
           Text(
             'No help topics found for "$_searchQuery"',
-            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

@@ -414,7 +414,14 @@ void main() {
       expect(readerSource, contains('_chapterContentEndKey'));
       expect(readerSource, contains('_progressScrollExtent'));
       expect(readerSource, contains('RenderAbstractViewport.maybeOf'));
-      expect(readerSource, contains('Read selected'));
+      final menuStart = readerSource.indexOf('final buttonItems');
+      final menuSource = readerSource.substring(menuStart);
+      final shareQuoteIndex = menuSource.indexOf('Share Quote');
+      final quoteCommentIndex = menuSource.indexOf('Quote & Comment');
+      final readAloudIndex = menuSource.indexOf('Read aloud');
+      expect(shareQuoteIndex, greaterThan(-1));
+      expect(quoteCommentIndex, greaterThan(shareQuoteIndex));
+      expect(readAloudIndex, greaterThan(quoteCommentIndex));
       expect(readerSource, contains('_speakSelectedText'));
       expect(readerSource, contains('_isSelectionTtsPlaying'));
       expect(readerSource, contains('_restoreScrollOffsetAfterModeSwitch'));
@@ -428,36 +435,41 @@ void main() {
     },
   );
 
-  test('reader review rules enforce one rated review and author highlighting', () {
-    final readerSource = File(
-      'lib/src/presentation/screens/reader_screen.dart',
-    ).readAsStringSync();
-    final commentSource = File(
-      'lib/src/domain/models/comment.dart',
-    ).readAsStringSync();
-    final repositorySource = File(
-      'lib/src/data/repositories/firebase_comment_repository.dart',
-    ).readAsStringSync();
-    final tileSource = File(
-      'lib/src/presentation/widgets/comment_widgets.dart',
-    ).readAsStringSync();
+  test(
+    'reader review rules enforce one rated review and author highlighting',
+    () {
+      final readerSource = File(
+        'lib/src/presentation/screens/reader_screen.dart',
+      ).readAsStringSync();
+      final commentSource = File(
+        'lib/src/domain/models/comment.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        'lib/src/data/repositories/firebase_comment_repository.dart',
+      ).readAsStringSync();
+      final tileSource = File(
+        'lib/src/presentation/widgets/comment_widgets.dart',
+      ).readAsStringSync();
 
-    expect(commentSource, contains('isHighlighted'));
-    expect(commentSource, contains('highlightedAt'));
-    expect(commentSource, contains('highlightedByUserId'));
-    expect(repositorySource, contains('getUserBookReview'));
-    expect(repositorySource, contains('upsertBookReview'));
-    expect(repositorySource, contains('toggleReviewHighlight'));
-    expect(repositorySource, contains('maxHighlighted = 3'));
-    expect(readerSource, contains('int _chapterRating = 5'));
-    expect(readerSource, contains('_isOwnOriginalBook'));
-    expect(readerSource, contains('Authors cannot review their own book.'));
-    expect(readerSource, contains('upsertBookReview'));
-    expect(readerSource, contains('_restoreLineBreaks'));
-    expect(readerSource, contains('viewInsets.bottom'));
-    expect(tileSource, contains('bookAuthorId'));
-    expect(tileSource, contains('Unstar'));
-  });
+      expect(commentSource, contains('isHighlighted'));
+      expect(commentSource, contains('highlightedAt'));
+      expect(commentSource, contains('highlightedByUserId'));
+      expect(repositorySource, contains('getUserBookReview'));
+      expect(repositorySource, contains('upsertBookReview'));
+      expect(repositorySource, contains('toggleReviewHighlight'));
+      expect(repositorySource, contains('maxHighlighted = 3'));
+      expect(readerSource, contains('int _chapterRating = 5'));
+      expect(readerSource, contains('_isOwnOriginalBook'));
+      expect(readerSource, contains('Authors cannot review their own book.'));
+      expect(readerSource, contains('upsertBookReview'));
+      expect(readerSource, contains('_restoreLineBreaks'));
+      expect(readerSource, contains('viewInsets.bottom'));
+      expect(tileSource, contains('bookAuthorId'));
+      expect(tileSource, contains('PopupMenuButton<String>'));
+      expect(tileSource, contains('Unpin'));
+      expect(tileSource, contains('Icons.push_pin'));
+    },
+  );
 
   test(
     'profile sharing uses generated card and public header matches theme',
@@ -717,5 +729,130 @@ void main() {
       expect(taxonomySource, isNot(contains("'$language'")));
       expect(writerPadSource, isNot(contains("'${language.toLowerCase()}'")));
     }
+  });
+
+  test('interaction writer feed and notification polish stays wired', () {
+    final commentTileSource = File(
+      'lib/src/presentation/widgets/comment_widgets.dart',
+    ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final writerSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+    final bookDetailSource = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+    final feedCardSource = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    final notificationRepoSource = File(
+      'lib/src/domain/repositories/notification_repository.dart',
+    ).readAsStringSync();
+    final messageRepoSource = File(
+      'lib/src/data/repositories/firebase_message_repository.dart',
+    ).readAsStringSync();
+
+    expect(commentTileSource, contains('PopupMenuButton<String>'));
+    expect(commentTileSource, contains('onDoubleTap'));
+    expect(commentTileSource, contains('onHorizontalDragEnd'));
+    expect(commentTileSource, contains('Unpin'));
+    expect(commentTileSource, contains('Icons.push_pin'));
+    expect(readerSource, contains('_existingUserReview'));
+    expect(readerSource, contains('_isReviewEditMode'));
+    expect(readerSource, contains('readOnly:'));
+    expect(readerSource, contains("label: const Text('Edit')"));
+    expect(writerSource, contains('_populateSynopsisFromFirstLines'));
+    expect(writerSource, contains("RestorableString('Hindi')"));
+    expect(writerSource, contains('Cover (optional)'));
+    expect(writerSource, contains('Topics (optional)'));
+    expect(writerSource, contains('showLink: false'));
+    expect(bookDetailSource, contains('Share to feed'));
+    expect(
+      bookDetailSource,
+      contains('I\\\'m reading "\${book.title}" on Wreadom. Check it out.'),
+    );
+    expect(feedCardSource, contains('_showEditPostSheet'));
+    expect(feedCardSource, contains('pickImage'));
+    expect(feedCardSource, contains('updateFeedPost'));
+    expect(notificationRepoSource, contains('createNotification'));
+    expect(notificationRepoSource, contains('createNotifications'));
+    expect(
+      messageRepoSource,
+      contains('Only one message allowed unless recipient replies.'),
+    );
+    expect(bookDetailSource, contains('Send to chat'));
+    expect(commentTileSource, contains('_SwipeActionShell'));
+    expect(commentTileSource, contains('_SlideActionChip'));
+    expect(commentTileSource, contains('HapticFeedback.selectionClick'));
+  });
+
+  test('points are removed and home rankings replace leaderboard behavior', () {
+    final authProviderSource = File(
+      'lib/src/presentation/providers/auth_providers.dart',
+    ).readAsStringSync();
+    final authRepoSource = File(
+      'lib/src/data/repositories/firebase_auth_repository.dart',
+    ).readAsStringSync();
+    final userModelSource = File(
+      'lib/src/domain/models/user_model.dart',
+    ).readAsStringSync();
+    final writerHeaderSource = File(
+      'lib/src/presentation/components/writer/writer_dashboard_header.dart',
+    ).readAsStringSync();
+    final profileSource = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+    final publicProfileSource = File(
+      'lib/src/presentation/screens/public_profile_screen.dart',
+    ).readAsStringSync();
+    final shareCardSource = File(
+      'lib/src/presentation/components/profile/profile_share_card.dart',
+    ).readAsStringSync();
+    final homeProviderSource = File(
+      'lib/src/presentation/providers/homepage_providers.dart',
+    ).readAsStringSync();
+    final homeScreenSource = File(
+      'lib/src/presentation/screens/home_books_screen.dart',
+    ).readAsStringSync();
+
+    for (final source in [
+      authProviderSource,
+      authRepoSource,
+      userModelSource,
+      writerHeaderSource,
+      profileSource,
+      publicProfileSource,
+      shareCardSource,
+    ]) {
+      expect(source, isNot(contains('totalPoints')));
+      expect(source, isNot(contains('pointsLastUpdatedAt')));
+      expect(source, isNot(contains('updateUserPoints')));
+      expect(source, isNot(contains('Gamification')));
+      expect(source, isNot(contains("label: 'Points'")));
+      expect(source, isNot(contains("label: 'Tier'")));
+    }
+
+    expect(
+      File('lib/src/domain/models/points_history.dart').existsSync(),
+      isFalse,
+    );
+    expect(
+      File(
+        'lib/src/data/repositories/firebase_gamification_repository.dart',
+      ).existsSync(),
+      isFalse,
+    );
+    expect(homeProviderSource, contains('HomeAuthorRanking.topRated'));
+    expect(homeProviderSource, contains('homepageRankedAuthorsProvider'));
+    expect(homeProviderSource, contains('homepageTrendingWorksProvider'));
+    expect(homeProviderSource, contains('viewCount'));
+    expect(homeProviderSource, contains('ratingsCount'));
+    expect(homeProviderSource, isNot(contains('FieldValue')));
+    expect(homeScreenSource, contains('Top Rated Authors'));
+    expect(homeScreenSource, contains('Most Read Authors'));
+    expect(homeScreenSource, contains('Most Published Authors'));
+    expect(homeScreenSource, contains('Trending Works'));
   });
 }

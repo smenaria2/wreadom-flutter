@@ -6,9 +6,29 @@ import '../utils/firestore_utils.dart';
 
 class FirebaseNotificationRepository implements NotificationRepository {
   FirebaseNotificationRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+
+  @override
+  Future<void> createNotification(AppNotification notification) async {
+    if (notification.userId == notification.actorId) return;
+    final data = notification.toJson();
+    data.removeWhere((key, value) => value == null);
+    await _firestore.collection('notifications').add(data);
+  }
+
+  @override
+  Future<void> createNotifications(List<AppNotification> notifications) async {
+    final batch = _firestore.batch();
+    for (final notification in notifications) {
+      if (notification.userId == notification.actorId) continue;
+      final data = notification.toJson();
+      data.removeWhere((key, value) => value == null);
+      batch.set(_firestore.collection('notifications').doc(), data);
+    }
+    await batch.commit();
+  }
 
   @override
   Future<void> markAllAsRead(String userId) async {
@@ -27,10 +47,9 @@ class FirebaseNotificationRepository implements NotificationRepository {
 
   @override
   Future<void> markAsRead(String notificationId) async {
-    await _firestore
-        .collection('notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
+    await _firestore.collection('notifications').doc(notificationId).update({
+      'isRead': true,
+    });
   }
 
   @override
@@ -40,12 +59,12 @@ class FirebaseNotificationRepository implements NotificationRepository {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final items = snapshot.docs.map((doc) {
-        final data = mapFirestoreData(doc.data(), doc.id);
-        return AppNotification.fromJson(data);
-      }).toList();
-      items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return items;
-    });
+          final items = snapshot.docs.map((doc) {
+            final data = mapFirestoreData(doc.data(), doc.id);
+            return AppNotification.fromJson(data);
+          }).toList();
+          items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return items;
+        });
   }
 }

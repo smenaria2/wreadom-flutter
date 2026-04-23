@@ -9,6 +9,8 @@ abstract class CommentRepository {
   Future<List<Comment>> getFeedPostComments(String postId);
   Future<void> deleteComment(String commentId);
   Future<void> deleteReply(String commentId, String replyId);
+  Future<void> updateCommentText(String commentId, String text);
+  Future<void> updateReplyText(String commentId, String replyId, String text);
   Future<void> toggleCommentLike(String commentId, String userId);
   Future<void> toggleReplyLike(String commentId, String replyId, String userId);
   Future<void> toggleReviewHighlight({

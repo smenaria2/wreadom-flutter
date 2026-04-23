@@ -16,7 +16,8 @@ class NotificationService {
   static final NotificationService instance = NotificationService._();
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
@@ -29,7 +30,7 @@ class NotificationService {
     // 2. Initialise local notifications
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/launcher_icon');
-    
+
     const InitializationSettings initSettings = InitializationSettings(
       android: androidSettings,
     );
@@ -49,7 +50,8 @@ class NotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     // 4. Handle foreground messages
@@ -78,7 +80,9 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification(
-      RemoteMessage message, AndroidNotificationChannel channel) async {
+    RemoteMessage message,
+    AndroidNotificationChannel channel,
+  ) async {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
@@ -124,7 +128,8 @@ class NotificationService {
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       debugPrint('User granted permission');
       return true;
-    } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
       debugPrint('User granted provisional permission');
       return true;
     } else {

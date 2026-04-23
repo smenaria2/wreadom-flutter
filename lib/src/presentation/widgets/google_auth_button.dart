@@ -23,12 +23,15 @@ class GoogleSignInButton extends ConsumerWidget {
     }
 
     return OutlinedButton.icon(
-      onPressed: () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
+      onPressed: () =>
+          ref.read(authControllerProvider.notifier).signInWithGoogle(),
       icon: const Icon(Icons.g_mobiledata, size: 30),
       label: const Text('Continue with Google'),
       style: OutlinedButton.styleFrom(
         minimumSize: Size(double.infinity, 56.h),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
       ),
     );
   }

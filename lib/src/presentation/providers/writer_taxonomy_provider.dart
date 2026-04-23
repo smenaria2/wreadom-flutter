@@ -87,8 +87,8 @@ final writerTaxonomyProvider = Provider<WriterTaxonomy>((ref) {
     },
     contentTypes: ['story', 'poem', 'article'],
     languages: [
-      'English',
       'Hindi',
+      'English',
       'Bengali',
       'Telugu',
       'Marathi',

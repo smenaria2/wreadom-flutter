@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
+import '../utils/notification_writer.dart';
 
 class FollowButton extends ConsumerWidget {
   final String targetUserId;
@@ -17,7 +18,7 @@ class FollowButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUserId = ref.watch(currentUserProvider).value?.id;
-    
+
     // Don't show follow button for self
     if (currentUserId == null || currentUserId == targetUserId) {
       return const SizedBox.shrink();
@@ -29,17 +30,25 @@ class FollowButton extends ConsumerWidget {
       data: (isFollowing) => compact
           ? IconButton(
               icon: Icon(
-                isFollowing ? Icons.person_remove_outlined : Icons.person_add_outlined,
-                color: isFollowing ? Colors.grey : Theme.of(context).colorScheme.primary,
+                isFollowing
+                    ? Icons.person_remove_outlined
+                    : Icons.person_add_outlined,
+                color: isFollowing
+                    ? Colors.grey
+                    : Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
               onPressed: () => _toggleFollow(ref, isFollowing),
             )
           : OutlinedButton(
               style: OutlinedButton.styleFrom(
-                foregroundColor: isFollowing ? Colors.grey : Theme.of(context).colorScheme.primary,
+                foregroundColor: isFollowing
+                    ? Colors.grey
+                    : Theme.of(context).colorScheme.primary,
                 side: BorderSide(
-                  color: isFollowing ? Colors.grey : Theme.of(context).colorScheme.primary,
+                  color: isFollowing
+                      ? Colors.grey
+                      : Theme.of(context).colorScheme.primary,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -53,21 +62,39 @@ class FollowButton extends ConsumerWidget {
         height: 20,
         child: CircularProgressIndicator(strokeWidth: 2),
       ),
-      error: (_, _) => const Icon(Icons.error_outline, size: 20, color: Colors.red),
+      error: (_, _) =>
+          const Icon(Icons.error_outline, size: 20, color: Colors.red),
     );
   }
 
   Future<void> _toggleFollow(WidgetRef ref, bool isFollowing) async {
-    final followerId = ref.read(currentUserProvider).value?.id;
-    if (followerId == null) return;
+    final follower = ref.read(currentUserProvider).value;
+    final followerId = follower?.id;
+    if (followerId == null || follower == null) return;
 
     final repo = ref.read(followRepositoryProvider);
-    
+
     try {
       if (isFollowing) {
-        await repo.unfollowUser(followerId: followerId, followingId: targetUserId);
+        await repo.unfollowUser(
+          followerId: followerId,
+          followingId: targetUserId,
+        );
       } else {
-        await repo.followUser(followerId: followerId, followingId: targetUserId);
+        await repo.followUser(
+          followerId: followerId,
+          followingId: targetUserId,
+        );
+        await createAppNotification(
+          ref,
+          userId: targetUserId,
+          actor: follower,
+          type: 'follow',
+          text: 'started following you.',
+          link: '',
+          targetId: followerId,
+          metadata: {'userId': followerId},
+        );
       }
       await HapticFeedback.mediumImpact();
       // Invalidate both to refresh UI

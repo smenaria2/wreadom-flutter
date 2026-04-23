@@ -12,7 +12,8 @@ abstract class MessageStoryData with _$MessageStoryData {
     required String authorNames,
   }) = _MessageStoryData;
 
-  factory MessageStoryData.fromJson(Map<String, dynamic> json) => _$MessageStoryDataFromJson(json);
+  factory MessageStoryData.fromJson(Map<String, dynamic> json) =>
+      _$MessageStoryDataFromJson(json);
 }
 
 @freezed
@@ -29,7 +30,8 @@ abstract class Message with _$Message {
     required List<String> readBy,
   }) = _Message;
 
-  factory Message.fromJson(Map<String, dynamic> json) => _$MessageFromJson(json);
+  factory Message.fromJson(Map<String, dynamic> json) =>
+      _$MessageFromJson(json);
 }
 
 @freezed
@@ -41,7 +43,8 @@ abstract class ParticipantDetail with _$ParticipantDetail {
     String? photoURL,
   }) = _ParticipantDetail;
 
-  factory ParticipantDetail.fromJson(Map<String, dynamic> json) => _$ParticipantDetailFromJson(json);
+  factory ParticipantDetail.fromJson(Map<String, dynamic> json) =>
+      _$ParticipantDetailFromJson(json);
 }
 
 @freezed
@@ -53,7 +56,8 @@ abstract class LastMessageInfo with _$LastMessageInfo {
     required List<String> readBy,
   }) = _LastMessageInfo;
 
-  factory LastMessageInfo.fromJson(Map<String, dynamic> json) => _$LastMessageInfoFromJson(json);
+  factory LastMessageInfo.fromJson(Map<String, dynamic> json) =>
+      _$LastMessageInfoFromJson(json);
 }
 
 @freezed
@@ -62,7 +66,8 @@ abstract class Conversation with _$Conversation {
     required String id,
     required List<String> participants,
     required Map<String, ParticipantDetail> participantDetails,
-    required Map<String, String> memberStatus, // 'pending' | 'accepted' | 'blocked'
+    required Map<String, String>
+    memberStatus, // 'pending' | 'accepted' | 'blocked'
     LastMessageInfo? lastMessage,
     required String type, // 'direct' | 'group'
     String? name,
@@ -71,5 +76,6 @@ abstract class Conversation with _$Conversation {
     required String createdBy,
   }) = _Conversation;
 
-  factory Conversation.fromJson(Map<String, dynamic> json) => _$ConversationFromJson(json);
+  factory Conversation.fromJson(Map<String, dynamic> json) =>
+      _$ConversationFromJson(json);
 }

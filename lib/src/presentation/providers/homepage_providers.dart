@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
@@ -119,6 +120,136 @@ final homepageAuthorsProvider = FutureProvider((ref) async {
   final metadata = await ref.watch(homepageMetadataProvider.future);
   return metadata.authors;
 });
+
+enum HomeAuthorRanking { topRated, mostRead, mostPublished }
+
+class RankedHomeAuthor {
+  const RankedHomeAuthor({required this.author, required this.metricLabel});
+
+  final UserModel author;
+  final String metricLabel;
+}
+
+final homepageRankedAuthorsProvider =
+    FutureProvider.family<List<RankedHomeAuthor>, HomeAuthorRanking>((
+      ref,
+      ranking,
+    ) async {
+      final metadata = await ref.watch(homepageMetadataProvider.future);
+      final books = await ref.watch(homepageBooksProvider.future);
+      final stats = <String, _AuthorStats>{};
+
+      for (final book in books.where(_isPublishedOriginal)) {
+        final authorId = book.authorId?.trim();
+        if (authorId == null || authorId.isEmpty) continue;
+        final authorStats = stats.putIfAbsent(authorId, _AuthorStats.new);
+        authorStats.published += 1;
+        authorStats.reads += book.viewCount ?? 0;
+        final rating = book.averageRating ?? 0;
+        final ratingsCount = book.ratingsCount ?? 0;
+        if (rating > 0 && ratingsCount > 0) {
+          authorStats.ratingWeight += ratingsCount;
+          authorStats.ratingTotal += rating * ratingsCount;
+        }
+      }
+
+      final authors = metadata.authors.where((author) {
+        return stats.containsKey(author.id);
+      }).toList();
+
+      double score(UserModel author) {
+        final authorStats = stats[author.id] ?? _AuthorStats();
+        return switch (ranking) {
+          HomeAuthorRanking.topRated => authorStats.weightedRatingScore,
+          HomeAuthorRanking.mostRead => authorStats.reads.toDouble(),
+          HomeAuthorRanking.mostPublished => authorStats.published.toDouble(),
+        };
+      }
+
+      String metric(UserModel author) {
+        final authorStats = stats[author.id] ?? _AuthorStats();
+        return switch (ranking) {
+          HomeAuthorRanking.topRated =>
+            authorStats.ratingWeight == 0
+                ? 'No ratings yet'
+                : '${authorStats.averageRating.toStringAsFixed(1)} rating',
+          HomeAuthorRanking.mostRead =>
+            '${_compactCount(authorStats.reads)} reads',
+          HomeAuthorRanking.mostPublished =>
+            '${authorStats.published} ${authorStats.published == 1 ? 'work' : 'works'}',
+        };
+      }
+
+      authors.sort((a, b) {
+        final scoreCompare = score(b).compareTo(score(a));
+        if (scoreCompare != 0) return scoreCompare;
+        final followersA = a.followersCount ?? 0;
+        final followersB = b.followersCount ?? 0;
+        return followersB.compareTo(followersA);
+      });
+
+      return authors
+          .take(20)
+          .map(
+            (author) =>
+                RankedHomeAuthor(author: author, metricLabel: metric(author)),
+          )
+          .toList();
+    });
+
+final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
+  final metadata = await ref.watch(homepageMetadataProvider.future);
+  final books = await ref.watch(homepageBooksProvider.future);
+  final statsData = metadata.recommendationStats;
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final weekInMs = 7 * 24 * 60 * 60 * 1000;
+
+  double score(Book book) {
+    final ageWeeks = book.createdAt != null
+        ? (now - book.createdAt!) / weekInMs
+        : 8.0;
+    final recency = math.exp(-math.max(0, ageWeeks) * 0.25);
+    final reads = math.log((book.viewCount ?? 0) + 1) / math.ln10;
+    final rating =
+        (book.averageRating ?? 0) *
+        math.log((book.ratingsCount ?? 0) + 1) /
+        math.ln10;
+    final recommendations =
+        (statsData[book.id]?.recommendationCount ?? 0) * 0.15;
+    return recency * 2.0 + reads + rating + recommendations;
+  }
+
+  final sorted = books.where(_isPublishedOriginal).toList()
+    ..sort((a, b) => score(b).compareTo(score(a)));
+  return sorted.take(20).toList();
+});
+
+bool _isPublishedOriginal(Book book) {
+  if (book.isOriginal != true) return false;
+  final status = book.status?.trim().toLowerCase();
+  return status == null || status.isEmpty || status == 'published';
+}
+
+String _compactCount(int value) {
+  if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+  if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+  return '$value';
+}
+
+class _AuthorStats {
+  int published = 0;
+  int reads = 0;
+  double ratingTotal = 0;
+  int ratingWeight = 0;
+
+  double get averageRating =>
+      ratingWeight == 0 ? 0 : ratingTotal / ratingWeight;
+
+  double get weightedRatingScore {
+    if (ratingWeight == 0) return 0;
+    return averageRating * math.log(ratingWeight + 1) / math.ln10;
+  }
+}
 
 final homepageDownloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
   final service = ref.watch(offlineServiceProvider);

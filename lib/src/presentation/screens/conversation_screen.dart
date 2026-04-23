@@ -9,6 +9,7 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/notification_writer.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -65,6 +66,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         currentUser != null &&
         conversation != null &&
         _isWaitingForReply(conversation, messages, currentUser.id);
+    final newDirectThread =
+        currentUser != null &&
+        conversation != null &&
+        conversation.type == 'direct' &&
+        conversation.createdBy == currentUser.id &&
+        messages.isEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -137,7 +144,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   child: Text(
                     isBlocked
                         ? 'You can\'t send messages in this conversation.'
-                        : 'The recipient will receive only one message from you unless they reply.',
+                        : 'Only one message allowed unless recipient replies.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -149,41 +156,81 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: 'Message...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
+                    if (newDirectThread) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Only one message allowed unless recipient replies.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () async {
-                        final text = _controller.text.trim();
-                        if (text.isEmpty || currentUser == null) return;
-                        try {
-                          await ref
-                              .read(messageRepositoryProvider)
-                              .sendMessage(
-                                conversationId: widget.conversationId,
-                                sender: currentUser,
-                                text: text,
+                    ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            decoration: InputDecoration(
+                              hintText: 'Message...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: () async {
+                            final text = _controller.text.trim();
+                            if (text.isEmpty || currentUser == null) return;
+                            try {
+                              await ref
+                                  .read(messageRepositoryProvider)
+                                  .sendMessage(
+                                    conversationId: widget.conversationId,
+                                    sender: currentUser,
+                                    text: text,
+                                  );
+                              if (otherUserId.isNotEmpty) {
+                                await createAppNotification(
+                                  ref,
+                                  userId: otherUserId,
+                                  actor: currentUser,
+                                  type: 'message',
+                                  text: 'sent you a message.',
+                                  link: '',
+                                  targetId: widget.conversationId,
+                                  metadata: {
+                                    'conversationId': widget.conversationId,
+                                  },
+                                );
+                              }
+                              _controller.clear();
+                            } on MessageLimitException catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.message)),
                               );
-                          _controller.clear();
-                        } on MessageLimitException catch (error) {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(error.message)),
-                          );
-                        }
-                      },
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),

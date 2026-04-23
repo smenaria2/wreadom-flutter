@@ -9,54 +9,6 @@ part of 'auth_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(gamificationRepository)
-final gamificationRepositoryProvider = GamificationRepositoryProvider._();
-
-final class GamificationRepositoryProvider
-    extends
-        $FunctionalProvider<
-          GamificationRepository,
-          GamificationRepository,
-          GamificationRepository
-        >
-    with $Provider<GamificationRepository> {
-  GamificationRepositoryProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'gamificationRepositoryProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$gamificationRepositoryHash();
-
-  @$internal
-  @override
-  $ProviderElement<GamificationRepository> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
-
-  @override
-  GamificationRepository create(Ref ref) {
-    return gamificationRepository(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(GamificationRepository value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<GamificationRepository>(value),
-    );
-  }
-}
-
-String _$gamificationRepositoryHash() =>
-    r'28fea96cdcb1382637356039feaffd5be3f7beaa';
-
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
 
@@ -96,7 +48,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'34a527397e557ed58fbd3b2f3de4aaf44144d6c4';
+String _$authRepositoryHash() => r'67d248619e0dfea653f6a22128ced2ab3aeb92cf';
 
 @ProviderFor(authState)
 final authStateProvider = AuthStateProvider._();

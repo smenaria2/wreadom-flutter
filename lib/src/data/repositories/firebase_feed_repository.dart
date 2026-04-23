@@ -217,6 +217,8 @@ class FirebaseFeedRepository implements FeedRepository {
         ...comment,
         'id': commentId,
         'timestamp': timestamp,
+        'likes': const <String>[],
+        'replies': const <Map<String, dynamic>>[],
       };
 
       transaction.update(postRef, {
@@ -263,6 +265,192 @@ class FirebaseFeedRepository implements FeedRepository {
       if (changed) {
         transaction.update(postRef, {'comments': updated});
       }
+    });
+  }
+
+  @override
+  Future<void> updateCommentText(
+    String postId,
+    String commentId,
+    String text,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        if (comment['id']?.toString() != commentId) return raw;
+        comment['text'] = text;
+        comment['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+        changed = true;
+        return comment;
+      }).toList();
+      if (changed) transaction.update(postRef, {'comments': updated});
+    });
+  }
+
+  @override
+  Future<void> deleteComment(String postId, String commentId) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      final updated = comments.where((raw) {
+        if (raw is! Map) return true;
+        return raw['id']?.toString() != commentId;
+      }).toList();
+      if (updated.length != comments.length) {
+        transaction.update(postRef, {'comments': updated});
+      }
+    });
+  }
+
+  @override
+  Future<void> updateReplyText(
+    String postId,
+    String commentId,
+    String replyId,
+    String text,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        if (comment['id']?.toString() != commentId) return raw;
+        final replies = List<dynamic>.from(comment['replies'] ?? const []);
+        comment['replies'] = replies.map((replyRaw) {
+          if (replyRaw is! Map) return replyRaw;
+          final reply = Map<String, dynamic>.from(replyRaw);
+          final id = reply['id']?.toString();
+          final timestamp = reply['timestamp']?.toString();
+          if (id != replyId && timestamp != replyId) return replyRaw;
+          reply['text'] = text;
+          reply['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+          changed = true;
+          return reply;
+        }).toList();
+        return comment;
+      }).toList();
+      if (changed) transaction.update(postRef, {'comments': updated});
+    });
+  }
+
+  @override
+  Future<void> deleteReply(
+    String postId,
+    String commentId,
+    String replyId,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        if (comment['id']?.toString() != commentId) return raw;
+        final replies = List<dynamic>.from(comment['replies'] ?? const []);
+        final filtered = replies.where((replyRaw) {
+          if (replyRaw is! Map) return true;
+          final id = replyRaw['id']?.toString();
+          final timestamp = replyRaw['timestamp']?.toString();
+          return id != replyId && timestamp != replyId;
+        }).toList();
+        if (filtered.length != replies.length) {
+          comment['replies'] = filtered;
+          changed = true;
+        }
+        return comment;
+      }).toList();
+      if (changed) transaction.update(postRef, {'comments': updated});
+    });
+  }
+
+  @override
+  Future<void> toggleCommentLike(
+    String postId,
+    String commentId,
+    String userId,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        if (comment['id']?.toString() != commentId) return raw;
+        final likes = List<dynamic>.from(comment['likes'] ?? const []);
+        if (likes.contains(userId)) {
+          likes.removeWhere((id) => id == userId);
+        } else {
+          likes.add(userId);
+        }
+        comment['likes'] = likes;
+        changed = true;
+        return comment;
+      }).toList();
+      if (changed) transaction.update(postRef, {'comments': updated});
+    });
+  }
+
+  @override
+  Future<void> toggleReplyLike(
+    String postId,
+    String commentId,
+    String replyId,
+    String userId,
+  ) async {
+    final postRef = _firestore.collection(_collection).doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(postRef);
+      if (!snap.exists) return;
+      final data = asStringMap(snap.data());
+      final comments = List<dynamic>.from(data['comments'] ?? const []);
+      var changed = false;
+      final updated = comments.map((raw) {
+        if (raw is! Map) return raw;
+        final comment = Map<String, dynamic>.from(raw);
+        if (comment['id']?.toString() != commentId) return raw;
+        final replies = List<dynamic>.from(comment['replies'] ?? const []);
+        comment['replies'] = replies.map((replyRaw) {
+          if (replyRaw is! Map) return replyRaw;
+          final reply = Map<String, dynamic>.from(replyRaw);
+          final id = reply['id']?.toString();
+          final timestamp = reply['timestamp']?.toString();
+          if (id != replyId && timestamp != replyId) return replyRaw;
+          final likes = List<dynamic>.from(reply['likes'] ?? const []);
+          if (likes.contains(userId)) {
+            likes.removeWhere((id) => id == userId);
+          } else {
+            likes.add(userId);
+          }
+          reply['likes'] = likes;
+          changed = true;
+          return reply;
+        }).toList();
+        return comment;
+      }).toList();
+      if (changed) transaction.update(postRef, {'comments': updated});
     });
   }
 

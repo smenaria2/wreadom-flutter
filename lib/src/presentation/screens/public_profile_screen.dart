@@ -189,10 +189,7 @@ class PublicProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          _StatChip(
-                            label: 'Points',
-                            value: '${user.totalPoints ?? 0}',
-                          ),
+                          _StatChip(label: 'Works', value: '$worksCount'),
                         ],
                       ),
                       if (!isSelf) ...[

@@ -13,7 +13,8 @@ abstract class ProfileVisibility with _$ProfileVisibility {
     bool? profilePicture,
   }) = _ProfileVisibility;
 
-  factory ProfileVisibility.fromJson(Map<String, dynamic> json) => _$ProfileVisibilityFromJson(json);
+  factory ProfileVisibility.fromJson(Map<String, dynamic> json) =>
+      _$ProfileVisibilityFromJson(json);
 }
 
 @freezed
@@ -23,7 +24,8 @@ abstract class NotificationPreference with _$NotificationPreference {
     required bool browser,
   }) = _NotificationPreference;
 
-  factory NotificationPreference.fromJson(Map<String, dynamic> json) => _$NotificationPreferenceFromJson(json);
+  factory NotificationPreference.fromJson(Map<String, dynamic> json) =>
+      _$NotificationPreferenceFromJson(json);
 }
 
 @freezed
@@ -41,7 +43,8 @@ abstract class NotificationSettings with _$NotificationSettings {
     required bool browserNotifications,
   }) = _NotificationSettings;
 
-  factory NotificationSettings.fromJson(Map<String, dynamic> json) => _$NotificationSettingsFromJson(json);
+  factory NotificationSettings.fromJson(Map<String, dynamic> json) =>
+      _$NotificationSettingsFromJson(json);
 }
 
 @freezed
@@ -58,7 +61,8 @@ abstract class Bookmark with _$Bookmark {
     String? highlightedText,
   }) = _Bookmark;
 
-  factory Bookmark.fromJson(Map<String, dynamic> json) => _$BookmarkFromJson(json);
+  factory Bookmark.fromJson(Map<String, dynamic> json) =>
+      _$BookmarkFromJson(json);
 }
 
 @freezed
@@ -76,9 +80,6 @@ abstract class UserModel with _$UserModel {
     ProfileVisibility? profileVisibility,
     int? followersCount,
     int? followingCount,
-    int? totalPoints,
-    int? tier,
-    int? pointsLastUpdatedAt,
     required List<dynamic> readingHistory,
     required List<dynamic> savedBooks,
     required List<Bookmark> bookmarks,
@@ -91,5 +92,6 @@ abstract class UserModel with _$UserModel {
     NotificationSettings? notificationSettings,
   }) = _UserModel;
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
 }

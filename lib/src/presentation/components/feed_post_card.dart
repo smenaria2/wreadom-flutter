@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
@@ -13,6 +14,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/format_utils.dart';
+import '../utils/notification_writer.dart';
 import '../widgets/report_dialog.dart';
 
 /// Maps post type → accent colour
@@ -55,6 +57,7 @@ class FeedPostCard extends ConsumerStatefulWidget {
 class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   bool _liking = false;
   bool _deleting = false;
+  bool _editing = false;
   bool? _optimisticLiked;
   int? _optimisticLikesCount;
 
@@ -76,6 +79,18 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       await ref
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
+      if (!wasLiked) {
+        await createAppNotification(
+          ref,
+          userId: widget.post.userId,
+          actor: user,
+          type: 'post_like',
+          text: 'liked your post.',
+          link: AppLinkHelper.post(widget.post.id!),
+          targetId: widget.post.id,
+          metadata: {'postId': widget.post.id},
+        );
+      }
       await HapticFeedback.lightImpact();
       // No need to invalidate, optimistic state handles it
     } catch (e) {
@@ -143,6 +158,137 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         ).showSnackBar(SnackBar(content: Text('Could not delete post: $e')));
       }
     }
+  }
+
+  Future<void> _showEditPostSheet() async {
+    final postId = widget.post.id;
+    if (_editing || postId == null) return;
+    final textController = TextEditingController(text: widget.post.text);
+    String? imageUrl = widget.post.imageUrl;
+    XFile? pickedImage;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Edit post',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  minLines: 3,
+                  maxLines: 8,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Update your post',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final image = await ImagePicker().pickImage(
+                          source: ImageSource.gallery,
+                          imageQuality: 88,
+                        );
+                        if (image == null) return;
+                        setModalState(() => pickedImage = image);
+                      },
+                      icon: const Icon(Icons.image_outlined),
+                      label: Text(
+                        imageUrl == null && pickedImage == null
+                            ? 'Add image'
+                            : 'Replace image',
+                      ),
+                    ),
+                    if (imageUrl != null || pickedImage != null)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setModalState(() {
+                            imageUrl = null;
+                            pickedImage = null;
+                          });
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: const Text('Remove image'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () async {
+                    final text = textController.text.trim();
+                    if (text.isEmpty) return;
+                    setState(() => _editing = true);
+                    try {
+                      var nextImageUrl = imageUrl;
+                      if (pickedImage != null) {
+                        final bytes = await pickedImage!.readAsBytes();
+                        nextImageUrl = await ref
+                            .read(feedRepositoryProvider)
+                            .uploadPostImage(bytes, pickedImage!.name);
+                      }
+                      await ref
+                          .read(feedRepositoryProvider)
+                          .updateFeedPost(postId, {
+                            'text': text,
+                            'imageUrl': nextImageUrl,
+                            'updatedAt': DateTime.now().millisecondsSinceEpoch,
+                          });
+                      _invalidateFeed(postId);
+                      if (sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(content: Text('Could not edit post: $e')),
+                        );
+                      }
+                    } finally {
+                      if (mounted) setState(() => _editing = false);
+                    }
+                  },
+                  icon: _editing
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: const Text('Save'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    textController.dispose();
+  }
+
+  void _invalidateFeed(String postId) {
+    ref.invalidate(feedPostsProvider);
+    ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
+    ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
+    ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+    ref.invalidate(userFeedPostsProvider(widget.post.userId));
+    ref.invalidate(singlePostProvider(postId));
   }
 
   @override
@@ -311,9 +457,22 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             );
                           } else if (val == 'delete') {
                             _deletePost();
+                          } else if (val == 'edit') {
+                            _showEditPostSheet();
                           }
                         },
                         itemBuilder: (context) => [
+                          if (isOwner)
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Edit Post'),
+                                ],
+                              ),
+                            ),
                           if (isOwner)
                             const PopupMenuItem(
                               value: 'delete',
@@ -684,6 +843,16 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               .read(commentRepositoryProvider)
               .addReply(_replyingTo!.id!, reply);
         }
+        await createAppNotification(
+          ref,
+          userId: _replyingTo!.userId,
+          actor: user,
+          type: 'feed_reply',
+          text: 'replied to your comment.',
+          link: AppLinkHelper.post(widget.post.id!),
+          targetId: widget.post.id,
+          metadata: {'postId': widget.post.id, 'commentId': _replyingTo!.id},
+        );
       } else {
         // Submit a top-level comment
         await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
@@ -693,6 +862,16 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           'userPhotoURL': user.photoURL,
           'text': text,
         });
+        await createAppNotification(
+          ref,
+          userId: widget.post.userId,
+          actor: user,
+          type: 'feed_comment',
+          text: 'commented on your post.',
+          link: AppLinkHelper.post(widget.post.id!),
+          targetId: widget.post.id,
+          metadata: {'postId': widget.post.id},
+        );
       }
 
       ref.invalidate(feedPostCommentsProvider(widget.post.id!));

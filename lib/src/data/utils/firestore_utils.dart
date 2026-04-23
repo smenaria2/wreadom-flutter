@@ -21,10 +21,7 @@ Map<String, dynamic> defaultNotificationSettingsMap() => {
 
 /// Ensures a raw `users/{id}` map can be parsed by [UserModel.fromJson]
 /// (lists, notification defaults, id) without throwing on legacy docs.
-Map<String, dynamic> normalizeUserMapForModel(
-  dynamic raw,
-  String docId,
-) {
+Map<String, dynamic> normalizeUserMapForModel(dynamic raw, String docId) {
   final m = asStringMap(raw);
   m['id'] = docId;
 
@@ -132,10 +129,7 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
   return result;
 }
 
-Map<String, dynamic> normalizeBookMapForModel(
-  dynamic raw,
-  String docId,
-) {
+Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   final m = asStringMap(raw);
   m['id'] = docId;
 

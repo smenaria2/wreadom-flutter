@@ -251,7 +251,8 @@ class _DailyTopicBody extends ConsumerWidget {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 0.56,
-                  crossAxisSpacing: 12, mainAxisSpacing: 18,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 18,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => BookCard(book: books[index]),

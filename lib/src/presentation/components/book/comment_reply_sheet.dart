@@ -48,7 +48,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
 
     setState(() => _submitting = true);
     try {
-      await ref.read(commentRepositoryProvider).addReply(
+      await ref
+          .read(commentRepositoryProvider)
+          .addReply(
             widget.comment.id!,
             CommentReply(
               userId: user.id,
@@ -67,9 +69,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to post reply: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to post reply: $e')));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -87,9 +89,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
         children: [
           Text(
             'Reply to ${widget.comment.displayName ?? widget.comment.username}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           TextField(

@@ -29,9 +29,9 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
   Future<void> _submit() async {
     final quoteText = _quoteController.text.trim();
     if (quoteText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a quote')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a quote')));
       return;
     }
 
@@ -62,15 +62,15 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quote shared!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Quote shared!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share quote: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to share quote: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -113,18 +113,24 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Quote input
               Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.3,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    const Icon(Icons.format_quote_rounded, color: Colors.grey, size: 32),
+                    const Icon(
+                      Icons.format_quote_rounded,
+                      color: Colors.grey,
+                      size: 32,
+                    ),
                     TextField(
                       controller: _quoteController,
                       maxLines: 4,
@@ -142,9 +148,9 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Personal comment input
               TextField(
                 controller: _commentController,
@@ -157,9 +163,9 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(

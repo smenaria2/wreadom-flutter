@@ -199,9 +199,9 @@ class ProfileShareCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Text(
-                        '${FormatUtils.formatNumber(user.totalPoints ?? 0)} POINTS',
-                        style: const TextStyle(
+                      const Text(
+                        'WREADOM CREATOR',
+                        style: TextStyle(
                           color: Color(0xFFA5B4FC),
                           fontSize: 24,
                           fontWeight: FontWeight.w900,

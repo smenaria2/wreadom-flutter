@@ -55,26 +55,23 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
 
   Future<void> setFontSize(double value) async {
     state = state.copyWith(fontSize: value);
-    await ref.read(sharedPreferencesProvider).setDouble(
-      _readerFontSizeKey,
-      value,
-    );
+    await ref
+        .read(sharedPreferencesProvider)
+        .setDouble(_readerFontSizeKey, value);
   }
 
   Future<void> setTheme(ReaderTheme value) async {
     state = state.copyWith(theme: value);
-    await ref.read(sharedPreferencesProvider).setInt(
-      _readerThemeIndexKey,
-      value.index,
-    );
+    await ref
+        .read(sharedPreferencesProvider)
+        .setInt(_readerThemeIndexKey, value.index);
   }
 
   Future<void> setFont(ReaderFont value) async {
     state = state.copyWith(font: value);
-    await ref.read(sharedPreferencesProvider).setInt(
-      _readerFontIndexKey,
-      value.index,
-    );
+    await ref
+        .read(sharedPreferencesProvider)
+        .setInt(_readerFontIndexKey, value.index);
   }
 
   T? _enumAt<T>(List<T> values, int? index) {
