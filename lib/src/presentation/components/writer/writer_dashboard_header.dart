@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../../providers/auth_providers.dart';
 import '../../providers/writer_providers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +13,7 @@ class WriterDashboardHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return userAsync.when(
       data: (user) {
@@ -59,7 +62,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back,',
+                          l10n.welcomeBackComma,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -104,7 +107,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                 child: Row(
                   children: [
                     _InfoItem(
-                      label: 'Published',
+                      label: l10n.published,
                       value: '$published',
                       icon: Icons.library_books_rounded,
                     ),
@@ -114,7 +117,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                       endIndent: 8,
                     ),
                     _InfoItem(
-                      label: 'Reads',
+                      label: l10n.reads,
                       value: '$reads',
                       icon: Icons.visibility_rounded,
                     ),
@@ -124,7 +127,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                       endIndent: 8,
                     ),
                     _InfoItem(
-                      label: 'Followers',
+                      label: l10n.followers,
                       value: '${user.followersCount ?? 0}',
                       icon: Icons.people_rounded,
                     ),

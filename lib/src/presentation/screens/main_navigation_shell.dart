@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/navigation_providers.dart';
 import 'messages_screen.dart';
@@ -62,6 +63,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedIndex = ref.watch(selectedTabProvider);
 
     return Scaffold(
@@ -70,31 +72,31 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
             ref.read(selectedTabProvider.notifier).setTab(index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.book_outlined),
-            selectedIcon: Icon(Icons.book),
-            label: 'Home',
+            icon: const Icon(Icons.book_outlined),
+            selectedIcon: const Icon(Icons.book),
+            label: l10n.home,
           ),
           NavigationDestination(
-            icon: Icon(Icons.feed_outlined),
-            selectedIcon: Icon(Icons.feed),
-            label: 'Feed',
+            icon: const Icon(Icons.feed_outlined),
+            selectedIcon: const Icon(Icons.feed),
+            label: l10n.feed,
           ),
           NavigationDestination(
-            icon: Icon(Icons.edit_note_outlined),
-            selectedIcon: Icon(Icons.edit_note),
-            label: 'Writer',
+            icon: const Icon(Icons.edit_note_outlined),
+            selectedIcon: const Icon(Icons.edit_note),
+            label: l10n.writer,
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Messages',
+            icon: const Icon(Icons.chat_bubble_outline),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: l10n.messages,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.profile,
           ),
         ],
       ),

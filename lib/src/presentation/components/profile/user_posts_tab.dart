@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../../providers/feed_providers.dart';
 import '../feed_post_card.dart';
 
@@ -9,18 +11,19 @@ class UserPostsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final postsAsync = ref.watch(userFeedPostsProvider(userId));
 
     return postsAsync.when(
       data: (posts) {
         if (posts.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
               child: Text(
-                'No posts yet.\nStart sharing your reading journey!',
+                l10n.noPostsYetStartSharing,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           );
@@ -35,7 +38,7 @@ class UserPostsTab extends ConsumerWidget {
       error: (err, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text('Error loading posts: $err'),
+          child: Text(l10n.failedToLoadPosts(err.toString())),
         ),
       ),
     );

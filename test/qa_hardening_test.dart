@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,10 @@ import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 
 void main() {
+  Map<String, dynamic> englishL10n() =>
+      jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+          as Map<String, dynamic>;
+
   Book book({
     required String id,
     required String title,
@@ -130,36 +135,56 @@ void main() {
     final source = File(
       'lib/src/presentation/components/feed_post_card.dart',
     ).readAsStringSync();
+    final l10n = englishL10n();
 
-    expect(source, contains('Error submitting comment'));
+    expect(source, contains('l10n.errorSubmittingComment'));
+    expect(
+      l10n['errorSubmittingComment'],
+      contains('Error submitting comment'),
+    );
     expect(source, isNot(contains('Error subitting comment')));
+    expect(
+      l10n['errorSubmittingComment'],
+      isNot(contains('Error subitting comment')),
+    );
   });
 
   test('feed post sharing uses Wreadom canonical query link', () {
     final source = File(
       'lib/src/presentation/components/feed_post_card.dart',
     ).readAsStringSync();
+    final l10n = englishL10n();
 
-    expect(source, contains('Check out this post on Wreadom'));
+    expect(source, contains('l10n.checkOutPostOnWreadom'));
+    expect(
+      l10n['checkOutPostOnWreadom'],
+      contains('Check out this post on Wreadom'),
+    );
     expect(source, contains('AppLinkHelper.post'));
     expect(source, isNot(contains('Check out this post on Librebook')));
+    expect(
+      l10n['checkOutPostOnWreadom'],
+      isNot(contains('Check out this post on Librebook')),
+    );
   });
 
   test('profile side menu exposes requested navigation items only', () {
     final source = File(
       'lib/src/presentation/screens/profile_screen.dart',
     ).readAsStringSync();
+    final l10n = englishL10n();
 
-    for (final label in [
-      'Edit Profile',
-      'Theme',
-      'Submit Error',
-      'Help',
-      'Privacy Policy',
-      'Terms of Use',
-      'Logout',
+    for (final key in [
+      'editProfile',
+      'theme',
+      'submitError',
+      'help',
+      'privacyPolicy',
+      'termsOfUse',
+      'logout',
     ]) {
-      expect(source, contains(label));
+      expect(source, contains('l10n.$key'));
+      expect(l10n[key], isA<String>());
     }
     for (final label in ['Competition', 'Writer Dashboard', 'Publish Book']) {
       expect(source, isNot(contains(label)));
@@ -335,8 +360,8 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('_progressForBook'));
-    expect(source, contains("'Continue Reading'"));
-    expect(source, contains("'Start Reading'"));
+    expect(source, contains('continueReading'));
+    expect(source, contains('startReading'));
     expect(source, isNot(contains('incrementViewCount')));
     expect(source, contains('initialReaderChapterIndex'));
     expect(source, contains('_ReaderDeepLinkLauncher'));
@@ -354,13 +379,13 @@ void main() {
         'lib/src/presentation/screens/book_detail_screen.dart',
       ).readAsStringSync();
 
-      expect(source, contains('Report book'));
+      expect(source, contains('reportBook'));
       expect(source, contains('if (!canEdit)'));
       expect(source, isNot(contains('PopupMenuButton<String>')));
       expect(source, contains('_RatingStat'));
       expect(source, contains('bookCommentsProvider(book.id)'));
       expect(source, contains('comment.rating'));
-      expect(source, contains('No ratings'));
+      expect(source, contains('l10n.noRatings'));
     },
   );
 
@@ -466,7 +491,7 @@ void main() {
       expect(readerSource, contains('viewInsets.bottom'));
       expect(tileSource, contains('bookAuthorId'));
       expect(tileSource, contains('PopupMenuButton<String>'));
-      expect(tileSource, contains('Unpin'));
+      expect(tileSource, contains('l10n.unpin'));
       expect(tileSource, contains('Icons.push_pin'));
     },
   );
@@ -531,17 +556,17 @@ void main() {
     ).readAsStringSync();
     final mainSource = File('lib/main.dart').readAsStringSync();
 
-    expect(profileSource, contains('Submit Error'));
+    expect(profileSource, contains('l10n.submitError'));
     expect(
-      profileSource.indexOf('Submit Error'),
-      lessThan(profileSource.indexOf("'Help'")),
+      profileSource.indexOf('l10n.submitError'),
+      lessThan(profileSource.indexOf('l10n.help')),
     );
     expect(profileSource, contains('_SubmitErrorDialog'));
     expect(profileSource, contains('submitErrorReport'));
     expect(profileSource, contains('deviceInfo'));
     expect(profileSource, contains('AppLogCollector.formattedLogs()'));
     expect(profileSource, contains('PackageInfo.fromPlatform()'));
-    expect(profileSource, contains('You must be logged in to submit errors.'));
+    expect(profileSource, contains('l10n.mustBeLoggedInToSubmitIssues'));
     expect(reportRepositorySource, contains('submitErrorReport'));
     expect(reportRepositorySource, contains('FieldValue.serverTimestamp()'));
     expect(logCollectorSource, contains('DebugPrintCallback'));
@@ -757,7 +782,7 @@ void main() {
     expect(commentTileSource, contains('PopupMenuButton<String>'));
     expect(commentTileSource, contains('onDoubleTap'));
     expect(commentTileSource, contains('onHorizontalDragEnd'));
-    expect(commentTileSource, contains('Unpin'));
+    expect(commentTileSource, contains('l10n.unpin'));
     expect(commentTileSource, contains('Icons.push_pin'));
     expect(readerSource, contains('_existingUserReview'));
     expect(readerSource, contains('_isReviewEditMode'));
@@ -768,11 +793,8 @@ void main() {
     expect(writerSource, contains('Cover (optional)'));
     expect(writerSource, contains('Topics (optional)'));
     expect(writerSource, contains('showLink: false'));
-    expect(bookDetailSource, contains('Share to feed'));
-    expect(
-      bookDetailSource,
-      contains('I\\\'m reading "\${book.title}" on Wreadom. Check it out.'),
-    );
+    expect(bookDetailSource, contains('l10n.shareToFeed'));
+    expect(bookDetailSource, contains('l10n.defaultShareMessage'));
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
     expect(feedCardSource, contains('updateFeedPost'));
@@ -782,7 +804,7 @@ void main() {
       messageRepoSource,
       contains('Only one message allowed unless recipient replies.'),
     );
-    expect(bookDetailSource, contains('Send to chat'));
+    expect(bookDetailSource, contains('l10n.sendToChat'));
     expect(commentTileSource, contains('_SwipeActionShell'));
     expect(commentTileSource, contains('_SlideActionChip'));
     expect(commentTileSource, contains('HapticFeedback.selectionClick'));
@@ -850,9 +872,14 @@ void main() {
     expect(homeProviderSource, contains('viewCount'));
     expect(homeProviderSource, contains('ratingsCount'));
     expect(homeProviderSource, isNot(contains('FieldValue')));
-    expect(homeScreenSource, contains('Top Rated Authors'));
-    expect(homeScreenSource, contains('Most Read Authors'));
-    expect(homeScreenSource, contains('Most Published Authors'));
-    expect(homeScreenSource, contains('Trending Works'));
+    final l10n = englishL10n();
+    expect(homeScreenSource, contains('l10n.topRatedAuthors'));
+    expect(homeScreenSource, contains('l10n.mostReadAuthors'));
+    expect(homeScreenSource, contains('l10n.mostPublishedAuthors'));
+    expect(homeScreenSource, contains('l10n.shelfTrending'));
+    expect(l10n['topRatedAuthors'], 'Top Rated Authors');
+    expect(l10n['mostReadAuthors'], 'Most Read Authors');
+    expect(l10n['mostPublishedAuthors'], 'Most Published Authors');
+    expect(l10n['shelfTrending'], 'Trending Works');
   });
 }

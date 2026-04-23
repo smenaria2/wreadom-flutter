@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/user_model.dart';
 
@@ -9,16 +10,17 @@ class UserAboutTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       children: [
-        const Text(
-          'Bio',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Text(
+          l10n.bio,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
         Text(
-          user.bio ?? 'No bio yet.',
+          user.bio ?? l10n.noBioYet,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontSize: 14,
@@ -26,9 +28,9 @@ class UserAboutTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        const Text(
-          'Activity',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Text(
+          l10n.activity,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 12),
         Row(
@@ -36,7 +38,7 @@ class UserAboutTab extends StatelessWidget {
             Expanded(
               child: _ProgressTile(
                 icon: Icons.stars_rounded,
-                label: 'Followers',
+                label: l10n.followers,
                 value: '${user.followersCount ?? 0}',
               ),
             ),
@@ -44,7 +46,7 @@ class UserAboutTab extends StatelessWidget {
             Expanded(
               child: _ProgressTile(
                 icon: Icons.military_tech_rounded,
-                label: 'Following',
+                label: l10n.following,
                 value: '${user.followingCount ?? 0}',
               ),
             ),

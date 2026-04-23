@@ -1,0 +1,687 @@
+{
+  "appTitle": "Wreadom",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "login": "Login",
+  "home": "Home",
+  "settings": "Settings",
+  "language": "Language",
+  "english": "English",
+  "hindi": "Hindi",
+  "selectLanguage": "Select Language",
+  "profile": "Profile",
+  "editProfile": "Edit Profile",
+  "theme": "Theme",
+  "light": "Light",
+  "dark": "Dark",
+  "logout": "Logout",
+  "help": "Help",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfUse": "Terms of Use",
+  "submitError": "Report an issue",
+  "followers": "Followers",
+  "following": "Following",
+  "works": "Works",
+  "about": "About",
+  "posts": "Posts",
+  "history": "History",
+  "saved": "Saved",
+  "profileSettings": "Profile Settings",
+  "displayName": "Display Name",
+  "penName": "Pen Name",
+  "bio": "Bio",
+  "privacy": "Privacy",
+  "public": "Public",
+  "followersOnly": "Followers Only",
+  "private": "Private",
+  "saveSettings": "Save Settings",
+  "pleaseSignIn": "Please Sign In",
+  "welcomeBack": "Welcome Back!",
+  "createAccount": "Create Account",
+  "signInToContinue": "Sign in to continue reading",
+  "joinCommunity": "Join our community of readers",
+  "username": "Username",
+  "emailAddress": "Email Address",
+  "password": "Password",
+  "requiredField": "Required",
+  "invalidEmail": "Invalid email",
+  "minChars": "Min 6 chars",
+  "loginBtn": "LOGIN",
+  "signupBtn": "SIGN UP",
+  "orDivider": "OR",
+  "forgotPassword": "Forgot password?",
+  "enterEmailFirst": "Enter your email first",
+  "passwordResetSent": "Password reset email sent",
+  "dontHaveAccount": "Don't have an account? ",
+  "alreadyHaveAccount": "Already have an account? ",
+  "signUpLink": "Sign Up",
+  "loginLink": "Login",
+  "feed": "Feed",
+  "notifications": "Notifications",
+  "searchBooks": "Search books",
+  "mine": "Mine",
+  "noFollowingPosts": "No posts from people you follow yet",
+  "noPosts": "No posts yet",
+  "beFirstToPost": "Be the first to post something!",
+  "createAPost": "Create a Post",
+  "somethingWentWrong": "Something went wrong",
+  "tryAgain": "Try Again",
+  "post": "Post",
+  "discover": "Discover",
+  "searchBooksAuthors": "Search books and authors",
+  "searchHint": "Search books, authors...",
+  "suggestedBooks": "Suggested Books",
+  "noSuggestedBooks": "No suggested books found.",
+  "noBooksFoundIn": "No books found in {genre}.",
+  "@noBooksFoundIn": {
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "noResultsFor": "No results for \"{query}\"",
+  "@noResultsFor": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "originalBooks": "Original Books",
+  "moreBooks": "More Books",
+  "profiles": "Profiles",
+  "unknownAuthor": "Unknown Author",
+  "internetArchive": "Internet Archive",
+  "bookNotFound": "Book not found",
+  "editBook": "Edit book",
+  "reportBook": "Report book",
+  "shareBookMessage": "Read \"{title}\" on Wreadom: {link}",
+  "@shareBookMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "readsStat": "{count} reads",
+  "@readsStat": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersStat": "{count} chapters",
+  "@chaptersStat": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "continueReading": "Continue Reading",
+  "startReading": "Start Reading",
+  "aboutThisBook": "About this Book",
+  "defaultShareMessage": "I'm reading \"{title}\" on Wreadom. Check it out.",
+  "@defaultShareMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "shareToFeed": "Share to feed",
+  "signInToShare": "Sign in to share this book.",
+  "sendToChat": "Send to chat",
+  "noRecentConversations": "No recent conversations yet.",
+  "conversation": "Conversation",
+  "noMessagesYet": "No messages yet",
+  "sentYouABook": "sent you a book.",
+  "sentBookSnack": "Sent \"{title}\".",
+  "@sentBookSnack": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedToFeed": "Shared to feed.",
+  "latestDiscussion": "Latest discussion",
+  "showMore": "Show more",
+  "failedToLoadChats": "Failed to load chats: {error}",
+  "@failedToLoadChats": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fetchingPublicDomain": "Fetching public-domain text...",
+  "internetArchivePreparation": "Internet Archive books can take a moment to prepare.",
+  "offline": "Offline",
+  "readAloud": "Read aloud",
+  "stop": "Stop",
+  "stopReadingAloud": "Stop reading aloud",
+  "readerSettings": "Reader Settings",
+  "shareQuote": "Share Quote",
+  "quoteAndComment": "Quote & Comment",
+  "genreFantasy": "Fantasy",
+  "genreRomance": "Romance",
+  "genreSciFi": "Science Fiction",
+  "genreMystery": "Mystery",
+  "genreHorror": "Horror",
+  "genreHistorical": "Historical",
+  "genreAdventure": "Adventure",
+  "genrePoetry": "Poetry",
+  "genreBiography": "Biography",
+  "genrePhilosophy": "Philosophy",
+  "writer": "Writer",
+  "messages": "Messages",
+  "shelfCommunityClassics": "Community Classics",
+  "shelfOriginals": "Wreadom Originals",
+  "shelfTrending": "Trending Works",
+  "shelfPopular": "Popular Now",
+  "shelfRecentlyAdded": "Recently Added",
+  "keepReading": "Keep Reading",
+  "heroBannerSubtitle": "Thousands of free books and original stories, curated for you.",
+  "exploreNow": "Explore Now",
+  "dailyTopic": "Daily Topic",
+  "readMore": "Read More",
+  "yourShelf": "Your Shelf",
+  "percentComplete": "{percent}% complete",
+  "@percentComplete": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "readyToResume": "Ready to resume",
+  "chapterNumber": "Chapter {number}",
+  "@chapterNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "errorWithDetails": "Error: {message}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "seeAll": "See All",
+  "authorsToFollow": "Authors to Follow",
+  "topRatedAuthors": "Top Rated Authors",
+  "mostReadAuthors": "Most Read Authors",
+  "mostPublishedAuthors": "Most Published Authors",
+  "featuredWreadomAuthor": "Featured Wreadom author.",
+  "authorSpotlight": "Author Spotlight",
+  "authorBooks": "{author}'s books",
+  "@authorBooks": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotLoad": "Could not load {title}.",
+  "@couldNotLoad": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "bookByAuthor": "{title} by {author}",
+  "@bookByAuthor": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadWithError": "Failed to load: {error}",
+  "@failedToLoadWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "writeSomethingFirst": "Please write something first",
+  "loginToPost": "Please log in to post",
+  "postShared": "Post shared",
+  "shareAnUpdate": "Share an update",
+  "close": "Close",
+  "postBtn": "Post",
+  "postHint": "What are you reading, thinking, or building?",
+  "removeImage": "Remove image",
+  "addImage": "Add image",
+  "likedYourPost": "liked your post.",
+  "deletePostTitle": "Delete post?",
+  "deletePostContent": "This will remove the post and its comments.",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "postDeleted": "Post deleted",
+  "couldNotDeletePost": "Could not delete post: {error}",
+  "@couldNotDeletePost": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "editPost": "Edit post",
+  "updateYourPost": "Update your post",
+  "replaceImage": "Replace image",
+  "save": "Save",
+  "reportPost": "Report Post",
+  "regarding": "Regarding",
+  "unlikePost": "Unlike post",
+  "likePost": "Like post",
+  "showComments": "Show comments",
+  "sharePost": "Share post",
+  "checkOutPostOnWreadom": "Check out this post on Wreadom: {link}",
+  "@checkOutPostOnWreadom": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "wreadomPost": "Wreadom Post",
+  "repliedToYourComment": "replied to your comment.",
+  "commentedOnYourPost": "commented on your post.",
+  "errorSubmittingComment": "Error submitting comment: {error}",
+  "@errorSubmittingComment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "commentsCount": "Comments ({count})",
+  "comments": "Comments",
+  "@commentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commentsLoading": "Comments...",
+  "noCommentsYet": "No comments yet. Be the first!",
+  "errorLoadingComments": "Error loading comments: {error}",
+  "@errorLoadingComments": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingTo": "Replying to {name}",
+  "@replyingTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addAReply": "Add a reply...",
+  "addAComment": "Add a comment...",
+  "editComment": "Edit comment",
+  "editReply": "Edit reply",
+  "editFailed": "Edit failed: {error}",
+  "@editFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCommentTitle": "Delete Comment?",
+  "deleteReplyTitle": "Delete Reply?",
+  "deleteActionUndone": "This action cannot be undone.",
+  "deleteFailed": "Delete failed: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pin": "Pin",
+  "unpin": "Unpin",
+  "edit": "Edit",
+  "report": "Report",
+  "reply": "Reply",
+  "writeYourUpdate": "Write your update",
+  "justNow": "Just now",
+  "daysAgo": "{count}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{count}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo": "{count}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareProfile": "Share profile",
+  "menu": "Menu",
+  "readWithUserOnWreadom": "Read with {name} on Wreadom\n{link}",
+  "@readWithUserOnWreadom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "noBioYet": "No bio yet.",
+  "activity": "Activity",
+  "loadMore": "Load more",
+  "themeDialogTitle": "Theme",
+  "errorType": "Issue type",
+  "whatWentWrong": "What went wrong?",
+  "describeIssueHint": "Describe the issue and what you were doing.",
+  "deviceLogsIncluded": "Device info and recent app logs will be included.",
+  "viewCollectedLogs": "View collected logs",
+  "submit": "Submit",
+  "collectedLogs": "Collected logs",
+  "noAppLogsYet": "No app logs have been collected yet.",
+  "pleaseDescribeIssue": "Please describe the issue.",
+  "mustBeLoggedInToSubmitIssues": "You must be logged in to submit issues.",
+  "issueReportSubmitted": "Issue report submitted.",
+  "failedToSubmitIssueReport": "Failed to submit issue report: {error}",
+  "@failedToSubmitIssueReport": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userNotFound": "User not found",
+  "penNameValue": "Pen name: {name}",
+  "@penNameValue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "privateAccountNotice": "This account is private. Only basic profile info is visible.",
+  "followToSeeFullProfile": "Follow this account to see their full profile.",
+  "books": "Books",
+  "noPublishedBooksYet": "No published books yet.",
+  "failedToLoadBooks": "Failed to load books: {error}",
+  "@failedToLoadBooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadPosts": "Failed to load posts: {error}",
+  "@failedToLoadPosts": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noReadingHistoryYet": "No reading history yet.",
+  "errorLoadingHistory": "Error loading history: {error}",
+  "@errorLoadingHistory": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "wreadomCreator": "WREADOM CREATOR",
+  "officialLiteraryProfile": "OFFICIAL LITERARY PROFILE - WREADOM.IN",
+  "shareProfileSubject": "{name} on Wreadom",
+  "@shareProfileSubject": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToPostReply": "Failed to post reply: {error}",
+  "@failedToPostReply": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAQuote": "Share a quote",
+  "pleaseEnterQuote": "Please enter a quote",
+  "quoteShared": "Quote shared!",
+  "failedToShareQuote": "Failed to share quote: {error}",
+  "@failedToShareQuote": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "enterQuoteHint": "Enter the quote from the book...",
+  "addThoughtsOptional": "Add your thoughts (optional)",
+  "postQuote": "Post quote",
+  "pleaseSelectRating": "Please select a rating",
+  "pleaseWriteShortReview": "Please write a short review",
+  "pleaseLoginToReview": "Please log in to review",
+  "reviewShared": "Review shared!",
+  "reviewTitle": "Review: {title}",
+  "@reviewTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewHint": "What did you think of this book?",
+  "continueWithGoogle": "Continue with Google",
+  "mustBeLoggedInToReportContent": "You must be logged in to report content.",
+  "reportSubmittedThanks": "Thank you for your report. We will review it shortly.",
+  "failedToSubmitReport": "Failed to submit report: {error}",
+  "@failedToSubmitReport": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "reportTarget": "Report {targetType}",
+  "@reportTarget": {
+    "placeholders": {
+      "targetType": {
+        "type": "String"
+      }
+    }
+  },
+  "whyReportContent": "Why are you reporting this content?",
+  "additionalDetailsOptional": "Additional details (optional)",
+  "submitReport": "Submit report",
+  "reasonSpam": "Spam",
+  "reasonOffensiveContent": "Offensive content",
+  "reasonInappropriateLanguage": "Inappropriate language",
+  "reasonHarassment": "Harassment",
+  "reasonSpoiler": "Spoiler without warning",
+  "reasonOther": "Other",
+  "markAllRead": "Mark all read",
+  "deleteChat": "Delete chat",
+  "deleteChatTitle": "Delete chat?",
+  "noConversationsYet": "No conversations yet. Start from a user profile.",
+  "postNotFoundOrDeleted": "Post not found or deleted",
+  "savedBooksTitle": "Saved Books",
+  "noSavedOrDownloadedBooksYet": "No saved or downloaded books yet.",
+  "dailyTopicNotFound": "Daily topic not found.",
+  "participateNow": "Participate now",
+  "noSubmissionsYet": "No submissions received yet.",
+  "blockUser": "Block user",
+  "messageHint": "Message...",
+  "blockUserTitle": "Block user?",
+  "block": "Block",
+  "userBlocked": "User blocked.",
+  "noRatings": "No ratings",
+  "removeSavedBookTitle": "Remove saved book?",
+  "removeSavedBookBody": "The offline download will stay available unless you remove it separately.",
+  "unsave": "Unsave",
+  "bookSavedDownloaded": "Book saved and downloaded for offline reading.",
+  "published": "Published",
+  "drafts": "Drafts",
+  "reads": "Reads",
+  "deleteDraftTitle": "Delete draft?",
+  "deleteDraftBody": "This draft will be removed from your dashboard.",
+  "draftDeleted": "Draft deleted.",
+  "deleteConversationBody": "This removes the conversation from your messages.",
+  "failedToLoadSavedBooks": "Failed to load saved books: {error}",
+  "@failedToLoadSavedBooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadPost": "Failed to load post: {error}",
+  "@failedToLoadPost": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadComments": "Failed to load comments: {error}",
+  "@failedToLoadComments": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noFollowersYet": "No {title} yet.",
+  "@noFollowersYet": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadTitle": "Failed to load {title}: {error}",
+  "@failedToLoadTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "all": "All",
+  "noNotificationsYet": "No notifications yet",
+  "noMessageNotificationsYet": "No message notifications yet",
+  "noPostNotificationsYet": "No post notifications yet",
+  "noBookNotificationsYet": "No book notifications yet",
+  "showLess": "Show less",
+  "saveFailed": "Save failed: {error}",
+  "writerDashboard": "Writer Dashboard",
+  "createContent": "Create Content",
+  "noPublishedStoriesYet": "No published stories yet",
+  "noDraftsYet": "No drafts yet",
+  "couldNotDeleteDraft": "Could not delete draft: {error}",
+  "welcomeBackComma": "Welcome back,",
+  "aboutThisTopic": "About this topic",
+  "submissionsReceived": "Submissions received",
+  "failedToLoadTopic": "Failed to load topic: {error}",
+  "writeOnDailyTopic": "Write on \"{topic}\" on Wreadom: {link}",
+  "failedToLoadSubmissions": "Failed to load submissions: {error}",
+  "cannotSendMessages": "You can't send messages in this conversation.",
+  "oneMessageAllowed": "Only one message allowed unless the recipient replies.",
+  "blockUserBody": "They will no longer be able to send messages in this conversation.",
+  "sentYouAMessage": "sent you a message.",
+  "sentMessage": "Message sent",
+  "viewComments": "View Comments",
+  "writeReview": "Write Review",
+  "deleteChapter": "Delete chapter",
+  "deleteChapterTitle": "Delete chapter?",
+  "unsavedChanges": "Unsaved changes",
+  "draftSaved": "Draft saved",
+  "@saveFailed": {
+    "description": "Shown when saving a book fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@couldNotDeleteDraft": {
+    "description": "Shown when deleting a draft fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@failedToLoadTopic": {
+    "description": "Shown when daily topic cannot load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@writeOnDailyTopic": {
+    "description": "Share text for a daily topic",
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "@failedToLoadSubmissions": {
+    "description": "Shown when submissions cannot load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noSavedBooksYet": "No saved books yet.",
+  "noPostsYetStartSharing": "No posts yet.\nStart sharing your reading journey!"
+}

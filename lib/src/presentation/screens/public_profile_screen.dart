@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../domain/models/user_model.dart';
 import '../widgets/follow_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -29,12 +30,13 @@ class PublicProfileScreen extends ConsumerWidget {
     final followingAsync = ref.watch(isFollowingProvider(userId));
     final selfId = ref.watch(currentUserProvider).asData?.value?.id;
     final isSelf = selfId == userId;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: profileAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('User not found'));
+            return Center(child: Text(l10n.userNotFound));
           }
           final theme = Theme.of(context);
           final worksCount = ref
@@ -60,7 +62,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
                 actions: [
                   IconButton(
-                    tooltip: 'Share Profile',
+                    tooltip: l10n.shareProfile,
                     icon: const Icon(Icons.share_outlined),
                     onPressed: () => _shareProfile(context, user, worksCount),
                   ),
@@ -149,7 +151,7 @@ class PublicProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if ((user.penName ?? '').isNotEmpty) ...[
-                        Text('Pen name: ${user.penName}'),
+                        Text(l10n.penNameValue(user.penName!)),
                       ],
                       if ((user.bio ?? '').isNotEmpty) ...[
                         const SizedBox(height: 12),
@@ -164,32 +166,32 @@ class PublicProfileScreen extends ConsumerWidget {
                       Row(
                         children: [
                           _StatChip(
-                            label: 'Followers',
+                            label: l10n.followers,
                             value: '${user.followersCount ?? 0}',
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.followList,
                               arguments: FollowListArguments(
                                 userId: userId,
                                 mode: FollowListMode.followers,
-                                title: 'Followers',
+                                title: l10n.followers,
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           _StatChip(
-                            label: 'Following',
+                            label: l10n.following,
                             value: '${user.followingCount ?? 0}',
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.followList,
                               arguments: FollowListArguments(
                                 userId: userId,
                                 mode: FollowListMode.following,
-                                title: 'Following',
+                                title: l10n.following,
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
-                          _StatChip(label: 'Works', value: '$worksCount'),
+                          _StatChip(label: l10n.works, value: '$worksCount'),
                         ],
                       ),
                       if (!isSelf) ...[
@@ -204,15 +206,13 @@ class PublicProfileScreen extends ConsumerWidget {
                                 level == 'followers_only';
                             if (level == 'private') {
                               return _PrivacyNoticeCard(
-                                message:
-                                    'This account is private. Only basic profile info is visible.',
+                                message: l10n.privateAccountNotice,
                                 icon: Icons.lock_outline,
                               );
                             }
                             if (followersOnly && !isFollowing) {
                               return _PrivacyNoticeCard(
-                                message:
-                                    'Follow this account to see their full profile.',
+                                message: l10n.followToSeeFullProfile,
                                 icon: Icons.people_outline,
                               );
                             }
@@ -235,7 +235,8 @@ class PublicProfileScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load: $error')),
+        error: (error, _) =>
+            Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
       ),
     );
   }
@@ -246,8 +247,9 @@ class PublicProfileScreen extends ConsumerWidget {
       context,
       user: user,
       worksCount: worksCount,
-      fallbackText:
-          'Read with $name on Wreadom\n${AppLinkHelper.user(user.id)}',
+      fallbackText: AppLocalizations.of(
+        context,
+      )!.readWithUserOnWreadom(name, AppLinkHelper.user(user.id)),
     );
   }
 }
@@ -286,13 +288,14 @@ class _PublicProfileContentTabsState extends State<_PublicProfileContentTabs>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         TabBar(
           controller: _controller,
-          tabs: const [
-            Tab(text: 'Books'),
-            Tab(text: 'Posts'),
+          tabs: [
+            Tab(text: l10n.books),
+            Tab(text: l10n.posts),
           ],
         ),
         const SizedBox(height: 16),
@@ -363,13 +366,14 @@ class _PublicBooksSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booksAsync = ref.watch(userBooksProvider(userId));
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         booksAsync.when(
           data: (books) {
             if (books.isEmpty) {
-              return const Text('No published books yet.');
+              return Text(l10n.noPublishedBooksYet);
             }
             return GridView.builder(
               shrinkWrap: true,
@@ -392,7 +396,7 @@ class _PublicBooksSection extends ConsumerWidget {
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => Text('Failed to load books: $error'),
+          error: (error, _) => Text(l10n.failedToLoadBooks(error.toString())),
         ),
       ],
     );
@@ -407,11 +411,12 @@ class _PublicPostsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postsAsync = ref.watch(userFeedPostsProvider(userId));
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Posts',
+          l10n.posts,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -420,7 +425,7 @@ class _PublicPostsSection extends ConsumerWidget {
         postsAsync.when(
           data: (posts) {
             if (posts.isEmpty) {
-              return const Text('No posts yet.');
+              return Text(l10n.noPosts);
             }
             return Column(
               children: [
@@ -429,7 +434,7 @@ class _PublicPostsSection extends ConsumerWidget {
             );
           },
           loading: () => const LinearProgressIndicator(),
-          error: (error, _) => Text('Failed to load posts: $error'),
+          error: (error, _) => Text(l10n.failedToLoadPosts(error.toString())),
         ),
       ],
     );

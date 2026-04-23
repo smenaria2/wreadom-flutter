@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 
@@ -29,13 +30,14 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile Settings')),
+      appBar: AppBar(title: Text(l10n.profileSettings)),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Please sign in'));
+            return Center(child: Text(l10n.pleaseSignIn));
           }
           _bioController.text = _bioController.text.isEmpty
               ? user.bio ?? ''
@@ -53,30 +55,30 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             children: [
               TextField(
                 controller: _displayNameController,
-                decoration: const InputDecoration(labelText: 'Display name'),
+                decoration: InputDecoration(labelText: l10n.displayName),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _penNameController,
-                decoration: const InputDecoration(labelText: 'Pen name'),
+                decoration: InputDecoration(labelText: l10n.penName),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _bioController,
                 maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Bio'),
+                decoration: InputDecoration(labelText: l10n.bio),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _privacy,
-                decoration: const InputDecoration(labelText: 'Privacy'),
-                items: const [
-                  DropdownMenuItem(value: 'public', child: Text('Public')),
+                decoration: InputDecoration(labelText: l10n.privacy),
+                items: [
+                  DropdownMenuItem(value: 'public', child: Text(l10n.public)),
                   DropdownMenuItem(
                     value: 'followers',
-                    child: Text('Followers only'),
+                    child: Text(l10n.followersOnly),
                   ),
-                  DropdownMenuItem(value: 'private', child: Text('Private')),
+                  DropdownMenuItem(value: 'private', child: Text(l10n.private)),
                 ],
                 onChanged: (value) {
                   if (value != null) setState(() => _privacy = value);
@@ -99,13 +101,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   ref.invalidate(currentUserProvider);
                   if (context.mounted) Navigator.of(context).pop();
                 },
-                child: const Text('Save Settings'),
+                child: Text(l10n.saveSettings),
               ),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load: $error')),
+        error: (error, _) => Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
       ),
     );
   }

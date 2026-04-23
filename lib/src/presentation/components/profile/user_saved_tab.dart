@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../../providers/book_providers.dart';
 import '../book_card.dart';
 
@@ -8,18 +10,19 @@ class UserSavedTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final booksAsync = ref.watch(savedBooksProvider);
 
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
               child: Text(
-                'No saved books yet.',
+                l10n.noSavedBooksYet,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           );
@@ -41,7 +44,7 @@ class UserSavedTab extends ConsumerWidget {
       error: (err, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text('Error loading saved books: $err'),
+          child: Text(l10n.failedToLoadSavedBooks(err.toString())),
         ),
       ),
     );

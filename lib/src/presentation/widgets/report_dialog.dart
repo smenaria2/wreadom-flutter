@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../domain/models/report.dart';
 import '../providers/report_providers.dart';
 import '../providers/auth_providers.dart';
@@ -23,13 +24,13 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
   final _detailsController = TextEditingController();
   bool _submitting = false;
 
-  final List<String> _reasons = [
-    'Spam',
-    'Offensive Content',
-    'Inappropriate Language',
-    'Harassment',
-    'Spoiler without warning',
-    'Other',
+  final List<String> _reasons = const [
+    'spam',
+    'offensive_content',
+    'inappropriate_language',
+    'harassment',
+    'spoiler',
+    'other',
   ];
 
   @override
@@ -42,15 +43,14 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
     if (_selectedReason == null) return;
 
     setState(() => _submitting = true);
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final user = ref.read(currentUserProvider).value;
       if (user == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You must be logged in to report content.'),
-            ),
+            SnackBar(content: Text(l10n.mustBeLoggedInToReportContent)),
           );
         }
         return;
@@ -74,19 +74,17 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Thank you for your report. We will review it shortly.',
-            ),
+          SnackBar(
+            content: Text(l10n.reportSubmittedThanks),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.failedToSubmitReport(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -95,14 +93,15 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text('Report ${widget.targetType}'),
+      title: Text(l10n.reportTarget(widget.targetType)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Why are you reporting this content?'),
+            Text(l10n.whyReportContent),
             const SizedBox(height: 12),
             RadioGroup<String>(
               groupValue: _selectedReason,
@@ -112,7 +111,7 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
                 children: [
                   ..._reasons.map(
                     (reason) => RadioListTile<String>(
-                      title: Text(reason),
+                      title: Text(_reasonLabel(l10n, reason)),
                       value: reason,
                       selected: reason == _selectedReason,
                       dense: true,
@@ -125,9 +124,9 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
             const SizedBox(height: 16),
             TextField(
               controller: _detailsController,
-              decoration: const InputDecoration(
-                labelText: 'Additional Details (Optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.additionalDetailsOptional,
+                border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
               maxLines: 3,
@@ -138,7 +137,7 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
       actions: [
         TextButton(
           onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: _selectedReason == null || _submitting ? null : _submit,
@@ -155,9 +154,20 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Submit Report'),
+              : Text(l10n.submitReport),
         ),
       ],
     );
+  }
+
+  String _reasonLabel(AppLocalizations l10n, String reason) {
+    return switch (reason) {
+      'spam' => l10n.reasonSpam,
+      'offensive_content' => l10n.reasonOffensiveContent,
+      'inappropriate_language' => l10n.reasonInappropriateLanguage,
+      'harassment' => l10n.reasonHarassment,
+      'spoiler' => l10n.reasonSpoiler,
+      _ => l10n.reasonOther,
+    };
   }
 }

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/notification_providers.dart';
@@ -12,14 +13,19 @@ import '../../utils/format_utils.dart';
 import '../../domain/models/app_notification.dart';
 
 enum _NotificationFilter {
-  all('All'),
-  messages('Messages'),
-  posts('Posts'),
-  books('Books');
+  all,
+  messages,
+  posts,
+  books;
 
-  const _NotificationFilter(this.label);
-
-  final String label;
+  String label(AppLocalizations l10n) {
+    return switch (this) {
+      _NotificationFilter.all => l10n.all,
+      _NotificationFilter.messages => l10n.messages,
+      _NotificationFilter.posts => l10n.posts,
+      _NotificationFilter.books => l10n.books,
+    };
+  }
 
   bool matches(AppNotification notification) {
     if (this == _NotificationFilter.all) return true;
@@ -69,10 +75,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.notifications),
         actions: [
           TextButton(
             onPressed: () async {
@@ -82,7 +89,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   .read(notificationRepositoryProvider)
                   .markAllAsRead(user.id);
             },
-            child: const Text('Mark all read'),
+            child: Text(l10n.markAllRead),
           ),
         ],
       ),
@@ -108,7 +115,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ),
               Expanded(
                 child: filteredItems.isEmpty
-                    ? Center(child: Text(_emptyText(items.isEmpty)))
+                    ? Center(child: Text(_emptyText(context, items.isEmpty)))
                     : ListView.separated(
                         itemCount: displayCount + (hasMore ? 1 : 0),
                         separatorBuilder: (_, _) => const Divider(height: 1),
@@ -123,7 +130,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                   onPressed: () =>
                                       setState(() => _limit += _increment),
                                   icon: const Icon(Icons.add_rounded),
-                                  label: const Text('Load More'),
+                                  label: Text(l10n.loadMore),
                                 ),
                               ),
                             );
@@ -245,13 +252,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  String _emptyText(bool noNotifications) {
-    if (noNotifications) return 'No notifications yet';
+  String _emptyText(BuildContext context, bool noNotifications) {
+    final l10n = AppLocalizations.of(context)!;
+    if (noNotifications) return l10n.noNotificationsYet;
     return switch (_filter) {
-      _NotificationFilter.all => 'No notifications yet',
-      _NotificationFilter.messages => 'No message notifications yet',
-      _NotificationFilter.posts => 'No post notifications yet',
-      _NotificationFilter.books => 'No book notifications yet',
+      _NotificationFilter.all => l10n.noNotificationsYet,
+      _NotificationFilter.messages => l10n.noMessageNotificationsYet,
+      _NotificationFilter.posts => l10n.noPostNotificationsYet,
+      _NotificationFilter.books => l10n.noBookNotificationsYet,
     };
   }
 }
@@ -267,6 +275,7 @@ class _NotificationFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       height: 56,
       child: ListView.separated(
@@ -277,7 +286,7 @@ class _NotificationFilterBar extends StatelessWidget {
         itemBuilder: (context, index) {
           final filter = _NotificationFilter.values[index];
           return FilterChip(
-            label: Text(filter.label),
+            label: Text(filter.label(l10n)),
             selected: selected == filter,
             showCheckmark: false,
             onSelected: (_) => onSelected(filter),

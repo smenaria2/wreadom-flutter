@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../providers/follow_providers.dart';
 import '../providers/profile_providers.dart';
@@ -44,6 +45,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final idsAsync = widget.mode == FollowListMode.followers
         ? ref.watch(userFollowersListProvider(widget.userId))
         : ref.watch(userFollowingListProvider(widget.userId));
@@ -53,7 +55,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
       body: idsAsync.when(
         data: (ids) {
           if (ids.isEmpty) {
-            return Center(child: Text('No ${widget.title.toLowerCase()} yet.'));
+            return Center(
+              child: Text(l10n.noFollowersYet(widget.title.toLowerCase())),
+            );
           }
 
           final displayCount = (_limit < ids.length) ? _limit : ids.length;
@@ -70,7 +74,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
                     child: TextButton.icon(
                       onPressed: () => setState(() => _limit += _increment),
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('Load More'),
+                      label: Text(l10n.loadMore),
                     ),
                   ),
                 );
@@ -80,8 +84,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text('Failed to load ${widget.title}: $error')),
+        error: (error, _) => Center(
+          child: Text(l10n.failedToLoadTitle(widget.title, error.toString())),
+        ),
       ),
     );
   }

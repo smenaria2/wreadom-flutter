@@ -1,0 +1,496 @@
+{
+  "appTitle": "Wreadom",
+  "login": "लॉग इन",
+  "home": "होम",
+  "settings": "सेटिंग्स",
+  "language": "भाषा",
+  "english": "अंग्रेज़ी",
+  "hindi": "हिंदी",
+  "selectLanguage": "भाषा चुनें",
+  "profile": "प्रोफ़ाइल",
+  "editProfile": "प्रोफ़ाइल संपादित करें",
+  "theme": "थीम",
+  "light": "लाइट",
+  "dark": "डार्क",
+  "logout": "लॉग आउट",
+  "help": "सहायता",
+  "privacyPolicy": "गोपनीयता नीति",
+  "termsOfUse": "उपयोग की शर्तें",
+  "submitError": "समस्या रिपोर्ट करें",
+  "followers": "फ़ॉलोअर",
+  "following": "फ़ॉलो कर रहे",
+  "works": "रचनाएं",
+  "about": "परिचय",
+  "posts": "पोस्ट",
+  "history": "इतिहास",
+  "saved": "सेव किए गए",
+  "profileSettings": "प्रोफ़ाइल सेटिंग्स",
+  "displayName": "दिखने वाला नाम",
+  "penName": "लेखक नाम",
+  "bio": "परिचय",
+  "privacy": "गोपनीयता",
+  "public": "सार्वजनिक",
+  "followersOnly": "सिर्फ़ फ़ॉलोअर",
+  "private": "निजी",
+  "saveSettings": "सेटिंग्स सेव करें",
+  "pleaseSignIn": "कृपया साइन इन करें",
+  "welcomeBack": "वापस स्वागत है!",
+  "createAccount": "खाता बनाएं",
+  "signInToContinue": "पढ़ना जारी रखने के लिए साइन इन करें",
+  "joinCommunity": "पाठकों और लेखकों की कम्युनिटी से जुड़ें",
+  "username": "यूज़रनेम",
+  "emailAddress": "ईमेल पता",
+  "password": "पासवर्ड",
+  "requiredField": "ज़रूरी",
+  "invalidEmail": "ईमेल सही नहीं है",
+  "minChars": "कम से कम 6 अक्षर",
+  "loginBtn": "लॉग इन",
+  "signupBtn": "साइन अप",
+  "orDivider": "या",
+  "forgotPassword": "पासवर्ड भूल गए?",
+  "enterEmailFirst": "कृपया पहले अपना ईमेल डालें",
+  "passwordResetSent": "पासवर्ड रीसेट ईमेल भेज दिया गया",
+  "dontHaveAccount": "क्या आपका कोई खाता नहीं है? ",
+  "alreadyHaveAccount": "क्या आपका खाता पहले से है? ",
+  "signUpLink": "साइन अप",
+  "loginLink": "लॉग इन",
+  "feed": "फीड",
+  "notifications": "सूचनाएं",
+  "searchBooks": "किताबें खोजें",
+  "mine": "मेरी",
+  "noFollowingPosts": "जिन लोगों को आप फ़ॉलो करते हैं, उनकी कोई पोस्ट अभी नहीं है",
+  "noPosts": "अभी कोई पोस्ट नहीं है",
+  "beFirstToPost": "कुछ पोस्ट करने वाले पहले व्यक्ति बनें!",
+  "createAPost": "पोस्ट बनाएं",
+  "somethingWentWrong": "कुछ गलत हो गया",
+  "tryAgain": "फिर कोशिश करें",
+  "post": "पोस्ट",
+  "discover": "खोजें",
+  "searchBooksAuthors": "किताबें और लेखक खोजें",
+  "searchHint": "किताबें, लेखक खोजें...",
+  "suggestedBooks": "सुझाई गई किताबें",
+  "noSuggestedBooks": "कोई सुझाई गई किताबें नहीं मिलीं।",
+  "noBooksFoundIn": "{genre} में कोई किताबें नहीं मिलीं।",
+  "noResultsFor": "\"{query}\" के लिए कोई परिणाम नहीं मिले",
+  "originalBooks": "मूल किताबें",
+  "moreBooks": "और किताबें",
+  "profiles": "प्रोफाइल",
+  "unknownAuthor": "अज्ञात लेखक",
+  "internetArchive": "इंटरनेट आर्काइव",
+  "bookNotFound": "किताब नहीं मिली",
+  "editBook": "किताब संपादित करें",
+  "reportBook": "किताब की रिपोर्ट करें",
+  "shareBookMessage": "Wreadom पर \"{title}\" पढ़ें: {link}",
+  "readsStat": "{count} बार पढ़ा गया",
+  "chaptersStat": "{count} अध्याय",
+  "continueReading": "पढ़ना जारी रखें",
+  "startReading": "पढ़ना शुरू करें",
+  "aboutThisBook": "इस किताब के बारे में",
+  "defaultShareMessage": "मैं Wreadom पर \"{title}\" पढ़ रहा हूँ। इसे देखें।",
+  "shareToFeed": "फीड पर साझा करें",
+  "signInToShare": "इस किताब को साझा करने के लिए साइन इन करें।",
+  "sendToChat": "चैट पर भेजें",
+  "noRecentConversations": "अभी कोई हालिया बातचीत नहीं हुई है।",
+  "conversation": "बातचीत",
+  "noMessagesYet": "अभी कोई संदेश नहीं है",
+  "sentYouABook": "ने आपको एक किताब भेजी है।",
+  "sentBookSnack": "\"{title}\" भेज दी गई।",
+  "sharedToFeed": "फीड पर साझा किया गया।",
+  "latestDiscussion": "नवीनतम चर्चा",
+  "showMore": "और दिखाएं",
+  "failedToLoadChats": "चैट लोड करने में विफल: {error}",
+  "fetchingPublicDomain": "सार्वजनिक-डोमेन टेक्स्ट प्राप्त किया जा रहा है...",
+  "internetArchivePreparation": "इंटरनेट आर्काइव की किताबों को तैयार होने में थोड़ा समय लग सकता है।",
+  "offline": "ऑफलाइन",
+  "readAloud": "जोर से पढ़ें",
+  "stop": "रुकें",
+  "stopReadingAloud": "जोर से पढ़ना बंद करें",
+  "readerSettings": "रीडर सेटिंग्स",
+  "shareQuote": "उद्धरण साझा करें",
+  "quoteAndComment": "उद्धरण और टिप्पणी",
+  "genreFantasy": "फंतासी",
+  "genreRomance": "रोमांस",
+  "genreSciFi": "विज्ञान कथा",
+  "genreMystery": "रहस्य",
+  "genreHorror": "हॉरर",
+  "genreHistorical": "ऐतिहासिक",
+  "genreAdventure": "साहसिक",
+  "genrePoetry": "कविता",
+  "genreBiography": "जीवनी",
+  "genrePhilosophy": "दर्शन",
+  "writer": "लेखक",
+  "messages": "संदेश",
+  "shelfCommunityClassics": "सामुदायिक क्लासिक्स",
+  "shelfOriginals": "Wreadom मूल",
+  "shelfTrending": "ट्रेंडिंग रचनाएं",
+  "shelfPopular": "अभी लोकप्रिय",
+  "shelfRecentlyAdded": "हाल ही में जोड़े गए",
+  "keepReading": "पढ़ते रहें",
+  "heroBannerSubtitle": "हजारों मुफ्त किताबें और मूल कहानियां, आपके लिए चुनी गईं।",
+  "exploreNow": "अभी खोजें",
+  "dailyTopic": "दैनिक विषय",
+  "readMore": "और पढ़ें",
+  "yourShelf": "आपकी शेल्फ",
+  "percentComplete": "{percent}% पूर्ण",
+  "readyToResume": "पढ़ना शुरू करने के लिए तैयार",
+  "chapterNumber": "अध्याय {number}",
+  "errorWithDetails": "त्रुटि: {message}",
+  "seeAll": "सभी देखें",
+  "authorsToFollow": "फ़ॉलो करने के लिए लेखक",
+  "topRatedAuthors": "टॉप रेटेड लेखक",
+  "mostReadAuthors": "सबसे ज्यादा पढ़े जाने वाले लेखक",
+  "mostPublishedAuthors": "सबसे ज्यादा प्रकाशित लेखक",
+  "featuredWreadomAuthor": "विशेष Wreadom लेखक।",
+  "authorSpotlight": "लेखक स्पॉटलाइट",
+  "authorBooks": "{author} की किताबें",
+  "couldNotLoad": "{title} लोड नहीं किया जा सका।",
+  "bookByAuthor": "{author} द्वारा {title}",
+  "failedToLoadWithError": "लोड करने में विफल: {error}",
+  "writeSomethingFirst": "कृपया पहले कुछ लिखें",
+  "loginToPost": "पोस्ट करने के लिए कृपया लॉग इन करें",
+  "postShared": "पोस्ट साझा की गई",
+  "shareAnUpdate": "अपडेट साझा करें",
+  "close": "बंद करें",
+  "postBtn": "पोस्ट",
+  "postHint": "आप क्या पढ़ रहे हैं, सोच रहे हैं या बना रहे हैं?",
+  "removeImage": "छवि निकालें",
+  "addImage": "छवि जोड़ें",
+  "likedYourPost": "ने आपकी पोस्ट को पसंद किया।",
+  "deletePostTitle": "पोस्ट हटाएं?",
+  "deletePostContent": "इससे पोस्ट और उसकी टिप्पणियाँ हट जाएंगी।",
+  "cancel": "रद्द करें",
+  "delete": "हटाएं",
+  "postDeleted": "पोस्ट हटा दी गई",
+  "couldNotDeletePost": "पोस्ट नहीं हटाई जा सकी: {error}",
+  "editPost": "पोस्ट संपादित करें",
+  "updateYourPost": "अपनी पोस्ट अपडेट करें",
+  "replaceImage": "छवि बदलें",
+  "save": "सहेजें",
+  "reportPost": "पोस्ट की रिपोर्ट करें",
+  "regarding": "के बारे में",
+  "unlikePost": "नापसंद करें",
+  "likePost": "पसंद करें",
+  "showComments": "टिप्पणियां दिखाएं",
+  "sharePost": "पोस्ट साझा करें",
+  "checkOutPostOnWreadom": "Wreadom पर यह पोस्ट देखें: {link}",
+  "wreadomPost": "Wreadom पोस्ट",
+  "repliedToYourComment": "ने आपकी टिप्पणी का जवाब दिया।",
+  "commentedOnYourPost": "ने आपकी पोस्ट पर टिप्पणी की।",
+  "errorSubmittingComment": "टिप्पणी सबमिट करने में त्रुटि: {error}",
+  "commentsCount": "टिप्पणियां ({count})",
+  "comments": "टिप्पणियां",
+  "commentsLoading": "टिप्पणियां...",
+  "noCommentsYet": "अभी तक कोई टिप्पणी नहीं। पहले बनें!",
+  "errorLoadingComments": "टिप्पणियां लोड करने में त्रुटि: {error}",
+  "replyingTo": "{name} को जवाब दे रहे हैं",
+  "addAReply": "जवाब लिखें...",
+  "addAComment": "टिप्पणी लिखें...",
+  "editComment": "टिप्पणी संपादित करें",
+  "editReply": "जवाब संपादित करें",
+  "editFailed": "संपादन विफल रहा: {error}",
+  "deleteCommentTitle": "टिप्पणी हटाएं?",
+  "deleteReplyTitle": "जवाब हटाएं?",
+  "deleteActionUndone": "यह क्रिया पूर्ववत नहीं की जा सकती।",
+  "deleteFailed": "हटाना विफल रहा: {error}",
+  "pin": "पिन करें",
+  "unpin": "अनपिन करें",
+  "edit": "संपादित करें",
+  "report": "रिपोर्ट करें",
+  "reply": "जवाब दें",
+  "writeYourUpdate": "अपना अपडेट लिखें",
+  "justNow": "अभी-अभी",
+  "daysAgo": "{count} दिन पहले",
+  "hoursAgo": "{count} घंटे पहले",
+  "minutesAgo": "{count} मिनट पहले",
+  "shareProfile": "प्रोफ़ाइल शेयर करें",
+  "menu": "मेन्यू",
+  "readWithUserOnWreadom": "{name} के साथ Wreadom पर पढ़ें\n{link}",
+  "@readWithUserOnWreadom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "noBioYet": "अभी परिचय नहीं जोड़ा गया है",
+  "activity": "गतिविधि",
+  "loadMore": "और दिखाएं",
+  "themeDialogTitle": "थीम",
+  "errorType": "समस्या का प्रकार",
+  "whatWentWrong": "क्या गलत हुआ?",
+  "describeIssueHint": "समस्या के बारे में जितना हो सके उतना बताएं",
+  "deviceLogsIncluded": "समस्या समझने में मदद के लिए डिवाइस लॉग जोड़े जाएंगे",
+  "viewCollectedLogs": "जोड़े गए लॉग देखें",
+  "submit": "भेजें",
+  "collectedLogs": "जोड़े गए लॉग",
+  "noAppLogsYet": "अभी कोई ऐप लॉग नहीं है",
+  "pleaseDescribeIssue": "कृपया समस्या का विवरण लिखें",
+  "mustBeLoggedInToSubmitIssues": "समस्या भेजने के लिए आपको लॉग इन होना होगा",
+  "issueReportSubmitted": "समस्या रिपोर्ट भेज दी गई",
+  "failedToSubmitIssueReport": "समस्या रिपोर्ट भेजने में विफल: {error}",
+  "@failedToSubmitIssueReport": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userNotFound": "यूज़र नहीं मिला",
+  "penNameValue": "लेखक नाम: {name}",
+  "@penNameValue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "privateAccountNotice": "यह खाता निजी है। सिर्फ़ स्वीकृत फ़ॉलोअर ही सामग्री देख सकते हैं।",
+  "followToSeeFullProfile": "पूरी प्रोफ़ाइल देखने के लिए इस लेखक को फ़ॉलो करें",
+  "books": "किताबें",
+  "noPublishedBooksYet": "अभी कोई प्रकाशित किताब नहीं है",
+  "failedToLoadBooks": "किताबें लोड नहीं हो सकीं: {error}",
+  "@failedToLoadBooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadPosts": "पोस्ट लोड नहीं हो सकीं: {error}",
+  "@failedToLoadPosts": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noReadingHistoryYet": "अभी पढ़ने का इतिहास नहीं है",
+  "errorLoadingHistory": "इतिहास लोड करने में समस्या: {error}",
+  "@errorLoadingHistory": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "wreadomCreator": "WREADOM क्रिएटर",
+  "officialLiteraryProfile": "आधिकारिक साहित्यिक प्रोफ़ाइल - WREADOM.IN",
+  "shareProfileSubject": "{name} Wreadom पर",
+  "@shareProfileSubject": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToPostReply": "जवाब पोस्ट नहीं हो सका: {error}",
+  "@failedToPostReply": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAQuote": "उद्धरण शेयर करें",
+  "pleaseEnterQuote": "कृपया उद्धरण लिखें",
+  "quoteShared": "उद्धरण शेयर हो गया!",
+  "failedToShareQuote": "उद्धरण शेयर नहीं हो सका: {error}",
+  "@failedToShareQuote": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "enterQuoteHint": "किताब से उद्धरण लिखें...",
+  "addThoughtsOptional": "अपने विचार जोड़ें (वैकल्पिक)",
+  "postQuote": "उद्धरण पोस्ट करें",
+  "pleaseSelectRating": "कृपया रेटिंग चुनें",
+  "pleaseWriteShortReview": "कृपया छोटी-सी समीक्षा लिखें",
+  "pleaseLoginToReview": "समीक्षा करने के लिए लॉग इन करें",
+  "reviewShared": "समीक्षा शेयर हो गई!",
+  "reviewTitle": "समीक्षा: {title}",
+  "@reviewTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewHint": "इस किताब के बारे में आपके विचार",
+  "continueWithGoogle": "Google से जारी रखें",
+  "mustBeLoggedInToReportContent": "सामग्री रिपोर्ट करने के लिए लॉग इन करें",
+  "reportSubmittedThanks": "धन्यवाद। आपकी रिपोर्ट भेज दी गई है।",
+  "failedToSubmitReport": "रिपोर्ट भेजने में विफल: {error}",
+  "@failedToSubmitReport": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "reportTarget": "{targetType} रिपोर्ट करें",
+  "@reportTarget": {
+    "placeholders": {
+      "targetType": {
+        "type": "String"
+      }
+    }
+  },
+  "whyReportContent": "आप यह सामग्री क्यों रिपोर्ट कर रहे हैं?",
+  "additionalDetailsOptional": "अतिरिक्त विवरण (वैकल्पिक)",
+  "submitReport": "रिपोर्ट भेजें",
+  "reasonSpam": "स्पैम",
+  "reasonOffensiveContent": "आपत्तिजनक सामग्री",
+  "reasonInappropriateLanguage": "अनुचित भाषा",
+  "reasonHarassment": "उत्पीड़न",
+  "reasonSpoiler": "बिना चेतावनी स्पॉइलर",
+  "reasonOther": "अन्य",
+  "markAllRead": "सब पढ़ा हुआ करें",
+  "deleteChat": "चैट हटाएं",
+  "deleteChatTitle": "चैट हटाएं?",
+  "noConversationsYet": "अभी कोई बातचीत नहीं है। किसी पाठक से बात शुरू करें।",
+  "postNotFoundOrDeleted": "पोस्ट नहीं मिली या हटा दी गई है",
+  "savedBooksTitle": "सेव की गई किताबें",
+  "noSavedOrDownloadedBooksYet": "अभी कोई सेव या डाउनलोड की गई किताब नहीं है",
+  "dailyTopicNotFound": "आज का विषय नहीं मिला",
+  "participateNow": "भाग लें",
+  "noSubmissionsYet": "अभी कोई रचना नहीं आई है",
+  "blockUser": "यूज़र को ब्लॉक करें",
+  "messageHint": "संदेश...",
+  "blockUserTitle": "यूज़र को ब्लॉक करें?",
+  "block": "ब्लॉक करें",
+  "userBlocked": "यूज़र ब्लॉक कर दिया गया",
+  "noRatings": "अभी कोई रेटिंग नहीं",
+  "removeSavedBookTitle": "सेव की गई किताब हटाएं?",
+  "removeSavedBookBody": "ऑफ़लाइन डाउनलोड तब तक रहेगा जब तक आप उसे अलग से नहीं हटाते।",
+  "unsave": "सेव हटाएं",
+  "bookSavedDownloaded": "किताब सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।",
+  "published": "प्रकाशित",
+  "drafts": "ड्राफ़्ट",
+  "reads": "रीड्स",
+  "deleteDraftTitle": "ड्राफ़्ट हटाएं?",
+  "deleteDraftBody": "यह ड्राफ़्ट आपके डैशबोर्ड से हट जाएगा।",
+  "draftDeleted": "ड्राफ़्ट हटा दिया गया।",
+  "deleteConversationBody": "यह बातचीत आपके इनबॉक्स से हट जाएगी।",
+  "failedToLoadSavedBooks": "सेव की गई किताबें लोड नहीं हो सकीं: {error}",
+  "@failedToLoadSavedBooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadPost": "पोस्ट लोड नहीं हो सकी: {error}",
+  "@failedToLoadPost": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadComments": "टिप्पणियां लोड नहीं हो सकीं: {error}",
+  "@failedToLoadComments": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noFollowersYet": "अभी कोई {title} नहीं",
+  "@noFollowersYet": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadTitle": "{title} लोड नहीं हो सका: {error}",
+  "@failedToLoadTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "all": "सब",
+  "noNotificationsYet": "अभी कोई नोटिफ़िकेशन नहीं",
+  "noMessageNotificationsYet": "अभी कोई संदेश नोटिफ़िकेशन नहीं",
+  "noPostNotificationsYet": "अभी कोई पोस्ट नोटिफ़िकेशन नहीं",
+  "noBookNotificationsYet": "अभी कोई किताब नोटिफ़िकेशन नहीं",
+  "showLess": "कम दिखाएं",
+  "saveFailed": "सेव नहीं हो सका: {error}",
+  "writerDashboard": "लेखक डैशबोर्ड",
+  "createContent": "रचना बनाएं",
+  "noPublishedStoriesYet": "अभी कोई प्रकाशित कहानी नहीं है",
+  "noDraftsYet": "अभी कोई ड्राफ़्ट नहीं है",
+  "couldNotDeleteDraft": "ड्राफ़्ट हटाया नहीं जा सका: {error}",
+  "welcomeBackComma": "वापस स्वागत है,",
+  "aboutThisTopic": "इस विषय के बारे में",
+  "submissionsReceived": "प्राप्त रचनाएं",
+  "failedToLoadTopic": "विषय लोड नहीं हो सका: {error}",
+  "writeOnDailyTopic": "Wreadom पर \"{topic}\" पर लिखें: {link}",
+  "failedToLoadSubmissions": "प्राप्त रचनाएं लोड नहीं हो सकीं: {error}",
+  "cannotSendMessages": "आप इस बातचीत में संदेश नहीं भेज सकते।",
+  "oneMessageAllowed": "प्राप्तकर्ता के जवाब देने तक सिर्फ़ एक संदेश भेजा जा सकता है।",
+  "blockUserBody": "वे अब इस बातचीत में संदेश नहीं भेज पाएंगे।",
+  "sentYouAMessage": "ने आपको संदेश भेजा।",
+  "sentMessage": "संदेश भेजा गया",
+  "viewComments": "टिप्पणियां देखें",
+  "writeReview": "समीक्षा लिखें",
+  "deleteChapter": "अध्याय हटाएं",
+  "deleteChapterTitle": "अध्याय हटाएं?",
+  "unsavedChanges": "बिना सेव किए बदलाव",
+  "draftSaved": "ड्राफ़्ट सेव हो गया",
+  "@saveFailed": {
+    "description": "Shown when saving a book fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@couldNotDeleteDraft": {
+    "description": "Shown when deleting a draft fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@failedToLoadTopic": {
+    "description": "Shown when daily topic cannot load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@writeOnDailyTopic": {
+    "description": "Share text for a daily topic",
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "@failedToLoadSubmissions": {
+    "description": "Shown when submissions cannot load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noSavedBooksYet": "अभी कोई सेव की गई किताब नहीं है।",
+  "noPostsYetStartSharing": "अभी कोई पोस्ट नहीं है।\nअपनी पढ़ने की यात्रा शेयर करना शुरू करें!"
+}

@@ -2,11 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/book_providers.dart';
+import '../providers/locale_provider.dart';
 import '../providers/notification_providers.dart';
 import '../providers/report_providers.dart';
 import '../providers/theme_provider.dart';
@@ -27,11 +29,12 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return userAsync.when(
       data: (user) {
         if (user == null) {
-          return const Scaffold(body: Center(child: Text('Please log in')));
+          return Scaffold(body: Center(child: Text(l10n.login)));
         }
         final worksCount = ref
             .watch(userBooksProvider(user.id))
@@ -122,7 +125,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     actions: [
                       IconButton(
-                        tooltip: 'Share Profile',
+                        tooltip: l10n.shareProfile,
                         icon: const Icon(Icons.share_outlined),
                         onPressed: () =>
                             _shareProfile(context, user, worksCount),
@@ -130,7 +133,7 @@ class ProfileScreen extends ConsumerWidget {
                       _NotificationAction(),
                       Builder(
                         builder: (context) => IconButton(
-                          tooltip: 'Menu',
+                          tooltip: l10n.menu,
                           icon: const Icon(Icons.menu_rounded),
                           onPressed: () => Scaffold.of(context).openEndDrawer(),
                         ),
@@ -146,7 +149,7 @@ class ProfileScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _StatItem(
-                            label: 'Followers',
+                            label: l10n.followers,
                             value: FormatUtils.formatNumber(
                               user.followersCount ?? 0,
                             ),
@@ -155,12 +158,12 @@ class ProfileScreen extends ConsumerWidget {
                               arguments: FollowListArguments(
                                 userId: user.id,
                                 mode: FollowListMode.followers,
-                                title: 'Followers',
+                                title: l10n.followers,
                               ),
                             ),
                           ),
                           _StatItem(
-                            label: 'Following',
+                            label: l10n.following,
                             value: FormatUtils.formatNumber(
                               user.followingCount ?? 0,
                             ),
@@ -169,12 +172,12 @@ class ProfileScreen extends ConsumerWidget {
                               arguments: FollowListArguments(
                                 userId: user.id,
                                 mode: FollowListMode.following,
-                                title: 'Following',
+                                title: l10n.following,
                               ),
                             ),
                           ),
                           _StatItem(
-                            label: 'Works',
+                            label: l10n.works,
                             value: FormatUtils.formatNumber(worksCount),
                           ),
                         ],
@@ -191,11 +194,11 @@ class ProfileScreen extends ConsumerWidget {
                         unselectedLabelColor: Colors.grey,
                         indicatorColor: Theme.of(context).colorScheme.primary,
                         indicatorSize: TabBarIndicatorSize.label,
-                        tabs: const [
-                          Tab(text: 'About'),
-                          Tab(text: 'Posts'),
-                          Tab(text: 'History'),
-                          Tab(text: 'Saved'),
+                        tabs: [
+                          Tab(text: l10n.about),
+                          Tab(text: l10n.posts),
+                          Tab(text: l10n.history),
+                          Tab(text: l10n.saved),
                         ],
                       ),
                     ),
@@ -216,7 +219,11 @@ class ProfileScreen extends ConsumerWidget {
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (err, _) => Scaffold(body: Center(child: Text('Error: $err'))),
+      error: (err, _) => Scaffold(
+        body: Center(
+          child: Text(l10n.failedToLoadTitle(l10n.profile, err.toString())),
+        ),
+      ),
     );
   }
 
@@ -226,8 +233,9 @@ class ProfileScreen extends ConsumerWidget {
       context,
       user: user,
       worksCount: worksCount,
-      fallbackText:
-          'Read with $name on Wreadom\n${AppLinkHelper.user(user.id)}',
+      fallbackText: AppLocalizations.of(
+        context,
+      )!.readWithUserOnWreadom(name, AppLinkHelper.user(user.id)),
     );
   }
 }
@@ -236,8 +244,9 @@ class _NotificationAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationCountProvider);
+    final l10n = AppLocalizations.of(context)!;
     final btn = IconButton(
-      tooltip: 'Notifications',
+      tooltip: l10n.notifications,
       onPressed: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
       icon: const Icon(Icons.notifications_none_rounded),
     );
@@ -253,6 +262,8 @@ class _ProfileSideMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final themeMode = ref.watch(appThemeControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final currentLocale = ref.watch(localeControllerProvider);
 
     return Drawer(
       child: SafeArea(
@@ -277,34 +288,44 @@ class _ProfileSideMenu extends ConsumerWidget {
                 children: [
                   _MenuTile(
                     icon: Icons.manage_accounts_outlined,
-                    title: 'Edit Profile',
+                    title: l10n.editProfile,
                     onTap: () => _go(context, AppRoutes.profileSettings),
                   ),
                   _MenuTile(
+                    icon: Icons.language_outlined,
+                    title: l10n.language,
+                    subtitle: currentLocale.languageCode == 'hi'
+                        ? 'हिंदी'
+                        : 'English',
+                    onTap: () => _go(context, AppRoutes.languageSettings),
+                  ),
+                  _MenuTile(
                     icon: Icons.brightness_6_outlined,
-                    title: 'Theme',
-                    subtitle: themeMode == ThemeMode.dark ? 'Dark' : 'Light',
+                    title: l10n.theme,
+                    subtitle: themeMode == ThemeMode.dark
+                        ? l10n.dark
+                        : l10n.light,
                     onTap: () => _showThemePicker(context, ref),
                   ),
                   const Divider(),
                   _MenuTile(
                     icon: Icons.bug_report_outlined,
-                    title: 'Submit Error',
+                    title: l10n.submitError,
                     onTap: () => _showErrorReportDialog(context, ref),
                   ),
                   _MenuTile(
                     icon: Icons.help_outline_rounded,
-                    title: 'Help',
+                    title: l10n.help,
                     onTap: () => _go(context, AppRoutes.help),
                   ),
                   _MenuTile(
                     icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy Policy',
+                    title: l10n.privacyPolicy,
                     onTap: () => _go(context, AppRoutes.privacy),
                   ),
                   _MenuTile(
                     icon: Icons.description_outlined,
-                    title: 'Terms of Use',
+                    title: l10n.termsOfUse,
                     onTap: () => _go(context, AppRoutes.terms),
                   ),
                 ],
@@ -313,7 +334,7 @@ class _ProfileSideMenu extends ConsumerWidget {
             const Divider(height: 1),
             _MenuTile(
               icon: Icons.logout,
-              title: 'Logout',
+              title: l10n.logout,
               onTap: () async {
                 Navigator.of(context).pop();
                 await ref.read(authControllerProvider.notifier).logout();
@@ -346,12 +367,13 @@ class _ProfileSideMenu extends ConsumerWidget {
       context: context,
       builder: (context) {
         final current = ref.read(appThemeControllerProvider);
+        final l10n = AppLocalizations.of(context)!;
         return SimpleDialog(
-          title: const Text('Theme'),
+          title: Text(l10n.themeDialogTitle),
           children: [
             ListTile(
               leading: const Icon(Icons.light_mode_outlined),
-              title: const Text('Light'),
+              title: Text(l10n.light),
               trailing: current == ThemeMode.light
                   ? const Icon(Icons.check_rounded)
                   : null,
@@ -359,7 +381,7 @@ class _ProfileSideMenu extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.dark_mode_outlined),
-              title: const Text('Dark'),
+              title: Text(l10n.dark),
               trailing: current == ThemeMode.dark
                   ? const Icon(Icons.check_rounded)
                   : null,
@@ -401,8 +423,9 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Submit Error'),
+      title: Text(l10n.submitError),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -410,9 +433,9 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
           children: [
             DropdownButtonFormField<String>(
               initialValue: _type,
-              decoration: const InputDecoration(
-                labelText: 'Error type',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.errorType,
+                border: const OutlineInputBorder(),
               ),
               items: _types
                   .map(
@@ -431,10 +454,10 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
               controller: _detailsController,
               minLines: 5,
               maxLines: 8,
-              decoration: const InputDecoration(
-                labelText: 'What went wrong?',
-                hintText: 'Describe the error and what you were doing.',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.whatWentWrong,
+                hintText: l10n.describeIssueHint,
+                border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
             ),
@@ -444,14 +467,14 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
               children: [
                 Expanded(
                   child: Text(
-                    'Device info and recent app logs will be included.',
+                    l10n.deviceLogsIncluded,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
                 IconButton(
-                  tooltip: 'View collected logs',
+                  tooltip: l10n.viewCollectedLogs,
                   visualDensity: VisualDensity.compact,
                   iconSize: 18,
                   onPressed: _showCollectedLogs,
@@ -465,7 +488,7 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
       actions: [
         TextButton(
           onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
@@ -474,7 +497,7 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Submit'),
+              : Text(l10n.submit),
         ),
       ],
     );
@@ -482,9 +505,8 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
 
   void _showCollectedLogs() {
     final logs = AppLogCollector.formattedLogs();
-    final logText = logs.isEmpty
-        ? 'No app logs have been collected yet.'
-        : logs.join('\n\n');
+    final l10n = AppLocalizations.of(context)!;
+    final logText = logs.isEmpty ? l10n.noAppLogsYet : logs.join('\n\n');
 
     showDialog<void>(
       context: context,
@@ -493,7 +515,7 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
         final textTheme = Theme.of(context).textTheme;
 
         return AlertDialog(
-          title: const Text('Collected Logs'),
+          title: Text(l10n.collectedLogs),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520, maxHeight: 420),
             child: SingleChildScrollView(
@@ -509,7 +531,7 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(l10n.close),
             ),
           ],
         );
@@ -519,19 +541,18 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
 
   Future<void> _submit() async {
     final issue = _detailsController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (issue.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please describe the error.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseDescribeIssue)));
       return;
     }
 
     final user = ref.read(currentUserProvider).value;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must be logged in to submit errors.'),
-        ),
+        SnackBar(content: Text(l10n.mustBeLoggedInToSubmitIssues)),
       );
       return;
     }
@@ -571,11 +592,13 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Error report submitted.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.issueReportSubmitted)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit error report: $error')),
+        SnackBar(
+          content: Text(l10n.failedToSubmitIssueReport(error.toString())),
+        ),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

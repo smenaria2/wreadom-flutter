@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
 import '../../providers/auth_providers.dart';
@@ -28,10 +29,11 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
 
   Future<void> _submit() async {
     final quoteText = _quoteController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (quoteText.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a quote')));
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseEnterQuote)));
       return;
     }
 
@@ -64,13 +66,13 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Quote shared!')));
+        ).showSnackBar(SnackBar(content: Text(l10n.quoteShared)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to share quote: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.failedToShareQuote(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -80,6 +82,7 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: EdgeInsets.only(
@@ -101,7 +104,7 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Share a Quote',
+                    l10n.shareAQuote,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -136,8 +139,8 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                       maxLines: 4,
                       minLines: 2,
                       textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter the quote from the book...',
+                      decoration: InputDecoration(
+                        hintText: l10n.enterQuoteHint,
                         border: InputBorder.none,
                       ),
                       style: theme.textTheme.bodyLarge?.copyWith(
@@ -156,7 +159,7 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                 controller: _commentController,
                 maxLines: 2,
                 decoration: InputDecoration(
-                  hintText: 'Add your thoughts (optional)',
+                  hintText: l10n.addThoughtsOptional,
                   prefixIcon: const Icon(Icons.chat_bubble_outline_rounded),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -185,9 +188,9 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Post Quote',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                    : Text(
+                        l10n.postQuote,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
               ),
             ],

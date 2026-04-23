@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../components/book_card.dart';
 import '../providers/book_providers.dart';
@@ -10,10 +11,11 @@ class SavedBooksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booksAsync = ref.watch(savedBooksProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Books'),
+        title: Text(l10n.savedBooksTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -24,9 +26,7 @@ class SavedBooksScreen extends ConsumerWidget {
       body: booksAsync.when(
         data: (books) {
           if (books.isEmpty) {
-            return const Center(
-              child: Text('No saved or downloaded books yet.'),
-            );
+            return Center(child: Text(l10n.noSavedOrDownloadedBooksYet));
           }
           return GridView.builder(
             padding: const EdgeInsets.all(16),
@@ -44,7 +44,7 @@ class SavedBooksScreen extends ConsumerWidget {
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Failed to load saved books: $error'),
+            child: Text(l10n.failedToLoadSavedBooks(error.toString())),
           ),
         ),
       ),

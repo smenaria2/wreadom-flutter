@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/message.dart';
 import '../../domain/repositories/message_repository.dart';
@@ -38,6 +39,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final messagesAsync = ref.watch(
       conversationMessagesProvider(widget.conversationId),
     );
@@ -91,14 +93,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   _blockOtherUser(context, conversation, currentUser.id);
                 }
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'block',
                   child: Row(
                     children: [
-                      Icon(Icons.block_rounded),
-                      SizedBox(width: 8),
-                      Text('Block User'),
+                      const Icon(Icons.block_rounded),
+                      const SizedBox(width: 8),
+                      Text(l10n.blockUser),
                     ],
                   ),
                 ),
@@ -125,8 +127,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 },
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) =>
-                  Center(child: Text('Failed to load: $error')),
+              error: (error, _) => Center(
+                child: Text(l10n.failedToLoadWithError(error.toString())),
+              ),
             ),
           ),
           if (isBlocked || waitingForReply)
@@ -143,8 +146,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   ),
                   child: Text(
                     isBlocked
-                        ? 'You can\'t send messages in this conversation.'
-                        : 'Only one message allowed unless recipient replies.',
+                        ? l10n.cannotSendMessages
+                        : l10n.oneMessageAllowed,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -174,7 +177,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          'Only one message allowed unless recipient replies.',
+                          l10n.oneMessageAllowed,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
@@ -186,7 +189,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                           child: TextField(
                             controller: _controller,
                             decoration: InputDecoration(
-                              hintText: 'Message...',
+                              hintText: l10n.messageHint,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
@@ -213,7 +216,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                   userId: otherUserId,
                                   actor: currentUser,
                                   type: 'message',
-                                  text: 'sent you a message.',
+                                  text: l10n.sentYouAMessage,
                                   link: '',
                                   targetId: widget.conversationId,
                                   metadata: {
@@ -259,6 +262,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     Conversation conversation,
     String currentUserId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final otherUserId = conversation.participants.firstWhere(
       (id) => id != currentUserId,
       orElse: () => '',
@@ -268,18 +272,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Block user?'),
-        content: const Text(
-          'They will no longer be able to send messages in this conversation.',
-        ),
+        title: Text(l10n.blockUserTitle),
+        content: Text(l10n.blockUserBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Block'),
+            child: Text(l10n.block),
           ),
         ],
       ),
@@ -295,7 +297,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('User blocked.')));
+    ).showSnackBar(SnackBar(content: Text(l10n.userBlocked)));
   }
 }
 

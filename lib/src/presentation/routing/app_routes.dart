@@ -21,4 +21,5 @@ class AppRoutes {
   static const category = '/category';
   static const savedBooks = '/saved-books';
   static const followList = '/follow-list';
+  static const languageSettings = '/language-settings';
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/feed_post.dart';
@@ -64,17 +65,19 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   Future<void> _submit() async {
     final text = _textController.text.trim();
     if (text.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write something first')),
+        SnackBar(content: Text(l10n.writeSomethingFirst)),
       );
       return;
     }
 
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please log in to post')));
+      ).showSnackBar(SnackBar(content: Text(l10n.loginToPost)));
       return;
     }
 
@@ -111,19 +114,21 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post shared'),
+          SnackBar(
+            content: Text(l10n.postShared),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.errorWithDetails(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -133,6 +138,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(currentUserProvider).asData?.value;
     final photoUrl = user?.photoURL;
     final name =
@@ -159,7 +165,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
           Row(
             children: [
               Text(
-                'Share an update',
+                l10n.shareAnUpdate,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -167,7 +173,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close_rounded),
-                tooltip: 'Close',
+                tooltip: l10n.close,
                 onPressed: _isSubmitting ? null : () => Navigator.pop(context),
               ),
               const SizedBox(width: 4),
@@ -191,7 +197,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Post'),
+                    : Text(l10n.postBtn),
               ),
             ],
           ),
@@ -260,7 +266,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   minLines: 3,
                   autofocus: true,
                   decoration: InputDecoration(
-                    hintText: 'What are you reading, thinking, or building?',
+                    hintText: l10n.postHint,
                     hintStyle: TextStyle(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -297,7 +303,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         child: IconButton.filledTonal(
                           onPressed: _removeImage,
                           icon: const Icon(Icons.close_rounded, size: 18),
-                          tooltip: 'Remove image',
+                          tooltip: l10n.removeImage,
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.black54,
                             foregroundColor: Colors.white,
@@ -313,7 +319,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     IconButton.filledTonal(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.image_outlined),
-                      tooltip: 'Add image',
+                      tooltip: l10n.addImage,
                       style: IconButton.styleFrom(
                         backgroundColor: theme.colorScheme.primaryContainer,
                         foregroundColor: theme.colorScheme.onPrimaryContainer,
@@ -322,7 +328,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _pickedImage == null ? 'Add image' : _pickedImage!.name,
+                        _pickedImage == null ? l10n.addImage : _pickedImage!.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -367,9 +373,9 @@ class _VisibilitySelector extends StatelessWidget {
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
-          items: const [
-            DropdownMenuItem(value: 'public', child: Text('Public')),
-            DropdownMenuItem(value: 'followers', child: Text('Followers')),
+          items: [
+            DropdownMenuItem(value: 'public', child: Text(AppLocalizations.of(context)!.public)),
+            DropdownMenuItem(value: 'followers', child: Text(AppLocalizations.of(context)!.followers)),
           ],
           onChanged: onChanged,
         ),

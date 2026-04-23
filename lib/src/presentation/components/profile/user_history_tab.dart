@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../providers/book_providers.dart';
 import '../book_card.dart';
 
@@ -17,17 +18,18 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
   @override
   Widget build(BuildContext context) {
     final booksAsync = ref.watch(readingHistoryBooksProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
               child: Text(
-                'No reading history yet.',
+                l10n.noReadingHistoryYet,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           );
@@ -63,7 +65,7 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
                     child: TextButton.icon(
                       onPressed: () => setState(() => _limit += _increment),
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('Load More'),
+                      label: Text(l10n.loadMore),
                     ),
                   ),
                 ),
@@ -75,7 +77,7 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
       error: (err, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text('Error loading history: $err'),
+          child: Text(l10n.errorLoadingHistory(err.toString())),
         ),
       ),
     );

@@ -16,6 +16,7 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/format_utils.dart';
 import '../utils/notification_writer.dart';
 import '../widgets/report_dialog.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 /// Maps post type → accent colour
 Color _typeColor(String type) {
@@ -80,16 +81,19 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
       if (!wasLiked) {
-        await createAppNotification(
-          ref,
-          userId: widget.post.userId,
-          actor: user,
-          type: 'post_like',
-          text: 'liked your post.',
-          link: AppLinkHelper.post(widget.post.id!),
-          targetId: widget.post.id,
-          metadata: {'postId': widget.post.id},
-        );
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          await createAppNotification(
+            ref,
+            userId: widget.post.userId,
+            actor: user,
+            type: 'post_like',
+            text: l10n.likedYourPost,
+            link: AppLinkHelper.post(widget.post.id!),
+            targetId: widget.post.id,
+            metadata: {'postId': widget.post.id},
+          );
+        }
       }
       await HapticFeedback.lightImpact();
       // No need to invalidate, optimistic state handles it
@@ -100,9 +104,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
           _optimisticLiked = wasLiked;
           _optimisticLikesCount = prevCount;
         });
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.errorWithDetails(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _liking = false);
@@ -112,20 +117,21 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   Future<void> _deletePost() async {
     if (_deleting || widget.post.id == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete post?'),
-        content: const Text('This will remove the post and its comments.'),
+        title: Text(l10n.deletePostTitle),
+        content: Text(l10n.deletePostContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -144,18 +150,20 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       ref.invalidate(singlePostProvider(widget.post.id!));
 
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+      ).showSnackBar(SnackBar(content: Text(l10n.postDeleted)));
       if (!widget.openOnTap) {
         Navigator.of(context).maybePop();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _deleting = false);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Could not delete post: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.couldNotDeletePost(e.toString()))));
       }
     }
   }
@@ -173,6 +181,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       showDragHandle: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setModalState) {
+          final l10n = AppLocalizations.of(context)!;
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
           return Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
@@ -181,7 +190,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Edit post',
+                  l10n.editPost,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -191,9 +200,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   controller: textController,
                   minLines: 3,
                   maxLines: 8,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Update your post',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    hintText: l10n.updateYourPost,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -213,8 +222,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       icon: const Icon(Icons.image_outlined),
                       label: Text(
                         imageUrl == null && pickedImage == null
-                            ? 'Add image'
-                            : 'Replace image',
+                            ? l10n.addImage
+                            : l10n.replaceImage,
                       ),
                     ),
                     if (imageUrl != null || pickedImage != null)
@@ -226,7 +235,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           });
                         },
                         icon: const Icon(Icons.delete_outline_rounded),
-                        label: const Text('Remove image'),
+                        label: Text(l10n.removeImage),
                       ),
                   ],
                 ),
@@ -257,8 +266,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       }
                     } catch (e) {
                       if (mounted) {
+                        final innerL10n = AppLocalizations.of(this.context)!;
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(content: Text('Could not edit post: $e')),
+                          SnackBar(content: Text(innerL10n.couldNotDeletePost(e.toString()))), // Using delete error key as generic error for now or add edit error key
                         );
                       }
                     } finally {
@@ -271,7 +281,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: const Text('Save'),
+                  label: Text(l10n.save),
                 ),
               ],
             ),
@@ -294,6 +304,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final accentColor = _typeColor(post.type);
     final typeLabel = post.type[0].toUpperCase() + post.type.substring(1);
@@ -463,39 +474,39 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         },
                         itemBuilder: (context) => [
                           if (isOwner)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit_outlined, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Edit Post'),
+                                  const Icon(Icons.edit_outlined, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.editPost),
                                 ],
                               ),
                             ),
                           if (isOwner)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.delete_outline_rounded,
                                     size: 20,
                                     color: Colors.red,
                                   ),
-                                  SizedBox(width: 8),
-                                  Text('Delete Post'),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.deletePostTitle),
                                 ],
                               ),
                             )
                           else
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'report',
                               child: Row(
                                 children: [
-                                  Icon(Icons.report_problem_outlined, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Report Post'),
+                                  const Icon(Icons.report_problem_outlined, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.reportPost),
                                 ],
                               ),
                             ),
@@ -569,7 +580,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Regarding',
+                                  l10n.regarding,
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Theme.of(
@@ -638,7 +649,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           : Icons.favorite_border_rounded,
                       iconColor: liked ? Colors.red : null,
                       label: likesCount.toString(),
-                      semanticLabel: liked ? 'Unlike post' : 'Like post',
+                      semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
                       loading: _liking,
                       onTap: _toggleLike,
                     ),
@@ -647,20 +658,20 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
                       label: commentsCount.toString(),
-                      semanticLabel: 'Show comments',
+                      semanticLabel: l10n.showComments,
                       onTap: () => _showComments(context),
                     ),
                     const Spacer(),
                     // Share
                     IconButton(
                       icon: const Icon(Icons.share_outlined, size: 18),
-                      tooltip: 'Share post',
+                      tooltip: l10n.sharePost,
                       color: colorScheme.onSurfaceVariant,
                       onPressed: () {
                         if (post.id != null) {
                           Share.share(
-                            'Check out this post on Wreadom: ${AppLinkHelper.post(post.id!)}',
-                            subject: 'Wreadom Post',
+                            l10n.checkOutPostOnWreadom(AppLinkHelper.post(post.id!)),
+                            subject: l10n.wreadomPost,
                           );
                         }
                       },
@@ -843,16 +854,19 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               .read(commentRepositoryProvider)
               .addReply(_replyingTo!.id!, reply);
         }
-        await createAppNotification(
-          ref,
-          userId: _replyingTo!.userId,
-          actor: user,
-          type: 'feed_reply',
-          text: 'replied to your comment.',
-          link: AppLinkHelper.post(widget.post.id!),
-          targetId: widget.post.id,
-          metadata: {'postId': widget.post.id, 'commentId': _replyingTo!.id},
-        );
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          await createAppNotification(
+            ref,
+            userId: _replyingTo!.userId,
+            actor: user,
+            type: 'feed_reply',
+            text: l10n.repliedToYourComment,
+            link: AppLinkHelper.post(widget.post.id!),
+            targetId: widget.post.id,
+            metadata: {'postId': widget.post.id, 'commentId': _replyingTo!.id},
+          );
+        }
       } else {
         // Submit a top-level comment
         await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
@@ -862,16 +876,19 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           'userPhotoURL': user.photoURL,
           'text': text,
         });
-        await createAppNotification(
-          ref,
-          userId: widget.post.userId,
-          actor: user,
-          type: 'feed_comment',
-          text: 'commented on your post.',
-          link: AppLinkHelper.post(widget.post.id!),
-          targetId: widget.post.id,
-          metadata: {'postId': widget.post.id},
-        );
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          await createAppNotification(
+            ref,
+            userId: widget.post.userId,
+            actor: user,
+            type: 'feed_comment',
+            text: l10n.commentedOnYourPost,
+            link: AppLinkHelper.post(widget.post.id!),
+            targetId: widget.post.id,
+            metadata: {'postId': widget.post.id},
+          );
+        }
       }
 
       ref.invalidate(feedPostCommentsProvider(widget.post.id!));
@@ -885,9 +902,10 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       setState(() => _replyingTo = null);
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error submitting comment: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.errorSubmittingComment(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -896,6 +914,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final commentsAsync = ref.watch(feedPostCommentsProvider(widget.post.id!));
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -920,9 +939,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               commentsAsync.when(
-                data: (comments) => 'Comments (${comments.length})',
-                loading: () => 'Comments…',
-                error: (_, _) => 'Comments',
+                data: (comments) => l10n.commentsCount(comments.length),
+                loading: () => l10n.commentsLoading,
+                error: (_, _) => l10n.comments,
               ),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
@@ -931,17 +950,17 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           Flexible(
             child: commentsAsync.when(
               data: (comments) {
-                if (comments.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Center(
-                      child: Text(
-                        'No comments yet. Be the first!',
-                        style: TextStyle(color: Colors.grey),
+                  if (comments.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Text(
+                          l10n.noCommentsYet,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ),
-                    ),
-                  );
-                }
+                    );
+                  }
                 return ListView.builder(
                   itemCount: comments.length,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -962,7 +981,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(32),
-                child: Center(child: Text('Error loading comments: $e')),
+                child: Center(child: Text(l10n.errorLoadingComments(e.toString()))),
               ),
             ),
           ),
@@ -974,7 +993,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                 children: [
                   Expanded(
                     child: Text(
-                      'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                      l10n.replyingTo(_replyingTo!.displayName ?? _replyingTo!.username),
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ),
@@ -996,8 +1015,8 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                     controller: _ctrl.value,
                     decoration: InputDecoration(
                       hintText: _replyingTo != null
-                          ? 'Add a reply…'
-                          : 'Add a comment…',
+                          ? l10n.addAReply
+                          : l10n.addAComment,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,

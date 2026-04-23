@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
@@ -24,20 +25,23 @@ enum _HomeShelfDestination {
   popular,
   recent;
 
-  String get category {
+  String getLocalizedCategory(AppLocalizations l10n) {
     switch (this) {
       case _HomeShelfDestination.communityClassics:
-        return 'Community Classics';
+        return l10n.shelfCommunityClassics;
       case _HomeShelfDestination.originals:
-        return 'Wreadom Originals';
+        return l10n.shelfOriginals;
       case _HomeShelfDestination.trending:
-        return 'Trending Works';
+        return l10n.shelfTrending;
       case _HomeShelfDestination.popular:
-        return 'Popular Now';
+        return l10n.shelfPopular;
       case _HomeShelfDestination.recent:
-        return 'Recently Added';
+        return l10n.shelfRecentlyAdded;
     }
   }
+
+  @Deprecated('Use getLocalizedCategory instead')
+  String getCategory(AppLocalizations l10n) => getLocalizedCategory(l10n);
 
   String get sectionId {
     switch (this) {
@@ -64,17 +68,28 @@ String? _initialForName(String value) {
 void _openShelfDestination(
   BuildContext context,
   _HomeShelfDestination destination,
+  AppLocalizations l10n,
 ) {
   Navigator.of(context).pushNamed(
     AppRoutes.category,
-    arguments: CategoryBooksArguments(category: destination.category),
+    arguments: CategoryBooksArguments(
+      category: destination.sectionId,
+      displayName: destination.getLocalizedCategory(l10n),
+    ),
   );
 }
 
-void _openCategory(BuildContext context, String category) {
+void _openCategory(
+  BuildContext context,
+  String sectionId,
+  String localizedName,
+) {
   Navigator.of(context).pushNamed(
     AppRoutes.category,
-    arguments: CategoryBooksArguments(category: category),
+    arguments: CategoryBooksArguments(
+      category: sectionId,
+      displayName: localizedName,
+    ),
   );
 }
 
@@ -94,12 +109,14 @@ class HomeBooksScreen extends ConsumerWidget {
 
     // Watch saved books for the new section
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
-          'Wreadom',
-          style: TextStyle(
+        title: Text(
+          l10n.appTitle,
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
             letterSpacing: -0.5,
@@ -113,7 +130,7 @@ class HomeBooksScreen extends ConsumerWidget {
               final unread = ref.watch(unreadNotificationCountProvider);
               final btn = IconButton(
                 icon: const Icon(Icons.notifications_none_rounded),
-                tooltip: 'Notifications',
+                tooltip: l10n.notifications,
                 onPressed: () =>
                     Navigator.of(context).pushNamed(AppRoutes.notifications),
               );
@@ -126,7 +143,7 @@ class HomeBooksScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.search_rounded),
-            tooltip: 'Search books',
+            tooltip: l10n.searchBooks,
             onPressed: () =>
                 Navigator.of(context).pushNamed(AppRoutes.discovery),
           ),
@@ -165,58 +182,66 @@ class HomeBooksScreen extends ConsumerWidget {
 
               // ─── Wreadom Originals ────────────────────────────────────
               _BookshelfSection(
-                title: _HomeShelfDestination.originals.category,
+                title: _HomeShelfDestination.originals.getLocalizedCategory(
+                  l10n,
+                ),
                 booksAsync: originalsAsync,
                 sectionId: _HomeShelfDestination.originals.sectionId,
                 onRetry: () => ref.invalidate(originalBooksProvider),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.originals,
+                  l10n,
                 ),
               ),
               const SizedBox(height: 28),
 
               _BookshelfSection(
-                title: _HomeShelfDestination.trending.category,
+                title: _HomeShelfDestination.trending.getLocalizedCategory(
+                  l10n,
+                ),
                 booksAsync: trendingAsync,
                 sectionId: _HomeShelfDestination.trending.sectionId,
                 onRetry: () => ref.invalidate(homepageTrendingWorksProvider),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.trending,
+                  l10n,
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Popular Books ────────────────────────────────────────
               _BookshelfSection(
-                title: _HomeShelfDestination.popular.category,
+                title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
                 booksAsync: popularAsync,
                 sectionId: _HomeShelfDestination.popular.sectionId,
                 onRetry: () => ref.invalidate(homepagePopularProvider),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.popular,
+                  l10n,
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Recently Added ───────────────────────────────────────
               _BookshelfSection(
-                title: _HomeShelfDestination.recent.category,
+                title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
                 booksAsync: recentAsync,
                 sectionId: _HomeShelfDestination.recent.sectionId,
                 onRetry: () => ref.invalidate(homepageRecentProvider),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.recent,
+                  l10n,
                 ),
               ),
               const SizedBox(height: 28),
 
               // ─── Genre Sections (Filtered) ─────────────────────────────
               _GenreSection(
-                title: 'Fantasy',
+                title: l10n.genreFantasy,
                 booksAsync: fantasyAsync,
                 genre: 'Fantasy',
                 sectionId: 'fantasy',
@@ -224,25 +249,27 @@ class HomeBooksScreen extends ConsumerWidget {
               const _AuthorsSection(),
               const SizedBox(height: 28),
               _GenreSection(
-                title: 'Romance',
+                title: l10n.genreRomance,
                 booksAsync: romanceAsync,
                 genre: 'Romance',
                 sectionId: 'romance',
               ),
               _GenreSection(
-                title: 'Sci-Fi',
+                title: l10n.genreSciFi,
                 booksAsync: sciFiAsync,
                 genre: 'Sci-Fi',
                 sectionId: 'sci-fi',
               ),
               _BookshelfSection(
-                title: _HomeShelfDestination.communityClassics.category,
+                title: _HomeShelfDestination.communityClassics
+                    .getLocalizedCategory(l10n),
                 booksAsync: iaAsync,
                 sectionId: _HomeShelfDestination.communityClassics.sectionId,
                 onRetry: () => ref.invalidate(homepageIABooksProvider),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.communityClassics,
+                  l10n,
                 ),
               ),
               const SizedBox(height: 32),
@@ -358,6 +385,7 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
   }
 
   Widget _buildDefaultBanner(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       constraints: BoxConstraints(
@@ -392,7 +420,7 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Keep Reading',
+            l10n.keepReading,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 26,
@@ -401,7 +429,7 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Thousands of free books and original stories, curated for you.',
+            l10n.heroBannerSubtitle,
             style: TextStyle(
               color: Theme.of(
                 context,
@@ -422,9 +450,9 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text(
-              'Explore Now',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: Text(
+              l10n.exploreNow,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -440,6 +468,7 @@ class _DailyTopicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -481,9 +510,9 @@ class _DailyTopicCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'Daily Topic',
-                style: TextStyle(
+              child: Text(
+                l10n.dailyTopic,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -534,9 +563,12 @@ class _DailyTopicCard extends StatelessWidget {
                   vertical: 12,
                 ),
               ),
-              child: const Text(
-                'Read More',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              child: Text(
+                l10n.readMore,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -570,7 +602,7 @@ class _GenreSection extends ConsumerWidget {
               booksAsync: booksAsync,
               sectionId: sectionId,
               onRetry: () => ref.invalidate(homepageGenreProvider(sectionId)),
-              onSeeAll: () => _openCategory(context, genre),
+              onSeeAll: () => _openCategory(context, sectionId, title),
             ),
             const SizedBox(height: 28),
           ],
@@ -600,6 +632,7 @@ class _ContinueReadingSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final booksAsync = ref.watch(readingHistoryBooksProvider);
     final user = ref.watch(currentUserProvider).asData?.value;
 
@@ -610,11 +643,14 @@ class _ContinueReadingSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Continue Reading',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                l10n.continueReading,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -641,7 +677,7 @@ class _ContinueReadingSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
-        title: 'Continue Reading',
+        title: l10n.continueReading,
         onRetry: () => ref.invalidate(readingHistoryBooksProvider),
       ),
     );
@@ -680,6 +716,7 @@ class _ContinueReadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final authors = book.authors
         .map((author) => author.name)
@@ -735,7 +772,7 @@ class _ContinueReadingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      authors.isEmpty ? 'Unknown Author' : authors,
+                      authors.isEmpty ? l10n.unknownAuthor : authors,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -745,7 +782,7 @@ class _ContinueReadingCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      'Chapter ${chapterIndex + 1}',
+                      l10n.chapterNumber(chapterIndex + 1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -762,7 +799,9 @@ class _ContinueReadingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      percent > 0 ? '$percent% complete' : 'Ready to resume',
+                      percent > 0
+                          ? l10n.percentComplete(percent)
+                          : l10n.readyToResume,
                       style: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -784,6 +823,7 @@ class _SavedBooksSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final remoteSavedAsync = ref.watch(homepageDownloadedBooksProvider);
 
     return remoteSavedAsync.when(
@@ -791,7 +831,7 @@ class _SavedBooksSection extends ConsumerWidget {
         if (books.isEmpty) return const SizedBox.shrink();
 
         return _BookshelfSection(
-          title: 'Your Shelf',
+          title: l10n.yourShelf,
           booksAsync: remoteSavedAsync,
           sectionId: 'saved',
           onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
@@ -802,7 +842,7 @@ class _SavedBooksSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
-        title: 'Your Shelf',
+        title: l10n.yourShelf,
         onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
       ),
     );
@@ -820,16 +860,17 @@ class _AuthorsSection extends ConsumerStatefulWidget {
 class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
   HomeAuthorRanking _ranking = HomeAuthorRanking.topRated;
 
-  String _rankingLabel(HomeAuthorRanking ranking) {
+  String _rankingLabel(HomeAuthorRanking ranking, AppLocalizations l10n) {
     return switch (ranking) {
-      HomeAuthorRanking.topRated => 'Top Rated Authors',
-      HomeAuthorRanking.mostRead => 'Most Read Authors',
-      HomeAuthorRanking.mostPublished => 'Most Published Authors',
+      HomeAuthorRanking.topRated => l10n.topRatedAuthors,
+      HomeAuthorRanking.mostRead => l10n.mostReadAuthors,
+      HomeAuthorRanking.mostPublished => l10n.mostPublishedAuthors,
     };
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final authorsAsync = ref.watch(homepageRankedAuthorsProvider(_ranking));
     return authorsAsync.when(
       data: (rankedAuthors) {
@@ -841,10 +882,10 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Authors to Follow',
-                      style: TextStyle(
+                      l10n.authorsToFollow,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -858,7 +899,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                         .map(
                           (ranking) => DropdownMenuItem(
                             value: ranking,
-                            child: Text(_rankingLabel(ranking)),
+                            child: Text(_rankingLabel(ranking, l10n)),
                           ),
                         )
                         .toList(),
@@ -950,7 +991,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
-        title: 'Authors to Follow',
+        title: l10n.authorsToFollow,
         onRetry: () => ref.invalidate(homepageRankedAuthorsProvider(_ranking)),
       ),
     );
@@ -999,7 +1040,10 @@ class _BookshelfSection extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  TextButton(onPressed: onSeeAll, child: const Text('See All')),
+                  TextButton(
+                    onPressed: onSeeAll,
+                    child: Text(AppLocalizations.of(context)!.seeAll),
+                  ),
                 ],
               ),
             ),
@@ -1085,13 +1129,16 @@ class _SectionError extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Could not load $title.',
+                AppLocalizations.of(context)!.couldNotLoad(title),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: colorScheme.onErrorContainer),
               ),
             ),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(AppLocalizations.of(context)!.tryAgain),
+            ),
           ],
         ),
       ),
@@ -1107,10 +1154,13 @@ class _BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Semantics(
       button: true,
-      label:
-          '${book.title} by ${book.authors.isNotEmpty ? book.authors.first.name : 'Unknown Author'}',
+      label: l10n.bookByAuthor(
+        book.title,
+        book.authors.isNotEmpty ? book.authors.first.name : l10n.unknownAuthor,
+      ),
       child: GestureDetector(
         onTap: () {
           Navigator.of(context).push(
@@ -1175,7 +1225,7 @@ class _BookCard extends StatelessWidget {
               Text(
                 book.authors.isNotEmpty
                     ? book.authors.first.name
-                    : 'Unknown Author',
+                    : AppLocalizations.of(context)!.unknownAuthor,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1282,6 +1332,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final authorsAsync = ref.watch(homepageAuthorsProvider);
 
     return authorsAsync.when(
@@ -1423,7 +1474,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  author.bio ?? 'Featured Wreadom author.',
+                                  author.bio ?? l10n.featuredWreadomAuthor,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -1536,7 +1587,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                           ),
                         ),
                         error: (_, _) => _SectionError(
-                          title: '$authorName books',
+                          title: l10n.authorBooks(authorName),
                           onRetry: () =>
                               ref.invalidate(userBooksProvider(author.id)),
                         ),
@@ -1550,13 +1601,13 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
         },
         loading: () => const SizedBox.shrink(),
         error: (_, _) => _SectionError(
-          title: 'Author Spotlight',
+          title: l10n.authorSpotlight,
           onRetry: () => ref.invalidate(homepageRecentProvider),
         ),
       ),
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
-        title: 'Author Spotlight',
+        title: l10n.authorSpotlight,
         onRetry: () => ref.invalidate(homepageAuthorsProvider),
       ),
     );

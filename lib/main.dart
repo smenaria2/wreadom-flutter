@@ -22,6 +22,9 @@ import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
+import 'src/presentation/providers/locale_provider.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -135,6 +138,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(appThemeControllerProvider);
+    final locale = ref.watch(localeControllerProvider);
+
 
     return ScreenUtilInit(
       designSize: const Size(390, 844),
@@ -146,12 +151,15 @@ class _MyAppState extends ConsumerState<MyApp> {
           restorationScopeId: 'wreadom_app',
           title: 'Wreadom',
           debugShowCheckedModeBanner: false,
+          locale: locale,
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             FlutterQuillLocalizations.delegate,
           ],
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: const Color(0xFF6200EE),

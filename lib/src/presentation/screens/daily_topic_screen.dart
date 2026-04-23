@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
@@ -54,6 +55,7 @@ class DailyTopicScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final topicAsync = preloadedTopic != null
         ? AsyncValue.data(preloadedTopic)
         : ref.watch(dailyTopicByIdProvider(topicId));
@@ -63,16 +65,16 @@ class DailyTopicScreen extends ConsumerWidget {
         data: (topic) {
           if (topic == null) {
             return Scaffold(
-              appBar: AppBar(title: const Text('Daily Topic')),
-              body: const Center(child: Text('Daily topic not found.')),
+              appBar: AppBar(title: Text(l10n.dailyTopic)),
+              body: Center(child: Text(l10n.dailyTopicNotFound)),
             );
           }
           return _DailyTopicBody(topic: topic);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Scaffold(
-          appBar: AppBar(title: const Text('Daily Topic')),
-          body: Center(child: Text('Failed to load topic: $error')),
+          appBar: AppBar(title: Text(l10n.dailyTopic)),
+          body: Center(child: Text(l10n.failedToLoadTopic(error.toString()))),
         ),
       ),
     );
@@ -87,6 +89,7 @@ class _DailyTopicBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final booksAsync = ref.watch(dailyTopicBooksProvider(topic));
 
     return CustomScrollView(
@@ -94,14 +97,18 @@ class _DailyTopicBody extends ConsumerWidget {
         SliverAppBar(
           expandedHeight: 320,
           pinned: true,
-          title: const Text('Daily Topic'),
+          title: Text(l10n.dailyTopic),
           actions: [
             IconButton(
+              tooltip: l10n.sharePost,
               icon: const Icon(Icons.share_outlined),
               onPressed: () {
                 final id = topic.id.isNotEmpty ? topic.id : topic.topicName;
                 Share.share(
-                  'Write on "${topic.topicName}" on Wreadom: ${AppLinkHelper.dailyTopic(id)}',
+                  l10n.writeOnDailyTopic(
+                    topic.topicName,
+                    AppLinkHelper.dailyTopic(id),
+                  ),
                   subject: topic.topicName,
                 );
               },
@@ -147,9 +154,9 @@ class _DailyTopicBody extends ConsumerWidget {
                           color: theme.colorScheme.primary,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Daily Topic',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.dailyTopic,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -189,7 +196,7 @@ class _DailyTopicBody extends ConsumerWidget {
             delegate: SliverChildListDelegate([
               if (topic.fullDescription.isNotEmpty) ...[
                 Text(
-                  'About this topic',
+                  l10n.aboutThisTopic,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -205,7 +212,7 @@ class _DailyTopicBody extends ConsumerWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Participate Now'),
+                  label: Text(l10n.participateNow),
                   onPressed: () => Navigator.of(context).pushNamed(
                     AppRoutes.writerPad,
                     arguments: WriterPadArguments(
@@ -218,7 +225,7 @@ class _DailyTopicBody extends ConsumerWidget {
               Row(
                 children: [
                   Text(
-                    'Submissions Received',
+                    l10n.submissionsReceived,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -240,9 +247,9 @@ class _DailyTopicBody extends ConsumerWidget {
         booksAsync.when(
           data: (books) {
             if (books.isEmpty) {
-              return const SliverFillRemaining(
+              return SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text('No submissions received yet.')),
+                child: Center(child: Text(l10n.noSubmissionsYet)),
               );
             }
             return SliverPadding(
@@ -268,7 +275,7 @@ class _DailyTopicBody extends ConsumerWidget {
           error: (error, _) => SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
-              child: Text('Failed to load submissions received: $error'),
+              child: Text(l10n.failedToLoadSubmissions(error.toString())),
             ),
           ),
         ),

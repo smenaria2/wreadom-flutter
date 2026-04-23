@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/comment.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
@@ -69,9 +70,13 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to post reply: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPostReply(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -81,6 +86,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
       child: Column(
@@ -88,7 +94,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Reply to ${widget.comment.displayName ?? widget.comment.username}',
+            l10n.replyingTo(
+              widget.comment.displayName ?? widget.comment.username,
+            ),
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -99,9 +107,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             autofocus: true,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Add a reply...',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText: l10n.addAReply,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -115,7 +123,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Reply'),
+                  : Text(l10n.reply),
             ),
           ),
         ],

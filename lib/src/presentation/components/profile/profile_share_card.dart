@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../domain/models/user_model.dart';
@@ -18,6 +19,8 @@ Future<void> shareUserProfileCard(
 }) async {
   final boundaryKey = GlobalKey();
   final overlay = Overlay.of(context);
+  final l10n = AppLocalizations.of(context)!;
+  final displayName = _displayName(user);
   late final OverlayEntry entry;
 
   entry = OverlayEntry(
@@ -45,10 +48,11 @@ Future<void> shareUserProfileCard(
     final bytes = await image
         ?.toByteData(format: ui.ImageByteFormat.png)
         .then((data) => data?.buffer.asUint8List());
-    final displayName = _displayName(user);
-
     if (bytes == null || bytes.isEmpty) {
-      await Share.share(fallbackText, subject: '$displayName on Wreadom');
+      await Share.share(
+        fallbackText,
+        subject: l10n.shareProfileSubject(displayName),
+      );
       return;
     }
 
@@ -61,12 +65,12 @@ Future<void> shareUserProfileCard(
         ),
       ],
       text: AppLinkHelper.user(user.id),
-      subject: '$displayName on Wreadom',
+      subject: l10n.shareProfileSubject(displayName),
     );
   } catch (_) {
     await Share.share(
       fallbackText,
-      subject: '${_displayName(user)} on Wreadom',
+      subject: l10n.shareProfileSubject(displayName),
     );
   } finally {
     entry.remove();
@@ -88,6 +92,7 @@ class ProfileShareCard extends StatelessWidget {
     final name = _displayName(user);
     final penName = user.penName?.trim();
     final bio = user.bio?.trim();
+    final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
       width: 1050,
@@ -199,9 +204,9 @@ class ProfileShareCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Text(
-                        'WREADOM CREATOR',
-                        style: TextStyle(
+                      Text(
+                        l10n.wreadomCreator.toUpperCase(),
+                        style: const TextStyle(
                           color: Color(0xFFA5B4FC),
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
@@ -234,12 +239,12 @@ class ProfileShareCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _CardStat(
-                    label: 'Followers',
+                    label: l10n.followers,
                     value: user.followersCount ?? 0,
                   ),
-                  _CardStat(label: 'Works', value: worksCount),
+                  _CardStat(label: l10n.works, value: worksCount),
                   _CardStat(
-                    label: 'Following',
+                    label: l10n.following,
                     value: user.followingCount ?? 0,
                   ),
                 ],
@@ -249,7 +254,7 @@ class ProfileShareCard extends StatelessWidget {
               right: 80,
               bottom: 70,
               child: Text(
-                'OFFICIAL LITERARY PROFILE - WREADOM.IN',
+                l10n.officialLiteraryProfile.toUpperCase(),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.34),
                   fontSize: 12,

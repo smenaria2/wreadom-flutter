@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
@@ -22,16 +23,17 @@ class PostDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postAsync = ref.watch(singlePostProvider(postId));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: Text(l10n.post),
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () => Share.share(
-              'Check out this post on Wreadom: ${AppLinkHelper.post(postId)}',
-              subject: 'Wreadom Post',
+              l10n.checkOutPostOnWreadom(AppLinkHelper.post(postId)),
+              subject: l10n.wreadomPost,
             ),
           ),
         ],
@@ -40,7 +42,7 @@ class PostDetailScreen extends ConsumerWidget {
         data: (post) {
           final effectivePost = post ?? preloadedPost;
           if (effectivePost == null) {
-            return const Center(child: Text('Post not found or deleted'));
+            return Center(child: Text(l10n.postNotFoundOrDeleted));
           }
           return RefreshIndicator(
             onRefresh: () async {
@@ -63,7 +65,8 @@ class PostDetailScreen extends ConsumerWidget {
                 ],
               )
             : const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Failed to load post: $err')),
+        error: (err, _) =>
+            Center(child: Text(l10n.failedToLoadPost(err.toString()))),
       ),
     );
   }
@@ -100,6 +103,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     final postId = widget.post.id;
     final text = _controller.value.text.trim();
     final user = ref.read(currentUserProvider).asData?.value;
@@ -130,7 +134,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           userId: _replyingTo!.userId,
           actor: user,
           type: 'feed_reply',
-          text: 'replied to your comment.',
+          text: l10n.repliedToYourComment,
           link: AppLinkHelper.post(postId),
           targetId: postId,
           metadata: {'postId': postId, 'commentId': _replyingTo!.id},
@@ -148,7 +152,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           userId: widget.post.userId,
           actor: user,
           type: 'feed_comment',
-          text: 'commented on your post.',
+          text: l10n.commentedOnYourPost,
           link: AppLinkHelper.post(postId),
           targetId: postId,
           metadata: {'postId': postId},
@@ -173,6 +177,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
     final postId = widget.post.id;
     if (postId == null) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final commentsAsync = ref.watch(feedPostCommentsProvider(postId));
 
     return Padding(
@@ -182,8 +187,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
         children: [
           Text(
             commentsAsync.maybeWhen(
-              data: (comments) => 'Comments (${comments.length})',
-              orElse: () => 'Comments',
+              data: (comments) => l10n.commentsCount(comments.length),
+              orElse: () => l10n.comments,
             ),
             style: Theme.of(
               context,
@@ -193,9 +198,9 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           commentsAsync.when(
             data: (comments) {
               if (comments.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Text('No comments yet. Be the first!'),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(l10n.noCommentsYet),
                 );
               }
               return Column(
@@ -209,7 +214,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
               );
             },
             loading: () => const LinearProgressIndicator(),
-            error: (error, _) => Text('Failed to load comments: $error'),
+            error: (error, _) =>
+                Text(l10n.failedToLoadComments(error.toString())),
           ),
           if (_replyingTo != null)
             Container(
@@ -223,7 +229,9 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                 children: [
                   Expanded(
                     child: Text(
-                      'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                      l10n.replyingTo(
+                        _replyingTo!.displayName ?? _replyingTo!.username,
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -242,8 +250,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                   controller: _controller.value,
                   decoration: InputDecoration(
                     hintText: _replyingTo == null
-                        ? 'Add a comment...'
-                        : 'Add a reply...',
+                        ? l10n.addAComment
+                        : l10n.addAReply,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),

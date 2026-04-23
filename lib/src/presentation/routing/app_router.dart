@@ -11,6 +11,7 @@ import '../screens/discovery_screen.dart';
 import '../screens/follow_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/help_screen.dart';
+import '../screens/language_settings_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/post_detail_screen.dart';
@@ -244,6 +245,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
       case AppRoutes.help:
         return MaterialPageRoute(builder: (_) => const HelpScreen());
+      case AppRoutes.languageSettings:
+        return MaterialPageRoute(builder: (_) => const LanguageSettingsScreen());
       case AppRoutes.privacy:
         return MaterialPageRoute(
           builder: (_) => const StaticInfoScreen(

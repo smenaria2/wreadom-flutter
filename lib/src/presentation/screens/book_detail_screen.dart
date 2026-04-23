@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
@@ -57,7 +58,11 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
     return Scaffold(
       body: bookAsync.when(
         data: (book) {
-          if (book == null) return const Center(child: Text('Book not found'));
+          if (book == null) {
+            return Center(
+              child: Text(AppLocalizations.of(context)!.bookNotFound),
+            );
+          }
           if (widget.initialReaderChapterIndex != null) {
             return _ReaderDeepLinkLauncher(
               book: book,
@@ -68,7 +73,11 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
           return _BookDetailBody(book: book, heroTag: widget.heroTag);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+        error: (err, _) => Center(
+          child: Text(
+            '${AppLocalizations.of(context)!.somethingWentWrong}: $err',
+          ),
+        ),
       ),
     );
   }
@@ -174,7 +183,7 @@ class _BookDetailBody extends ConsumerWidget {
           actions: [
             if (canEdit)
               IconButton(
-                tooltip: 'Edit book',
+                tooltip: AppLocalizations.of(context)!.editBook,
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: () => Navigator.of(context).pushNamed(
                   AppRoutes.writerPad,
@@ -184,13 +193,15 @@ class _BookDetailBody extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.share_outlined),
               onPressed: () => Share.share(
-                'Read "${book.title}" on Wreadom: ${AppLinkHelper.book(book.id)}',
+                AppLocalizations.of(
+                  context,
+                )!.shareBookMessage(book.title, AppLinkHelper.book(book.id)),
                 subject: book.title,
               ),
             ),
             if (!canEdit)
               IconButton(
-                tooltip: 'Report book',
+                tooltip: AppLocalizations.of(context)!.reportBook,
                 icon: const Icon(Icons.report_problem_outlined),
                 onPressed: () => showDialog(
                   context: context,
@@ -242,7 +253,9 @@ class _BookDetailBody extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               _AuthorLine(
-                authors: authors.isNotEmpty ? authors : 'Unknown Author',
+                authors: authors.isNotEmpty
+                    ? authors
+                    : AppLocalizations.of(context)!.unknownAuthor,
                 authorAsync: authorAsync,
                 authorId: authorId,
               ),
@@ -279,8 +292,8 @@ class _BookDetailBody extends ConsumerWidget {
                       icon: const Icon(Icons.menu_book_rounded),
                       label: Text(
                         _hasProgress(userAsync, book.id)
-                            ? 'Continue Reading'
-                            : 'Start Reading',
+                            ? AppLocalizations.of(context)!.continueReading
+                            : AppLocalizations.of(context)!.startReading,
                       ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -312,7 +325,7 @@ class _BookDetailBody extends ConsumerWidget {
               const SizedBox(height: 28),
               if ((book.description ?? '').isNotEmpty) ...[
                 Text(
-                  'About this Book',
+                  AppLocalizations.of(context)!.aboutThisBook,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -375,8 +388,9 @@ class _BookDetailBody extends ConsumerWidget {
         .where((name) => name.isNotEmpty)
         .join(', ');
     final rootContext = context;
+    final l10n = AppLocalizations.of(context)!;
     final feedMessageController = TextEditingController(
-      text: 'I\'m reading "${book.title}" on Wreadom. Check it out.',
+      text: l10n.defaultShareMessage(book.title),
     );
 
     await showModalBottomSheet<void>(
@@ -421,16 +435,16 @@ class _BookDetailBody extends ConsumerWidget {
               if (!rootContext.mounted) return;
               ScaffoldMessenger.of(
                 rootContext,
-              ).showSnackBar(const SnackBar(content: Text('Shared to feed.')));
+              ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
             }
 
             return SafeArea(
               child: conversationsAsync.when(
                 data: (conversations) {
                   if (currentUser == null) {
-                    return const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: Text('Sign in to share this book.')),
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(child: Text(l10n.signInToShare)),
                     );
                   }
 
@@ -450,16 +464,16 @@ class _BookDetailBody extends ConsumerWidget {
                               TextField(
                                 controller: feedMessageController,
                                 maxLines: 3,
-                                decoration: const InputDecoration(
-                                  labelText: 'Share to feed',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l10n.shareToFeed,
+                                  border: const OutlineInputBorder(),
                                 ),
                               ),
                               const SizedBox(height: 10),
                               FilledButton.icon(
                                 onPressed: shareToFeed,
                                 icon: const Icon(Icons.dynamic_feed_outlined),
-                                label: const Text('Share to feed'),
+                                label: Text(l10n.shareToFeed),
                               ),
                             ],
                           ),
@@ -469,16 +483,16 @@ class _BookDetailBody extends ConsumerWidget {
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                           child: Text(
-                            'Send to chat',
+                            l10n.sendToChat,
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                         );
                       }
                       if (conversations.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
-                          child: Text('No recent conversations yet.'),
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                          child: Text(l10n.noRecentConversations),
                         );
                       }
                       final conversation = conversations[index - 2];
@@ -491,14 +505,14 @@ class _BookDetailBody extends ConsumerWidget {
                           conversation.name ??
                           other?.displayName ??
                           other?.username ??
-                          'Conversation';
+                          l10n.conversation;
                       return ListTile(
                         leading: CircleAvatar(
                           child: Text(title.characters.first.toUpperCase()),
                         ),
                         title: Text(title),
                         subtitle: Text(
-                          conversation.lastMessage?.text ?? 'No messages yet',
+                          conversation.lastMessage?.text ?? l10n.noMessagesYet,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -518,7 +532,7 @@ class _BookDetailBody extends ConsumerWidget {
                                     title: book.title,
                                     coverUrl: book.coverUrl,
                                     authorNames: authors.isEmpty
-                                        ? 'Unknown Author'
+                                        ? l10n.unknownAuthor
                                         : authors,
                                   ),
                                 );
@@ -527,7 +541,7 @@ class _BookDetailBody extends ConsumerWidget {
                               userId: otherId,
                               actor: sender,
                               type: 'book_message',
-                              text: 'sent you a book.',
+                              text: l10n.sentYouABook,
                               link: AppLinkHelper.book(book.id),
                               targetId: book.id,
                               metadata: {
@@ -546,7 +560,9 @@ class _BookDetailBody extends ConsumerWidget {
                           Navigator.of(sheetContext).pop();
                           if (!rootContext.mounted) return;
                           ScaffoldMessenger.of(rootContext).showSnackBar(
-                            SnackBar(content: Text('Sent "${book.title}".')),
+                            SnackBar(
+                              content: Text(l10n.sentBookSnack(book.title)),
+                            ),
                           );
                         },
                       );
@@ -559,7 +575,9 @@ class _BookDetailBody extends ConsumerWidget {
                 ),
                 error: (error, _) => Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Center(child: Text('Failed to load chats: $error')),
+                  child: Center(
+                    child: Text(l10n.failedToLoadChats(error.toString())),
+                  ),
                 ),
               ),
             );
@@ -687,7 +705,7 @@ class _LatestDiscussionSectionState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Latest discussion',
+              AppLocalizations.of(context)!.latestDiscussion,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -704,7 +722,7 @@ class _LatestDiscussionSectionState
               TextButton.icon(
                 onPressed: () => setState(() => _visibleCount += 5),
                 icon: const Icon(Icons.expand_more_rounded),
-                label: const Text('Show more'),
+                label: Text(AppLocalizations.of(context)!.showMore),
               ),
           ],
         );
@@ -749,13 +767,17 @@ class _StatsRow extends ConsumerWidget {
         _RatingStat(summary: rating),
         _Stat(
           icon: Icons.visibility_outlined,
-          label: '${_formatCount(book.viewCount ?? 0)} reads',
+          label: AppLocalizations.of(
+            context,
+          )!.readsStat(_formatCount(book.viewCount ?? 0)),
           color: textColor,
         ),
         if (book.chapterCount != null || (book.chapters?.isNotEmpty ?? false))
           _Stat(
             icon: Icons.menu_book_outlined,
-            label: '${book.chapterCount ?? book.chapters!.length} chapters',
+            label: AppLocalizations.of(context)!.chaptersStat(
+              (book.chapterCount ?? book.chapters!.length).toString(),
+            ),
             color: textColor,
           ),
       ],
@@ -800,11 +822,12 @@ class _RatingStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final average = summary.average;
     if (average == null) {
       return _Stat(
         icon: Icons.star_border_rounded,
-        label: 'No ratings',
+        label: l10n.noRatings,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       );
     }
@@ -929,7 +952,11 @@ class _ExpandableTextState extends State<_ExpandableText> {
         TextButton(
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
           onPressed: () => setState(() => _expanded = !_expanded),
-          child: Text(_expanded ? 'Show less' : 'Read more'),
+          child: Text(
+            _expanded
+                ? AppLocalizations.of(context)!.showLess
+                : AppLocalizations.of(context)!.readMore,
+          ),
         ),
       ],
     );
@@ -968,6 +995,7 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
     if (user == null) return;
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final idStr = widget.book.id.toString();
     final savedBooks = List<dynamic>.from(user.savedBooks);
     final isSaved = savedBooks.any((id) => id?.toString() == idStr);
@@ -976,18 +1004,19 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Remove saved book?'),
-          content: const Text(
-            'The offline download will stay available unless you remove it separately.',
-          ),
+          title: Text(l10n.removeSavedBookTitle),
+          content: Text(l10n.removeSavedBookBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Unsave', style: TextStyle(color: Colors.red)),
+              child: Text(
+                l10n.unsave,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           ],
         ),
@@ -1025,18 +1054,16 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
         });
         ref.invalidate(currentUserProvider);
         ref.invalidate(savedBooksProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Book saved and downloaded for offline reading.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.bookSavedDownloaded)));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isDownloading = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.saveFailed(e.toString()))));
       }
     }
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
@@ -87,9 +88,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           SliverAppBar(
             floating: true,
             snap: true,
-            title: const Text(
-              'Discover',
-              style: TextStyle(
+            title: Text(
+              AppLocalizations.of(context)!.discover,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.5,
               ),
@@ -111,8 +112,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    labelText: 'Search books and authors',
-                    hintText: 'Search books, authors...',
+                    labelText: AppLocalizations.of(context)!.searchBooksAuthors,
+                    hintText: AppLocalizations.of(context)!.searchHint,
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _query.isNotEmpty
                         ? IconButton(
@@ -147,7 +148,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   children: [
                     for (final genre in _genres)
                       FilterChip(
-                        label: Text(genre),
+                        label: Text(_getLocalizedGenre(context, genre)),
                         selected: _activeGenre == genre,
                         showCheckmark: false,
                         onSelected: (_) {
@@ -165,9 +166,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           if (_query.isEmpty && !hasGenre)
             defaultAsync.when(
               data: (books) => _BookListSliver(
-                title: 'Suggested Books',
+                title: AppLocalizations.of(context)!.suggestedBooks,
                 books: books,
-                emptyText: 'No suggested books found.',
+                emptyText: AppLocalizations.of(context)!.noSuggestedBooks,
               ),
               loading: () => const SliverFillRemaining(
                 hasScrollBody: false,
@@ -175,15 +176,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text('Error: $error')),
+                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
               ),
             )
           else if (hasGenre)
             genreAsync!.when(
               data: (books) => _BookListSliver(
-                title: _activeGenre!,
+                title: _getLocalizedGenre(context, _activeGenre!),
                 books: books,
-                emptyText: 'No books found in $_activeGenre.',
+                emptyText: AppLocalizations.of(context)!.noBooksFoundIn(_getLocalizedGenre(context, _activeGenre!)),
               ),
               loading: () => const SliverFillRemaining(
                 hasScrollBody: false,
@@ -191,7 +192,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text('Error: $error')),
+                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
               ),
             )
           else
@@ -201,7 +202,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   return SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text('No results for "$effectiveQuery"'),
+                      child: Text(AppLocalizations.of(context)!.noResultsFor(effectiveQuery)),
                     ),
                   );
                 }
@@ -211,12 +212,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       _AuthorResultSection(authors: results.authors),
                     if (results.originals.isNotEmpty)
                       _ResultSection(
-                        title: 'Original Books',
+                        title: AppLocalizations.of(context)!.originalBooks,
                         books: results.originals,
                       ),
                     if (results.archiveBooks.isNotEmpty)
                       _ResultSection(
-                        title: 'More Books',
+                        title: AppLocalizations.of(context)!.moreBooks,
                         books: results.archiveBooks,
                       ),
                     const SizedBox(height: 32),
@@ -229,7 +230,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text('Error: $error')),
+                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
               ),
             ),
         ],
@@ -303,9 +304,9 @@ class _AuthorResultSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Profiles',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Text(
+            AppLocalizations.of(context)!.profiles,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -418,7 +419,7 @@ class _SearchResultTile extends StatelessWidget {
       child: Semantics(
         button: true,
         label:
-            '${book.title} by ${book.authors.isNotEmpty ? book.authors.map((a) => a.name).join(', ') : 'Unknown Author'}',
+            '${book.title} ${AppLocalizations.of(context)!.about} ${book.authors.isNotEmpty ? book.authors.map((a) => a.name).join(', ') : AppLocalizations.of(context)!.unknownAuthor}',
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.of(context).push(
@@ -462,7 +463,7 @@ class _SearchResultTile extends StatelessWidget {
                       Text(
                         book.authors.isNotEmpty
                             ? book.authors.map((a) => a.name).join(', ')
-                            : 'Unknown Author',
+                            : AppLocalizations.of(context)!.unknownAuthor,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -472,9 +473,9 @@ class _SearchResultTile extends StatelessWidget {
                       ),
                       if (book.source == 'archive') ...[
                         const SizedBox(height: 6),
-                        const Text(
-                          'Internet Archive',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.internetArchive,
+                          style: const TextStyle(
                             color: Colors.blue,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -513,5 +514,33 @@ class _MiniPlaceholder extends StatelessWidget {
       borderRadius: 8,
       compact: true,
     );
+  }
+}
+
+String _getLocalizedGenre(BuildContext context, String genre) {
+  final l10n = AppLocalizations.of(context)!;
+  switch (genre) {
+    case 'Fantasy':
+      return l10n.genreFantasy;
+    case 'Romance':
+      return l10n.genreRomance;
+    case 'Science Fiction':
+      return l10n.genreSciFi;
+    case 'Mystery':
+      return l10n.genreMystery;
+    case 'Horror':
+      return l10n.genreHorror;
+    case 'Historical':
+      return l10n.genreHistorical;
+    case 'Adventure':
+      return l10n.genreAdventure;
+    case 'Poetry':
+      return l10n.genrePoetry;
+    case 'Biography':
+      return l10n.genreBiography;
+    case 'Philosophy':
+      return l10n.genrePhilosophy;
+    default:
+      return genre;
   }
 }

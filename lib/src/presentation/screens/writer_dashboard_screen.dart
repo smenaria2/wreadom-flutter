@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../components/writer/writer_book_card.dart';
 import '../components/writer/writer_dashboard_header.dart';
 import '../providers/writer_providers.dart';
@@ -12,6 +14,7 @@ class WriterDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final activeTab = ref.watch(writerDashboardTabProvider);
     final booksAsync = ref.watch(filteredMyBooksProvider);
 
@@ -27,8 +30,8 @@ class WriterDashboardScreen extends ConsumerWidget {
               pinned: true,
               elevation: 0,
               backgroundColor: theme.primaryColor,
-              title: const Text(
-                'Writer Dashboard',
+              title: Text(
+                l10n.writerDashboard,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -40,16 +43,16 @@ class WriterDashboardScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                 child: SegmentedButton<String>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: 'published',
-                      label: Text('Published'),
-                      icon: Icon(Icons.public_rounded),
+                      label: Text(l10n.published),
+                      icon: const Icon(Icons.public_rounded),
                     ),
                     ButtonSegment(
                       value: 'draft',
-                      label: Text('Drafts'),
-                      icon: Icon(Icons.edit_note_rounded),
+                      label: Text(l10n.drafts),
+                      icon: const Icon(Icons.edit_note_rounded),
                     ),
                   ],
                   selected: {activeTab},
@@ -78,8 +81,8 @@ class WriterDashboardScreen extends ConsumerWidget {
                           const SizedBox(height: 16),
                           Text(
                             activeTab == 'published'
-                                ? 'No published stories yet'
-                                : 'No drafts yet',
+                                ? l10n.noPublishedStoriesYet
+                                : l10n.noDraftsYet,
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.grey,
                               fontWeight: FontWeight.bold,
@@ -129,7 +132,9 @@ class WriterDashboardScreen extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (error, _) => SliverFillRemaining(
-                child: Center(child: Text('Failed to load: $error')),
+                child: Center(
+                  child: Text(l10n.failedToLoadWithError(error.toString())),
+                ),
               ),
             ),
           ],
@@ -143,9 +148,12 @@ class WriterDashboardScreen extends ConsumerWidget {
           );
         },
         icon: const Icon(Icons.edit_note, color: Colors.white),
-        label: const Text(
-          'Create Content',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        label: Text(
+          l10n.createContent,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: theme.primaryColor,
       ),
@@ -157,19 +165,20 @@ class WriterDashboardScreen extends ConsumerWidget {
     WidgetRef ref,
     String bookId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete draft?'),
-        content: const Text('This draft will be removed from your dashboard.'),
+        title: Text(l10n.deleteDraftTitle),
+        content: Text(l10n.deleteDraftBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -182,12 +191,12 @@ class WriterDashboardScreen extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Draft deleted.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.draftDeleted)));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not delete draft: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.couldNotDeleteDraft(error.toString()))),
+      );
     }
   }
 }

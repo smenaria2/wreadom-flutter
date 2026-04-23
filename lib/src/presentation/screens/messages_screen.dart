@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
@@ -13,15 +14,14 @@ class MessagesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final conversationsAsync = ref.watch(conversationsProvider);
     final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(title: Text(l10n.messages)),
       body: conversationsAsync.when(
         data: (conversations) {
           if (conversations.isEmpty) {
-            return const Center(
-              child: Text('No conversations yet. Start from a user profile.'),
-            );
+            return Center(child: Text(l10n.noConversationsYet));
           }
           return ListView.separated(
             itemCount: conversations.length,
@@ -37,40 +37,38 @@ class MessagesScreen extends ConsumerWidget {
                   conversation.name ??
                   other?.displayName ??
                   other?.username ??
-                  'Conversation';
+                  l10n.conversation;
               return ListTile(
                 leading: CircleAvatar(
                   child: Text(title.characters.first.toUpperCase()),
                 ),
                 title: Text(title),
                 subtitle: Text(
-                  conversation.lastMessage?.text ?? 'No messages yet',
+                  conversation.lastMessage?.text ?? l10n.noMessagesYet,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline_rounded),
-                  tooltip: 'Delete chat',
+                  tooltip: l10n.deleteChat,
                   onPressed: currentUser == null
                       ? null
                       : () async {
                           final confirmed = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Delete chat?'),
-                              content: const Text(
-                                'This removes the conversation from your messages.',
-                              ),
+                              title: Text(l10n.deleteChatTitle),
+                              content: Text(l10n.deleteConversationBody),
                               actions: [
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.of(context).pop(false),
-                                  child: const Text('Cancel'),
+                                  child: Text(l10n.cancel),
                                 ),
                                 FilledButton(
                                   onPressed: () =>
                                       Navigator.of(context).pop(true),
-                                  child: const Text('Delete'),
+                                  child: Text(l10n.delete),
                                 ),
                               ],
                             ),
@@ -100,7 +98,8 @@ class MessagesScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load: $error')),
+        error: (error, _) =>
+            Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
       ),
     );
   }

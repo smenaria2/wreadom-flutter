@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
 import '../../providers/auth_providers.dart';
@@ -38,18 +39,19 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_rating == 0) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a rating')));
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
       return;
     }
 
     final text = _textController.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write a short review')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseWriteShortReview)));
       return;
     }
 
@@ -57,7 +59,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     if (user == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please log in to review')));
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseLoginToReview)));
       return;
     }
 
@@ -88,8 +90,8 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Review shared! 🎉'),
+          SnackBar(
+            content: Text(l10n.reviewShared),
             backgroundColor: Colors.green,
           ),
         );
@@ -108,6 +110,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
@@ -129,7 +132,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Review: ${widget.book.title}',
+                  l10n.reviewTitle(widget.book.title),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -145,7 +148,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else
-                TextButton(onPressed: _submit, child: const Text('Post')),
+                TextButton(onPressed: _submit, child: Text(l10n.post)),
             ],
           ),
           const SizedBox(height: 16),
@@ -173,7 +176,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
             minLines: 3,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: 'What did you think of this book?',
+              hintText: l10n.reviewHint,
               filled: true,
               fillColor: Colors.grey[50],
               border: OutlineInputBorder(

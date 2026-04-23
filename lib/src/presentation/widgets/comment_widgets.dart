@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
 import '../providers/auth_providers.dart';
@@ -115,10 +116,11 @@ class _CommentTileState extends ConsumerState<CommentTile> {
   }
 
   Future<void> _editComment() async {
+    final l10n = AppLocalizations.of(context)!;
     final comment = widget.comment;
     final commentId = comment.id;
     if (commentId == null) return;
-    final text = await _showEditDialog(context, 'Edit comment', comment.text);
+    final text = await _showEditDialog(context, l10n.editComment, comment.text);
     if (text == null) return;
     try {
       if (comment.feedPostId != null) {
@@ -139,7 +141,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Edit failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
       }
     }
   }
@@ -177,6 +179,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final comment = widget.comment;
     final replies = comment.replies ?? [];
     final name = comment.displayName ?? comment.username;
@@ -190,11 +193,11 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final isOwner = user != null && comment.userId == user.id;
     final leftLabel = canHighlight
         ? isHighlighted
-              ? 'Unpin'
-              : 'Pin'
+              ? l10n.unpin
+              : l10n.pin
         : isOwner
-        ? 'Edit'
-        : 'Report';
+        ? l10n.edit
+        : l10n.report;
     final leftIcon = canHighlight
         ? Icons.push_pin_outlined
         : isOwner
@@ -207,7 +210,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         _SwipeActionShell(
           leftLabel: leftLabel,
           leftIcon: leftIcon,
-          rightLabel: 'Reply',
+          rightLabel: l10n.reply,
           rightIcon: Icons.reply_rounded,
           onLeftAction: _leftSwipeAction,
           onRightAction: widget.onReply,
@@ -244,38 +247,37 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       }
                     },
                     itemBuilder: (context) => [
-                      if (canHighlight)
                         PopupMenuItem(
                           value: 'pin',
                           child: _MenuRow(
                             icon: isHighlighted
                                 ? Icons.push_pin
                                 : Icons.push_pin_outlined,
-                            label: isHighlighted ? 'Unpin' : 'Pin',
+                            label: isHighlighted ? l10n.unpin : l10n.pin,
                           ),
                         ),
                       if (comment.userId == user.id)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
                           child: _MenuRow(
                             icon: Icons.edit_outlined,
-                            label: 'Edit',
+                            label: l10n.edit,
                           ),
                         ),
                       if (comment.userId == user.id)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: _MenuRow(
                             icon: Icons.delete_outline_rounded,
-                            label: 'Delete',
+                            label: l10n.delete,
                           ),
                         )
                       else if (comment.id != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'report',
                           child: _MenuRow(
                             icon: Icons.report_problem_outlined,
-                            label: 'Report',
+                            label: l10n.report,
                           ),
                         ),
                     ],
@@ -323,7 +325,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                 Row(
                   children: [
                     Text(
-                      _formatTimestamp(comment.timestamp),
+                      _formatTimestamp(context, comment.timestamp),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: widget.metadataColor,
                       ),
@@ -355,7 +357,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                     GestureDetector(
                       onTap: widget.onReply,
                       child: Text(
-                        'Reply',
+                        l10n.reply,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
@@ -463,12 +465,13 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
   }
 
   Future<void> _editReply() async {
+    final l10n = AppLocalizations.of(context)!;
     final commentId = widget.commentId;
     if (commentId == null) return;
     final replyId = widget.reply.id ?? widget.reply.timestamp.toString();
     final text = await _showEditDialog(
       context,
-      'Edit reply',
+      l10n.editReply,
       widget.reply.text,
     );
     if (text == null) return;
@@ -491,7 +494,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Edit failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
       }
     }
   }
@@ -527,11 +530,12 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
         (user != null && (reply.likes ?? const <String>[]).contains(user.id));
     final likeCount = _likeCount ?? (reply.likes ?? const <String>[]).length;
 
+    final l10n = AppLocalizations.of(context)!;
     final isOwner = user != null && reply.userId == user.id;
     return _SwipeActionShell(
-      leftLabel: isOwner ? 'Edit' : 'Report',
+      leftLabel: isOwner ? l10n.edit : l10n.report,
       leftIcon: isOwner ? Icons.edit_outlined : Icons.report_problem_outlined,
-      rightLabel: 'Reply',
+      rightLabel: l10n.reply,
       rightIcon: Icons.reply_rounded,
       onLeftAction: _leftSwipeAction,
       onRightAction: widget.onReply,
@@ -574,24 +578,24 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                 },
                 itemBuilder: (context) => [
                   if (reply.userId == user.id)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
-                      child: _MenuRow(icon: Icons.edit_outlined, label: 'Edit'),
+                      child: _MenuRow(icon: Icons.edit_outlined, label: l10n.edit),
                     ),
                   if (reply.userId == user.id)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: _MenuRow(
                         icon: Icons.delete_outline_rounded,
-                        label: 'Delete',
+                        label: l10n.delete,
                       ),
                     )
                   else
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'report',
                       child: _MenuRow(
                         icon: Icons.report_problem_outlined,
-                        label: 'Report',
+                        label: l10n.report,
                       ),
                     ),
                 ],
@@ -613,7 +617,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
             Row(
               children: [
                 Text(
-                  _formatTimestamp(reply.timestamp),
+                  _formatTimestamp(context, reply.timestamp),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 11,
                     color: widget.metadataColor,
@@ -905,16 +909,17 @@ void _openProfile(BuildContext context, String userId) {
   );
 }
 
-String _formatTimestamp(int timestamp) {
+String _formatTimestamp(BuildContext context, int timestamp) {
+  final l10n = AppLocalizations.of(context)!;
   final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
   final now = DateTime.now();
   final diff = now.difference(date);
 
   if (diff.inDays > 7) return '${date.day}/${date.month}/${date.year}';
-  if (diff.inDays > 0) return '${diff.inDays}d ago';
-  if (diff.inHours > 0) return '${diff.inHours}h ago';
-  if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-  return 'Just now';
+  if (diff.inDays > 0) return l10n.daysAgo(diff.inDays);
+  if (diff.inHours > 0) return l10n.hoursAgo(diff.inHours);
+  if (diff.inMinutes > 0) return l10n.minutesAgo(diff.inMinutes);
+  return l10n.justNow;
 }
 
 Future<void> _confirmDeleteComment(
@@ -922,20 +927,21 @@ Future<void> _confirmDeleteComment(
   WidgetRef ref,
   Comment comment,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   if (comment.id == null) return;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Delete Comment?'),
-      content: const Text('This action cannot be undone.'),
+      title: Text(l10n.deleteCommentTitle),
+      content: Text(l10n.deleteActionUndone),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
         ),
       ],
     ),
@@ -961,7 +967,9 @@ Future<void> _confirmDeleteComment(
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+        ).showSnackBar(
+          SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
+        );
       }
     }
   }
@@ -975,22 +983,23 @@ Future<void> _confirmDeleteReply(
   String? feedPostId,
   String? bookId,
 }) async {
+  final l10n = AppLocalizations.of(context)!;
   if (commentId == null) return;
   final replyId = reply.id ?? reply.timestamp.toString();
 
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Delete Reply?'),
-      content: const Text('This action cannot be undone.'),
+      title: Text(l10n.deleteReplyTitle),
+      content: Text(l10n.deleteActionUndone),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
         ),
       ],
     ),
@@ -1015,7 +1024,9 @@ Future<void> _confirmDeleteReply(
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+        ).showSnackBar(
+          SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
+        );
       }
     }
   }
@@ -1026,6 +1037,7 @@ Future<String?> _showEditDialog(
   String title,
   String initialText,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final controller = TextEditingController(text: initialText);
   final result = await showDialog<String>(
     context: context,
@@ -1037,15 +1049,15 @@ Future<String?> _showEditDialog(
         minLines: 3,
         maxLines: 8,
         textInputAction: TextInputAction.newline,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          hintText: 'Write your update',
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          hintText: l10n.writeYourUpdate,
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -1053,7 +1065,7 @@ Future<String?> _showEditDialog(
             if (text.isEmpty) return;
             Navigator.of(ctx).pop(text);
           },
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     ),
