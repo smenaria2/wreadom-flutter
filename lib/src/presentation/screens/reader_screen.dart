@@ -1187,12 +1187,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _stopTtsRequested = false;
       _isTtsSequencing = true;
       await _tts.awaitSpeakCompletion(true);
-      await _tts.setLanguage(_ttsLanguageForBook());
       await _tts.setSpeechRate(0.45);
       await _tts.setPitch(1.0);
 
       for (int i = startIndex; i < chunks.length; i++) {
         if (_stopTtsRequested || session != _ttsSession) break;
+        await _tts.setLanguage(_ttsLanguageForText(chunks[i]));
         setState(() {
           _ttsChunkIndex = i;
           _activeTtsBlockIndex = i;
@@ -1415,6 +1415,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return 'en-US';
     }
     return language.length == 2 ? language : 'en-US';
+  }
+
+  String _ttsLanguageForText(String text) {
+    return _looksLikeHindiText(text) ? 'hi-IN' : _ttsLanguageForBook();
+  }
+
+  bool _looksLikeHindiText(String text) {
+    var devanagariCount = 0;
+    var letterCount = 0;
+    for (final codePoint in text.runes) {
+      final isDevanagari = codePoint >= 0x0900 && codePoint <= 0x097F;
+      final isLatinUpper = codePoint >= 0x41 && codePoint <= 0x5A;
+      final isLatinLower = codePoint >= 0x61 && codePoint <= 0x7A;
+      if (isDevanagari) {
+        devanagariCount++;
+        letterCount++;
+      } else if (isLatinUpper || isLatinLower) {
+        letterCount++;
+      }
+    }
+    if (letterCount == 0) return false;
+    return devanagariCount / letterCount > 0.25;
   }
 
   List<String> _ttsChunks(String text) {
@@ -3107,7 +3129,9 @@ class _ChapterDrawer extends StatelessWidget {
                   ),
                   trailing: commentCount > 0
                       ? IconButton(
-                          tooltip: AppLocalizations.of(context)!.viewChapterComments,
+                          tooltip: AppLocalizations.of(
+                            context,
+                          )!.viewChapterComments,
                           icon: Badge(
                             label: Text('$commentCount'),
                             child: const Icon(

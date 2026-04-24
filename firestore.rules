@@ -127,6 +127,11 @@ service cloud.firestore {
       allow update: if signedIn() && (
         ownsExisting('userId') ||
         (
+          onlyChanges(['bookId', 'bookTitle', 'chapterId', 'chapterTitle']) &&
+          isBookAuthor(resource.data.bookId) &&
+          isBookAuthor(request.resource.data.bookId)
+        ) ||
+        (
           onlyChanges(['likes']) &&
           request.resource.data.likes is list
         ) ||
@@ -150,6 +155,11 @@ service cloud.firestore {
         );
       allow update: if signedIn() && (
         (ownsExisting('userId') && validCommentAudioFields(request.resource.data)) ||
+        (
+          onlyChanges(['bookId', 'bookTitle', 'chapterId', 'chapterTitle', 'chapterIndex']) &&
+          isBookAuthor(resource.data.bookId) &&
+          isBookAuthor(request.resource.data.bookId)
+        ) ||
         (
           onlyChanges(['likes']) &&
           request.resource.data.likes is list

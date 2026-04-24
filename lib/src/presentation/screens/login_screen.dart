@@ -7,6 +7,7 @@ import '../providers/auth_controller.dart';
 import '../providers/auth_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/theme_provider.dart';
+import '../routing/app_routes.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/primary_button.dart';
@@ -52,6 +53,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
+        data: (_) {
+          if (previous?.isLoading == true &&
+              firebase_auth.FirebaseAuth.instance.currentUser != null) {
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+          }
+        },
         error: (e, st) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

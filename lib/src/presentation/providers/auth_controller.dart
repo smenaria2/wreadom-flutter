@@ -33,6 +33,12 @@ class AuthController extends _$AuthController {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) {
+        throw Exception(
+          'Google sign-in could not complete. Please sign in to Google in your browser, then try again.',
+        );
+      }
       state = const AsyncValue.data(null);
     } on GoogleSignInException catch (e, st) {
       if (e.code == GoogleSignInExceptionCode.canceled ||
