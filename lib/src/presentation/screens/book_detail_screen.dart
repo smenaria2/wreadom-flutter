@@ -139,13 +139,20 @@ class _ReaderDeepLinkLauncherState
     _hasLaunchedReader = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(
-        AppRoutes.reader,
-        arguments: ReaderArguments(
-          book: widget.book,
-          initialChapterIndex: initialChapterIndex,
-        ),
-      );
+      if (widget.book.source == 'archive') {
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.archiveReader,
+          arguments: widget.book,
+        );
+      } else {
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.reader,
+          arguments: ReaderArguments(
+            book: widget.book,
+            initialChapterIndex: initialChapterIndex,
+          ),
+        );
+      }
     });
   }
 }
@@ -364,6 +371,14 @@ class _BookDetailBody extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<dynamic> userAsync,
   ) async {
+    if (book.source == 'archive') {
+      await Navigator.of(context).pushNamed(
+        AppRoutes.archiveReader,
+        arguments: book,
+      );
+      return;
+    }
+
     final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
       data: (u) => _progressForBook(u?.readingProgress, book.id),
       orElse: () => null,

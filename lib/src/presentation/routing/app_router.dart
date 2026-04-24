@@ -22,6 +22,7 @@ import '../screens/saved_books_screen.dart';
 import '../screens/static_info_screen.dart';
 import '../screens/writer_dashboard_screen.dart';
 import '../screens/writer_pad_screen.dart';
+import '../screens/archive_reader_screen.dart';
 import 'app_routes.dart';
 
 class ReaderArguments {
@@ -292,6 +293,14 @@ class AppRouter {
             body:
                 'Competitions and winners can be surfaced from the shared Wreadom backend. This route provides the mobile entry point for that experience.',
           ),
+        );
+      case AppRoutes.archiveReader:
+        final args = arguments ?? settings.arguments;
+        if (args is! Book) {
+          return _notFound('Book details are missing for Archive Reader.');
+        }
+        return MaterialPageRoute(
+          builder: (_) => ArchiveReaderScreen(book: args),
         );
       default:
         return _notFound();
