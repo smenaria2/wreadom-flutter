@@ -342,346 +342,333 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                // ─── Author row ───────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(context).pushNamed(
-                            AppRoutes.publicProfile,
-                            arguments: PublicProfileArguments(
-                              userId: post.userId,
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundImage: post.userPhotoURL != null
-                                  ? CachedNetworkImageProvider(
-                                      post.userPhotoURL!,
-                                    )
-                                  : null,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              child: post.userPhotoURL == null
-                                  ? Text(
-                                      post.username.isNotEmpty
-                                          ? post.username[0].toUpperCase()
-                                          : '?',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    post.displayName ?? post.username,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+            // ─── Author row ───────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.publicProfile,
+                        arguments: PublicProfileArguments(userId: post.userId),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: post.userPhotoURL != null
+                              ? CachedNetworkImageProvider(post.userPhotoURL!)
+                              : null,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer,
+                          child: post.userPhotoURL == null
+                              ? Text(
+                                  post.username.isNotEmpty
+                                      ? post.username[0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  Text(
-                                    FormatUtils.relativeTime(post.timestamp),
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post.displayName ?? post.username,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
+                              Text(
+                                FormatUtils.relativeTime(post.timestamp),
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Post type badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_typeIcon(post.type), size: 12, color: accentColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        typeLabel,
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (currentUser != null) ...[
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    icon: _deleting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            Icons.more_vert_rounded,
+                            size: 18,
+                            color: Colors.grey[400],
+                          ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onSelected: (val) {
+                      if (val == 'report') {
+                        showDialog(
+                          context: context,
+                          builder: (context) => ReportDialog(
+                            targetId: post.id!,
+                            targetType: 'post',
+                          ),
+                        );
+                      } else if (val == 'delete') {
+                        _deletePost();
+                      } else if (val == 'edit') {
+                        _showEditPostSheet();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (isOwner)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit_outlined, size: 20),
+                              const SizedBox(width: 8),
+                              Text(l10n.editPost),
+                            ],
+                          ),
+                        ),
+                      if (isOwner)
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(l10n.deletePostTitle),
+                            ],
+                          ),
+                        )
+                      else
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.report_problem_outlined,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(l10n.reportPost),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+
+            // ─── Star rating (review) ─────────────────────────
+            if (post.type.toLowerCase() == 'review' && post.rating != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: List.generate(5, (i) {
+                  return Icon(
+                    i < post.rating!
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    size: 16,
+                    color: Colors.amber,
+                  );
+                }),
+              ),
+            ],
+
+            // ─── Book reference ───────────────────────────────
+            if (post.bookTitle != null) ...[
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () {
+                  if (post.bookId != null) {
+                    Navigator.of(context).pushNamed(
+                      AppRoutes.bookDetail,
+                      arguments: BookDetailArguments(
+                        bookId: post.bookId.toString(),
+                      ),
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      if (post.bookCover != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: CachedNetworkImage(
+                            imageUrl: post.bookCover!,
+                            width: 36,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 36,
+                              height: 52,
+                              color: colorScheme.surfaceContainerHighest,
+                            ),
+                            errorWidget: (_, _, _) => const SizedBox(),
+                          ),
+                        ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.regarding,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            Text(
+                              post.bookTitle!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    // Post type badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _typeIcon(post.type),
-                            size: 12,
-                            color: accentColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            typeLabel,
-                            style: TextStyle(
-                              color: accentColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (currentUser != null) ...[
-                      const SizedBox(width: 4),
-                      PopupMenuButton<String>(
-                        icon: _deleting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(
-                                Icons.more_vert_rounded,
-                                size: 18,
-                                color: Colors.grey[400],
-                              ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onSelected: (val) {
-                          if (val == 'report') {
-                            showDialog(
-                              context: context,
-                              builder: (context) => ReportDialog(
-                                targetId: post.id!,
-                                targetType: 'post',
-                              ),
-                            );
-                          } else if (val == 'delete') {
-                            _deletePost();
-                          } else if (val == 'edit') {
-                            _showEditPostSheet();
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          if (isOwner)
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.edit_outlined, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(l10n.editPost),
-                                ],
-                              ),
-                            ),
-                          if (isOwner)
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(l10n.deletePostTitle),
-                                ],
-                              ),
-                            )
-                          else
-                            PopupMenuItem(
-                              value: 'report',
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.report_problem_outlined,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(l10n.reportPost),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
                     ],
-                  ],
+                  ),
                 ),
+              ),
+            ],
 
-                // ─── Star rating (review) ─────────────────────────
-                if (post.type.toLowerCase() == 'review' &&
-                    post.rating != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: List.generate(5, (i) {
-                      return Icon(
-                        i < post.rating!
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 16,
-                        color: Colors.amber,
+            const SizedBox(height: 10),
+
+            // ─── Post text ────────────────────────────────────
+            // Italicise quotes
+            if (post.type.toLowerCase() == 'quote')
+              _QuoteBlock(text: post.text)
+            else
+              Text(
+                post.text,
+                style: const TextStyle(fontSize: 14, height: 1.45),
+              ),
+
+            const SizedBox(height: 10),
+
+            // ─── Post image ───────────────────────────────────
+            if (post.imageUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: post.imageUrl!,
+                  placeholder: (context, url) => Container(
+                    height: 200,
+                    color: colorScheme.surfaceContainerHighest,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => const SizedBox(),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ─── Actions ──────────────────────────────────────
+            Row(
+              children: [
+                // Like
+                _ActionButton(
+                  icon: liked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  iconColor: liked ? Colors.red : null,
+                  label: likesCount.toString(),
+                  semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
+                  loading: _liking,
+                  onTap: _toggleLike,
+                ),
+                const SizedBox(width: 8),
+                // Comment
+                _ActionButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: commentsCount.toString(),
+                  semanticLabel: l10n.showComments,
+                  onTap: () => _showComments(context),
+                ),
+                const Spacer(),
+                // Share
+                IconButton(
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  tooltip: l10n.sharePost,
+                  color: colorScheme.onSurfaceVariant,
+                  onPressed: () {
+                    if (post.id != null) {
+                      Share.share(
+                        l10n.checkOutPostOnWreadom(
+                          AppLinkHelper.post(post.id!),
+                        ),
+                        subject: l10n.wreadomPost,
                       );
-                    }),
-                  ),
-                ],
-
-                // ─── Book reference ───────────────────────────────
-                if (post.bookTitle != null) ...[
-                  const SizedBox(height: 10),
-                  InkWell(
-                    onTap: () {
-                      if (post.bookId != null) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.bookDetail,
-                          arguments: BookDetailArguments(
-                            bookId: post.bookId.toString(),
-                          ),
-                        );
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          if (post.bookCover != null)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: CachedNetworkImage(
-                                imageUrl: post.bookCover!,
-                                width: 36,
-                                height: 52,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  width: 36,
-                                  height: 52,
-                                  color: colorScheme.surfaceContainerHighest,
-                                ),
-                                errorWidget: (_, _, _) => const SizedBox(),
-                              ),
-                            ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.regarding,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                                Text(
-                                  post.bookTitle!,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 10),
-
-                // ─── Post text ────────────────────────────────────
-                // Italicise quotes
-                if (post.type.toLowerCase() == 'quote')
-                  _QuoteBlock(text: post.text)
-                else
-                  Text(
-                    post.text,
-                    style: const TextStyle(fontSize: 14, height: 1.45),
-                  ),
-
-                const SizedBox(height: 10),
-
-                // ─── Post image ───────────────────────────────────
-                if (post.imageUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: post.imageUrl!,
-                      placeholder: (context, url) => Container(
-                        height: 200,
-                        color: colorScheme.surfaceContainerHighest,
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => const SizedBox(),
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // ─── Actions ──────────────────────────────────────
-                Row(
-                  children: [
-                    // Like
-                    _ActionButton(
-                      icon: liked
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      iconColor: liked ? Colors.red : null,
-                      label: likesCount.toString(),
-                      semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
-                      loading: _liking,
-                      onTap: _toggleLike,
-                    ),
-                    const SizedBox(width: 8),
-                    // Comment
-                    _ActionButton(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      label: commentsCount.toString(),
-                      semanticLabel: l10n.showComments,
-                      onTap: () => _showComments(context),
-                    ),
-                    const Spacer(),
-                    // Share
-                    IconButton(
-                      icon: const Icon(Icons.share_outlined, size: 18),
-                      tooltip: l10n.sharePost,
-                      color: colorScheme.onSurfaceVariant,
-                      onPressed: () {
-                        if (post.id != null) {
-                          Share.share(
-                            l10n.checkOutPostOnWreadom(
-                              AppLinkHelper.post(post.id!),
-                            ),
-                            subject: l10n.wreadomPost,
-                          );
-                        }
-                      },
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ],
+                    }
+                  },
+                  visualDensity: VisualDensity.compact,
                 ),
+              ],
+            ),
           ],
         ),
       ),
@@ -948,6 +935,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                   itemBuilder: (context, i) {
                     final c = comments[i];
                     return CommentTile(
+                      key: ValueKey('feed-comment-${c.id ?? c.timestamp}'),
                       comment: c,
                       onReply: () {
                         setState(() => _replyingTo = c);

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
+import 'package:librebook_flutter/src/domain/models/comment.dart';
 import 'package:librebook_flutter/src/presentation/components/writer/writer_book_card.dart';
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
@@ -324,10 +325,7 @@ void main() {
     expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
     expect(readerSource, isNot(contains('Add Bookmark')));
     expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
-    expect(
-      readerSource,
-      contains("AppLocalizations.of(context)!.nextChapter"),
-    );
+    expect(readerSource, contains("AppLocalizations.of(context)!.nextChapter"));
     expect(
       readerSource,
       contains("AppLocalizations.of(context)!.viewComments"),
@@ -570,35 +568,50 @@ void main() {
     },
   );
 
-  test('shared firestore rules preserve android and web compatibility paths', () {
-    final rulesSource = File('firestore.rules').readAsStringSync();
+  test(
+    'shared firestore rules preserve android and web compatibility paths',
+    () {
+      final rulesSource = File('firestore.rules').readAsStringSync();
 
-    expect(rulesSource, contains("function ownsIncomingAny(primary, fallback)"));
-    expect(rulesSource, contains("function ownsExistingAny(primary, fallback)"));
-    expect(rulesSource, contains("function isBookAuthor(bookId)"));
-    expect(
-      rulesSource,
-      contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
-    );
+      expect(
+        rulesSource,
+        contains("function ownsIncomingAny(primary, fallback)"),
+      );
+      expect(
+        rulesSource,
+        contains("function ownsExistingAny(primary, fallback)"),
+      );
+      expect(rulesSource, contains("function isBookAuthor(bookId)"));
+      expect(
+        rulesSource,
+        contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
+      );
 
-    expect(rulesSource, contains("allow create: if ownsIncoming('followerId')"));
-    expect(rulesSource, contains("onlyChanges(['commentCount'])"));
-    expect(rulesSource, contains("allowsLegacyEmbeddedFeedCommentMutation()"));
-    expect(
-      rulesSource,
-      contains("request.resource.data.highlightedByUserId == uid()"),
-    );
-    expect(
-      rulesSource,
-      contains("allow create: if ownsIncomingAny('authorId', 'userId');"),
-    );
-    expect(rulesSource, contains("ownsExistingAny('authorId', 'userId')"));
-    expect(
-      rulesSource,
-      contains("request.resource.data.reporterId == uid() ||"),
-    );
-    expect(rulesSource, contains("request.resource.data.userId == uid()"));
-  });
+      expect(
+        rulesSource,
+        contains("allow create: if ownsIncoming('followerId')"),
+      );
+      expect(rulesSource, contains("onlyChanges(['commentCount'])"));
+      expect(
+        rulesSource,
+        contains("allowsLegacyEmbeddedFeedCommentMutation()"),
+      );
+      expect(
+        rulesSource,
+        contains("request.resource.data.highlightedByUserId == uid()"),
+      );
+      expect(
+        rulesSource,
+        contains("allow create: if ownsIncomingAny('authorId', 'userId');"),
+      );
+      expect(rulesSource, contains("ownsExistingAny('authorId', 'userId')"));
+      expect(
+        rulesSource,
+        contains("request.resource.data.reporterId == uid() ||"),
+      );
+      expect(rulesSource, contains("request.resource.data.userId == uid()"));
+    },
+  );
 
   test('reader sharing, chrome, tts, and unique views stay wired', () {
     final readerSource = File(
@@ -1100,5 +1113,26 @@ void main() {
     expect(l10n['mostReadAuthors'], 'Most Read Authors');
     expect(l10n['mostPublishedAuthors'], 'Most Published Authors');
     expect(l10n['shelfTrending'], 'Trending Works');
+  });
+  test('comments serialize optional audio review metadata', () {
+    final comment = Comment.fromJson({
+      'id': 'c1',
+      'bookId': 'book1',
+      'userId': 'user1',
+      'username': 'reader',
+      'text': '',
+      'timestamp': 123,
+      'audioUrl': 'https://cdn.example.com/audio.m4a',
+      'audioObjectKey': 'audio-reviews/user1/book1/chapter1/123.m4a',
+      'audioDurationMs': 45000,
+      'audioMimeType': 'audio/mp4',
+      'audioSizeBytes': 123456,
+    });
+
+    expect(comment.text, isEmpty);
+    expect(comment.audioUrl, 'https://cdn.example.com/audio.m4a');
+    expect(comment.audioDurationMs, 45000);
+    expect(comment.toJson(), containsPair('audioMimeType', 'audio/mp4'));
+    expect(comment.toJson(), containsPair('audioSizeBytes', 123456));
   });
 }

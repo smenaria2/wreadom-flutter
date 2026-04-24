@@ -65,6 +65,11 @@ _Comment _$CommentFromJson(Map<String, dynamic> json) => _Comment(
   isHighlighted: json['isHighlighted'] as bool?,
   highlightedAt: (json['highlightedAt'] as num?)?.toInt(),
   highlightedByUserId: json['highlightedByUserId'] as String?,
+  audioUrl: json['audioUrl'] as String?,
+  audioObjectKey: json['audioObjectKey'] as String?,
+  audioDurationMs: (json['audioDurationMs'] as num?)?.toInt(),
+  audioMimeType: json['audioMimeType'] as String?,
+  audioSizeBytes: (json['audioSizeBytes'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$CommentToJson(_Comment instance) => <String, dynamic>{
@@ -90,4 +95,9 @@ Map<String, dynamic> _$CommentToJson(_Comment instance) => <String, dynamic>{
   'isHighlighted': instance.isHighlighted,
   'highlightedAt': instance.highlightedAt,
   'highlightedByUserId': instance.highlightedByUserId,
+  'audioUrl': instance.audioUrl,
+  'audioObjectKey': instance.audioObjectKey,
+  'audioDurationMs': instance.audioDurationMs,
+  'audioMimeType': instance.audioMimeType,
+  'audioSizeBytes': instance.audioSizeBytes,
 };

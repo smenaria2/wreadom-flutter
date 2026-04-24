@@ -699,6 +699,9 @@ class _LatestDiscussionSectionState
             const SizedBox(height: 12),
             for (final comment in visible)
               CommentTile(
+                key: ValueKey(
+                  'book-comment-${comment.id ?? comment.timestamp}',
+                ),
                 comment: comment,
                 bookId: widget.book.id,
                 bookAuthorId: widget.book.authorId,

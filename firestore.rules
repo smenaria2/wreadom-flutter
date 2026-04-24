@@ -69,6 +69,14 @@ service cloud.firestore {
         get(/databases/$(database)/documents/books/$(bookId)).data.authorId == uid();
     }
 
+    function validCommentAudioFields(data) {
+      return (!('audioUrl' in data) || data.audioUrl is string) &&
+        (!('audioObjectKey' in data) || data.audioObjectKey is string) &&
+        (!('audioDurationMs' in data) || data.audioDurationMs is int) &&
+        (!('audioMimeType' in data) || data.audioMimeType is string) &&
+        (!('audioSizeBytes' in data) || data.audioSizeBytes is int);
+    }
+
     function allowsLegacyEmbeddedFeedCommentMutation() {
       return signedIn() &&
         request.resource.data.comments is list &&
@@ -135,12 +143,13 @@ service cloud.firestore {
     match /comments/{commentId} {
       allow read: if true;
       allow create: if ownsIncoming('userId') &&
+        validCommentAudioFields(request.resource.data) &&
         (
           request.resource.data.bookId is string ||
           request.resource.data.feedPostId is string
         );
       allow update: if signedIn() && (
-        ownsExisting('userId') ||
+        (ownsExisting('userId') && validCommentAudioFields(request.resource.data)) ||
         (
           onlyChanges(['likes']) &&
           request.resource.data.likes is list

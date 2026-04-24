@@ -321,7 +321,7 @@ as Map<String, String>?,
 /// @nodoc
 mixin _$Comment {
 
- String? get id; dynamic get bookId; String? get bookTitle; String get userId; String get username; String get text; int? get rating; String? get chapterTitle; int? get chapterIndex; String? get chapterId; String? get quote; int get timestamp; String? get feedPostId; String? get userPhotoURL; String? get displayName; String? get penName; List<CommentReply>? get replies; List<String>? get likes; Map<String, String>? get mentions; bool? get isHighlighted; int? get highlightedAt; String? get highlightedByUserId;
+ String? get id; dynamic get bookId; String? get bookTitle; String get userId; String get username; String get text; int? get rating; String? get chapterTitle; int? get chapterIndex; String? get chapterId; String? get quote; int get timestamp; String? get feedPostId; String? get userPhotoURL; String? get displayName; String? get penName; List<CommentReply>? get replies; List<String>? get likes; Map<String, String>? get mentions; bool? get isHighlighted; int? get highlightedAt; String? get highlightedByUserId; String? get audioUrl; String? get audioObjectKey; int? get audioDurationMs; String? get audioMimeType; int? get audioSizeBytes;
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -334,16 +334,16 @@ $CommentCopyWith<Comment> get copyWith => _$CommentCopyWithImpl<Comment>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Comment&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.text, text) || other.text == text)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterIndex, chapterIndex) || other.chapterIndex == chapterIndex)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.feedPostId, feedPostId) || other.feedPostId == feedPostId)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other.replies, replies)&&const DeepCollectionEquality().equals(other.likes, likes)&&const DeepCollectionEquality().equals(other.mentions, mentions)&&(identical(other.isHighlighted, isHighlighted) || other.isHighlighted == isHighlighted)&&(identical(other.highlightedAt, highlightedAt) || other.highlightedAt == highlightedAt)&&(identical(other.highlightedByUserId, highlightedByUserId) || other.highlightedByUserId == highlightedByUserId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Comment&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.text, text) || other.text == text)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterIndex, chapterIndex) || other.chapterIndex == chapterIndex)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.feedPostId, feedPostId) || other.feedPostId == feedPostId)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other.replies, replies)&&const DeepCollectionEquality().equals(other.likes, likes)&&const DeepCollectionEquality().equals(other.mentions, mentions)&&(identical(other.isHighlighted, isHighlighted) || other.isHighlighted == isHighlighted)&&(identical(other.highlightedAt, highlightedAt) || other.highlightedAt == highlightedAt)&&(identical(other.highlightedByUserId, highlightedByUserId) || other.highlightedByUserId == highlightedByUserId)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,const DeepCollectionEquality().hash(bookId),bookTitle,userId,username,text,rating,chapterTitle,chapterIndex,chapterId,quote,timestamp,feedPostId,userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(replies),const DeepCollectionEquality().hash(likes),const DeepCollectionEquality().hash(mentions),isHighlighted,highlightedAt,highlightedByUserId]);
+int get hashCode => Object.hashAll([runtimeType,id,const DeepCollectionEquality().hash(bookId),bookTitle,userId,username,text,rating,chapterTitle,chapterIndex,chapterId,quote,timestamp,feedPostId,userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(replies),const DeepCollectionEquality().hash(likes),const DeepCollectionEquality().hash(mentions),isHighlighted,highlightedAt,highlightedByUserId,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes]);
 
 @override
 String toString() {
-  return 'Comment(id: $id, bookId: $bookId, bookTitle: $bookTitle, userId: $userId, username: $username, text: $text, rating: $rating, chapterTitle: $chapterTitle, chapterIndex: $chapterIndex, chapterId: $chapterId, quote: $quote, timestamp: $timestamp, feedPostId: $feedPostId, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, replies: $replies, likes: $likes, mentions: $mentions, isHighlighted: $isHighlighted, highlightedAt: $highlightedAt, highlightedByUserId: $highlightedByUserId)';
+  return 'Comment(id: $id, bookId: $bookId, bookTitle: $bookTitle, userId: $userId, username: $username, text: $text, rating: $rating, chapterTitle: $chapterTitle, chapterIndex: $chapterIndex, chapterId: $chapterId, quote: $quote, timestamp: $timestamp, feedPostId: $feedPostId, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, replies: $replies, likes: $likes, mentions: $mentions, isHighlighted: $isHighlighted, highlightedAt: $highlightedAt, highlightedByUserId: $highlightedByUserId, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
 }
 
 
@@ -354,7 +354,7 @@ abstract mixin class $CommentCopyWith<$Res>  {
   factory $CommentCopyWith(Comment value, $Res Function(Comment) _then) = _$CommentCopyWithImpl;
 @useResult
 $Res call({
- String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions, bool? isHighlighted, int? highlightedAt, String? highlightedByUserId
+ String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions, bool? isHighlighted, int? highlightedAt, String? highlightedByUserId, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
 });
 
 
@@ -371,7 +371,7 @@ class _$CommentCopyWithImpl<$Res>
 
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,Object? isHighlighted = freezed,Object? highlightedAt = freezed,Object? highlightedByUserId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,Object? isHighlighted = freezed,Object? highlightedAt = freezed,Object? highlightedByUserId = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
@@ -395,7 +395,12 @@ as List<String>?,mentions: freezed == mentions ? _self.mentions : mentions // ig
 as Map<String, String>?,isHighlighted: freezed == isHighlighted ? _self.isHighlighted : isHighlighted // ignore: cast_nullable_to_non_nullable
 as bool?,highlightedAt: freezed == highlightedAt ? _self.highlightedAt : highlightedAt // ignore: cast_nullable_to_non_nullable
 as int?,highlightedByUserId: freezed == highlightedByUserId ? _self.highlightedByUserId : highlightedByUserId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,audioUrl: freezed == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : audioObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
+as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -480,10 +485,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Comment() when $default != null:
-return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId);case _:
+return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   return orElse();
 
 }
@@ -501,10 +506,10 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)  $default,) {final _that = this;
 switch (_that) {
 case _Comment():
-return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId);case _:
+return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -521,10 +526,10 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  dynamic bookId,  String? bookTitle,  String userId,  String username,  String text,  int? rating,  String? chapterTitle,  int? chapterIndex,  String? chapterId,  String? quote,  int timestamp,  String? feedPostId,  String? userPhotoURL,  String? displayName,  String? penName,  List<CommentReply>? replies,  List<String>? likes,  Map<String, String>? mentions,  bool? isHighlighted,  int? highlightedAt,  String? highlightedByUserId,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,) {final _that = this;
 switch (_that) {
 case _Comment() when $default != null:
-return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId);case _:
+return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.username,_that.text,_that.rating,_that.chapterTitle,_that.chapterIndex,_that.chapterId,_that.quote,_that.timestamp,_that.feedPostId,_that.userPhotoURL,_that.displayName,_that.penName,_that.replies,_that.likes,_that.mentions,_that.isHighlighted,_that.highlightedAt,_that.highlightedByUserId,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   return null;
 
 }
@@ -536,7 +541,7 @@ return $default(_that.id,_that.bookId,_that.bookTitle,_that.userId,_that.usernam
 @JsonSerializable()
 
 class _Comment implements Comment {
-  const _Comment({this.id, this.bookId, this.bookTitle, required this.userId, required this.username, required this.text, this.rating, this.chapterTitle, this.chapterIndex, this.chapterId, this.quote, required this.timestamp, this.feedPostId, this.userPhotoURL, this.displayName, this.penName, final  List<CommentReply>? replies, final  List<String>? likes, final  Map<String, String>? mentions, this.isHighlighted, this.highlightedAt, this.highlightedByUserId}): _replies = replies,_likes = likes,_mentions = mentions;
+  const _Comment({this.id, this.bookId, this.bookTitle, required this.userId, required this.username, required this.text, this.rating, this.chapterTitle, this.chapterIndex, this.chapterId, this.quote, required this.timestamp, this.feedPostId, this.userPhotoURL, this.displayName, this.penName, final  List<CommentReply>? replies, final  List<String>? likes, final  Map<String, String>? mentions, this.isHighlighted, this.highlightedAt, this.highlightedByUserId, this.audioUrl, this.audioObjectKey, this.audioDurationMs, this.audioMimeType, this.audioSizeBytes}): _replies = replies,_likes = likes,_mentions = mentions;
   factory _Comment.fromJson(Map<String, dynamic> json) => _$CommentFromJson(json);
 
 @override final  String? id;
@@ -585,6 +590,11 @@ class _Comment implements Comment {
 @override final  bool? isHighlighted;
 @override final  int? highlightedAt;
 @override final  String? highlightedByUserId;
+@override final  String? audioUrl;
+@override final  String? audioObjectKey;
+@override final  int? audioDurationMs;
+@override final  String? audioMimeType;
+@override final  int? audioSizeBytes;
 
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
@@ -599,16 +609,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Comment&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.text, text) || other.text == text)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterIndex, chapterIndex) || other.chapterIndex == chapterIndex)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.feedPostId, feedPostId) || other.feedPostId == feedPostId)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other._replies, _replies)&&const DeepCollectionEquality().equals(other._likes, _likes)&&const DeepCollectionEquality().equals(other._mentions, _mentions)&&(identical(other.isHighlighted, isHighlighted) || other.isHighlighted == isHighlighted)&&(identical(other.highlightedAt, highlightedAt) || other.highlightedAt == highlightedAt)&&(identical(other.highlightedByUserId, highlightedByUserId) || other.highlightedByUserId == highlightedByUserId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Comment&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.bookId, bookId)&&(identical(other.bookTitle, bookTitle) || other.bookTitle == bookTitle)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.text, text) || other.text == text)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.chapterTitle, chapterTitle) || other.chapterTitle == chapterTitle)&&(identical(other.chapterIndex, chapterIndex) || other.chapterIndex == chapterIndex)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.quote, quote) || other.quote == quote)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.feedPostId, feedPostId) || other.feedPostId == feedPostId)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&const DeepCollectionEquality().equals(other._replies, _replies)&&const DeepCollectionEquality().equals(other._likes, _likes)&&const DeepCollectionEquality().equals(other._mentions, _mentions)&&(identical(other.isHighlighted, isHighlighted) || other.isHighlighted == isHighlighted)&&(identical(other.highlightedAt, highlightedAt) || other.highlightedAt == highlightedAt)&&(identical(other.highlightedByUserId, highlightedByUserId) || other.highlightedByUserId == highlightedByUserId)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,const DeepCollectionEquality().hash(bookId),bookTitle,userId,username,text,rating,chapterTitle,chapterIndex,chapterId,quote,timestamp,feedPostId,userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(_replies),const DeepCollectionEquality().hash(_likes),const DeepCollectionEquality().hash(_mentions),isHighlighted,highlightedAt,highlightedByUserId]);
+int get hashCode => Object.hashAll([runtimeType,id,const DeepCollectionEquality().hash(bookId),bookTitle,userId,username,text,rating,chapterTitle,chapterIndex,chapterId,quote,timestamp,feedPostId,userPhotoURL,displayName,penName,const DeepCollectionEquality().hash(_replies),const DeepCollectionEquality().hash(_likes),const DeepCollectionEquality().hash(_mentions),isHighlighted,highlightedAt,highlightedByUserId,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes]);
 
 @override
 String toString() {
-  return 'Comment(id: $id, bookId: $bookId, bookTitle: $bookTitle, userId: $userId, username: $username, text: $text, rating: $rating, chapterTitle: $chapterTitle, chapterIndex: $chapterIndex, chapterId: $chapterId, quote: $quote, timestamp: $timestamp, feedPostId: $feedPostId, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, replies: $replies, likes: $likes, mentions: $mentions, isHighlighted: $isHighlighted, highlightedAt: $highlightedAt, highlightedByUserId: $highlightedByUserId)';
+  return 'Comment(id: $id, bookId: $bookId, bookTitle: $bookTitle, userId: $userId, username: $username, text: $text, rating: $rating, chapterTitle: $chapterTitle, chapterIndex: $chapterIndex, chapterId: $chapterId, quote: $quote, timestamp: $timestamp, feedPostId: $feedPostId, userPhotoURL: $userPhotoURL, displayName: $displayName, penName: $penName, replies: $replies, likes: $likes, mentions: $mentions, isHighlighted: $isHighlighted, highlightedAt: $highlightedAt, highlightedByUserId: $highlightedByUserId, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
 }
 
 
@@ -619,7 +629,7 @@ abstract mixin class _$CommentCopyWith<$Res> implements $CommentCopyWith<$Res> {
   factory _$CommentCopyWith(_Comment value, $Res Function(_Comment) _then) = __$CommentCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions, bool? isHighlighted, int? highlightedAt, String? highlightedByUserId
+ String? id, dynamic bookId, String? bookTitle, String userId, String username, String text, int? rating, String? chapterTitle, int? chapterIndex, String? chapterId, String? quote, int timestamp, String? feedPostId, String? userPhotoURL, String? displayName, String? penName, List<CommentReply>? replies, List<String>? likes, Map<String, String>? mentions, bool? isHighlighted, int? highlightedAt, String? highlightedByUserId, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
 });
 
 
@@ -636,7 +646,7 @@ class __$CommentCopyWithImpl<$Res>
 
 /// Create a copy of Comment
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,Object? isHighlighted = freezed,Object? highlightedAt = freezed,Object? highlightedByUserId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? bookId = freezed,Object? bookTitle = freezed,Object? userId = null,Object? username = null,Object? text = null,Object? rating = freezed,Object? chapterTitle = freezed,Object? chapterIndex = freezed,Object? chapterId = freezed,Object? quote = freezed,Object? timestamp = null,Object? feedPostId = freezed,Object? userPhotoURL = freezed,Object? displayName = freezed,Object? penName = freezed,Object? replies = freezed,Object? likes = freezed,Object? mentions = freezed,Object? isHighlighted = freezed,Object? highlightedAt = freezed,Object? highlightedByUserId = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
   return _then(_Comment(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,bookId: freezed == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
@@ -660,7 +670,12 @@ as List<String>?,mentions: freezed == mentions ? _self._mentions : mentions // i
 as Map<String, String>?,isHighlighted: freezed == isHighlighted ? _self.isHighlighted : isHighlighted // ignore: cast_nullable_to_non_nullable
 as bool?,highlightedAt: freezed == highlightedAt ? _self.highlightedAt : highlightedAt // ignore: cast_nullable_to_non_nullable
 as int?,highlightedByUserId: freezed == highlightedByUserId ? _self.highlightedByUserId : highlightedByUserId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,audioUrl: freezed == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : audioObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
+as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

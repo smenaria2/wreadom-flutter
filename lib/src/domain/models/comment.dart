@@ -47,6 +47,11 @@ abstract class Comment with _$Comment {
     bool? isHighlighted,
     int? highlightedAt,
     String? highlightedByUserId,
+    String? audioUrl,
+    String? audioObjectKey,
+    int? audioDurationMs,
+    String? audioMimeType,
+    int? audioSizeBytes,
   }) = _Comment;
 
   factory Comment.fromJson(Map<String, dynamic> json) =>

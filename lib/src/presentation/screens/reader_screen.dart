@@ -10,11 +10,15 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/user_model.dart';
+import '../../data/services/audio_review_upload_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -68,6 +72,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isDiscussionOpen = false;
   bool _isReviewEditMode = true;
   bool _shareReviewToFeed = false;
+  bool _isRecordingAudioReview = false;
+  bool _isSubmittingComment = false;
+  String? _pendingAudioReviewPath;
+  int _pendingAudioReviewDurationMs = 0;
+  String? _reviewAudioUrl;
+  String? _reviewAudioObjectKey;
+  int? _reviewAudioDurationMs;
+  String? _reviewAudioMimeType;
+  int? _reviewAudioSizeBytes;
+  String? _audioObjectKeyPendingDelete;
   bool _isTtsPlaying = false;
   bool _isTtsPreparing = false;
   bool _isTtsSequencing = false;
@@ -75,6 +89,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isSelectionTtsPlaying = false;
   int _ttsSession = 0;
   late final FlutterTts _tts;
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  Timer? _audioRecordingTimer;
   List<String> _ttsChunkList = const [];
   int _ttsChunkIndex = 0;
   int _activeTtsBlockIndex = -1;
@@ -425,6 +441,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _restorableScrollProgress.dispose();
     _scrollController.dispose();
     _commentFocusNode.dispose();
+    _audioRecordingTimer?.cancel();
+    unawaited(_audioRecorder.dispose());
     unawaited(_tts.stop());
     super.dispose();
   }
@@ -658,7 +676,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         headerColor: _getAppBarBackgroundColor(),
         textColor: _getTextColor(),
         secondaryTextColor: _getSecondaryTextColor(),
-        accentColor: Theme.of(context).colorScheme.primary,
+        accentColor: _getReaderActionColor(),
         onSelect: (index) {
           _goToChapter(index);
           Navigator.of(context).pop();
@@ -899,6 +917,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
+          actionColor: _getReaderActionColor(),
           hasNextChapter: _chapterIndex < chapters.length - 1,
           hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
           onNextChapter: _chapterIndex < chapters.length - 1
@@ -929,7 +948,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             block: block,
             textColor: _getTextColor(),
             mutedColor: _getSecondaryTextColor(),
-            accentColor: Theme.of(context).colorScheme.primary,
+            accentColor: _getReaderActionColor(),
             fontSize: _fontSize,
             fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
             isPoem: isPoem,
@@ -941,6 +960,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
+          actionColor: _getReaderActionColor(),
           hasNextChapter: _chapterIndex < chapters.length - 1,
           hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
           onNextChapter: _chapterIndex < chapters.length - 1
@@ -1712,6 +1732,155 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return (widget.book.isOriginal ?? false) && _bookAuthorId == userId;
   }
 
+  bool get _hasReviewAudio =>
+      _pendingAudioReviewPath != null || _reviewAudioUrl != null;
+
+  bool get _canSubmitReview =>
+      _commentController.value.text.trim().isNotEmpty || _hasReviewAudio;
+
+  void _clearAudioReviewState() {
+    _audioRecordingTimer?.cancel();
+    _audioRecordingTimer = null;
+    _isRecordingAudioReview = false;
+    _pendingAudioReviewPath = null;
+    _pendingAudioReviewDurationMs = 0;
+    _reviewAudioUrl = null;
+    _reviewAudioObjectKey = null;
+    _reviewAudioDurationMs = null;
+    _reviewAudioMimeType = null;
+    _reviewAudioSizeBytes = null;
+    _audioObjectKeyPendingDelete = null;
+  }
+
+  void _loadReviewAudioState(Comment? review) {
+    _audioRecordingTimer?.cancel();
+    _audioRecordingTimer = null;
+    _isRecordingAudioReview = false;
+    _pendingAudioReviewPath = null;
+    _pendingAudioReviewDurationMs = 0;
+    _audioObjectKeyPendingDelete = null;
+    _reviewAudioUrl = review?.audioUrl;
+    _reviewAudioObjectKey = review?.audioObjectKey;
+    _reviewAudioDurationMs = review?.audioDurationMs;
+    _reviewAudioMimeType = review?.audioMimeType;
+    _reviewAudioSizeBytes = review?.audioSizeBytes;
+  }
+
+  void _refreshComposer(VoidCallback? refreshUi) {
+    if (refreshUi != null) {
+      refreshUi();
+    } else if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _startAudioReviewRecording(VoidCallback? refreshUi) async {
+    if (_isRecordingAudioReview || _replyingTo != null) return;
+    final editable = _existingUserReview == null || _isReviewEditMode;
+    if (!editable) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final hasPermission = await _audioRecorder.hasPermission();
+    if (!hasPermission) {
+      final status = await Permission.microphone.status;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Microphone permission is needed to record.'),
+          action: status.isPermanentlyDenied
+              ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
+              : null,
+        ),
+      );
+      return;
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final path =
+        '${tempDir.path}/audio_review_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _audioRecorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 32000,
+        sampleRate: 16000,
+        numChannels: 1,
+        echoCancel: true,
+        noiseSuppress: true,
+      ),
+      path: path,
+    );
+
+    _audioRecordingTimer?.cancel();
+    _audioRecordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _pendingAudioReviewDurationMs += 1000;
+      if (_pendingAudioReviewDurationMs >=
+          AudioReviewUploadService.maxDurationMs) {
+        unawaited(_stopAudioReviewRecording(refreshUi));
+      } else {
+        _refreshComposer(refreshUi);
+      }
+    });
+
+    _isRecordingAudioReview = true;
+    _pendingAudioReviewPath = null;
+    _pendingAudioReviewDurationMs = 0;
+    _refreshComposer(refreshUi);
+  }
+
+  Future<void> _stopAudioReviewRecording(VoidCallback? refreshUi) async {
+    if (!_isRecordingAudioReview) return;
+    final durationMs = _pendingAudioReviewDurationMs;
+    _audioRecordingTimer?.cancel();
+    _audioRecordingTimer = null;
+    final path = await _audioRecorder.stop();
+    _isRecordingAudioReview = false;
+    if (path != null && durationMs > 0) {
+      _pendingAudioReviewPath = path;
+      _pendingAudioReviewDurationMs = durationMs.clamp(
+        1000,
+        AudioReviewUploadService.maxDurationMs,
+      );
+    } else {
+      _pendingAudioReviewPath = null;
+      _pendingAudioReviewDurationMs = 0;
+    }
+    _refreshComposer(refreshUi);
+  }
+
+  Future<void> _cancelAudioReviewRecording(VoidCallback? refreshUi) async {
+    _audioRecordingTimer?.cancel();
+    _audioRecordingTimer = null;
+    if (_isRecordingAudioReview) {
+      await _audioRecorder.cancel();
+    }
+    _isRecordingAudioReview = false;
+    _pendingAudioReviewPath = null;
+    _pendingAudioReviewDurationMs = 0;
+    _refreshComposer(refreshUi);
+  }
+
+  void _removeAudioReview(VoidCallback? refreshUi) {
+    if (_isRecordingAudioReview) {
+      unawaited(_cancelAudioReviewRecording(refreshUi));
+      return;
+    }
+    if (_pendingAudioReviewPath != null) {
+      _pendingAudioReviewPath = null;
+      _pendingAudioReviewDurationMs = 0;
+      _refreshComposer(refreshUi);
+      return;
+    }
+    if (_reviewAudioObjectKey != null) {
+      _audioObjectKeyPendingDelete ??= _reviewAudioObjectKey;
+    }
+    _reviewAudioUrl = null;
+    _reviewAudioObjectKey = null;
+    _reviewAudioDurationMs = null;
+    _reviewAudioMimeType = null;
+    _reviewAudioSizeBytes = null;
+    _refreshComposer(refreshUi);
+  }
+
   void _prepareReviewComposer({
     dynamic chapter,
     int? chapterIndex,
@@ -1726,6 +1895,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _shareReviewToFeed = false;
       _commentController.value.clear();
       _selectedQuote = null;
+      _clearAudioReviewState();
       return;
     }
 
@@ -1754,6 +1924,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _shareReviewToFeed = false;
       _commentController.value.clear();
       _selectedQuote = null;
+      _clearAudioReviewState();
       return;
     }
 
@@ -1763,6 +1934,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _shareReviewToFeed = false;
     _commentController.value.text = existingReview.text;
     _selectedQuote = existingReview.quote;
+    _loadReviewAudioState(existingReview);
   }
 
   Future<void> _upsertReviewFeedPost({
@@ -1771,14 +1943,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     required int now,
     required dynamic chapter,
   }) async {
-    final existingPost = await ref.read(feedRepositoryProvider).findUserReviewPost(
-      userId: user.id,
-      bookId: widget.book.id,
-      chapterId: chapter?.id?.toString(),
-    );
+    final feedText = text.trim().isEmpty ? 'Shared an audio review.' : text;
+    final existingPost = await ref
+        .read(feedRepositoryProvider)
+        .findUserReviewPost(
+          userId: user.id,
+          bookId: widget.book.id,
+          chapterId: chapter?.id?.toString(),
+        );
 
     final payload = {
-      'text': text,
+      'text': feedText,
       'rating': _chapterRating,
       'bookId': widget.book.id,
       'bookTitle': widget.book.title,
@@ -1789,40 +1964,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     };
 
     if (existingPost?.id != null) {
-      await ref.read(feedRepositoryProvider).updateFeedPost(
-        existingPost!.id!,
-        payload,
-      );
+      await ref
+          .read(feedRepositoryProvider)
+          .updateFeedPost(existingPost!.id!, payload);
       return;
     }
 
-    await ref.read(feedRepositoryProvider).createFeedPost(
-      FeedPost(
-        userId: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        penName: user.penName,
-        userPhotoURL: user.photoURL,
-        type: 'review',
-        text: text,
-        rating: _chapterRating,
-        bookId: widget.book.id,
-        bookTitle: widget.book.title,
-        bookCover: widget.book.coverUrl,
-        chapterTitle: chapter?.title,
-        chapterId: chapter?.id?.toString(),
-        timestamp: now,
-        likes: const [],
-        visibility: 'public',
-        privacy: 'public',
-      ),
-    );
+    await ref
+        .read(feedRepositoryProvider)
+        .createFeedPost(
+          FeedPost(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            type: 'review',
+            text: feedText,
+            rating: _chapterRating,
+            bookId: widget.book.id,
+            bookTitle: widget.book.title,
+            bookCover: widget.book.coverUrl,
+            chapterTitle: chapter?.title,
+            chapterId: chapter?.id?.toString(),
+            timestamp: now,
+            likes: const [],
+            visibility: 'public',
+            privacy: 'public',
+          ),
+        );
   }
 
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
     final text = _commentController.value.text.trim();
+    if (_isSubmittingComment) return;
     final user = await ref.read(currentUserProvider.future);
-    if (text.isEmpty || user == null) return;
+    if (user == null) return;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
 
@@ -1830,6 +2007,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final wasReply = _replyingTo != null;
 
     if (_replyingTo != null) {
+      if (text.isEmpty) return;
       await ref
           .read(commentRepositoryProvider)
           .addReply(
@@ -1858,45 +2036,98 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
         return;
       }
+      if (!_canSubmitReview) return;
       if (_existingUserReview != null && !_isReviewEditMode) return;
-      final comment = Comment(
-        bookId: widget.book.id,
-        bookTitle: widget.book.title,
-        userId: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        penName: user.penName,
-        text: text,
-        rating: _chapterRating,
-        quote: _selectedQuote,
-        chapterTitle: chapter?.title,
-        chapterIndex: chapterIndex ?? _chapterIndex,
-        chapterId: chapter?.id?.toString(),
-        timestamp: now,
-        userPhotoURL: user.photoURL,
-      );
+      setState(() => _isSubmittingComment = true);
+      AudioReviewUploadResult? uploadedAudio;
+      final oldAudioObjectKey =
+          _audioObjectKeyPendingDelete ??
+          (_pendingAudioReviewPath != null ? _reviewAudioObjectKey : null);
+      try {
+        if (_pendingAudioReviewPath != null) {
+          uploadedAudio = await ref
+              .read(audioReviewUploadServiceProvider)
+              .uploadAudioReview(
+                filePath: _pendingAudioReviewPath!,
+                bookId: widget.book.id,
+                userId: user.id,
+                chapterId: chapter?.id?.toString(),
+                durationMs: _pendingAudioReviewDurationMs,
+              );
+        }
 
-      final savedReviewId = await ref
-          .read(commentRepositoryProvider)
-          .upsertBookReview(comment);
-
-      if (_shareReviewToFeed) {
-        await _upsertReviewFeedPost(
-          user: user,
+        final comment = Comment(
+          bookId: widget.book.id,
+          bookTitle: widget.book.title,
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          penName: user.penName,
           text: text,
-          now: now,
-          chapter: chapter,
+          rating: _chapterRating,
+          quote: _selectedQuote,
+          chapterTitle: chapter?.title,
+          chapterIndex: chapterIndex ?? _chapterIndex,
+          chapterId: chapter?.id?.toString(),
+          timestamp: now,
+          userPhotoURL: user.photoURL,
+          audioUrl: uploadedAudio?.audioUrl ?? _reviewAudioUrl,
+          audioObjectKey:
+              uploadedAudio?.audioObjectKey ?? _reviewAudioObjectKey,
+          audioDurationMs:
+              uploadedAudio?.audioDurationMs ?? _reviewAudioDurationMs,
+          audioMimeType: uploadedAudio?.audioMimeType ?? _reviewAudioMimeType,
+          audioSizeBytes:
+              uploadedAudio?.audioSizeBytes ?? _reviewAudioSizeBytes,
         );
-        ref.invalidate(feedPostsProvider);
-      }
 
-      setState(() {
-        _existingUserReview = comment.copyWith(id: savedReviewId);
-        _commentController.value.text = text;
-        _isReviewEditMode = false;
-        _shareReviewToFeed = false;
-        _selectedQuote = null;
-      });
+        final savedReviewId = await ref
+            .read(commentRepositoryProvider)
+            .upsertBookReview(comment);
+
+        if (_shareReviewToFeed) {
+          await _upsertReviewFeedPost(
+            user: user,
+            text: text,
+            now: now,
+            chapter: chapter,
+          );
+          ref.invalidate(feedPostsProvider);
+        }
+
+        setState(() {
+          _existingUserReview = comment.copyWith(id: savedReviewId);
+          _commentController.value.text = text;
+          _isReviewEditMode = false;
+          _shareReviewToFeed = false;
+          _selectedQuote = null;
+          _pendingAudioReviewPath = null;
+          _pendingAudioReviewDurationMs = 0;
+          _reviewAudioUrl = comment.audioUrl;
+          _reviewAudioObjectKey = comment.audioObjectKey;
+          _reviewAudioDurationMs = comment.audioDurationMs;
+          _reviewAudioMimeType = comment.audioMimeType;
+          _reviewAudioSizeBytes = comment.audioSizeBytes;
+          _audioObjectKeyPendingDelete = null;
+        });
+        if (oldAudioObjectKey != null &&
+            oldAudioObjectKey != comment.audioObjectKey) {
+          unawaited(
+            ref
+                .read(audioReviewUploadServiceProvider)
+                .deleteAudioReviewObject(oldAudioObjectKey),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.saveFailed(e.toString()))),
+          );
+        }
+        return;
+      } finally {
+        if (mounted) setState(() => _isSubmittingComment = false);
+      }
     }
     await HapticFeedback.lightImpact();
     if (wasReply) {
@@ -2141,16 +2372,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     if (_existingUserReview != null) ...[
                                       const Spacer(),
                                       TextButton.icon(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor:
+                                              _getReaderActionColor(),
+                                          disabledForegroundColor:
+                                              _getReaderActionColor()
+                                                  .withValues(alpha: 0.38),
+                                        ),
                                         onPressed: _isReviewEditMode
                                             ? null
                                             : () {
-                                                setState(
-                                                  () =>
-                                                      _isReviewEditMode = true,
-                                                );
+                                                _isReviewEditMode = true;
                                                 setModalState(() {});
-                                                _commentFocusNode
-                                                    .requestFocus();
+                                                WidgetsBinding.instance
+                                                    .addPostFrameCallback((_) {
+                                                      if (mounted &&
+                                                          _isDiscussionOpen) {
+                                                        _commentFocusNode
+                                                            .requestFocus();
+                                                      }
+                                                    });
                                               },
                                         icon: const Icon(
                                           Icons.edit_outlined,
@@ -2184,41 +2425,130 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                   ),
                                   filled: true,
                                   fillColor: _getInputFillColor(),
-                                  suffixIcon: Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.send_rounded,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withValues(
-                                              alpha:
-                                                  _replyingTo == null &&
-                                                      _existingUserReview !=
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_replyingTo == null)
+                                        IconButton(
+                                          tooltip: _isRecordingAudioReview
+                                              ? 'Stop recording'
+                                              : 'Record audio',
+                                          icon: Icon(
+                                            _isRecordingAudioReview
+                                                ? Icons.stop_circle_outlined
+                                                : Icons.mic_none_rounded,
+                                            color: _isRecordingAudioReview
+                                                ? Colors.red
+                                                : _getReaderActionColor(),
+                                          ),
+                                          onPressed:
+                                              _isSubmittingComment ||
+                                                  (_existingUserReview !=
                                                           null &&
-                                                      !_isReviewEditMode
-                                                  ? 0.35
-                                                  : 1,
-                                            ),
+                                                      !_isReviewEditMode)
+                                              ? null
+                                              : () async {
+                                                  if (_isRecordingAudioReview) {
+                                                    await _stopAudioReviewRecording(
+                                                      () =>
+                                                          setModalState(() {}),
+                                                    );
+                                                  } else {
+                                                    await _startAudioReviewRecording(
+                                                      () =>
+                                                          setModalState(() {}),
+                                                    );
+                                                  }
+                                                },
+                                        ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 8.0,
+                                        ),
+                                        child: IconButton(
+                                          tooltip: 'Send',
+                                          icon: _isSubmittingComment
+                                              ? SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color:
+                                                        _getReaderActionColor(),
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.send_rounded,
+                                                  color: _getReaderActionColor().withValues(
+                                                    alpha:
+                                                        (_replyingTo == null &&
+                                                                ((_existingUserReview !=
+                                                                            null &&
+                                                                        !_isReviewEditMode) ||
+                                                                    !_canSubmitReview)) ||
+                                                            (_replyingTo !=
+                                                                    null &&
+                                                                _commentController
+                                                                    .value
+                                                                    .text
+                                                                    .trim()
+                                                                    .isEmpty)
+                                                        ? 0.35
+                                                        : 1,
+                                                  ),
+                                                ),
+                                          onPressed:
+                                              _isSubmittingComment ||
+                                                  (_replyingTo == null &&
+                                                      ((_existingUserReview !=
+                                                                  null &&
+                                                              !_isReviewEditMode) ||
+                                                          !_canSubmitReview)) ||
+                                                  (_replyingTo != null &&
+                                                      _commentController
+                                                          .value
+                                                          .text
+                                                          .trim()
+                                                          .isEmpty)
+                                              ? null
+                                              : () async {
+                                                  await _submitComment(
+                                                    chapter,
+                                                    chapterIndex: chapterIndex,
+                                                  );
+                                                  setModalState(() {});
+                                                },
+                                        ),
                                       ),
-                                      onPressed:
-                                          _replyingTo == null &&
-                                              _existingUserReview != null &&
-                                              !_isReviewEditMode
-                                          ? null
-                                          : () async {
-                                              await _submitComment(
-                                                chapter,
-                                                chapterIndex: chapterIndex,
-                                              );
-                                              setModalState(() {});
-                                            },
-                                    ),
+                                    ],
                                   ),
                                 ),
+                                onChanged: (_) => setModalState(() {}),
                                 style: TextStyle(color: _getTextColor()),
                               ),
+                              if (_replyingTo == null &&
+                                  (_isRecordingAudioReview ||
+                                      _hasReviewAudio)) ...[
+                                const SizedBox(height: 8),
+                                _AudioReviewComposerChip(
+                                  isRecording: _isRecordingAudioReview,
+                                  durationMs: _isRecordingAudioReview
+                                      ? _pendingAudioReviewDurationMs
+                                      : (_pendingAudioReviewPath != null
+                                            ? _pendingAudioReviewDurationMs
+                                            : (_reviewAudioDurationMs ?? 0)),
+                                  isPendingUpload:
+                                      _pendingAudioReviewPath != null,
+                                  textColor: _getTextColor(),
+                                  metadataColor: _getSecondaryTextColor(),
+                                  onStop: () => _stopAudioReviewRecording(
+                                    () => setModalState(() {}),
+                                  ),
+                                  onDelete: () => _removeAudioReview(
+                                    () => setModalState(() {}),
+                                  ),
+                                ),
+                              ],
                               if (_replyingTo == null) ...[
                                 const SizedBox(height: 8),
                                 CheckboxListTile(
@@ -2234,19 +2564,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  activeColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  checkColor: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
+                                  activeColor: _getReaderActionColor(),
+                                  checkColor: _getBackgroundColor(),
                                   onChanged:
                                       _existingUserReview != null &&
                                           !_isReviewEditMode
                                       ? null
                                       : (value) {
                                           setState(() {
-                                            _shareReviewToFeed =
-                                                value ?? false;
+                                            _shareReviewToFeed = value ?? false;
                                           });
                                           setModalState(() {});
                                         },
@@ -2307,12 +2633,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         children: [
                                           for (final comment in chapterComments)
                                             CommentTile(
+                                              key: ValueKey(
+                                                'reader-comment-${comment.id ?? comment.timestamp}',
+                                              ),
                                               comment: comment,
                                               bookId: widget.book.id,
                                               bookAuthorId: _bookAuthorId,
                                               textColor: _getTextColor(),
                                               metadataColor:
                                                   _getSecondaryTextColor(),
+                                              actionColor:
+                                                  _getReaderActionColor(),
                                               onReply: () {
                                                 setState(
                                                   () => _replyingTo = comment,
@@ -2534,6 +2865,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         return const Color(0xFFB8B8B8);
       case ReaderTheme.system:
         return const Color(0xFF5F5447);
+    }
+  }
+
+  Color _getReaderActionColor() {
+    switch (_getEffectiveTheme()) {
+      case ReaderTheme.light:
+      case ReaderTheme.sepia:
+      case ReaderTheme.system:
+        return Colors.black;
+      case ReaderTheme.dark:
+        return Theme.of(context).colorScheme.primary;
     }
   }
 
@@ -2765,8 +3107,7 @@ class _ChapterDrawer extends StatelessWidget {
                   ),
                   trailing: commentCount > 0
                       ? IconButton(
-                          tooltip:
-                              AppLocalizations.of(context)!.viewChapterComments,
+                          tooltip: AppLocalizations.of(context)!.viewChapterComments,
                           icon: Badge(
                             label: Text('$commentCount'),
                             child: const Icon(
@@ -2958,6 +3299,7 @@ class _QuoteImage extends StatelessWidget {
 
 class _ChapterEndActions extends StatelessWidget {
   const _ChapterEndActions({
+    required this.actionColor,
     required this.hasNextChapter,
     required this.hasComments,
     required this.onNextChapter,
@@ -2967,12 +3309,18 @@ class _ChapterEndActions extends StatelessWidget {
 
   final bool hasNextChapter;
   final bool hasComments;
+  final Color actionColor;
   final VoidCallback? onNextChapter;
   final VoidCallback onViewComments;
   final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
+    final outlineStyle = OutlinedButton.styleFrom(
+      foregroundColor: actionColor,
+      side: BorderSide(color: actionColor.withValues(alpha: 0.55)),
+      disabledForegroundColor: actionColor.withValues(alpha: 0.38),
+    );
     return Column(
       children: [
         Row(
@@ -2989,6 +3337,7 @@ class _ChapterEndActions extends StatelessWidget {
             ],
             Expanded(
               child: OutlinedButton.icon(
+                style: outlineStyle,
                 icon: Icon(
                   hasComments
                       ? Icons.chat_bubble_outline_rounded
@@ -3008,6 +3357,7 @@ class _ChapterEndActions extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
+            style: outlineStyle,
             icon: const Icon(Icons.share_rounded),
             label: Text(AppLocalizations.of(context)!.shareChapter),
             onPressed: onShare,
@@ -3081,6 +3431,89 @@ class _ThemeOption extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AudioReviewComposerChip extends StatelessWidget {
+  const _AudioReviewComposerChip({
+    required this.isRecording,
+    required this.durationMs,
+    required this.isPendingUpload,
+    required this.textColor,
+    required this.metadataColor,
+    required this.onStop,
+    required this.onDelete,
+  });
+
+  final bool isRecording;
+  final int durationMs;
+  final bool isPendingUpload;
+  final Color textColor;
+  final Color metadataColor;
+  final VoidCallback onStop;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isRecording
+              ? Colors.red.withValues(alpha: 0.55)
+              : theme.colorScheme.outlineVariant,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              isRecording ? Icons.mic_rounded : Icons.graphic_eq_rounded,
+              color: isRecording ? Colors.red : theme.colorScheme.primary,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isRecording
+                    ? 'Recording ${_formatReviewAudioDuration(durationMs)}'
+                    : '${isPendingUpload ? 'New audio' : 'Audio review'} ${_formatReviewAudioDuration(durationMs)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (isRecording)
+              IconButton(
+                tooltip: 'Stop recording',
+                visualDensity: VisualDensity.compact,
+                onPressed: onStop,
+                icon: const Icon(Icons.stop_circle_outlined),
+              ),
+            IconButton(
+              tooltip: isRecording ? 'Cancel recording' : 'Delete audio',
+              visualDensity: VisualDensity.compact,
+              onPressed: onDelete,
+              icon: Icon(Icons.close_rounded, color: metadataColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatReviewAudioDuration(int durationMs) {
+  final totalSeconds = (durationMs / 1000).ceil().clamp(0, 120).toInt();
+  final minutes = totalSeconds ~/ 60;
+  final seconds = totalSeconds % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
 class _ReaderBottomBar extends StatelessWidget {

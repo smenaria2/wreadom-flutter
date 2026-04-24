@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
@@ -19,6 +23,7 @@ class CommentTile extends ConsumerStatefulWidget {
     required this.onReply,
     this.textColor,
     this.metadataColor,
+    this.actionColor,
     this.bookId,
     this.bookAuthorId,
   });
@@ -27,6 +32,7 @@ class CommentTile extends ConsumerStatefulWidget {
   final VoidCallback onReply;
   final Color? textColor;
   final Color? metadataColor;
+  final Color? actionColor;
   final String? bookId;
   final String? bookAuthorId;
 
@@ -35,10 +41,19 @@ class CommentTile extends ConsumerStatefulWidget {
 }
 
 class _CommentTileState extends ConsumerState<CommentTile> {
+  final TextEditingController _editController = TextEditingController();
   bool _liking = false;
   bool _highlighting = false;
+  bool _editing = false;
+  bool _savingEdit = false;
   bool? _liked;
   int? _likeCount;
+
+  @override
+  void dispose() {
+    _editController.dispose();
+    super.dispose();
+  }
 
   Future<void> _toggleLike() async {
     if (_liking || widget.comment.id == null) return;
@@ -116,12 +131,23 @@ class _CommentTileState extends ConsumerState<CommentTile> {
   }
 
   Future<void> _editComment() async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!mounted) return;
+    _editController.text = widget.comment.text;
+    setState(() => _editing = true);
+  }
+
+  Future<void> _saveCommentEdit() async {
     final l10n = AppLocalizations.of(context)!;
     final comment = widget.comment;
     final commentId = comment.id;
     if (commentId == null) return;
-    final text = await _showEditDialog(context, l10n.editComment, comment.text);
-    if (text == null) return;
+    final text = _editController.text.trim();
+    if (text.isEmpty || text == comment.text.trim() || _savingEdit) {
+      setState(() => _editing = false);
+      return;
+    }
+    setState(() => _savingEdit = true);
     try {
       if (comment.feedPostId != null) {
         await ref
@@ -136,14 +162,24 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       if (comment.bookId != null) {
         ref.invalidate(bookCommentsProvider(comment.bookId!.toString()));
       }
-      if (mounted) HapticFeedback.selectionClick();
+      if (mounted) {
+        setState(() => _editing = false);
+        HapticFeedback.selectionClick();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
       }
+    } finally {
+      if (mounted) setState(() => _savingEdit = false);
     }
+  }
+
+  void _cancelCommentEdit() {
+    _editController.text = widget.comment.text;
+    setState(() => _editing = false);
   }
 
   void _leftSwipeAction() {
@@ -321,8 +357,30 @@ class _CommentTileState extends ConsumerState<CommentTile> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(comment.text, style: TextStyle(color: widget.textColor)),
-                const SizedBox(height: 4),
+                if (_editing) ...[
+                  _InlineEditBox(
+                    controller: _editController,
+                    hintText: l10n.writeYourUpdate,
+                    saving: _savingEdit,
+                    textColor: widget.textColor,
+                    onCancel: _cancelCommentEdit,
+                    onSave: _saveCommentEdit,
+                  ),
+                  const SizedBox(height: 6),
+                ] else if (comment.text.trim().isNotEmpty) ...[
+                  Text(comment.text, style: TextStyle(color: widget.textColor)),
+                  const SizedBox(height: 4),
+                ],
+                if (comment.audioUrl?.trim().isNotEmpty == true) ...[
+                  _AudioCommentPlayer(
+                    url: comment.audioUrl!.trim(),
+                    objectKey: comment.audioObjectKey,
+                    durationMs: comment.audioDurationMs,
+                    textColor: widget.textColor,
+                    metadataColor: widget.metadataColor,
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   children: [
                     Text(
@@ -360,7 +418,8 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       child: Text(
                         l10n.reply,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
+                          color:
+                              widget.actionColor ?? theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -378,6 +437,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
               children: replies
                   .map(
                     (reply) => ReplyTile(
+                      key: ValueKey(
+                        'reply-${comment.id}-${reply.id ?? reply.timestamp}',
+                      ),
                       commentId: comment.id,
                       feedPostId: comment.feedPostId,
                       bookId: comment.bookId?.toString(),
@@ -385,6 +447,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       reply: reply,
                       textColor: widget.textColor,
                       metadataColor: widget.metadataColor,
+                      actionColor: widget.actionColor,
                     ),
                   )
                   .toList(),
@@ -406,6 +469,7 @@ class ReplyTile extends ConsumerStatefulWidget {
     this.bookId,
     this.textColor,
     this.metadataColor,
+    this.actionColor,
   });
 
   final String? commentId;
@@ -415,15 +479,25 @@ class ReplyTile extends ConsumerStatefulWidget {
   final String? bookId;
   final Color? textColor;
   final Color? metadataColor;
+  final Color? actionColor;
 
   @override
   ConsumerState<ReplyTile> createState() => _ReplyTileState();
 }
 
 class _ReplyTileState extends ConsumerState<ReplyTile> {
+  final TextEditingController _editController = TextEditingController();
   bool _liking = false;
+  bool _editing = false;
+  bool _savingEdit = false;
   bool? _liked;
   int? _likeCount;
+
+  @override
+  void dispose() {
+    _editController.dispose();
+    super.dispose();
+  }
 
   Future<void> _toggleLike() async {
     final replyId = widget.reply.id ?? widget.reply.timestamp.toString();
@@ -466,16 +540,23 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
   }
 
   Future<void> _editReply() async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!mounted) return;
+    _editController.text = widget.reply.text;
+    setState(() => _editing = true);
+  }
+
+  Future<void> _saveReplyEdit() async {
     final l10n = AppLocalizations.of(context)!;
     final commentId = widget.commentId;
     if (commentId == null) return;
     final replyId = widget.reply.id ?? widget.reply.timestamp.toString();
-    final text = await _showEditDialog(
-      context,
-      l10n.editReply,
-      widget.reply.text,
-    );
-    if (text == null) return;
+    final text = _editController.text.trim();
+    if (text.isEmpty || text == widget.reply.text.trim() || _savingEdit) {
+      setState(() => _editing = false);
+      return;
+    }
+    setState(() => _savingEdit = true);
     try {
       if (widget.feedPostId != null) {
         await ref
@@ -490,14 +571,24 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       if (widget.bookId != null) {
         ref.invalidate(bookCommentsProvider(widget.bookId!));
       }
-      if (mounted) HapticFeedback.selectionClick();
+      if (mounted) {
+        setState(() => _editing = false);
+        HapticFeedback.selectionClick();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
       }
+    } finally {
+      if (mounted) setState(() => _savingEdit = false);
     }
+  }
+
+  void _cancelReplyEdit() {
+    _editController.text = widget.reply.text;
+    setState(() => _editing = false);
   }
 
   void _leftSwipeAction() {
@@ -581,7 +672,10 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                   if (reply.userId == user.id)
                     PopupMenuItem(
                       value: 'edit',
-                      child: _MenuRow(icon: Icons.edit_outlined, label: l10n.edit),
+                      child: _MenuRow(
+                        icon: Icons.edit_outlined,
+                        label: l10n.edit,
+                      ),
                     ),
                   if (reply.userId == user.id)
                     PopupMenuItem(
@@ -610,11 +704,24 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              reply.text,
-              style: TextStyle(fontSize: 13, color: widget.textColor),
-            ),
-            const SizedBox(height: 2),
+            if (_editing) ...[
+              _InlineEditBox(
+                controller: _editController,
+                hintText: l10n.writeYourUpdate,
+                saving: _savingEdit,
+                textColor: widget.textColor,
+                compact: true,
+                onCancel: _cancelReplyEdit,
+                onSave: _saveReplyEdit,
+              ),
+              const SizedBox(height: 4),
+            ] else ...[
+              Text(
+                reply.text,
+                style: TextStyle(fontSize: 13, color: widget.textColor),
+              ),
+              const SizedBox(height: 2),
+            ],
             Row(
               children: [
                 Text(
@@ -655,6 +762,237 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       ),
     );
   }
+}
+
+class _InlineEditBox extends StatelessWidget {
+  const _InlineEditBox({
+    required this.controller,
+    required this.hintText,
+    required this.saving,
+    required this.onCancel,
+    required this.onSave,
+    this.textColor,
+    this.compact = false,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool saving;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  final Color? textColor;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: compact ? 2 : 3,
+          maxLines: compact ? 5 : 8,
+          textInputAction: TextInputAction.newline,
+          style: TextStyle(fontSize: compact ? 13 : null, color: textColor),
+          decoration: InputDecoration(
+            isDense: compact,
+            border: const OutlineInputBorder(),
+            hintText: hintText,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: saving ? null : onCancel,
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            const SizedBox(width: 6),
+            FilledButton.icon(
+              onPressed: saving ? null : onSave,
+              icon: saving
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    )
+                  : const Icon(Icons.check_rounded, size: 18),
+              label: Text(AppLocalizations.of(context)!.save),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AudioCommentPlayer extends StatefulWidget {
+  const _AudioCommentPlayer({
+    required this.url,
+    required this.objectKey,
+    required this.durationMs,
+    this.textColor,
+    this.metadataColor,
+  });
+
+  final String url;
+  final String? objectKey;
+  final int? durationMs;
+  final Color? textColor;
+  final Color? metadataColor;
+
+  @override
+  State<_AudioCommentPlayer> createState() => _AudioCommentPlayerState();
+}
+
+class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
+  late final AudioPlayer _player;
+  bool _loaded = false;
+  bool _loading = false;
+  String? _error;
+  String? _resolvedUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = AudioPlayer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AudioCommentPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url ||
+        oldWidget.objectKey != widget.objectKey) {
+      _loaded = false;
+      _error = null;
+      _resolvedUrl = null;
+      _player.stop();
+    }
+  }
+
+  Future<String> _playableUrl() async {
+    final objectKey = widget.objectKey?.trim();
+    if (objectKey == null || objectKey.isEmpty) return widget.url;
+    final response = await FirebaseFunctions.instance
+        .httpsCallable('createAudioReviewDownloadUrl')
+        .call<Map<String, dynamic>>({'objectKey': objectKey});
+    final downloadUrl = response.data['downloadUrl']?.toString();
+    if (downloadUrl == null || downloadUrl.isEmpty) return widget.url;
+    return downloadUrl;
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    if (_loading) return;
+    if (_player.playing) {
+      await _player.pause();
+      return;
+    }
+    setState(() => _error = null);
+    try {
+      if (!_loaded) {
+        setState(() => _loading = true);
+        _resolvedUrl ??= await _playableUrl();
+        await _player.setUrl(_resolvedUrl!);
+        _loaded = true;
+        if (mounted) setState(() => _loading = false);
+      }
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
+      }
+      unawaited(_player.play());
+    } catch (_) {
+      _error = 'Could not play audio';
+      if (mounted) setState(() => _loading = false);
+    } finally {
+      if (mounted && _loading) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StreamBuilder<PlayerState>(
+              stream: _player.playerStateStream,
+              builder: (context, snapshot) {
+                final state = snapshot.data;
+                final playing = state?.playing == true;
+                final buffering =
+                    state?.processingState == ProcessingState.loading ||
+                    state?.processingState == ProcessingState.buffering;
+                return IconButton(
+                  tooltip: playing ? 'Pause audio' : 'Play audio',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _loading ? null : _toggle,
+                  icon: _loading || buffering
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          playing
+                              ? Icons.pause_circle_filled_rounded
+                              : Icons.play_circle_fill_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                );
+              },
+            ),
+            const SizedBox(width: 4),
+            StreamBuilder<Duration>(
+              stream: _player.positionStream,
+              builder: (context, snapshot) {
+                final fallback = Duration(milliseconds: widget.durationMs ?? 0);
+                final position = snapshot.data ?? Duration.zero;
+                final duration = _player.duration ?? fallback;
+                final label = duration.inMilliseconds > 0
+                    ? '${_formatAudioTime(position)} / ${_formatAudioTime(duration)}'
+                    : 'Audio review';
+                return Text(
+                  _error ?? label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: _error == null
+                        ? widget.metadataColor ?? widget.textColor
+                        : theme.colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatAudioTime(Duration duration) {
+  final totalSeconds = duration.inSeconds.clamp(0, 120).toInt();
+  final minutes = totalSeconds ~/ 60;
+  final seconds = totalSeconds % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
 class _SwipeActionShell extends StatefulWidget {
@@ -961,9 +1299,7 @@ Future<void> _confirmDeleteComment(
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
         );
       }
@@ -1018,54 +1354,10 @@ Future<void> _confirmDeleteReply(
       if (bookId != null) ref.invalidate(bookCommentsProvider(bookId));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
         );
       }
     }
   }
-}
-
-Future<String?> _showEditDialog(
-  BuildContext context,
-  String title,
-  String initialText,
-) async {
-  final l10n = AppLocalizations.of(context)!;
-  final controller = TextEditingController(text: initialText);
-  final result = await showDialog<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        minLines: 3,
-        maxLines: 8,
-        textInputAction: TextInputAction.newline,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          hintText: l10n.writeYourUpdate,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: () {
-            final text = controller.text.trim();
-            if (text.isEmpty) return;
-            Navigator.of(ctx).pop(text);
-          },
-          child: Text(l10n.save),
-        ),
-      ],
-    ),
-  );
-  controller.dispose();
-  return result == initialText.trim() ? null : result;
 }

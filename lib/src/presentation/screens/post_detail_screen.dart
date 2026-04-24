@@ -192,6 +192,9 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                 children: [
                   for (final comment in comments)
                     CommentTile(
+                      key: ValueKey(
+                        'post-detail-comment-${comment.id ?? comment.timestamp}',
+                      ),
                       comment: comment,
                       onReply: () => setState(() => _replyingTo = comment),
                     ),

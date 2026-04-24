@@ -1,15 +1,116 @@
 const functionsV1 = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client} = require("@aws-sdk/client-s3");
+const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
 const MAX_BATCH_WRITES = 450;
+const MAX_AUDIO_REVIEW_DURATION_MS = 120000;
+const MAX_AUDIO_REVIEW_BYTES = 2 * 1024 * 1024;
+const AUDIO_REVIEW_MIME_TYPES = new Set(["audio/mp4", "audio/m4a", "audio/aac"]);
+const B2_SECRET_NAMES = [
+  "B2_KEY_ID",
+  "B2_APPLICATION_KEY",
+  "B2_AUDIO_BUCKET_NAME",
+  "B2_AUDIO_BUCKET_ID",
+  "B2_AUDIO_S3_ENDPOINT",
+  "B2_AUDIO_DOWNLOAD_BASE_URL",
+];
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function configValue(envName, configName = envName.toLowerCase()) {
+  const envValue = normalizeString(process.env[envName]);
+  if (envValue) return envValue;
+  try {
+    const b2Config = functionsV1.config().b2 || {};
+    return normalizeString(b2Config[configName]);
+  } catch (_) {
+    return "";
+  }
+}
+
+function requireB2Config() {
+  const config = {
+    keyId: configValue("B2_KEY_ID", "key_id"),
+    applicationKey: configValue("B2_APPLICATION_KEY", "application_key"),
+    bucketName: configValue("B2_AUDIO_BUCKET_NAME", "audio_bucket_name"),
+    bucketId: configValue("B2_AUDIO_BUCKET_ID", "audio_bucket_id"),
+    endpoint: configValue("B2_AUDIO_S3_ENDPOINT", "audio_s3_endpoint"),
+    downloadBaseUrl: configValue("B2_AUDIO_DOWNLOAD_BASE_URL", "audio_download_base_url"),
+  };
+  const missing = Object.entries(config)
+      .filter(([, value]) => !normalizeString(value))
+      .map(([key]) => key);
+  if (missing.length > 0) {
+    throw new functionsV1.https.HttpsError(
+        "failed-precondition",
+        `Backblaze audio storage is missing config: ${missing.join(", ")}.`,
+    );
+  }
+  return config;
+}
+
+function audioReviewS3Client(config) {
+  const regionMatch = config.endpoint.match(/s3[.-]([a-z0-9-]+)\.backblazeb2\.com/i);
+  return new S3Client({
+    region: regionMatch?.[1] || "us-west-004",
+    endpoint: config.endpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: config.keyId,
+      secretAccessKey: config.applicationKey,
+    },
+  });
+}
+
+function safeObjectSegment(value, fallback) {
+  const normalized = normalizeString(`${value || ""}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  return normalized || fallback;
+}
+
+function encodedObjectPath(objectKey) {
+  return objectKey.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+}
+
+function audioReviewObjectKey({userId, bookId, chapterId}) {
+  return [
+    "audio-reviews",
+    safeObjectSegment(userId, "user"),
+    safeObjectSegment(bookId, "book"),
+    safeObjectSegment(chapterId, "book"),
+    `${Date.now()}.m4a`,
+  ].join("/");
+}
+
+function validateAudioReviewRequest(data = {}) {
+  const bookId = normalizeString(data.bookId);
+  const chapterId = normalizeString(data.chapterId);
+  const durationMs = Number.parseInt(`${data.durationMs || 0}`, 10) || 0;
+  const sizeBytes = Number.parseInt(`${data.sizeBytes || 0}`, 10) || 0;
+  const mimeType = normalizeString(data.mimeType).toLowerCase();
+  if (!bookId) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Missing bookId.");
+  }
+  if (durationMs <= 0 || durationMs > MAX_AUDIO_REVIEW_DURATION_MS) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Audio review must be 2 minutes or shorter.");
+  }
+  if (sizeBytes <= 0 || sizeBytes > MAX_AUDIO_REVIEW_BYTES) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Audio review is too large.");
+  }
+  if (!AUDIO_REVIEW_MIME_TYPES.has(mimeType)) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Unsupported audio type.");
+  }
+  return {bookId, chapterId, durationMs, sizeBytes, mimeType};
 }
 
 function userDisplayName(data = {}) {
@@ -369,6 +470,8 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
         const book = bookSnapshot.data() || {};
         const ownerId = normalizeString(book.authorId);
         const notificationType = Number(afterData.rating || 0) > 0 ? "book_review" : "book_comment";
+        const isAudioReview = notificationType === "book_review" &&
+          (normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
         await createNotificationDoc(
             `book_comment_${commentId}`,
             buildNotification({
@@ -377,10 +480,12 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
               actorName,
               actorPhotoURL,
               type: notificationType,
-              text: Number(afterData.rating || 0) > 0 ? "left a review on your book" : "commented on your book",
+              text: isAudioReview ?
+                "submitted an audio review on your content" :
+                Number(afterData.rating || 0) > 0 ? "left a review on your content" : "commented on your content",
               link: `/book?id=${bookId}`,
               targetId: bookId,
-              metadata: {bookId},
+              metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
             }),
         );
       }
@@ -388,6 +493,12 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
   }
 
   if (beforeData && afterData) {
+    const hadAudio = Boolean(normalizeString(beforeData.audioObjectKey) || normalizeString(beforeData.audioUrl));
+    const hasAudio = Boolean(normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
+    if (!hadAudio && hasAudio && Number(afterData.rating || 0) > 0) {
+      await notifyBookOwnerForAudioReview(commentId, afterData);
+    }
+
     const beforeReplies = Array.isArray(beforeData.replies) ? beforeData.replies : [];
     const afterReplies = Array.isArray(afterData.replies) ? afterData.replies : [];
     for (const reply of diffAddedReplies(beforeReplies, afterReplies)) {
@@ -500,6 +611,38 @@ exports.onUserProfileUpdated = functionsV1.firestore.document("users/{userId}").
   return null;
 });
 
+async function notifyBookOwnerForAudioReview(commentId, data = {}) {
+  const bookId = normalizeString(`${data.bookId ?? ""}`);
+  const actorId = normalizeString(data.userId);
+  if (!bookId || !actorId) {
+    return;
+  }
+  const bookSnapshot = await db.collection("books").doc(bookId).get();
+  if (!bookSnapshot.exists) {
+    return;
+  }
+  const book = bookSnapshot.data() || {};
+  const ownerId = normalizeString(book.authorId);
+  await createNotificationDoc(
+      `book_audio_review_${commentId}`,
+      buildNotification({
+        userId: ownerId,
+        actorId,
+        actorName: userDisplayName(data),
+        actorPhotoURL: normalizeString(data.userPhotoURL) || null,
+        type: "book_review",
+        text: "submitted an audio review on your content",
+        link: `/book?id=${bookId}`,
+        targetId: bookId,
+        metadata: {
+          bookId,
+          commentId,
+          hasAudio: true,
+        },
+      }),
+  );
+}
+
 exports.onMessageCreated = functionsV1.firestore.document("conversations/{conversationId}/messages/{messageId}").onCreate(async (snapshot, context) => {
   const message = snapshot.data();
   if (!message) {
@@ -577,6 +720,78 @@ exports.toggleReviewHighlight = functionsV1.https.onCall(async (data, context) =
     maxHighlighted: Number.parseInt(`${data?.maxHighlighted ?? 3}`, 10) || 3,
   });
 });
+
+exports.createAudioReviewUploadTarget = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data, context) => {
+      if (!context.auth?.uid) {
+        throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+      }
+
+      const {bookId, chapterId, mimeType} = validateAudioReviewRequest(data);
+      const config = requireB2Config();
+      const objectKey = audioReviewObjectKey({
+        userId: context.auth.uid,
+        bookId,
+        chapterId,
+      });
+      const command = new PutObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+        ContentType: mimeType,
+      });
+      const uploadUrl = await getSignedUrl(audioReviewS3Client(config), command, {
+        expiresIn: 10 * 60,
+      });
+      const baseUrl = config.downloadBaseUrl.replace(/\/+$/, "");
+
+      return {
+        uploadUrl,
+        headers: {"content-type": mimeType},
+        objectKey,
+        audioUrl: `${baseUrl}/${encodedObjectPath(objectKey)}`,
+      };
+    });
+
+exports.deleteAudioReviewObject = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data, context) => {
+      if (!context.auth?.uid) {
+        throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+      }
+
+      const objectKey = normalizeString(data?.objectKey);
+      const prefix = `audio-reviews/${safeObjectSegment(context.auth.uid, "user")}/`;
+      if (!objectKey || !objectKey.startsWith(prefix)) {
+        throw new functionsV1.https.HttpsError("permission-denied", "Audio object does not belong to this user.");
+      }
+
+      const config = requireB2Config();
+      await audioReviewS3Client(config).send(new DeleteObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+      }));
+      return {deleted: true};
+    });
+
+exports.createAudioReviewDownloadUrl = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data) => {
+      const objectKey = normalizeString(data?.objectKey);
+      if (!objectKey || !objectKey.startsWith("audio-reviews/")) {
+        throw new functionsV1.https.HttpsError("invalid-argument", "Missing audio object key.");
+      }
+
+      const config = requireB2Config();
+      const command = new GetObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+      });
+      const downloadUrl = await getSignedUrl(audioReviewS3Client(config), command, {
+        expiresIn: 15 * 60,
+      });
+      return {downloadUrl};
+    });
 
 exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").onRun(async () => {
   const [booksSnapshot, authorsSnapshot] = await Promise.all([

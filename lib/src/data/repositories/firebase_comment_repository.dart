@@ -40,6 +40,16 @@ class FirebaseCommentRepository implements CommentRepository {
     final docRef = _firestore.collection('comments').doc(commentId);
     final docSnap = await docRef.get();
     if (!docSnap.exists) return;
+    final audioObjectKey = docSnap.data()?['audioObjectKey']?.toString().trim();
+    if (audioObjectKey != null && audioObjectKey.isNotEmpty) {
+      try {
+        await _functions.httpsCallable('deleteAudioReviewObject').call({
+          'objectKey': audioObjectKey,
+        });
+      } catch (_) {
+        // Deleting the comment should not be blocked by storage cleanup.
+      }
+    }
 
     final batch = _firestore.batch();
     batch.delete(docRef);
@@ -162,6 +172,15 @@ class FirebaseCommentRepository implements CommentRepository {
             )
             .toJson()
           ..remove('id');
+    for (final key in const [
+      'audioUrl',
+      'audioObjectKey',
+      'audioDurationMs',
+      'audioMimeType',
+      'audioSizeBytes',
+    ]) {
+      if (data[key] == null) data[key] = FieldValue.delete();
+    }
     data.removeWhere((key, value) => value == null);
     await docRef.update(data);
     return existing.id!;
