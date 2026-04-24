@@ -48,11 +48,10 @@ class PublicProfileScreen extends ConsumerWidget {
                 orElse: () => user.pinnedWorks?.length ?? 0,
               );
           final level = (user.privacyLevel ?? 'public').toLowerCase();
-          final contentVisible =
-              isSelf ||
-              level == 'public' ||
-              (level != 'private' &&
-                  (user.email.isNotEmpty || user.pinnedWorks != null));
+          final followersOnly =
+              level == 'followers' ||
+              level == 'followersonly' ||
+              level == 'followers_only';
 
           return CustomScrollView(
             slivers: [
@@ -135,7 +134,9 @@ class PublicProfileScreen extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
                           _StatChip(
                             label: l10n.followers,
@@ -170,12 +171,6 @@ class PublicProfileScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         followingAsync.when(
                           data: (isFollowing) {
-                            final level = (user.privacyLevel ?? 'public')
-                                .toLowerCase();
-                            final followersOnly =
-                                level == 'followers' ||
-                                level == 'followersonly' ||
-                                level == 'followers_only';
                             if (level == 'private') {
                               return _PrivacyNoticeCard(
                                 message: l10n.privateAccountNotice,
@@ -195,10 +190,27 @@ class PublicProfileScreen extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      if (contentVisible) ...[
+                      if (isSelf || level == 'public') ...[
                         const SizedBox(height: 28),
                         _PublicProfileContentTabs(userId: userId),
-                      ],
+                      ] else if (followersOnly)
+                        followingAsync.maybeWhen(
+                          data: (isFollowing) => isFollowing
+                              ? const Column(
+                                  children: [
+                                    SizedBox(height: 28),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      if (followersOnly)
+                        followingAsync.maybeWhen(
+                          data: (isFollowing) => isFollowing
+                              ? _PublicProfileContentTabs(userId: userId)
+                              : const SizedBox.shrink(),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
                     ],
                   ),
                 ),
@@ -388,7 +400,7 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(
-      label: Text('$value $label'),
+      label: Text('$value $label', overflow: TextOverflow.ellipsis),
       onPressed: onTap,
       side: BorderSide.none,
       backgroundColor: Theme.of(

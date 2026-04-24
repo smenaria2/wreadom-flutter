@@ -328,6 +328,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fetchingPublicDomain => 'Fetching public-domain text...';
 
   @override
+  String get chaptersTitle => 'Chapters';
+
+  @override
+  String get viewChapterComments => 'View chapter comments';
+
+  @override
+  String get nextChapter => 'Next Chapter';
+
+  @override
+  String get shareChapter => 'Share Chapter';
+
+  @override
+  String get closeReader => 'Close Reader';
+
+  @override
   String get internetArchivePreparation =>
       'Internet Archive content can take a moment to prepare.';
 
@@ -1380,5 +1395,238 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 work',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get helpTitle => 'Help & Support';
+
+  @override
+  String get helpSearchHint => 'Search for help topics...';
+
+  @override
+  String get helpCategoryReading => 'Reading';
+
+  @override
+  String get helpCategoryWriting => 'Writing';
+
+  @override
+  String get helpCategoryDiscovery => 'Discovery';
+
+  @override
+  String get helpCategoryCommunity => 'Community';
+
+  @override
+  String get helpCategoryAccount => 'Account';
+
+  @override
+  String get faqCustomizeReaderQ => 'How do I customize the reader?';
+
+  @override
+  String get faqCustomizeReaderA =>
+      'Open any book and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).';
+
+  @override
+  String get faqOfflineReadingQ => 'Can I read books offline?';
+
+  @override
+  String get faqOfflineReadingA =>
+      'Yes! Tap the download icon on the book details page. Once downloaded, you can access the book from your \'Saved\' tab even without an internet connection.';
+
+  @override
+  String get faqBookmarksQ => 'How do bookmarks work?';
+
+  @override
+  String get faqBookmarksA =>
+      'Wreadom automatically saves your progress as you read. To manually mark a specific spot, tap the bookmark icon in the reader\'s top toolbar.';
+
+  @override
+  String get faqQuoteCommentQ => 'What is \'Quote & Comment\'?';
+
+  @override
+  String get faqQuoteCommentA =>
+      'Highlight any text in a book to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.';
+
+  @override
+  String get faqStartStoryQ => 'How do I start a new story?';
+
+  @override
+  String get faqStartStoryA =>
+      'Go to the \'Writer Dashboard\' from your profile menu and tap the \'Add\' icon. This will open the Writer Pad where you can start drafting your first chapter.';
+
+  @override
+  String get faqAutoSaveQ => 'Is there an auto-save feature?';
+
+  @override
+  String get faqAutoSaveA =>
+      'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor.';
+
+  @override
+  String get faqPublishWorkQ => 'How do I publish my work?';
+
+  @override
+  String get faqPublishWorkA =>
+      'Once your story is ready, tap \'Publish\' in the Writer Pad. You\'ll be asked to provide a title, synopsis, and relevant topics before it goes live for the community.';
+
+  @override
+  String get faqOrganizeChaptersQ => 'Can I organize chapters?';
+
+  @override
+  String get faqOrganizeChaptersA =>
+      'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.';
+
+  @override
+  String get faqFindBooksQ => 'How do I find new books?';
+
+  @override
+  String get faqFindBooksA =>
+      'Use the \'Discover\' tab to browse by trending genres like Fantasy, Romance, and Sci-Fi. You can also search specifically for titles or authors.';
+
+  @override
+  String get faqOriginalsQ => 'What are \'Originals\'?';
+
+  @override
+  String get faqOriginalsA =>
+      'Originals are stories written and published directly by authors within the Wreadom community.';
+
+  @override
+  String get faqInternetArchiveQ => 'What is the Internet Archive integration?';
+
+  @override
+  String get faqInternetArchiveA =>
+      'Wreadom connects to the Internet Archive to give you access to millions of classic books and public domain works alongside community originals.';
+
+  @override
+  String get faqDailyTopicQ => 'What is the Daily Topic?';
+
+  @override
+  String get faqDailyTopicA =>
+      'Every day, Wreadom features a new writing or discussion prompt. Tap the banner on the Home feed to participate and see what others are sharing.';
+
+  @override
+  String get faqFollowAuthorQ => 'How do I follow an author?';
+
+  @override
+  String get faqFollowAuthorA =>
+      'Tap on an author\'s name or avatar to visit their public profile, then tap \'Follow\' to see their latest posts and story updates in your feed.';
+
+  @override
+  String get faqMessagingQ => 'Can I message other users?';
+
+  @override
+  String get faqMessagingA =>
+      'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage your chats.';
+
+  @override
+  String get faqChangeThemeQ => 'How do I change the app theme?';
+
+  @override
+  String get faqChangeThemeA =>
+      'Go to Profile -> Menu (top-right) -> Theme. You can choose between Light, Dark, or System default modes.';
+
+  @override
+  String get faqUpdateProfileQ => 'How do I update my profile?';
+
+  @override
+  String get faqUpdateProfileA =>
+      'In the \'Edit Profile\' section of your settings, you can update your display name, pen name, and bio.';
+
+  @override
+  String get faqNotificationsQ => 'Where are my notifications?';
+
+  @override
+  String get faqNotificationsA =>
+      'Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.';
+
+  @override
+  String get faqChangeLanguageQ => 'How do I change the app language?';
+
+  @override
+  String get faqChangeLanguageA =>
+      'Go to Settings -> Language to switch between English and Hindi.';
+
+  @override
+  String get faqWhatAreReadsQ => 'What are \'Reads\'?';
+
+  @override
+  String get faqWhatAreReadsA =>
+      'Reads indicate how many times a story has been viewed. It updates automatically as the community explores your work.';
+
+  @override
+  String get faqTapToSeekQ => 'How does tap-to-seek work in Read Aloud?';
+
+  @override
+  String get faqTapToSeekA =>
+      'While \'Read Aloud\' is active, simply tap on any paragraph to jump the voice directly to that section.';
+
+  @override
+  String get faqShareQuoteImageQ => 'Can I share quotes as images?';
+
+  @override
+  String get faqShareQuoteImageA =>
+      'Yes! Highlight any text and choose \'Share Quote\' to create a beautiful, shareable image of that passage.';
+
+  @override
+  String get faqReportContentQ => 'How do I report inappropriate content?';
+
+  @override
+  String get faqReportContentA =>
+      'Tap the three-dot menu on any post, comment, or book and select \'Report\'. Our team will review it promptly.';
+
+  @override
+  String get faqPinUnpinQ => 'Can I pin my favorite comments?';
+
+  @override
+  String get faqPinUnpinA =>
+      'Yes! If you are the author of a post, you can pin a comment to the top of the discussion by tapping the \'Pin\' option in its menu.';
+
+  @override
+  String get faqMessagingRulesQ => 'Are there rules for messaging?';
+
+  @override
+  String get faqMessagingRulesA =>
+      'To prevent spam, you can only send one message to a new contact. Once they reply, you can chat freely.';
+
+  @override
+  String get faqDailyTopicsParticipationQ =>
+      'How do I participate in Daily Topics?';
+
+  @override
+  String get faqDailyTopicsParticipationA =>
+      'Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.';
+
+  @override
+  String get faqFeedUpdatesQ => 'What shows up in my Feed?';
+
+  @override
+  String get faqFeedUpdatesA =>
+      'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.';
+
+  @override
+  String get faqMultiChapterWriterQ => 'Can I write multiple chapters at once?';
+
+  @override
+  String get faqMultiChapterWriterA =>
+      'Yes! In the Writer Pad, use the chapters list to create multiple segments of your story. You can save them all as a single draft before publishing.';
+
+  @override
+  String get faqProfilePicturesQ =>
+      'How do I update my profile and cover images?';
+
+  @override
+  String get faqProfilePicturesA =>
+      'Visit your profile and tap on the camera icons on your avatar or cover photo to upload new images from your device.';
+
+  @override
+  String get stillNeedHelp => 'Still need help?';
+
+  @override
+  String get communitySupportAssist => 'Our community team is here to assist.';
+
+  @override
+  String get contactUs => 'Contact Us';
+
+  @override
+  String noHelpTopicsFound(String query) {
+    return 'No help topics found for \"$query\"';
   }
 }

@@ -32,6 +32,7 @@ class FirebaseMessageRepository implements MessageRepository {
         .collection('conversations')
         .where('type', isEqualTo: 'direct')
         .where('participants', arrayContains: currentUser.id)
+        .limit(50)
         .get();
 
     for (final doc in existing.docs) {
@@ -168,13 +169,14 @@ class FirebaseMessageRepository implements MessageRepository {
     return _firestore
         .collection('conversations')
         .where('participants', arrayContains: userId)
+        .orderBy('updatedAt', descending: true)
+        .limit(50)
         .snapshots()
         .map((snapshot) {
           final items = snapshot.docs.map((doc) {
             final data = mapFirestoreData(doc.data(), doc.id);
             return Conversation.fromJson(data);
           }).toList();
-          items.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
           return items;
         });
   }
@@ -200,13 +202,14 @@ class FirebaseMessageRepository implements MessageRepository {
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
+        .orderBy('timestamp')
+        .limitToLast(100)
         .snapshots()
         .map((snapshot) {
           final items = snapshot.docs.map((doc) {
             final data = mapFirestoreData(doc.data(), doc.id);
             return Message.fromJson(data);
           }).toList();
-          items.sort((a, b) => a.timestamp.compareTo(b.timestamp));
           return items;
         });
   }

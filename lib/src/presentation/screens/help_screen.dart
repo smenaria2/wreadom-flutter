@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:librebook_flutter/src/presentation/widgets/submit_error_dialog.dart';
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -11,133 +13,164 @@ class _HelpScreenState extends State<HelpScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
-  final List<_HelpCategory> _categories = [
-    _HelpCategory(
-      title: 'Reading',
-      icon: Icons.menu_book_rounded,
-      color: Colors.blue,
-      faqs: [
-        _FAQ(
-          question: 'How do I customize the reader?',
-          answer:
-              'Open any book and tap the "Aa" icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).',
-        ),
-        _FAQ(
-          question: 'Can I read books offline?',
-          answer:
-              'Yes! Tap the download icon on the book details page. Once downloaded, you can access the book from your "Saved" tab even without an internet connection.',
-        ),
-        _FAQ(
-          question: 'How do bookmarks work?',
-          answer:
-              'Wreadom automatically saves your progress as you read. To manually mark a specific spot, tap the bookmark icon in the reader\'s top toolbar.',
-        ),
-        _FAQ(
-          question: 'What is "Quote & Comment"?',
-          answer:
-              'Highlight any text in a book to see the selection menu. You can "Quote & Comment" to share your thoughts on a specific passage with the community.',
-        ),
-      ],
-    ),
-    _HelpCategory(
-      title: 'Writing',
-      icon: Icons.edit_note_rounded,
-      color: Colors.orange,
-      faqs: [
-        _FAQ(
-          question: 'How do I start a new story?',
-          answer:
-              'Go to the "Writer Dashboard" from your profile menu and tap the "Add" icon. This will open the Writer Pad where you can start drafting your first chapter.',
-        ),
-        _FAQ(
-          question: 'Is there an auto-save feature?',
-          answer:
-              'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the "Last Saved" status at the top of the editor.',
-        ),
-        _FAQ(
-          question: 'How do I publish my work?',
-          answer:
-              'Once your story is ready, tap "Publish" in the Writer Pad. You\'ll be asked to provide a title, synopsis, and relevant topics before it goes live for the community.',
-        ),
-        _FAQ(
-          question: 'Can I organize chapters?',
-          answer:
-              'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.',
-        ),
-      ],
-    ),
-    _HelpCategory(
-      title: 'Discovery',
-      icon: Icons.explore_rounded,
-      color: Colors.green,
-      faqs: [
-        _FAQ(
-          question: 'How do I find new books?',
-          answer:
-              'Use the "Discover" tab to browse by trending genres like Fantasy, Romance, and Sci-Fi. You can also search specifically for titles or authors.',
-        ),
-        _FAQ(
-          question: 'What are "Originals"?',
-          answer:
-              'Originals are stories written and published directly by authors within the Wreadom community.',
-        ),
-        _FAQ(
-          question: 'What is the Internet Archive integration?',
-          answer:
-              'Wreadom connects to the Internet Archive to give you access to millions of classic books and public domain works alongside community originals.',
-        ),
-      ],
-    ),
-    _HelpCategory(
-      title: 'Community',
-      icon: Icons.people_alt_rounded,
-      color: Colors.purple,
-      faqs: [
-        _FAQ(
-          question: 'What is the Daily Topic?',
-          answer:
-              'Every day, Wreadom features a new writing or discussion prompt. Tap the banner on the Home feed to participate and see what others are sharing.',
-        ),
-        _FAQ(
-          question: 'How do I follow an author?',
-          answer:
-              'Tap on an author\'s name or avatar to visit their public profile, then tap "Follow" to see their latest posts and story updates in your feed.',
-        ),
-        _FAQ(
-          question: 'Can I message other users?',
-          answer:
-              'Yes, you can start direct conversations with other users. Visit their profile or use the "Messages" icon on your navigation bar to manage your chats.',
-        ),
-      ],
-    ),
-    _HelpCategory(
-      title: 'Account',
-      icon: Icons.account_circle_rounded,
-      color: Colors.red,
-      faqs: [
-        _FAQ(
-          question: 'How do I change the app theme?',
-          answer:
-              'Go to Profile -> Menu (top-right) -> Theme. You can choose between Light, Dark, or System default modes.',
-        ),
-        _FAQ(
-          question: 'How do I update my profile?',
-          answer:
-              'In the "Edit Profile" section of your settings, you can update your display name, pen name, and bio.',
-        ),
-        _FAQ(
-          question: 'Where are my notifications?',
-          answer:
-              'Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.',
-        ),
-      ],
-    ),
-  ];
+  List<_HelpCategory> _getCategories(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _HelpCategory(
+        title: l10n.helpCategoryReading,
+        icon: Icons.menu_book_rounded,
+        color: Colors.blue,
+        faqs: [
+          _FAQ(
+            question: l10n.faqCustomizeReaderQ,
+            answer: l10n.faqCustomizeReaderA,
+          ),
+          _FAQ(
+            question: l10n.faqOfflineReadingQ,
+            answer: l10n.faqOfflineReadingA,
+          ),
+          _FAQ(
+            question: l10n.faqBookmarksQ,
+            answer: l10n.faqBookmarksA,
+          ),
+          _FAQ(
+            question: l10n.faqQuoteCommentQ,
+            answer: l10n.faqQuoteCommentA,
+          ),
+          _FAQ(
+            question: l10n.faqWhatAreReadsQ,
+            answer: l10n.faqWhatAreReadsA,
+          ),
+          _FAQ(
+            question: l10n.faqTapToSeekQ,
+            answer: l10n.faqTapToSeekA,
+          ),
+          _FAQ(
+            question: l10n.faqShareQuoteImageQ,
+            answer: l10n.faqShareQuoteImageA,
+          ),
+        ],
+      ),
+      _HelpCategory(
+        title: l10n.helpCategoryWriting,
+        icon: Icons.edit_note_rounded,
+        color: Colors.orange,
+        faqs: [
+          _FAQ(
+            question: l10n.faqStartStoryQ,
+            answer: l10n.faqStartStoryA,
+          ),
+          _FAQ(
+            question: l10n.faqAutoSaveQ,
+            answer: l10n.faqAutoSaveA,
+          ),
+          _FAQ(
+            question: l10n.faqPublishWorkQ,
+            answer: l10n.faqPublishWorkA,
+          ),
+          _FAQ(
+            question: l10n.faqOrganizeChaptersQ,
+            answer: l10n.faqOrganizeChaptersA,
+          ),
+          _FAQ(
+            question: l10n.faqMultiChapterWriterQ,
+            answer: l10n.faqMultiChapterWriterA,
+          ),
+        ],
+      ),
+      _HelpCategory(
+        title: l10n.helpCategoryDiscovery,
+        icon: Icons.explore_rounded,
+        color: Colors.green,
+        faqs: [
+          _FAQ(
+            question: l10n.faqFindBooksQ,
+            answer: l10n.faqFindBooksA,
+          ),
+          _FAQ(
+            question: l10n.faqOriginalsQ,
+            answer: l10n.faqOriginalsA,
+          ),
+          _FAQ(
+            question: l10n.faqInternetArchiveQ,
+            answer: l10n.faqInternetArchiveA,
+          ),
+          _FAQ(
+            question: l10n.faqFeedUpdatesQ,
+            answer: l10n.faqFeedUpdatesA,
+          ),
+        ],
+      ),
+      _HelpCategory(
+        title: l10n.helpCategoryCommunity,
+        icon: Icons.people_alt_rounded,
+        color: Colors.purple,
+        faqs: [
+          _FAQ(
+            question: l10n.faqDailyTopicQ,
+            answer: l10n.faqDailyTopicA,
+          ),
+          _FAQ(
+            question: l10n.faqDailyTopicsParticipationQ,
+            answer: l10n.faqDailyTopicsParticipationA,
+          ),
+          _FAQ(
+            question: l10n.faqFollowAuthorQ,
+            answer: l10n.faqFollowAuthorA,
+          ),
+          _FAQ(
+            question: l10n.faqMessagingQ,
+            answer: l10n.faqMessagingA,
+          ),
+          _FAQ(
+            question: l10n.faqMessagingRulesQ,
+            answer: l10n.faqMessagingRulesA,
+          ),
+          _FAQ(
+            question: l10n.faqPinUnpinQ,
+            answer: l10n.faqPinUnpinA,
+          ),
+          _FAQ(
+            question: l10n.faqReportContentQ,
+            answer: l10n.faqReportContentA,
+          ),
+        ],
+      ),
+      _HelpCategory(
+        title: l10n.helpCategoryAccount,
+        icon: Icons.account_circle_rounded,
+        color: Colors.red,
+        faqs: [
+          _FAQ(
+            question: l10n.faqChangeThemeQ,
+            answer: l10n.faqChangeThemeA,
+          ),
+          _FAQ(
+            question: l10n.faqChangeLanguageQ,
+            answer: l10n.faqChangeLanguageA,
+          ),
+          _FAQ(
+            question: l10n.faqUpdateProfileQ,
+            answer: l10n.faqUpdateProfileA,
+          ),
+          _FAQ(
+            question: l10n.faqProfilePicturesQ,
+            answer: l10n.faqProfilePicturesA,
+          ),
+          _FAQ(
+            question: l10n.faqNotificationsQ,
+            answer: l10n.faqNotificationsA,
+          ),
+        ],
+      ),
+    ];
+  }
 
-  List<_HelpCategory> get _filteredCategories {
-    if (_searchQuery.isEmpty) return _categories;
+  List<_HelpCategory> _filteredCategories(BuildContext context) {
+    final categories = _getCategories(context);
+    if (_searchQuery.isEmpty) return categories;
 
-    return _categories
+    return categories
         .map((category) {
           final matchesFaqs = category.faqs
               .where(
@@ -177,16 +210,17 @@ class _HelpScreenState extends State<HelpScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final filtered = _filteredCategories;
+    final l10n = AppLocalizations.of(context)!;
+    final filtered = _filteredCategories(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Help & Support'), centerTitle: true),
+      appBar: AppBar(title: Text(l10n.helpTitle), centerTitle: true),
       body: Column(
         children: [
-          _buildSearchHeader(theme),
+          _buildSearchHeader(theme, l10n),
           Expanded(
             child: filtered.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(l10n)
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: filtered.length,
@@ -196,13 +230,13 @@ class _HelpScreenState extends State<HelpScreen> {
                     },
                   ),
           ),
-          _buildSupportFooter(theme),
+          _buildSupportFooter(theme, l10n),
         ],
       ),
     );
   }
 
-  Widget _buildSearchHeader(ThemeData theme) {
+  Widget _buildSearchHeader(ThemeData theme, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
@@ -219,7 +253,7 @@ class _HelpScreenState extends State<HelpScreen> {
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
-          hintText: 'Search for help topics...',
+          hintText: l10n.helpSearchHint,
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -307,7 +341,7 @@ class _HelpScreenState extends State<HelpScreen> {
     );
   }
 
-  Widget _buildSupportFooter(ThemeData theme) {
+  Widget _buildSupportFooter(ThemeData theme, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -323,12 +357,12 @@ class _HelpScreenState extends State<HelpScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Still need help?',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  l10n.stillNeedHelp,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Our community team is here to assist.',
+                  l10n.communitySupportAssist,
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -336,14 +370,13 @@ class _HelpScreenState extends State<HelpScreen> {
           ),
           FilledButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Support contact feature coming soon!'),
-                ),
+              showDialog<void>(
+                context: context,
+                builder: (context) => const SubmitErrorDialog(),
               );
             },
             icon: const Icon(Icons.mail_outline_rounded, size: 18),
-            label: const Text('Contact Us'),
+            label: Text(l10n.contactUs),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             ),
@@ -353,7 +386,7 @@ class _HelpScreenState extends State<HelpScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -361,7 +394,7 @@ class _HelpScreenState extends State<HelpScreen> {
           Icon(Icons.search_off_rounded, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'No help topics found for "$_searchQuery"',
+            l10n.noHelpTopicsFound(_searchQuery),
             style: const TextStyle(
               color: Colors.grey,
               fontWeight: FontWeight.w500,

@@ -704,6 +704,36 @@ abstract class AppLocalizations {
   /// **'Fetching public-domain text...'**
   String get fetchingPublicDomain;
 
+  /// No description provided for @chaptersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters'**
+  String get chaptersTitle;
+
+  /// No description provided for @viewChapterComments.
+  ///
+  /// In en, this message translates to:
+  /// **'View chapter comments'**
+  String get viewChapterComments;
+
+  /// No description provided for @nextChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Chapter'**
+  String get nextChapter;
+
+  /// No description provided for @shareChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Chapter'**
+  String get shareChapter;
+
+  /// No description provided for @closeReader.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Reader'**
+  String get closeReader;
+
   /// No description provided for @internetArchivePreparation.
   ///
   /// In en, this message translates to:
@@ -2527,6 +2557,408 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 work} other{{count} works}}'**
   String worksMetric(int count);
+
+  /// No description provided for @helpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Support'**
+  String get helpTitle;
+
+  /// No description provided for @helpSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for help topics...'**
+  String get helpSearchHint;
+
+  /// No description provided for @helpCategoryReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get helpCategoryReading;
+
+  /// No description provided for @helpCategoryWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing'**
+  String get helpCategoryWriting;
+
+  /// No description provided for @helpCategoryDiscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery'**
+  String get helpCategoryDiscovery;
+
+  /// No description provided for @helpCategoryCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get helpCategoryCommunity;
+
+  /// No description provided for @helpCategoryAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get helpCategoryAccount;
+
+  /// No description provided for @faqCustomizeReaderQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I customize the reader?'**
+  String get faqCustomizeReaderQ;
+
+  /// No description provided for @faqCustomizeReaderA.
+  ///
+  /// In en, this message translates to:
+  /// **'Open any book and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).'**
+  String get faqCustomizeReaderA;
+
+  /// No description provided for @faqOfflineReadingQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I read books offline?'**
+  String get faqOfflineReadingQ;
+
+  /// No description provided for @faqOfflineReadingA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes! Tap the download icon on the book details page. Once downloaded, you can access the book from your \'Saved\' tab even without an internet connection.'**
+  String get faqOfflineReadingA;
+
+  /// No description provided for @faqBookmarksQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do bookmarks work?'**
+  String get faqBookmarksQ;
+
+  /// No description provided for @faqBookmarksA.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom automatically saves your progress as you read. To manually mark a specific spot, tap the bookmark icon in the reader\'s top toolbar.'**
+  String get faqBookmarksA;
+
+  /// No description provided for @faqQuoteCommentQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What is \'Quote & Comment\'?'**
+  String get faqQuoteCommentQ;
+
+  /// No description provided for @faqQuoteCommentA.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight any text in a book to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.'**
+  String get faqQuoteCommentA;
+
+  /// No description provided for @faqStartStoryQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I start a new story?'**
+  String get faqStartStoryQ;
+
+  /// No description provided for @faqStartStoryA.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the \'Writer Dashboard\' from your profile menu and tap the \'Add\' icon. This will open the Writer Pad where you can start drafting your first chapter.'**
+  String get faqStartStoryA;
+
+  /// No description provided for @faqAutoSaveQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Is there an auto-save feature?'**
+  String get faqAutoSaveQ;
+
+  /// No description provided for @faqAutoSaveA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor.'**
+  String get faqAutoSaveA;
+
+  /// No description provided for @faqPublishWorkQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I publish my work?'**
+  String get faqPublishWorkQ;
+
+  /// No description provided for @faqPublishWorkA.
+  ///
+  /// In en, this message translates to:
+  /// **'Once your story is ready, tap \'Publish\' in the Writer Pad. You\'ll be asked to provide a title, synopsis, and relevant topics before it goes live for the community.'**
+  String get faqPublishWorkA;
+
+  /// No description provided for @faqOrganizeChaptersQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I organize chapters?'**
+  String get faqOrganizeChaptersQ;
+
+  /// No description provided for @faqOrganizeChaptersA.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.'**
+  String get faqOrganizeChaptersA;
+
+  /// No description provided for @faqFindBooksQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I find new books?'**
+  String get faqFindBooksQ;
+
+  /// No description provided for @faqFindBooksA.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the \'Discover\' tab to browse by trending genres like Fantasy, Romance, and Sci-Fi. You can also search specifically for titles or authors.'**
+  String get faqFindBooksA;
+
+  /// No description provided for @faqOriginalsQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What are \'Originals\'?'**
+  String get faqOriginalsQ;
+
+  /// No description provided for @faqOriginalsA.
+  ///
+  /// In en, this message translates to:
+  /// **'Originals are stories written and published directly by authors within the Wreadom community.'**
+  String get faqOriginalsA;
+
+  /// No description provided for @faqInternetArchiveQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the Internet Archive integration?'**
+  String get faqInternetArchiveQ;
+
+  /// No description provided for @faqInternetArchiveA.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom connects to the Internet Archive to give you access to millions of classic books and public domain works alongside community originals.'**
+  String get faqInternetArchiveA;
+
+  /// No description provided for @faqDailyTopicQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the Daily Topic?'**
+  String get faqDailyTopicQ;
+
+  /// No description provided for @faqDailyTopicA.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day, Wreadom features a new writing or discussion prompt. Tap the banner on the Home feed to participate and see what others are sharing.'**
+  String get faqDailyTopicA;
+
+  /// No description provided for @faqFollowAuthorQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I follow an author?'**
+  String get faqFollowAuthorQ;
+
+  /// No description provided for @faqFollowAuthorA.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on an author\'s name or avatar to visit their public profile, then tap \'Follow\' to see their latest posts and story updates in your feed.'**
+  String get faqFollowAuthorA;
+
+  /// No description provided for @faqMessagingQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I message other users?'**
+  String get faqMessagingQ;
+
+  /// No description provided for @faqMessagingA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage your chats.'**
+  String get faqMessagingA;
+
+  /// No description provided for @faqChangeThemeQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I change the app theme?'**
+  String get faqChangeThemeQ;
+
+  /// No description provided for @faqChangeThemeA.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Profile -> Menu (top-right) -> Theme. You can choose between Light, Dark, or System default modes.'**
+  String get faqChangeThemeA;
+
+  /// No description provided for @faqUpdateProfileQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I update my profile?'**
+  String get faqUpdateProfileQ;
+
+  /// No description provided for @faqUpdateProfileA.
+  ///
+  /// In en, this message translates to:
+  /// **'In the \'Edit Profile\' section of your settings, you can update your display name, pen name, and bio.'**
+  String get faqUpdateProfileA;
+
+  /// No description provided for @faqNotificationsQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are my notifications?'**
+  String get faqNotificationsQ;
+
+  /// No description provided for @faqNotificationsA.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.'**
+  String get faqNotificationsA;
+
+  /// No description provided for @faqChangeLanguageQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I change the app language?'**
+  String get faqChangeLanguageQ;
+
+  /// No description provided for @faqChangeLanguageA.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings -> Language to switch between English and Hindi.'**
+  String get faqChangeLanguageA;
+
+  /// No description provided for @faqWhatAreReadsQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What are \'Reads\'?'**
+  String get faqWhatAreReadsQ;
+
+  /// No description provided for @faqWhatAreReadsA.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads indicate how many times a story has been viewed. It updates automatically as the community explores your work.'**
+  String get faqWhatAreReadsA;
+
+  /// No description provided for @faqTapToSeekQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How does tap-to-seek work in Read Aloud?'**
+  String get faqTapToSeekQ;
+
+  /// No description provided for @faqTapToSeekA.
+  ///
+  /// In en, this message translates to:
+  /// **'While \'Read Aloud\' is active, simply tap on any paragraph to jump the voice directly to that section.'**
+  String get faqTapToSeekA;
+
+  /// No description provided for @faqShareQuoteImageQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I share quotes as images?'**
+  String get faqShareQuoteImageQ;
+
+  /// No description provided for @faqShareQuoteImageA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes! Highlight any text and choose \'Share Quote\' to create a beautiful, shareable image of that passage.'**
+  String get faqShareQuoteImageA;
+
+  /// No description provided for @faqReportContentQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I report inappropriate content?'**
+  String get faqReportContentQ;
+
+  /// No description provided for @faqReportContentA.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the three-dot menu on any post, comment, or book and select \'Report\'. Our team will review it promptly.'**
+  String get faqReportContentA;
+
+  /// No description provided for @faqPinUnpinQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I pin my favorite comments?'**
+  String get faqPinUnpinQ;
+
+  /// No description provided for @faqPinUnpinA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes! If you are the author of a post, you can pin a comment to the top of the discussion by tapping the \'Pin\' option in its menu.'**
+  String get faqPinUnpinA;
+
+  /// No description provided for @faqMessagingRulesQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Are there rules for messaging?'**
+  String get faqMessagingRulesQ;
+
+  /// No description provided for @faqMessagingRulesA.
+  ///
+  /// In en, this message translates to:
+  /// **'To prevent spam, you can only send one message to a new contact. Once they reply, you can chat freely.'**
+  String get faqMessagingRulesA;
+
+  /// No description provided for @faqDailyTopicsParticipationQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I participate in Daily Topics?'**
+  String get faqDailyTopicsParticipationQ;
+
+  /// No description provided for @faqDailyTopicsParticipationA.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.'**
+  String get faqDailyTopicsParticipationA;
+
+  /// No description provided for @faqFeedUpdatesQ.
+  ///
+  /// In en, this message translates to:
+  /// **'What shows up in my Feed?'**
+  String get faqFeedUpdatesQ;
+
+  /// No description provided for @faqFeedUpdatesA.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.'**
+  String get faqFeedUpdatesA;
+
+  /// No description provided for @faqMultiChapterWriterQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I write multiple chapters at once?'**
+  String get faqMultiChapterWriterQ;
+
+  /// No description provided for @faqMultiChapterWriterA.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes! In the Writer Pad, use the chapters list to create multiple segments of your story. You can save them all as a single draft before publishing.'**
+  String get faqMultiChapterWriterA;
+
+  /// No description provided for @faqProfilePicturesQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I update my profile and cover images?'**
+  String get faqProfilePicturesQ;
+
+  /// No description provided for @faqProfilePicturesA.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit your profile and tap on the camera icons on your avatar or cover photo to upload new images from your device.'**
+  String get faqProfilePicturesA;
+
+  /// No description provided for @stillNeedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Still need help?'**
+  String get stillNeedHelp;
+
+  /// No description provided for @communitySupportAssist.
+  ///
+  /// In en, this message translates to:
+  /// **'Our community team is here to assist.'**
+  String get communitySupportAssist;
+
+  /// No description provided for @contactUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get contactUs;
+
+  /// No description provided for @noHelpTopicsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No help topics found for \"{query}\"'**
+  String noHelpTopicsFound(String query);
 }
 
 class _AppLocalizationsDelegate

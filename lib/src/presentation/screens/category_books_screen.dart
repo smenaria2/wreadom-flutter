@@ -27,43 +27,13 @@ class CategoryBooksScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final normalized = category.toLowerCase();
-    void refresh() {
-      switch (normalized) {
-        case 'wreadom originals':
-        case 'originals':
-        case 'wreadom-originals':
-          ref.invalidate(originalBooksProvider);
-          break;
-        case 'popular now':
-        case 'popular':
-        case 'popular-now':
-          ref.invalidate(homepagePopularProvider);
-          break;
-        case 'trending works':
-        case 'trending':
-        case 'trending-works':
-          ref.invalidate(homepageTrendingWorksProvider);
-          break;
-        case 'recently added':
-        case 'recent':
-        case 'recently-added':
-          ref.invalidate(homepageRecentProvider);
-          break;
-        case 'community classics':
-        case 'archive':
-        case 'community-classics':
-          ref.invalidate(homepageIABooksProvider);
-          break;
-        default:
-          ref.invalidate(booksByGenreProvider(category));
-      }
-    }
+    void refresh() => refreshHomepage(ref);
 
     final booksAsync = switch (normalized) {
       'wreadom originals' ||
       'originals' ||
       'wreadom-originals' =>
-        ref.watch(originalBooksProvider),
+        ref.watch(homepageOriginalsProvider),
       'trending works' ||
       'trending' ||
       'trending-works' =>

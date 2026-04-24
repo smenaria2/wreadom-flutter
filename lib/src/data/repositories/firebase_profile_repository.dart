@@ -123,13 +123,6 @@ class FirebaseProfileRepository implements ProfileRepository {
       }
     }
 
-    if (byId.length < limit) {
-      for (final user in await _fallbackSearchProfiles(term, limit: 100)) {
-        byId[user.id] = user;
-        if (byId.length >= limit) break;
-      }
-    }
-
     final results = byId.values.toList()
       ..sort((a, b) {
         final aName = (a.displayName ?? a.username).toLowerCase();
@@ -160,41 +153,59 @@ class FirebaseProfileRepository implements ProfileRepository {
     return (user.privacyLevel ?? 'public').toLowerCase() != 'private';
   }
 
-  bool _matchesProfile(UserModel user, String query) {
-    final term = query.toLowerCase();
-    if (term.isEmpty) return false;
-    final values = [
-      user.username,
-      user.displayName,
-      user.penName,
-      user.bio,
-    ].whereType<String>();
-    return values.any((value) => value.toLowerCase().contains(term));
-  }
-
-  Future<List<UserModel>> _fallbackSearchProfiles(
-    String query, {
-    required int limit,
+  @override
+  Future<List<UserModel>> getPublicProfilesByIds(
+    List<String> userIds, {
+    String? viewerUserId,
   }) async {
-    try {
+    final normalizedIds = userIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+    if (normalizedIds.isEmpty) return [];
+
+    final results = <String, UserModel>{};
+    for (var i = 0; i < normalizedIds.length; i += 10) {
+      final chunk = normalizedIds.sublist(
+        i,
+        i + 10 > normalizedIds.length ? normalizedIds.length : i + 10,
+      );
       final snapshot = await _firestore
           .collection('users')
-          .orderBy('username')
-          .limit(limit)
+          .where(FieldPath.documentId, whereIn: chunk)
           .get();
+      for (final doc in snapshot.docs) {
+        final normalized = normalizeUserMapForModel(doc.data(), doc.id);
+        final user = UserModel.fromJson(normalized);
+        final isSelf = viewerUserId != null && viewerUserId == user.id;
+        if (user.isDeactivated == true && !isSelf) {
+          continue;
+        }
 
-      return snapshot.docs
-          .map(_userFromDoc)
-          .whereType<UserModel>()
-          .where(_isSearchableUser)
-          .where((user) => _matchesProfile(user, query))
-          .toList();
-    } catch (e) {
-      debugPrint(
-        '[FirebaseProfileRepository] Profile fallback search failed: $e',
-      );
-      return [];
+        final level = (user.privacyLevel ?? 'public').toLowerCase();
+        if (isSelf || level == 'public') {
+          results[user.id] = user;
+          continue;
+        }
+        if (level == 'private') {
+          results[user.id] = _stripPrivateFields(user);
+          continue;
+        }
+
+        final followersOnly =
+            level == 'followers' ||
+            level == 'followersonly' ||
+            level == 'followers_only';
+        if (!followersOnly || viewerUserId == null) {
+          results[user.id] = _stripPrivateFields(user);
+          continue;
+        }
+        final follows = await _isFollowing(viewerUserId, user.id);
+        results[user.id] = follows ? user : _stripPrivateFields(user);
+      }
     }
+
+    return normalizedIds.map((id) => results[id]).whereType<UserModel>().toList();
   }
 
   @override

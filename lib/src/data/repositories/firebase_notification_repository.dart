@@ -38,11 +38,13 @@ class FirebaseNotificationRepository implements NotificationRepository {
         .where('isRead', isEqualTo: false)
         .get();
 
-    final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      batch.update(doc.reference, {'isRead': true});
+    for (var i = 0; i < snapshot.docs.length; i += 450) {
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs.skip(i).take(450)) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   @override
@@ -57,13 +59,14 @@ class FirebaseNotificationRepository implements NotificationRepository {
     return _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .limit(100)
         .snapshots()
         .map((snapshot) {
           final items = snapshot.docs.map((doc) {
             final data = mapFirestoreData(doc.data(), doc.id);
             return AppNotification.fromJson(data);
           }).toList();
-          items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           return items;
         });
   }

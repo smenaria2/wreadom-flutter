@@ -156,6 +156,32 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<FeedPost?> findUserReviewPost({
+    required String userId,
+    required String bookId,
+    String? chapterId,
+  }) async {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .where('type', isEqualTo: 'review')
+        .orderBy('timestamp', descending: true)
+        .limit(25)
+        .get();
+
+    for (final doc in snapshot.docs) {
+      final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+      final post = FeedPost.fromJson(data);
+      final matchesBook = '${post.bookId ?? ''}' == bookId;
+      final matchesChapter = (post.chapterId ?? '').trim() == (chapterId ?? '').trim();
+      if (matchesBook && matchesChapter) {
+        return post;
+      }
+    }
+    return null;
+  }
+
+  @override
   Future<void> updateFeedPost(
     String postId,
     Map<String, dynamic> updates,
@@ -250,41 +276,7 @@ class FirebaseFeedRepository implements FeedRepository {
     String commentId,
     CommentReply reply,
   ) async {
-    if (await _addTopLevelCommentReply(commentId, reply)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    final replyId =
-        reply.id ?? '${DateTime.now().millisecondsSinceEpoch}_${reply.userId}';
-    final replyData = reply
-        .copyWith(id: replyId, likes: reply.likes ?? const [])
-        .toJson();
-
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) {
-        throw StateError('Post not found');
-      }
-
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        final id = comment['id']?.toString();
-        if (id != commentId) return raw;
-
-        final replies = List<dynamic>.from(comment['replies'] ?? const []);
-        comment['replies'] = [...replies, replyData];
-        changed = true;
-        return comment;
-      }).toList();
-
-      if (changed) {
-        transaction.update(postRef, {'comments': updated});
-      }
-    });
+    await _addTopLevelCommentReply(commentId, reply);
   }
 
   @override
@@ -293,46 +285,12 @@ class FirebaseFeedRepository implements FeedRepository {
     String commentId,
     String text,
   ) async {
-    if (await _updateTopLevelCommentText(commentId, text)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        if (comment['id']?.toString() != commentId) return raw;
-        comment['text'] = text;
-        comment['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
-        changed = true;
-        return comment;
-      }).toList();
-      if (changed) transaction.update(postRef, {'comments': updated});
-    });
+    await _updateTopLevelCommentText(commentId, text);
   }
 
   @override
   Future<void> deleteComment(String postId, String commentId) async {
-    if (await _deleteTopLevelComment(postId, commentId)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      final updated = comments.where((raw) {
-        if (raw is! Map) return true;
-        return raw['id']?.toString() != commentId;
-      }).toList();
-      if (updated.length != comments.length) {
-        transaction.update(postRef, {'comments': updated});
-      }
-    });
+    await _deleteTopLevelComment(postId, commentId);
   }
 
   @override
@@ -342,35 +300,7 @@ class FirebaseFeedRepository implements FeedRepository {
     String replyId,
     String text,
   ) async {
-    if (await _updateTopLevelReplyText(commentId, replyId, text)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        if (comment['id']?.toString() != commentId) return raw;
-        final replies = List<dynamic>.from(comment['replies'] ?? const []);
-        comment['replies'] = replies.map((replyRaw) {
-          if (replyRaw is! Map) return replyRaw;
-          final reply = Map<String, dynamic>.from(replyRaw);
-          final id = reply['id']?.toString();
-          final timestamp = reply['timestamp']?.toString();
-          if (id != replyId && timestamp != replyId) return replyRaw;
-          reply['text'] = text;
-          reply['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
-          changed = true;
-          return reply;
-        }).toList();
-        return comment;
-      }).toList();
-      if (changed) transaction.update(postRef, {'comments': updated});
-    });
+    await _updateTopLevelReplyText(commentId, replyId, text);
   }
 
   @override
@@ -379,34 +309,7 @@ class FirebaseFeedRepository implements FeedRepository {
     String commentId,
     String replyId,
   ) async {
-    if (await _deleteTopLevelReply(commentId, replyId)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        if (comment['id']?.toString() != commentId) return raw;
-        final replies = List<dynamic>.from(comment['replies'] ?? const []);
-        final filtered = replies.where((replyRaw) {
-          if (replyRaw is! Map) return true;
-          final id = replyRaw['id']?.toString();
-          final timestamp = replyRaw['timestamp']?.toString();
-          return id != replyId && timestamp != replyId;
-        }).toList();
-        if (filtered.length != replies.length) {
-          comment['replies'] = filtered;
-          changed = true;
-        }
-        return comment;
-      }).toList();
-      if (changed) transaction.update(postRef, {'comments': updated});
-    });
+    await _deleteTopLevelReply(commentId, replyId);
   }
 
   @override
@@ -415,31 +318,7 @@ class FirebaseFeedRepository implements FeedRepository {
     String commentId,
     String userId,
   ) async {
-    if (await _toggleTopLevelCommentLike(commentId, userId)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        if (comment['id']?.toString() != commentId) return raw;
-        final likes = List<dynamic>.from(comment['likes'] ?? const []);
-        if (likes.contains(userId)) {
-          likes.removeWhere((id) => id == userId);
-        } else {
-          likes.add(userId);
-        }
-        comment['likes'] = likes;
-        changed = true;
-        return comment;
-      }).toList();
-      if (changed) transaction.update(postRef, {'comments': updated});
-    });
+    await _toggleTopLevelCommentLike(commentId, userId);
   }
 
   @override
@@ -449,40 +328,7 @@ class FirebaseFeedRepository implements FeedRepository {
     String replyId,
     String userId,
   ) async {
-    if (await _toggleTopLevelReplyLike(commentId, replyId, userId)) return;
-
-    final postRef = _firestore.collection(_collection).doc(postId);
-    await _firestore.runTransaction((transaction) async {
-      final snap = await transaction.get(postRef);
-      if (!snap.exists) return;
-      final data = asStringMap(snap.data());
-      final comments = List<dynamic>.from(data['comments'] ?? const []);
-      var changed = false;
-      final updated = comments.map((raw) {
-        if (raw is! Map) return raw;
-        final comment = Map<String, dynamic>.from(raw);
-        if (comment['id']?.toString() != commentId) return raw;
-        final replies = List<dynamic>.from(comment['replies'] ?? const []);
-        comment['replies'] = replies.map((replyRaw) {
-          if (replyRaw is! Map) return replyRaw;
-          final reply = Map<String, dynamic>.from(replyRaw);
-          final id = reply['id']?.toString();
-          final timestamp = reply['timestamp']?.toString();
-          if (id != replyId && timestamp != replyId) return replyRaw;
-          final likes = List<dynamic>.from(reply['likes'] ?? const []);
-          if (likes.contains(userId)) {
-            likes.removeWhere((id) => id == userId);
-          } else {
-            likes.add(userId);
-          }
-          reply['likes'] = likes;
-          changed = true;
-          return reply;
-        }).toList();
-        return comment;
-      }).toList();
-      if (changed) transaction.update(postRef, {'comments': updated});
-    });
+    await _toggleTopLevelReplyLike(commentId, replyId, userId);
   }
 
   @override

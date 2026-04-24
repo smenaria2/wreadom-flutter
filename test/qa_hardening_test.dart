@@ -324,8 +324,14 @@ void main() {
     expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
     expect(readerSource, isNot(contains('Add Bookmark')));
     expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
-    expect(readerSource, contains('Next Chapter'));
-    expect(readerSource, contains('View Comments'));
+    expect(
+      readerSource,
+      contains("AppLocalizations.of(context)!.nextChapter"),
+    );
+    expect(
+      readerSource,
+      contains("AppLocalizations.of(context)!.viewComments"),
+    );
     expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
     expect(repositorySource, contains("'readingProgress': {"));
     expect(repositorySource, contains('SetOptions(merge: true)'));
@@ -347,7 +353,10 @@ void main() {
       contains('completedChapterIndex: currentChapterIndex'),
     );
     expect(readerSource, contains('commentCounts'));
-    expect(readerSource, contains('View chapter comments'));
+    expect(
+      readerSource,
+      contains("AppLocalizations.of(context)!.viewChapterComments"),
+    );
     expect(readerSource, contains('Icons.chat_bubble_outline_rounded'));
     expect(readerSource, contains('Icons.check_rounded'));
     expect(readerSource, contains('onOpenComments'));
@@ -964,6 +973,15 @@ void main() {
     final feedCardSource = File(
       'lib/src/presentation/components/feed_post_card.dart',
     ).readAsStringSync();
+    final helpScreenSource = File(
+      'lib/src/presentation/screens/help_screen.dart',
+    ).readAsStringSync();
+    final discoverySource = File(
+      'lib/src/presentation/screens/discovery_screen.dart',
+    ).readAsStringSync();
+    final messagesSource = File(
+      'lib/src/presentation/screens/messages_screen.dart',
+    ).readAsStringSync();
     final notificationRepoSource = File(
       'lib/src/domain/repositories/notification_repository.dart',
     ).readAsStringSync();
@@ -990,6 +1008,11 @@ void main() {
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
     expect(feedCardSource, contains('updateFeedPost'));
+    expect(feedCardSource, isNot(contains('height: 3')));
+    expect(helpScreenSource, contains('SubmitErrorDialog'));
+    expect(discoverySource, isNot(contains("@\${author.username}")));
+    expect(messagesSource, contains('_ConversationSwipeShell'));
+    expect(messagesSource, isNot(contains('Icons.delete_outline_rounded')));
     expect(notificationRepoSource, contains('createNotification'));
     expect(notificationRepoSource, contains('createNotifications'));
     expect(
@@ -1000,6 +1023,10 @@ void main() {
     expect(commentTileSource, contains('_SwipeActionShell'));
     expect(commentTileSource, contains('_SlideActionChip'));
     expect(commentTileSource, contains('HapticFeedback.selectionClick'));
+    expect(commentTileSource, contains('if (canHighlight)'));
+    expect(commentTileSource, contains('color: Colors.black'));
+    expect(readerSource, contains('_shareReviewToFeed'));
+    expect(readerSource, contains('Share to feed'));
   });
 
   test('points are removed and home rankings replace leaderboard behavior', () {

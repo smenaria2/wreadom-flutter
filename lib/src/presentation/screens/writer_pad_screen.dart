@@ -11,14 +11,11 @@ import '../../domain/models/chapter.dart';
 import '../../domain/models/user_model.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
-import '../providers/follow_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
-import '../utils/notification_writer.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/writer_media_embed.dart';
-import '../../utils/app_link_helper.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
   const WriterPadScreen({super.key, this.book, this.initialTopic});
@@ -1319,21 +1316,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         await ref.read(writerRepositoryProvider).updateBook(_bookId!, book);
       }
       if (shouldNotifyFollowers && _bookId != null) {
-        final followers = await ref
-            .read(followRepositoryProvider)
-            .getFollowersList(user.id);
-        for (final followerId in followers) {
-          await createAppNotification(
-            ref,
-            userId: followerId,
-            actor: user,
-            type: 'new_creation',
-            text: l10n.publishedBookNotification(book.title),
-            link: AppLinkHelper.book(_bookId!),
-            targetId: _bookId,
-            metadata: {'bookId': _bookId},
-          );
-        }
+        // Cloud Functions generate follower notifications for new publications.
       }
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);

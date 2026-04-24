@@ -98,7 +98,7 @@ class HomeBooksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final originalsAsync = ref.watch(originalBooksProvider);
+    final originalsAsync = ref.watch(homepageOriginalsProvider);
     final popularAsync = ref.watch(homepagePopularProvider);
     final trendingAsync = ref.watch(homepageTrendingWorksProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
@@ -151,17 +151,7 @@ class HomeBooksScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(homepageMetadataProvider);
-          ref.invalidate(homepageBooksProvider);
-          ref.invalidate(homepageAuthorWorksProvider);
-          ref.invalidate(homepageIABooksProvider);
-          ref.invalidate(homepageAuthorsProvider);
-          ref.invalidate(homepageTrendingWorksProvider);
-          ref.invalidate(homepageDownloadedBooksProvider);
-          ref.invalidate(readingHistoryBooksProvider);
-          ref.invalidate(originalBooksProvider);
-          ref.invalidate(popularBooksProvider);
-          ref.invalidate(recentBooksProvider);
+          refreshHomepage(ref);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -188,7 +178,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
                 booksAsync: originalsAsync,
                 sectionId: _HomeShelfDestination.originals.sectionId,
-                onRetry: () => ref.invalidate(originalBooksProvider),
+                onRetry: () => refreshHomepage(ref),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.originals,
@@ -203,7 +193,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
                 booksAsync: trendingAsync,
                 sectionId: _HomeShelfDestination.trending.sectionId,
-                onRetry: () => ref.invalidate(homepageTrendingWorksProvider),
+                onRetry: () => refreshHomepage(ref),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.trending,
@@ -217,7 +207,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
                 booksAsync: popularAsync,
                 sectionId: _HomeShelfDestination.popular.sectionId,
-                onRetry: () => ref.invalidate(homepagePopularProvider),
+                onRetry: () => refreshHomepage(ref),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.popular,
@@ -231,7 +221,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
                 booksAsync: recentAsync,
                 sectionId: _HomeShelfDestination.recent.sectionId,
-                onRetry: () => ref.invalidate(homepageRecentProvider),
+                onRetry: () => refreshHomepage(ref),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.recent,
@@ -266,7 +256,7 @@ class HomeBooksScreen extends ConsumerWidget {
                     .getLocalizedCategory(l10n),
                 booksAsync: iaAsync,
                 sectionId: _HomeShelfDestination.communityClassics.sectionId,
-                onRetry: () => ref.invalidate(homepageIABooksProvider),
+                onRetry: () => refreshHomepage(ref),
                 onSeeAll: () => _openShelfDestination(
                   context,
                   _HomeShelfDestination.communityClassics,
@@ -602,7 +592,7 @@ class _GenreSection extends ConsumerWidget {
               title: title,
               booksAsync: booksAsync,
               sectionId: sectionId,
-              onRetry: () => ref.invalidate(homepageGenreProvider(sectionId)),
+              onRetry: () => refreshHomepage(ref),
               onSeeAll: () => _openCategory(context, sectionId, title),
             ),
             const SizedBox(height: 28),
@@ -621,7 +611,7 @@ class _GenreSection extends ConsumerWidget {
       ),
       error: (_, _) => _SectionError(
         title: title,
-        onRetry: () => ref.invalidate(homepageGenreProvider(sectionId)),
+        onRetry: () => refreshHomepage(ref),
       ),
     );
   }
@@ -1013,7 +1003,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
       loading: () => const SizedBox.shrink(),
       error: (_, _) => _SectionError(
         title: l10n.authorsToFollow,
-        onRetry: () => ref.invalidate(homepageRankedAuthorsProvider(_ranking)),
+        onRetry: () => refreshHomepage(ref),
       ),
     );
   }
@@ -1551,27 +1541,18 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                             ],
                                           ),
                                           clipBehavior: Clip.antiAlias,
-                                          child: book.coverUrl != null
+                                          child: book.coverUrl != null &&
+                                                  book.coverUrl!.isNotEmpty
                                               ? CachedNetworkImage(
                                                   imageUrl: book.coverUrl!,
                                                   fit: BoxFit.cover,
                                                   width: double.infinity,
-                                                )
-                                              : Container(
-                                                  color: Colors.white12,
-                                                  child: Center(
-                                                    child: Text(
-                                                      book.title,
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      maxLines: 2,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 10,
+                                                  errorWidget: (_, _, _) =>
+                                                      _CoverPlaceholder(
+                                                        book: book,
                                                       ),
-                                                    ),
-                                                  ),
-                                                ),
+                                                )
+                                              : _CoverPlaceholder(book: book),
                                         ),
                                       ),
                                       const SizedBox(height: 8),

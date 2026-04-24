@@ -58,6 +58,8 @@ class NotificationTargetResolver {
     final isPostActivity =
         type == 'post' ||
         type == 'feedpost' ||
+        type == 'feed_comment' ||
+        type == 'feed_reply' ||
         type.contains('post') ||
         type == 'like' ||
         type == 'comment' ||

@@ -10,7 +10,6 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
-import '../utils/notification_writer.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -210,20 +209,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                     sender: currentUser,
                                     text: text,
                                   );
-                              if (otherUserId.isNotEmpty) {
-                                await createAppNotification(
-                                  ref,
-                                  userId: otherUserId,
-                                  actor: currentUser,
-                                  type: 'message',
-                                  text: l10n.sentYouAMessage,
-                                  link: '',
-                                  targetId: widget.conversationId,
-                                  metadata: {
-                                    'conversationId': widget.conversationId,
-                                  },
-                                );
-                              }
                               _controller.clear();
                             } on MessageLimitException catch (error) {
                               if (!context.mounted) return;

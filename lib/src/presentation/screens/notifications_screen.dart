@@ -157,7 +157,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               children: [
                                 Text(item.text),
                                 Text(
-                                  '${FormatUtils.relativeTime(item.timestamp)} ago',
+                                  FormatUtils.relativeTime(item.timestamp),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         fontSize: 12,

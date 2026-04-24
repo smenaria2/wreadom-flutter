@@ -15,6 +15,11 @@ abstract class FeedRepository {
     dynamic lastDoc,
   });
   Future<void> createFeedPost(FeedPost post);
+  Future<FeedPost?> findUserReviewPost({
+    required String userId,
+    required String bookId,
+    String? chapterId,
+  });
   Future<void> updateFeedPost(String postId, Map<String, dynamic> updates);
   Future<void> deleteFeedPost(String postId);
   Future<void> toggleLike(String postId, String userId);

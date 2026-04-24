@@ -14,13 +14,13 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../utils/writer_media_utils.dart';
-import '../utils/notification_writer.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -67,6 +67,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
   bool _isReviewEditMode = true;
+  bool _shareReviewToFeed = false;
   bool _isTtsPlaying = false;
   bool _isTtsPreparing = false;
   bool _isTtsSequencing = false;
@@ -535,7 +536,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             const LinearProgressIndicator(),
             const SizedBox(height: 20),
             Text(
-              'Fetching public-domain text...',
+              AppLocalizations.of(context)!.fetchingPublicDomain,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -1711,16 +1712,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return (widget.book.isOriginal ?? false) && _bookAuthorId == userId;
   }
 
-  void _prepareReviewComposer() {
+  void _prepareReviewComposer({
+    dynamic chapter,
+    int? chapterIndex,
+    bool focusComposer = false,
+  }) {
     if (_replyingTo != null) return;
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null || _isOwnOriginalBook(user.id)) {
       _existingUserReview = null;
       _isReviewEditMode = true;
       _chapterRating = 5;
+      _shareReviewToFeed = false;
+      _commentController.value.clear();
+      _selectedQuote = null;
       return;
     }
 
+    final resolvedChapterId = chapter?.id?.toString();
+    final resolvedChapterIndex = chapterIndex ?? _chapterIndex;
     final comments = ref
         .read(bookCommentsProvider(widget.book.id))
         .asData
@@ -1730,6 +1740,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           (comment) =>
               comment.userId == user.id &&
               comment.bookId?.toString() == widget.book.id &&
+              ((resolvedChapterId != null &&
+                      resolvedChapterId.isNotEmpty &&
+                      comment.chapterId == resolvedChapterId) ||
+                  comment.chapterIndex == resolvedChapterIndex) &&
               (comment.rating ?? 0) > 0,
         )
         .firstOrNull;
@@ -1737,14 +1751,72 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _existingUserReview = null;
       _isReviewEditMode = true;
       _chapterRating = 5;
+      _shareReviewToFeed = false;
+      _commentController.value.clear();
+      _selectedQuote = null;
       return;
     }
 
     _existingUserReview = existingReview;
-    _isReviewEditMode = false;
+    _isReviewEditMode = focusComposer;
     _chapterRating = existingReview.rating ?? 5;
+    _shareReviewToFeed = false;
     _commentController.value.text = existingReview.text;
-    _selectedQuote ??= existingReview.quote;
+    _selectedQuote = existingReview.quote;
+  }
+
+  Future<void> _upsertReviewFeedPost({
+    required UserModel user,
+    required String text,
+    required int now,
+    required dynamic chapter,
+  }) async {
+    final existingPost = await ref.read(feedRepositoryProvider).findUserReviewPost(
+      userId: user.id,
+      bookId: widget.book.id,
+      chapterId: chapter?.id?.toString(),
+    );
+
+    final payload = {
+      'text': text,
+      'rating': _chapterRating,
+      'bookId': widget.book.id,
+      'bookTitle': widget.book.title,
+      'bookCover': widget.book.coverUrl,
+      'chapterTitle': chapter?.title,
+      'chapterId': chapter?.id?.toString(),
+      'updatedAt': now,
+    };
+
+    if (existingPost?.id != null) {
+      await ref.read(feedRepositoryProvider).updateFeedPost(
+        existingPost!.id!,
+        payload,
+      );
+      return;
+    }
+
+    await ref.read(feedRepositoryProvider).createFeedPost(
+      FeedPost(
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        penName: user.penName,
+        userPhotoURL: user.photoURL,
+        type: 'review',
+        text: text,
+        rating: _chapterRating,
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        bookCover: widget.book.coverUrl,
+        chapterTitle: chapter?.title,
+        chapterId: chapter?.id?.toString(),
+        timestamp: now,
+        likes: const [],
+        visibility: 'public',
+        privacy: 'public',
+      ),
+    );
   }
 
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
@@ -1772,16 +1844,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               userPhotoURL: user.photoURL,
             ),
           );
-      await createAppNotification(
-        ref,
-        userId: _replyingTo!.userId,
-        actor: user,
-        type: 'book_reply',
-        text: l10n.repliedToYourBookComment,
-        link: AppLinkHelper.book(widget.book.id),
-        targetId: widget.book.id,
-        metadata: {'bookId': widget.book.id, 'commentId': _replyingTo!.id},
-      );
       setState(() => _replyingTo = null);
     } else {
       if (_isOwnOriginalBook(user.id)) {
@@ -1797,9 +1859,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         return;
       }
       if (_existingUserReview != null && !_isReviewEditMode) return;
-      final existingReview = await ref
-          .read(commentRepositoryProvider)
-          .getUserBookReview(widget.book.id, user.id);
       final comment = Comment(
         bookId: widget.book.id,
         bookTitle: widget.book.title,
@@ -1821,51 +1880,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           .read(commentRepositoryProvider)
           .upsertBookReview(comment);
 
-      if (existingReview == null) {
-        await ref
-            .read(feedRepositoryProvider)
-            .createFeedPost(
-              FeedPost(
-                userId: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                penName: user.penName,
-                userPhotoURL: user.photoURL,
-                type: 'review',
-                text: text,
-                rating: _chapterRating,
-                bookId: widget.book.id,
-                bookTitle: widget.book.title,
-                bookCover: widget.book.coverUrl,
-                chapterTitle: chapter?.title,
-                chapterId: chapter?.id?.toString(),
-                timestamp: now,
-                likes: const [],
-                visibility: 'public',
-                privacy: 'public',
-              ),
-            );
-        ref.invalidate(feedPostsProvider);
-      }
-      if (_bookAuthorId != null) {
-        await createAppNotification(
-          ref,
-          userId: _bookAuthorId!,
-          actor: user,
-          type: existingReview == null ? 'book_review' : 'book_comment',
-          text: existingReview == null
-              ? l10n.reviewedYourBook
-              : l10n.updatedReviewOnYourBook,
-          link: AppLinkHelper.book(widget.book.id),
-          targetId: widget.book.id,
-          metadata: {'bookId': widget.book.id},
+      if (_shareReviewToFeed) {
+        await _upsertReviewFeedPost(
+          user: user,
+          text: text,
+          now: now,
+          chapter: chapter,
         );
+        ref.invalidate(feedPostsProvider);
       }
 
       setState(() {
         _existingUserReview = comment.copyWith(id: savedReviewId);
         _commentController.value.text = text;
         _isReviewEditMode = false;
+        _shareReviewToFeed = false;
         _selectedQuote = null;
       });
     }
@@ -1881,7 +1910,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     int? chapterIndex,
     bool focusComposer = false,
   }) {
-    _prepareReviewComposer();
+    _prepareReviewComposer(
+      chapter: chapter,
+      chapterIndex: chapterIndex,
+      focusComposer: focusComposer,
+    );
     if (_isDiscussionOpen) {
       if (focusComposer) {
         _commentFocusNode.requestFocus();
@@ -2186,6 +2219,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 ),
                                 style: TextStyle(color: _getTextColor()),
                               ),
+                              if (_replyingTo == null) ...[
+                                const SizedBox(height: 8),
+                                CheckboxListTile(
+                                  value: _shareReviewToFeed,
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: Text(
+                                    'Share to feed',
+                                    style: TextStyle(
+                                      color: _getTextColor(),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  activeColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  checkColor: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                  onChanged:
+                                      _existingUserReview != null &&
+                                          !_isReviewEditMode
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            _shareReviewToFeed =
+                                                value ?? false;
+                                          });
+                                          setModalState(() {});
+                                        },
+                                ),
+                              ],
                               const SizedBox(height: 24),
                               Consumer(
                                 builder: (context, ref, _) {
@@ -2634,7 +2700,7 @@ class _ChapterDrawer extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Chapters',
+                  AppLocalizations.of(context)!.chaptersTitle,
                   style: TextStyle(
                     color: textColor,
                     fontSize: 24,
@@ -2645,7 +2711,7 @@ class _ChapterDrawer extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onBack,
                   icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text('Back'),
+                  label: Text(AppLocalizations.of(context)!.back),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: textColor,
                     side: BorderSide(color: textColor.withValues(alpha: 0.45)),
@@ -2699,7 +2765,8 @@ class _ChapterDrawer extends StatelessWidget {
                   ),
                   trailing: commentCount > 0
                       ? IconButton(
-                          tooltip: 'View chapter comments',
+                          tooltip:
+                              AppLocalizations.of(context)!.viewChapterComments,
                           icon: Badge(
                             label: Text('$commentCount'),
                             child: const Icon(
@@ -2914,7 +2981,7 @@ class _ChapterEndActions extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   icon: const Icon(Icons.navigate_next_rounded),
-                  label: const Text('Next Chapter'),
+                  label: Text(AppLocalizations.of(context)!.nextChapter),
                   onPressed: onNextChapter,
                 ),
               ),
@@ -2927,7 +2994,11 @@ class _ChapterEndActions extends StatelessWidget {
                       ? Icons.chat_bubble_outline_rounded
                       : Icons.rate_review_outlined,
                 ),
-                label: Text(hasComments ? 'View Comments' : 'Write Review'),
+                label: Text(
+                  hasComments
+                      ? AppLocalizations.of(context)!.viewComments
+                      : AppLocalizations.of(context)!.writeReview,
+                ),
                 onPressed: onViewComments,
               ),
             ),
@@ -2938,7 +3009,7 @@ class _ChapterEndActions extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton.icon(
             icon: const Icon(Icons.share_rounded),
-            label: const Text('Share Chapter'),
+            label: Text(AppLocalizations.of(context)!.shareChapter),
             onPressed: onShare,
           ),
         ),
@@ -3092,8 +3163,8 @@ class _ReaderBottomBar extends StatelessWidget {
                         onPressed: hasPrevious ? onPrevious : onClose,
                         color: textColor.withValues(alpha: 0.5),
                         tooltip: hasPrevious
-                            ? 'Previous Chapter'
-                            : 'Close Reader',
+                            ? AppLocalizations.of(context)!.back
+                            : AppLocalizations.of(context)!.closeReader,
                       ),
                       const Spacer(),
                       GestureDetector(
@@ -3116,7 +3187,7 @@ class _ReaderBottomBar extends StatelessWidget {
                           icon: const Icon(Icons.navigate_next_rounded),
                           onPressed: onNext,
                           color: textColor.withValues(alpha: 0.5),
-                          tooltip: 'Next Chapter',
+                          tooltip: AppLocalizations.of(context)!.nextChapter,
                         )
                       else
                         const SizedBox(width: 48),

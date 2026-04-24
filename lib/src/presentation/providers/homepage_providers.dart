@@ -1,31 +1,108 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 import 'book_providers.dart';
+import 'theme_provider.dart';
 
 import 'dart:math' as math;
 
-final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
-  final doc = await FirebaseFirestore.instance
-      .collection('settings')
-      .doc('homepage_metadata')
-      .get();
+const _homepageMetadataCacheKey = 'homepage_metadata_cache_v1';
+const _homepageBooksCacheKey = 'homepage_books_cache_v1';
+const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
+const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v1';
 
-  final data = asStringMap(doc.data());
-  final authors = data['authors'];
-  if (authors is List) {
-    data['authors'] = authors.whereType<Map>().map((raw) {
-      final userMap = asStringMap(raw);
-      final id = userMap['id']?.toString() ?? '';
-      return normalizeUserMapForModel(userMap, id);
-    }).toList();
+final homepageRefreshCounterProvider =
+    NotifierProvider<HomepageRefreshCounter, int>(
+      HomepageRefreshCounter.new,
+    );
+
+class HomepageRefreshCounter extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+void refreshHomepage(WidgetRef ref) {
+  ref.read(homepageRefreshCounterProvider.notifier).bump();
+  ref.invalidate(homepageMetadataProvider);
+  ref.invalidate(homepageBooksProvider);
+  ref.invalidate(homepageAuthorWorksProvider);
+  ref.invalidate(homepageIABooksProvider);
+  ref.invalidate(homepageAuthorsProvider);
+  ref.invalidate(homepageTrendingWorksProvider);
+  ref.invalidate(homepageDownloadedBooksProvider);
+  ref.invalidate(readingHistoryBooksProvider);
+  ref.invalidate(homepageOriginalsProvider);
+  ref.invalidate(homepagePopularProvider);
+  ref.invalidate(homepageRecentProvider);
+}
+
+T? _readCachedValue<T>(
+  SharedPreferences prefs,
+  String key,
+  T Function(Object json) decoder,
+) {
+  final raw = prefs.getString(key);
+  if (raw == null || raw.isEmpty) return null;
+  try {
+    return decoder(jsonDecode(raw));
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> _writeCachedValue(
+  SharedPreferences prefs,
+  String key,
+  Object json,
+) async {
+  await prefs.setString(key, jsonEncode(json));
+}
+
+final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cached = _readCachedValue<HomepageMetadata>(
+    prefs,
+    _homepageMetadataCacheKey,
+    (json) => HomepageMetadata.fromJson(asStringMap(json)),
+  );
+
+  if (refreshTick == 0 && cached != null) {
+    return cached;
   }
 
-  return HomepageMetadata.fromJson(data);
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('settings')
+        .doc('homepage_metadata')
+        .get();
+
+    final data = asStringMap(doc.data());
+    final authors = data['authors'];
+    if (authors is List) {
+      data['authors'] = authors.whereType<Map>().map((raw) {
+        final userMap = asStringMap(raw);
+        final id = userMap['id']?.toString() ?? '';
+        return normalizeUserMapForModel(userMap, id);
+      }).toList();
+    }
+
+    final metadata = HomepageMetadata.fromJson(data);
+    await _writeCachedValue(prefs, _homepageMetadataCacheKey, metadata.toJson());
+    return metadata;
+  } catch (_) {
+    if (cached != null) return cached;
+    rethrow;
+  }
 });
 
 List<String> _positiveRecommendationIds(
@@ -61,6 +138,20 @@ bool _isArchiveBook(Book book) {
 }
 
 final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cached = _readCachedValue<List<Book>>(
+    prefs,
+    _homepageBooksCacheKey,
+    (json) => (json as List)
+        .map((raw) => Book.fromJson(asStringMap(raw)))
+        .toList(),
+  );
+  if (refreshTick == 0 && cached != null) {
+    return cached;
+  }
+
+  try {
   final metadata = await ref.watch(homepageMetadataProvider.future);
   final statsData = metadata.recommendationStats;
   final repo = ref.watch(bookRepositoryProvider);
@@ -113,7 +204,16 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     return scoreB.compareTo(scoreA); // Descending
   });
 
-  return combinedBooks;
+    await _writeCachedValue(
+      prefs,
+      _homepageBooksCacheKey,
+      combinedBooks.map((book) => book.toJson()).toList(),
+    );
+    return combinedBooks;
+  } catch (_) {
+    if (cached != null) return cached;
+    rethrow;
+  }
 });
 
 final homepageAuthorsProvider = FutureProvider((ref) async {
@@ -124,13 +224,37 @@ final homepageAuthorsProvider = FutureProvider((ref) async {
 enum HomeAuthorRanking { topRated, mostRead, mostPublished }
 
 final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
-  final repo = ref.watch(bookRepositoryProvider);
-  final works = await repo.getOriginalBooks(limit: 240);
-  final unique = <String, Book>{};
-  for (final book in works.where(_isPublishedOriginal)) {
-    unique[book.id] = book;
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cached = _readCachedValue<List<Book>>(
+    prefs,
+    _homepageAuthorWorksCacheKey,
+    (json) => (json as List)
+        .map((raw) => Book.fromJson(asStringMap(raw)))
+        .toList(),
+  );
+  if (refreshTick == 0 && cached != null) {
+    return cached;
   }
-  return unique.values.toList();
+
+  try {
+    final repo = ref.watch(bookRepositoryProvider);
+    final works = await repo.getOriginalBooks(limit: 240);
+    final unique = <String, Book>{};
+    for (final book in works.where(_isPublishedOriginal)) {
+      unique[book.id] = book;
+    }
+    final result = unique.values.toList();
+    await _writeCachedValue(
+      prefs,
+      _homepageAuthorWorksCacheKey,
+      result.map((book) => book.toJson()).toList(),
+    );
+    return result;
+  } catch (_) {
+    if (cached != null) return cached;
+    rethrow;
+  }
 });
 
 final homepageAuthorBooksProvider = FutureProvider.family<List<Book>, String>((
@@ -288,18 +412,42 @@ final homepageDownloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
-  final metadata = await ref.watch(homepageMetadataProvider.future);
-  final repo = ref.watch(bookRepositoryProvider);
-  final ids = _positiveRecommendationIds(metadata, limit: 80);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cached = _readCachedValue<List<Book>>(
+    prefs,
+    _homepageIABooksCacheKey,
+    (json) => (json as List)
+        .map((raw) => Book.fromJson(asStringMap(raw)))
+        .toList(),
+  );
+  if (refreshTick == 0 && cached != null) {
+    return cached;
+  }
 
-  var books = <Book>[];
-  if (ids.isNotEmpty) {
-    books = (await repo.getBooksByIds(ids)).where(_isArchiveBook).toList();
+  try {
+    final metadata = await ref.watch(homepageMetadataProvider.future);
+    final repo = ref.watch(bookRepositoryProvider);
+    final ids = _positiveRecommendationIds(metadata, limit: 80);
+
+    var books = <Book>[];
+    if (ids.isNotEmpty) {
+      books = (await repo.getBooksByIds(ids)).where(_isArchiveBook).toList();
+    }
+    if (books.isEmpty) {
+      books = await repo.getUpvotedIABooks(limit: 20);
+    }
+    final result = books.take(20).toList();
+    await _writeCachedValue(
+      prefs,
+      _homepageIABooksCacheKey,
+      result.map((book) => book.toJson()).toList(),
+    );
+    return result;
+  } catch (_) {
+    if (cached != null) return cached;
+    rethrow;
   }
-  if (books.isEmpty) {
-    books = await repo.getUpvotedIABooks(limit: 20);
-  }
-  return books.take(20).toList();
 });
 
 // Category Providers powered by the Homepage combined list

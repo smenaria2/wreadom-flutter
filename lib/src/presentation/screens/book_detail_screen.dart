@@ -21,7 +21,6 @@ import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
-import '../utils/notification_writer.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
@@ -536,19 +535,6 @@ class _BookDetailBody extends ConsumerWidget {
                                         : authors,
                                   ),
                                 );
-                            await createAppNotification(
-                              ref,
-                              userId: otherId,
-                              actor: sender,
-                              type: 'book_message',
-                              text: l10n.sentYouABook,
-                              link: AppLinkHelper.book(book.id),
-                              targetId: book.id,
-                              metadata: {
-                                'bookId': book.id,
-                                'conversationId': conversation.id,
-                              },
-                            );
                           } on MessageLimitException catch (error) {
                             if (!rootContext.mounted) return;
                             ScaffoldMessenger.of(rootContext).showSnackBar(

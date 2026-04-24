@@ -247,6 +247,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       }
                     },
                     itemBuilder: (context) => [
+                      if (canHighlight)
                         PopupMenuItem(
                           value: 'pin',
                           child: _MenuRow(
@@ -722,7 +723,6 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return ClipRect(
       child: Stack(
         alignment: Alignment.center,
@@ -742,12 +742,8 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
                         ? widget.rightLabel
                         : widget.leftLabel,
                     icon: _showRightAction ? widget.rightIcon : widget.leftIcon,
-                    color: _showRightAction
-                        ? scheme.primaryContainer
-                        : scheme.secondaryContainer,
-                    foreground: _showRightAction
-                        ? scheme.onPrimaryContainer
-                        : scheme.onSecondaryContainer,
+                    color: Colors.black,
+                    foreground: Colors.white,
                     armed: _dragOffset.abs() >= _threshold,
                   ),
                 ),

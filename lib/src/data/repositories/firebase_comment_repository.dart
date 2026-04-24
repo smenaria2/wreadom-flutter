@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../domain/models/comment.dart';
 import '../../domain/repositories/comment_repository.dart';
@@ -9,6 +10,7 @@ class FirebaseCommentRepository implements CommentRepository {
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   @override
   Future<String> addComment(Comment comment) async {
@@ -169,19 +171,6 @@ class FirebaseCommentRepository implements CommentRepository {
   Future<List<Comment>> getFeedPostComments(String postId) async {
     final itemsById = <String, Comment>{};
 
-    final postDoc = await _firestore.collection('feed').doc(postId).get();
-    if (postDoc.exists) {
-      final postData = postDoc.data() ?? {};
-      final embedded = List<dynamic>.from(postData['comments'] ?? const []);
-      for (final raw in embedded.whereType<Map>()) {
-        final data = Map<String, dynamic>.from(raw);
-        data['feedPostId'] = postId;
-        final comment = Comment.fromJson(data);
-        itemsById[comment.id ?? '${comment.timestamp}_${comment.userId}'] =
-            comment;
-      }
-    }
-
     final idAsInt = int.tryParse(postId);
     final ids = [postId, ?idAsInt];
     final snapshot = await _firestore
@@ -262,38 +251,10 @@ class FirebaseCommentRepository implements CommentRepository {
     required String authorId,
     int maxHighlighted = 3,
   }) async {
-    final commentRef = _firestore.collection('comments').doc(commentId);
-    final snap = await commentRef.get();
-    if (!snap.exists) return;
-    final data = snap.data() ?? {};
-    final rating = (data['rating'] as num?)?.toInt() ?? 0;
-    if (rating <= 0) return;
-
-    final isHighlighted = data['isHighlighted'] == true;
-    if (isHighlighted) {
-      await commentRef.update({
-        'isHighlighted': false,
-        'highlightedAt': FieldValue.delete(),
-        'highlightedByUserId': FieldValue.delete(),
-      });
-      return;
-    }
-
-    final highlighted = await _bookCommentsQuery(
-      bookId,
-    ).where('isHighlighted', isEqualTo: true).get();
-    final highlightedReviews = highlighted.docs.where((doc) {
-      final rating = (doc.data()['rating'] as num?)?.toInt() ?? 0;
-      return rating > 0;
-    });
-    if (highlightedReviews.length >= maxHighlighted) {
-      throw StateError('You can highlight up to $maxHighlighted reviews.');
-    }
-
-    await commentRef.update({
-      'isHighlighted': true,
-      'highlightedAt': DateTime.now().millisecondsSinceEpoch,
-      'highlightedByUserId': authorId,
+    await _functions.httpsCallable('toggleReviewHighlight').call({
+      'commentId': commentId,
+      'bookId': bookId,
+      'maxHighlighted': maxHighlighted,
     });
   }
 

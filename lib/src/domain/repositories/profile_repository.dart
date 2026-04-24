@@ -4,6 +4,10 @@ abstract class ProfileRepository {
   /// [viewerUserId] is the signed-in user (null if logged out). Used for
   /// deactivated filtering and privacy / follower-only rules.
   Future<UserModel?> getPublicProfile(String userId, {String? viewerUserId});
+  Future<List<UserModel>> getPublicProfilesByIds(
+    List<String> userIds, {
+    String? viewerUserId,
+  });
   Future<List<UserModel>> searchProfiles(String query, {int limit = 10});
   Future<void> updateProfileDetails({
     required String userId,

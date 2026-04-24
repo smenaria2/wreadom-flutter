@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
-import '../utils/notification_writer.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 class FollowButton extends ConsumerWidget {
@@ -96,16 +95,6 @@ class FollowButton extends ConsumerWidget {
         await repo.followUser(
           followerId: followerId,
           followingId: targetUserId,
-        );
-        await createAppNotification(
-          ref,
-          userId: targetUserId,
-          actor: follower,
-          type: 'follow',
-          text: l10n.startedFollowingYou,
-          link: '',
-          targetId: followerId,
-          metadata: {'userId': followerId},
         );
       }
       await HapticFeedback.mediumImpact();

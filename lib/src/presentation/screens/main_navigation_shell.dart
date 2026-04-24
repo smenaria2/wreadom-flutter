@@ -39,7 +39,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       final token = await notificationService.getFcmToken();
       if (token != null) {
         final user = await ref.read(currentUserProvider.future);
-        if (user != null) {
+        final existingTokens = user?.fcmTokens ?? const <String>[];
+        if (user != null && !existingTokens.contains(token)) {
           try {
             await ref
                 .read(authRepositoryProvider)

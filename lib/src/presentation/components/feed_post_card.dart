@@ -14,7 +14,6 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/format_utils.dart';
-import '../utils/notification_writer.dart';
 import '../widgets/report_dialog.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
@@ -103,21 +102,6 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       await ref
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
-      if (!wasLiked) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          await createAppNotification(
-            ref,
-            userId: widget.post.userId,
-            actor: user,
-            type: 'post_like',
-            text: l10n.likedYourPost,
-            link: AppLinkHelper.post(widget.post.id!),
-            targetId: widget.post.id,
-            metadata: {'postId': widget.post.id},
-          );
-        }
-      }
       await HapticFeedback.lightImpact();
       // No need to invalidate, optimistic state handles it
     } catch (e) {
@@ -353,24 +337,11 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: colorScheme.outlineVariant),
       ),
-      child: Column(
-        children: [
-          // ─── Type accent bar ─────────────────────────────────────
-          Container(
-            height: 3,
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 // ─── Author row ───────────────────────────────────
                 Row(
                   children: [
@@ -711,10 +682,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -892,19 +861,6 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               .read(commentRepositoryProvider)
               .addReply(_replyingTo!.id!, reply);
         }
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          await createAppNotification(
-            ref,
-            userId: _replyingTo!.userId,
-            actor: user,
-            type: 'feed_reply',
-            text: l10n.repliedToYourComment,
-            link: AppLinkHelper.post(widget.post.id!),
-            targetId: widget.post.id,
-            metadata: {'postId': widget.post.id, 'commentId': _replyingTo!.id},
-          );
-        }
       } else {
         // Submit a top-level comment
         await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
@@ -914,19 +870,6 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           'userPhotoURL': user.photoURL,
           'text': text,
         });
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          await createAppNotification(
-            ref,
-            userId: widget.post.userId,
-            actor: user,
-            type: 'feed_comment',
-            text: l10n.commentedOnYourPost,
-            link: AppLinkHelper.post(widget.post.id!),
-            targetId: widget.post.id,
-            metadata: {'postId': widget.post.id},
-          );
-        }
       }
 
       ref.invalidate(feedPostCommentsProvider(widget.post.id!));

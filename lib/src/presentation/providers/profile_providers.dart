@@ -19,6 +19,16 @@ final publicProfileProvider = FutureProvider.family<UserModel?, String>((
       .getPublicProfile(userId, viewerUserId: viewer?.id);
 });
 
+final publicProfilesProvider = FutureProvider.family<List<UserModel>, List<String>>((
+  ref,
+  userIds,
+) async {
+  final viewer = await ref.watch(currentUserProvider.future);
+  return ref
+      .watch(profileRepositoryProvider)
+      .getPublicProfilesByIds(userIds, viewerUserId: viewer?.id);
+});
+
 final profileSearchProvider = FutureProvider.family<List<UserModel>, String>((
   ref,
   query,

@@ -318,7 +318,7 @@ class FirebaseBookRepository implements BookRepository {
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error searching books: $e');
     }
-    return _fallbackSearchBooks(term, limit: limit, originalsOnly: false);
+    return [];
   }
 
   @override
@@ -354,7 +354,7 @@ class FirebaseBookRepository implements BookRepository {
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error searching originals: $e');
     }
-    return _fallbackSearchBooks(term, limit: limit, originalsOnly: true);
+    return [];
   }
 
   @override
@@ -500,11 +500,7 @@ class FirebaseBookRepository implements BookRepository {
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error getting genre books: $e');
     }
-    return _fallbackSearchBooks(
-      'subject:$term',
-      limit: limit,
-      originalsOnly: false,
-    );
+    return [];
   }
 
   List<Book> _booksFromDocs(Iterable<QueryDocumentSnapshot> docs) {
@@ -553,63 +549,6 @@ class FirebaseBookRepository implements BookRepository {
       title,
       title.replaceAll(' ', '_'),
     }.where((value) => value.trim().isNotEmpty).toList();
-  }
-
-  bool _matchesBook(Book book, String query) {
-    final term = query.contains(':') ? query.split(':').last.trim() : query;
-    final normalized = term.toLowerCase();
-    if (normalized.isEmpty) return false;
-
-    bool hasMatch(Iterable<String> values) {
-      return values.any((value) => value.toLowerCase().contains(normalized));
-    }
-
-    return book.title.toLowerCase().contains(normalized) ||
-        hasMatch(book.authors.map((author) => author.name)) ||
-        hasMatch(book.subjects) ||
-        hasMatch(book.bookshelves) ||
-        hasMatch(book.topics ?? const <String>[]);
-  }
-
-  Future<List<Book>> _fallbackSearchBooks(
-    String query, {
-    required int limit,
-    required bool originalsOnly,
-  }) async {
-    final candidates = <String, Book>{};
-
-    Future<void> addBooks(Future<List<Book>> future) async {
-      try {
-        for (final book in await future) {
-          candidates[book.id] = book;
-        }
-      } catch (_) {}
-    }
-
-    if (originalsOnly) {
-      await addBooks(getOriginalBooks(limit: 100));
-    } else {
-      await addBooks(getBooks(limit: 100));
-      await addBooks(getOriginalBooks(limit: 100));
-      await addBooks(getPopularBooks(limit: 100));
-      await addBooks(getRecentBooks(limit: 100));
-    }
-
-    final results =
-        candidates.values.where((book) => _matchesBook(book, query)).toList()
-          ..sort((a, b) {
-            final aStarts = a.title.toLowerCase().startsWith(
-              query.toLowerCase(),
-            );
-            final bStarts = b.title.toLowerCase().startsWith(
-              query.toLowerCase(),
-            );
-            if (aStarts != bStarts) return aStarts ? -1 : 1;
-            return (b.updatedAt ?? b.createdAt ?? 0).compareTo(
-              a.updatedAt ?? a.createdAt ?? 0,
-            );
-          });
-    return results.take(limit).toList();
   }
 
   @override

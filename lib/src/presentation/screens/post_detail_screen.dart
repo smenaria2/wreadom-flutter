@@ -11,7 +11,6 @@ import '../components/feed_post_card.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
-import '../utils/notification_writer.dart';
 import '../widgets/comment_widgets.dart';
 
 class PostDetailScreen extends ConsumerWidget {
@@ -135,16 +134,6 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
               .read(commentRepositoryProvider)
               .addReply(_replyingTo!.id!, reply);
         }
-        await createAppNotification(
-          ref,
-          userId: _replyingTo!.userId,
-          actor: user,
-          type: 'feed_reply',
-          text: l10n.repliedToYourComment,
-          link: AppLinkHelper.post(postId),
-          targetId: postId,
-          metadata: {'postId': postId, 'commentId': _replyingTo!.id},
-        );
       } else {
         await ref.read(feedRepositoryProvider).addComment(postId, {
           'userId': user.id,
@@ -153,16 +142,6 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           'userPhotoURL': user.photoURL,
           'text': text,
         });
-        await createAppNotification(
-          ref,
-          userId: widget.post.userId,
-          actor: user,
-          type: 'feed_comment',
-          text: l10n.commentedOnYourPost,
-          link: AppLinkHelper.post(postId),
-          targetId: postId,
-          metadata: {'postId': postId},
-        );
       }
       await HapticFeedback.lightImpact();
       _controller.value.clear();

@@ -67,9 +67,11 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   firebase_messaging: ^16.2.0
+  cloud_functions: ^6.0.0
   flutter_local_notifications: ^21.0.0
   flutter_tts: ^4.2.5
   package_info_plus: ^9.0.1
+  archive: ^4.0.7
 
 dev_dependencies:
   flutter_test:

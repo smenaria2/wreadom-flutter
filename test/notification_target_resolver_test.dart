@@ -47,6 +47,24 @@ void main() {
     expect(target?.payload, 'post1');
   });
 
+  test('feed comment notification opens post detail from metadata', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(type: 'feed_comment', metadata: {'postId': 'post42'}),
+    );
+
+    expect(target?.route, AppRoutes.postDetail);
+    expect(target?.payload, 'post42');
+  });
+
+  test('feed reply notification opens post detail from targetId', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(type: 'feed_reply', targetId: 'post77'),
+    );
+
+    expect(target?.route, AppRoutes.postDetail);
+    expect(target?.payload, 'post77');
+  });
+
   test('follow notification opens actor profile', () {
     final target = NotificationTargetResolver.resolve(
       notification(type: 'follow'),

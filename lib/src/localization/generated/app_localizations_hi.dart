@@ -330,6 +330,21 @@ class AppLocalizationsHi extends AppLocalizations {
       'सार्वजनिक-डोमेन टेक्स्ट प्राप्त किया जा रहा है...';
 
   @override
+  String get chaptersTitle => 'Chapters';
+
+  @override
+  String get viewChapterComments => 'View chapter comments';
+
+  @override
+  String get nextChapter => 'Next Chapter';
+
+  @override
+  String get shareChapter => 'Share Chapter';
+
+  @override
+  String get closeReader => 'Close Reader';
+
+  @override
   String get internetArchivePreparation =>
       'इंटरनेट आर्काइव की रचनाओं को तैयार होने में थोड़ा समय लग सकता है।';
 
@@ -1380,5 +1395,243 @@ class AppLocalizationsHi extends AppLocalizations {
       one: '1 रचना',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get helpTitle => 'सहायता और सहयोग';
+
+  @override
+  String get helpSearchHint => 'सहायता विषयों के लिए खोजें...';
+
+  @override
+  String get helpCategoryReading => 'पढ़ना';
+
+  @override
+  String get helpCategoryWriting => 'लेखन';
+
+  @override
+  String get helpCategoryDiscovery => 'खोज';
+
+  @override
+  String get helpCategoryCommunity => 'कम्युनिटी';
+
+  @override
+  String get helpCategoryAccount => 'खाता';
+
+  @override
+  String get faqCustomizeReaderQ => 'मैं रीडर को कैसे कस्टमाइज़ करूँ?';
+
+  @override
+  String get faqCustomizeReaderA =>
+      'कोई भी किताब खोलें और ऊपर के टूलबार में \'Aa\' आइकन पर टैप करें। आप फ़ॉन्ट आकार बदल सकते हैं, सेरिफ़ और सैन्स फ़ॉन्ट के बीच स्विच कर सकते हैं, और एक थीम (लाइट, सेपिया, या डार्क) चुन सकते हैं।';
+
+  @override
+  String get faqOfflineReadingQ => 'क्या मैं किताबें ऑफ़लाइन पढ़ सकता हूँ?';
+
+  @override
+  String get faqOfflineReadingA =>
+      'हाँ! किताब के विवरण वाले पेज पर डाउनलोड आइकन पर टैप करें। एक बार डाउनलोड होने के बाद, आप बिना इंटरनेट कनेक्शन के भी अपने \'सेव किए गए\' टैब से किताब पढ़ सकते हैं।';
+
+  @override
+  String get faqBookmarksQ => 'बुकमार्क कैसे काम करते हैं?';
+
+  @override
+  String get faqBookmarksA =>
+      'रीडम् आपके पढ़ते समय आपकी प्रगति को अपने आप सहेजता है। किसी खास जगह को मैन्युअली मार्क करने के लिए, रीडर के टॉप टूलबार में बुकमार्क आइकन पर टैप करें।';
+
+  @override
+  String get faqQuoteCommentQ => '\'कोट और कमेंट\' क्या है?';
+
+  @override
+  String get faqQuoteCommentA =>
+      'किसी भी टेक्स्ट को हाइलाइट करें। आप कम्युनिटी के साथ अपने विचार साझा करने के लिए \'कोट और कमेंट\' कर सकते हैं।';
+
+  @override
+  String get faqStartStoryQ => 'मैं नई कहानी कैसे शुरू करूँ?';
+
+  @override
+  String get faqStartStoryA =>
+      'अपनी प्रोफ़ाइल मेनू से \'लेखक डैशबोर्ड\' पर जाएँ और \'+\' आइकन पर टैप करें। इससे राइटर पैड खुल जाएगा जहाँ आप अपना पहला अध्याय लिखना शुरू कर सकते हैं।';
+
+  @override
+  String get faqAutoSaveQ => 'क्या इसमें ऑटो-सेव फीचर है?';
+
+  @override
+  String get faqAutoSaveA =>
+      'हाँ, राइटर पैड हर 10 सेकंड में आपके ड्राफ़्ट को अपने आप सहेजता है। आप एडिटर के टॉप पर \'अंतिम बार सहेजा गया\' स्टेटस देख सकते हैं।';
+
+  @override
+  String get faqPublishWorkQ => 'मैं अपना काम कैसे प्रकाशित करूँ?';
+
+  @override
+  String get faqPublishWorkA =>
+      'जब आपकी कहानी तैयार हो जाए, तो राइटर पैड में \'प्रकाशित करें\' पर टैप करें। आपसे शीर्षक, सारांश और प्रासंगिक विषय देने के लिए कहा जाएगा।';
+
+  @override
+  String get faqOrganizeChaptersQ =>
+      'क्या मैं अध्यायों को व्यवस्थित कर सकता हूँ?';
+
+  @override
+  String get faqOrganizeChaptersA =>
+      'बिल्कुल! नए अध्याय जोड़ने, उनके बीच स्विच करने या अपनी कहानी की संरचना को बदलने के लिए एडिटर में अध्याय मेनू (लिस्ट आइकन) का उपयोग करें।';
+
+  @override
+  String get faqFindBooksQ => 'मुझे नई किताबें कैसे मिलेंगी?';
+
+  @override
+  String get faqFindBooksA =>
+      'फंतासी, रोमांस और विज्ञान कथा जैसी श्रेणियों को ब्राउज़ करने के लिए \'खोजें\' टैब का उपयोग करें। आप शीर्षकों या लेखकों के लिए भी खोज सकते हैं।';
+
+  @override
+  String get faqOriginalsQ => '\'ओरिजिनल\' क्या हैं?';
+
+  @override
+  String get faqOriginalsA =>
+      'ओरिजिनल वे कहानियाँ हैं जो लेखकों द्वारा सीधे रीडम् कम्युनिटी के भीतर लिखी और प्रकाशित की जाती हैं।';
+
+  @override
+  String get faqInternetArchiveQ => 'इंटरनेट आर्काइव इंटीग्रेशन क्या है?';
+
+  @override
+  String get faqInternetArchiveA =>
+      'रीडम् आपको कम्युनिटी ओरिजिनल के साथ-साथ लाखों क्लासिक किताबों और सार्वजनिक डोमेन रचनाओं तक पहुँच देने के लिए इंटरनेट आर्काइव से जुड़ता है।';
+
+  @override
+  String get faqDailyTopicQ => 'दैनिक विषय (Daily Topic) क्या है?';
+
+  @override
+  String get faqDailyTopicA =>
+      'हर दिन, रीडम् एक नया लेखन या चर्चा प्रॉम्प्ट पेश करता है। भाग लेने के लिए होम फीड पर बैनर पर टैप करें।';
+
+  @override
+  String get faqFollowAuthorQ => 'मैं किसी लेखक को कैसे फ़ॉलो करूँ?';
+
+  @override
+  String get faqFollowAuthorA =>
+      'किसी लेखक की प्रोफ़ाइल पर जाने के लिए उनके नाम पर टैप करें, फिर उनके नवीनतम अपडेट देखने के लिए \'फ़ॉलो करें\' पर टैप करें।';
+
+  @override
+  String get faqMessagingQ => 'क्या मैं अन्य यूज़र्स को संदेश भेज सकता हूँ?';
+
+  @override
+  String get faqMessagingA =>
+      'हाँ, आप अन्य यूज़र्स के साथ सीधी बातचीत शुरू कर सकते हैं। उनकी प्रोफ़ाइल पर जाएँ या अपनी बातचीत प्रबंधित करने के लिए \'संदेश\' आइकन का उपयोग करें।';
+
+  @override
+  String get faqChangeThemeQ => 'मैं ऐप थीम कैसे बदलूँ?';
+
+  @override
+  String get faqChangeThemeA =>
+      'प्रोफ़ाइल -> मेनू -> थीम पर जाएँ। आप लाइट, डार्क या सिस्टम डिफॉल्ट चुन सकते हैं।';
+
+  @override
+  String get faqUpdateProfileQ => 'मैं अपनी प्रोफ़ाइल कैसे अपडेट करूँ?';
+
+  @override
+  String get faqUpdateProfileA =>
+      'अपनी सेटिंग्स के \'प्रोफ़ाइल संपादित करें\' सेक्शन में, आप अपना नाम, लेखक नाम और परिचय अपडेट कर सकते हैं।';
+
+  @override
+  String get faqNotificationsQ => 'मेरी सूचनाएं कहाँ हैं?';
+
+  @override
+  String get faqNotificationsA =>
+      'लाइक, कमेंट और नए फ़ॉलोअर्स के बारे में अपडेट देखने के लिए होम स्क्रीन या प्रोफ़ाइल पर घंटी वाले आइकन पर टैप करें।';
+
+  @override
+  String get faqChangeLanguageQ => 'मैं ऐप की भाषा कैसे बदलूँ?';
+
+  @override
+  String get faqChangeLanguageA =>
+      'अंग्रेज़ी और हिंदी के बीच स्विच करने के लिए सेटिंग्स -> भाषा पर जाएँ।';
+
+  @override
+  String get faqWhatAreReadsQ => '\'रीड्स\' (Reads) क्या हैं?';
+
+  @override
+  String get faqWhatAreReadsA =>
+      'रीड्स बताते हैं कि किसी कहानी को कितनी बार देखा गया है। जब कम्युनिटी आपकी रचना को देखती है, तो यह अपने आप अपडेट हो जाता है।';
+
+  @override
+  String get faqTapToSeekQ => 'रीड अलाउड में टैप-टू-सीक कैसे काम करता?';
+
+  @override
+  String get faqTapToSeekA =>
+      'जब \'रीड अलाउड\' सक्रिय हो, तो आवाज़ को सीधे उस हिस्से पर ले जाने के लिए किसी भी पैराग्राफ पर टैप करें।';
+
+  @override
+  String get faqShareQuoteImageQ =>
+      'क्या मैं उद्धरणों को चित्र के रूप में साझा कर सकता हूँ?';
+
+  @override
+  String get faqShareQuoteImageA =>
+      'हाँ! किसी भी टेक्स्ट को हाइलाइट करें और उस हिस्से का एक सुंदर, साझा करने योग्य चित्र बनाने के लिए \'उद्धरण साझा करें\' चुनें।';
+
+  @override
+  String get faqReportContentQ => 'मैं अनुचित सामग्री की रिपोर्ट कैसे करूँ?';
+
+  @override
+  String get faqReportContentA =>
+      'किसी भी पोस्ट, कमेंट या किताब पर तीन-बिंदु मेनू पर टैप करें और \'रिपोर्ट करें\' चुनें। हमारी टीम इसकी समीक्षा करेगी।';
+
+  @override
+  String get faqPinUnpinQ =>
+      'क्या मैं अपनी पसंदीदा टिप्पणियों को पिन कर सकता हूँ?';
+
+  @override
+  String get faqPinUnpinA =>
+      'हाँ! यदि आप किसी पोस्ट के लेखक हैं, तो आप उसके मेनू में \'पिन\' विकल्प को चुनकर चर्चा के शीर्ष पर एक टिप्पणी पिन कर सकते हैं।';
+
+  @override
+  String get faqMessagingRulesQ => 'क्या मैसेजिंग के लिए कोई नियम हैं?';
+
+  @override
+  String get faqMessagingRulesA =>
+      'स्पैम को रोकने के लिए, आप किसी नए व्यक्ति को केवल एक संदेश भेज सकते हैं। उनके जवाब देने के बाद, आप खुलकर बातचीत कर सकते हैं।';
+
+  @override
+  String get faqDailyTopicsParticipationQ =>
+      'मैं दैनिक विषयों में कैसे भाग लूँ?';
+
+  @override
+  String get faqDailyTopicsParticipationA =>
+      'अपने होम फीड पर डेली टॉपिक बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।';
+
+  @override
+  String get faqFeedUpdatesQ => 'What shows up in my Feed?';
+
+  @override
+  String get faqFeedUpdatesA =>
+      'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.';
+
+  @override
+  String get faqMultiChapterWriterQ =>
+      'क्या मैं एक साथ कई अध्याय लिख सकता हूँ?';
+
+  @override
+  String get faqMultiChapterWriterA =>
+      'हाँ! राइटर पैड में, अपनी कहानी के कई हिस्से बनाने के लिए अध्याय सूची का उपयोग करें। प्रकाशित करने से पहले आप उन सबको एक ड्राफ़्ट के रूप में सहेज सकते हैं।';
+
+  @override
+  String get faqProfilePicturesQ =>
+      'मैं अपनी प्रोफ़ाइल और कवर फोटो कैसे अपडेट करूँ?';
+
+  @override
+  String get faqProfilePicturesA =>
+      'अपनी प्रोफ़ाइल पर जाएँ और अपनी फोटो बदलने के लिए कैमरा आइकन पर टैप करें।';
+
+  @override
+  String get stillNeedHelp => 'अभी भी मदद चाहिए?';
+
+  @override
+  String get communitySupportAssist =>
+      'हमारी कम्युनिटी टीम आपकी सहायता के लिए यहाँ है।';
+
+  @override
+  String get contactUs => 'हमसे संपर्क करें';
+
+  @override
+  String noHelpTopicsFound(String query) {
+    return '\"$query\" के लिए कोई सहायता विषय नहीं मिला';
   }
 }

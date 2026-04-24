@@ -104,8 +104,10 @@ class ProfileScreen extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceAround,
+                        spacing: 16,
+                        runSpacing: 12,
                         children: [
                           _StatItem(
                             label: l10n.followers,
@@ -332,7 +334,7 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
           ),
         Positioned(
           right: 16,
-          top: MediaQuery.of(context).padding.top + 12,
+          bottom: 18,
           child: IconButton.filledTonal(
             tooltip: l10n.changeCoverPicture,
             onPressed: _uploadingCover ? null : _changeCoverPicture,
@@ -465,8 +467,8 @@ class _ProfileSideMenu extends ConsumerWidget {
                     icon: Icons.language_outlined,
                     title: l10n.language,
                     subtitle: currentLocale.languageCode == 'hi'
-                        ? 'हिंदी'
-                        : 'English',
+                        ? l10n.hindi
+                        : l10n.english,
                     onTap: () => _go(context, AppRoutes.languageSettings),
                   ),
                   _MenuTile(
@@ -865,3 +867,4 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     return false;
   }
 }
+
