@@ -202,6 +202,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'home-feed-create-post-fab',
         onPressed: () => showCreatePostSheet(context),
         icon: const Icon(Icons.edit_rounded),
         label: Text(l10n.post),

@@ -141,6 +141,7 @@ class WriterDashboardScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'writer-dashboard-create-content-fab',
         onPressed: () {
           Navigator.of(context).pushNamed(
             AppRoutes.writerPad,
