@@ -31,6 +31,7 @@ import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
 import '../providers/theme_provider.dart';
+import '../routing/app_routes.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -597,6 +598,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       data: (comments) => _commentCountsByChapter(chapters, comments),
       orElse: () => const <int, int>{},
     );
+    final isArchiveBook = widget.book.source == 'archive';
 
     final topPadding = MediaQuery.of(context).padding.top;
     final appBarHeight = kToolbarHeight + topPadding;
@@ -635,6 +637,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       padding: EdgeInsets.zero,
                       side: BorderSide.none,
                     ),
+                  ),
+                if (isArchiveBook)
+                  IconButton(
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    tooltip: 'View PDF',
+                    onPressed: _openArchivePdfViewer,
                   ),
                 IconButton(
                   icon: _isTtsPreparing
@@ -831,6 +839,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         onClose: () => Navigator.of(context).pop(),
       ),
     );
+  }
+
+  Future<void> _openArchivePdfViewer() async {
+    await Navigator.of(
+      context,
+    ).pushNamed(AppRoutes.archiveReader, arguments: widget.book);
   }
 
   /// Builds the scrollable chapter reading content.
