@@ -38,46 +38,47 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
     }
 
     try {
-      final controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0x00000000))
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onProgress: (int progress) {
-              if (mounted) {
-                setState(() {
-                  _loadingProgress = progress / 100.0;
-                });
-              }
-            },
-            onPageStarted: (String url) {
-              if (mounted) {
-                setState(() {
-                  _isLoading = true;
-                  _hasError = false;
-                });
-              }
-            },
-            onPageFinished: (String url) {
-              if (mounted) {
-                setState(() {
-                  _isLoading = false;
-                });
-              }
-            },
-            onWebResourceError: (WebResourceError error) {
-              debugPrint('ArchiveReader WebView Error: ${error.description}');
-              if (error.isForMainFrame == false) return;
-              if (mounted) {
-                setState(() {
-                  _hasError = true;
-                  _isLoading = false;
-                });
-              }
-            },
-          ),
-        )
-        ..loadRequest(Uri.https('archive.org', '/embed/$identifier'));
+      final controller = createWebViewController();
+      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      controller.setBackgroundColor(const Color(0x00000000));
+      controller.setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            if (mounted) {
+              setState(() {
+                _loadingProgress = progress / 100.0;
+              });
+            }
+          },
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+                _hasError = false;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('ArchiveReader WebView Error: ${error.description}');
+            if (error.isForMainFrame == false) return;
+            if (mounted) {
+              setState(() {
+                _hasError = true;
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      );
+      controller.loadRequest(Uri.https('archive.org', '/embed/$identifier'));
+
 
       setState(() {
         _controller = controller;
@@ -97,10 +98,12 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
     }
   }
 
-  Future<void> _launchInBrowser() async {
-    final identifier = widget.book.identifier?.trim();
-    if (identifier == null || identifier.isEmpty) return;
-    final url = Uri.https('archive.org', '/details/$identifier');
+
+
+  Future<void> _launchPdf() async {
+    final pdfUrl = widget.book.formats['application/pdf'];
+    if (pdfUrl == null) return;
+    final url = Uri.parse(pdfUrl);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -125,21 +128,13 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.open_in_browser, size: 20),
-            tooltip: 'Open in Browser',
-            onPressed: _launchInBrowser,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, size: 20),
-            onPressed: () {
-              if (_hasError) {
-                _initController();
-              } else {
-                _controller?.reload();
-              }
-            },
-          ),
+          if (widget.book.formats.containsKey('application/pdf'))
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 20),
+              tooltip: 'View PDF',
+              onPressed: _launchPdf,
+            ),
+
         ],
       ),
       body: Stack(
@@ -158,6 +153,7 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
                 ),
               ),
             ),
+
           if (_hasError)
             Center(
               child: Padding(

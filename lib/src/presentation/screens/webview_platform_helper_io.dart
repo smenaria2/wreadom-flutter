@@ -12,3 +12,26 @@ void initializeWebViewPlatform() {
     WebViewPlatform.instance = WebKitWebViewPlatform();
   }
 }
+
+WebViewController createWebViewController() {
+  late final PlatformWebViewControllerCreationParams params;
+  if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+    params = WebKitWebViewControllerCreationParams(
+      allowsInlineMediaPlayback: true,
+      mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+    );
+  } else {
+    params = const PlatformWebViewControllerCreationParams();
+  }
+
+  final controller = WebViewController.fromPlatformCreationParams(params);
+
+  if (controller.platform is AndroidWebViewController) {
+    (controller.platform as AndroidWebViewController)
+        .setMediaPlaybackRequiresUserGesture(false);
+  }
+
+  return controller;
+}
+
+

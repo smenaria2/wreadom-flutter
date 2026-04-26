@@ -563,7 +563,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Internet Archive books can take a moment to prepare.',
+              'Internet Archive books can take a moment to prepare.\nTry pdf button on topbar, if text is not showing proper.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

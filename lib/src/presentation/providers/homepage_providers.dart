@@ -14,9 +14,12 @@ import 'theme_provider.dart';
 import 'dart:math' as math;
 
 const _homepageMetadataCacheKey = 'homepage_metadata_cache_v1';
+const _homepageMetadataCacheUpdatedAtKey =
+    'homepage_metadata_cache_updated_at_v1';
 const _homepageBooksCacheKey = 'homepage_books_cache_v1';
 const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v1';
+const _homepageMetadataCacheTtl = Duration(minutes: 30);
 
 final homepageRefreshCounterProvider =
     NotifierProvider<HomepageRefreshCounter, int>(
@@ -70,13 +73,17 @@ Future<void> _writeCachedValue(
 final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final cachedAt = prefs.getInt(_homepageMetadataCacheUpdatedAtKey) ?? 0;
+  final isCacheFresh =
+      now - cachedAt < _homepageMetadataCacheTtl.inMilliseconds;
   final cached = _readCachedValue<HomepageMetadata>(
     prefs,
     _homepageMetadataCacheKey,
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (refreshTick == 0 && cached != null) {
+  if (refreshTick == 0 && cached != null && isCacheFresh) {
     return cached;
   }
 
@@ -98,6 +105,7 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
 
     final metadata = HomepageMetadata.fromJson(data);
     await _writeCachedValue(prefs, _homepageMetadataCacheKey, metadata.toJson());
+    await prefs.setInt(_homepageMetadataCacheUpdatedAtKey, now);
     return metadata;
   } catch (_) {
     if (cached != null) return cached;

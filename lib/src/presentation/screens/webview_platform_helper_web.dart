@@ -6,3 +6,9 @@ void initializeWebViewPlatform() {
 
   WebViewPlatform.instance = WebWebViewPlatform();
 }
+
+WebViewController createWebViewController() {
+  return WebViewController();
+}
+
+

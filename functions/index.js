@@ -794,7 +794,7 @@ exports.createAudioReviewDownloadUrl = functionsV1
     });
 
 exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").onRun(async () => {
-  const [booksSnapshot, authorsSnapshot] = await Promise.all([
+  const [booksSnapshot, authorsSnapshot, topicsSnapshot] = await Promise.all([
     db.collection("books")
         .where("status", "==", "published")
         .where("isOriginal", "==", true)
@@ -805,6 +805,12 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
     db.collection("users")
         .orderBy("followersCount", "desc")
         .limit(20)
+        .get()
+        .catch(() => null),
+    db.collection("daily-topics")
+        .where("isEnabled", "==", true)
+        .orderBy("timestamp", "desc")
+        .limit(10)
         .get()
         .catch(() => null),
   ]);
@@ -831,8 +837,14 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
     };
   }
 
+  const dailyTopics = (topicsSnapshot?.docs || []).map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
   await db.collection("settings").doc("homepage_metadata").set({
     authors,
+    dailyTopics,
     recommendationStats,
     lastRefreshedAt: Date.now(),
   }, {merge: true});
@@ -840,6 +852,7 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
   logger.info("Homepage metadata refreshed", {
     authorCount: authors.length,
     bookCount: Object.keys(recommendationStats).length,
+    topicCount: dailyTopics.length,
   });
   return null;
 });
