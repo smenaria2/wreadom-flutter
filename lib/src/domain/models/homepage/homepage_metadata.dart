@@ -31,6 +31,8 @@ abstract class BookRecommendationStats with _$BookRecommendationStats {
 
 @freezed
 abstract class DailyTopic with _$DailyTopic {
+  const DailyTopic._();
+
   const factory DailyTopic({
     @Default('') String id,
     @Default('') String topicName,
@@ -38,8 +40,31 @@ abstract class DailyTopic with _$DailyTopic {
     @Default('') String fullDescription,
     @Default('') String coverImageUrl,
     @Default(true) bool isEnabled,
+    dynamic timestamp,
+    dynamic createdAt,
+    dynamic updatedAt,
   }) = _DailyTopic;
 
   factory DailyTopic.fromJson(Map<String, dynamic> json) =>
       _$DailyTopicFromJson(json);
+
+  int get sortTimestamp =>
+      _timestampToMillis(timestamp) ??
+      _timestampToMillis(updatedAt) ??
+      _timestampToMillis(createdAt) ??
+      0;
+}
+
+int? _timestampToMillis(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  try {
+    final milliseconds = value.millisecondsSinceEpoch;
+    if (milliseconds is int) return milliseconds;
+  } catch (_) {
+    return null;
+  }
+  return null;
 }

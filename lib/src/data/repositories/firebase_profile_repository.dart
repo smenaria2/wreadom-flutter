@@ -24,6 +24,12 @@ class FirebaseProfileRepository implements ProfileRepository {
   }
 
   Future<bool> _isFollowing(String followerId, String followingId) async {
+    final deterministic = await _firestore
+        .collection('follows')
+        .doc('${followerId}_$followingId')
+        .get();
+    if (deterministic.exists) return true;
+
     final snapshot = await _firestore
         .collection('follows')
         .where('followerId', isEqualTo: followerId)
@@ -205,7 +211,10 @@ class FirebaseProfileRepository implements ProfileRepository {
       }
     }
 
-    return normalizedIds.map((id) => results[id]).whereType<UserModel>().toList();
+    return normalizedIds
+        .map((id) => results[id])
+        .whereType<UserModel>()
+        .toList();
   }
 
   @override

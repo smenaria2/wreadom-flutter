@@ -11,7 +11,9 @@ import '../components/feed_post_card.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
+import '../routing/app_routes.dart';
 import '../widgets/comment_widgets.dart';
+import 'static_info_screen.dart';
 
 class PostDetailScreen extends ConsumerWidget {
   const PostDetailScreen({super.key, required this.postId, this.preloadedPost});
@@ -41,7 +43,14 @@ class PostDetailScreen extends ConsumerWidget {
         data: (post) {
           final effectivePost = post ?? preloadedPost;
           if (effectivePost == null) {
-            return Center(child: Text(l10n.postNotFoundOrDeleted));
+            return StaticInfoScreen(
+              title: 'Content Not Found',
+              body: l10n.postNotFoundOrDeleted,
+              actionLabel: l10n.searchBooks,
+              onAction: () => Navigator.of(
+                context,
+              ).pushNamed(AppRoutes.discovery, arguments: {'query': postId}),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {

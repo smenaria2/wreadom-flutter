@@ -62,7 +62,8 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
       final key = topic.id.isNotEmpty ? topic.id : topic.topicName;
       if (key.isNotEmpty) byKey[key] = topic;
     }
-    return byKey.values.where((topic) => topic.isEnabled).toList();
+    return byKey.values.where((topic) => topic.isEnabled).toList()
+      ..sort((a, b) => b.sortTimestamp.compareTo(a.sortTimestamp));
   }
 }
 

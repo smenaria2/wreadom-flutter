@@ -2,7 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+import '../../domain/models/app_notification.dart';
+import '../../presentation/routing/app_routes.dart';
+import '../../presentation/routing/app_router.dart';
+import '../../utils/notification_target_resolver.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -20,6 +25,11 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  GlobalKey<NavigatorState>? _navigatorKey;
+
+  void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
+    _navigatorKey = navigatorKey;
+  }
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -67,13 +77,17 @@ class NotificationService {
     // 5. Handle background interaction (when app is opened from notification)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('App opened from notification: ${message.data}');
-      // You can add navigation logic here if needed
+      _handleRemoteMessageNavigation(message);
     });
 
     // 6. Handle initial message (when app is killed and opened from notification)
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       debugPrint('App opened from terminated state: ${initialMessage.data}');
+      Future<void>.delayed(
+        const Duration(milliseconds: 600),
+        () => _handleRemoteMessageNavigation(initialMessage),
+      );
     }
 
     _isInitialized = true;
@@ -108,9 +122,67 @@ class NotificationService {
 
   void _onTapNotification(NotificationResponse response) {
     if (response.payload != null) {
-      Map<String, dynamic> data = jsonDecode(response.payload!);
+      final data = jsonDecode(response.payload!) as Map<String, dynamic>;
       debugPrint('Tapped local notification with data: $data');
-      // Navigate to specific screen based on data
+      _navigateFromData(data);
+    }
+  }
+
+  void _handleRemoteMessageNavigation(RemoteMessage message) {
+    _navigateFromData(message.data);
+  }
+
+  void _navigateFromData(Map<String, dynamic> data) {
+    final rawLink =
+        data['url']?.toString() ??
+        data['link']?.toString() ??
+        data['click_action']?.toString() ??
+        '';
+    final notification = AppNotification(
+      id: data['notificationId']?.toString(),
+      userId: data['userId']?.toString() ?? '',
+      actorId: data['actorId']?.toString() ?? '',
+      actorName: data['actorName']?.toString() ?? '',
+      type: data['type']?.toString() ?? '',
+      text: data['text']?.toString() ?? '',
+      link: rawLink,
+      targetId:
+          data['targetId']?.toString() ?? data['conversationId']?.toString(),
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+      isRead: false,
+      metadata: data,
+    );
+    final target = NotificationTargetResolver.resolve(notification);
+    final navigator = _navigatorKey?.currentState;
+    if (target == null || navigator == null) return;
+
+    switch (target.route) {
+      case AppRoutes.publicProfile:
+        navigator.pushNamed(
+          target.route,
+          arguments: PublicProfileArguments(userId: target.payload),
+        );
+        return;
+      case AppRoutes.bookDetail:
+        navigator.pushNamed(target.route, arguments: target.payload);
+        return;
+      case AppRoutes.postDetail:
+        navigator.pushNamed(target.route, arguments: target.payload);
+        return;
+      case AppRoutes.conversation:
+        navigator.pushNamed(
+          target.route,
+          arguments: ConversationArguments(
+            conversationId: target.payload,
+            title: data['actorName']?.toString() ?? '',
+          ),
+        );
+        return;
+      case AppRoutes.dailyTopic:
+        navigator.pushNamed(target.route, arguments: target.payload);
+        return;
+      default:
+        navigator.pushNamed(target.route, arguments: target.payload);
     }
   }
 

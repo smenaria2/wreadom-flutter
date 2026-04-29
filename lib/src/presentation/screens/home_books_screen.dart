@@ -103,9 +103,17 @@ class HomeBooksScreen extends ConsumerWidget {
     final trendingAsync = ref.watch(homepageTrendingWorksProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
     final iaAsync = ref.watch(homepageIABooksProvider);
-    final fantasyAsync = ref.watch(homepageGenreProvider('fantasy'));
+    final mysteryAsync = ref.watch(homepageGenreProvider('mystery'));
+    final poetryAsync = ref.watch(homepageGenreProvider('poetry'));
+    final classicsAsync = ref.watch(homepageGenreProvider('classic'));
     final romanceAsync = ref.watch(homepageGenreProvider('romance'));
-    final sciFiAsync = ref.watch(homepageGenreProvider('sci-fi'));
+    final socialAsync = ref.watch(homepageGenreProvider('social'));
+    final historyAsync = ref.watch(homepageGenreProvider('history'));
+    final storiesAsync = ref.watch(homepageGenreProvider('stories'));
+    final competitionAsync = ref.watch(
+      homepageGenreProvider('Wreadom Competition #1'),
+    );
+    final otherAsync = ref.watch(homepageGenreProvider('other'));
 
     // Watch saved books for the new section
 
@@ -151,7 +159,7 @@ class HomeBooksScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          refreshHomepage(ref);
+          await refreshHomepage(ref);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -232,13 +240,25 @@ class HomeBooksScreen extends ConsumerWidget {
 
               // ─── Genre Sections (Filtered) ─────────────────────────────
               _GenreSection(
-                title: l10n.genreFantasy,
-                booksAsync: fantasyAsync,
-                genre: 'Fantasy',
-                sectionId: 'fantasy',
+                title: l10n.genreMystery,
+                booksAsync: mysteryAsync,
+                genre: 'Mystery',
+                sectionId: 'mystery',
               ),
               const _AuthorsSection(),
               const SizedBox(height: 28),
+              _GenreSection(
+                title: l10n.genrePoetry,
+                booksAsync: poetryAsync,
+                genre: 'Poetry',
+                sectionId: 'poetry',
+              ),
+              _GenreSection(
+                title: 'Classic',
+                booksAsync: classicsAsync,
+                genre: 'Classic',
+                sectionId: 'classic',
+              ),
               _GenreSection(
                 title: l10n.genreRomance,
                 booksAsync: romanceAsync,
@@ -246,10 +266,34 @@ class HomeBooksScreen extends ConsumerWidget {
                 sectionId: 'romance',
               ),
               _GenreSection(
-                title: l10n.genreSciFi,
-                booksAsync: sciFiAsync,
-                genre: 'Sci-Fi',
-                sectionId: 'sci-fi',
+                title: 'Social',
+                booksAsync: socialAsync,
+                genre: 'Social',
+                sectionId: 'social',
+              ),
+              _GenreSection(
+                title: 'History',
+                booksAsync: historyAsync,
+                genre: 'History',
+                sectionId: 'history',
+              ),
+              _GenreSection(
+                title: 'Stories',
+                booksAsync: storiesAsync,
+                genre: 'Stories',
+                sectionId: 'stories',
+              ),
+              _GenreSection(
+                title: 'Wreadom Competition #1',
+                booksAsync: competitionAsync,
+                genre: 'Wreadom Competition #1',
+                sectionId: 'wreadom-competition-1',
+              ),
+              _GenreSection(
+                title: 'Other',
+                booksAsync: otherAsync,
+                genre: 'Other',
+                sectionId: 'other',
               ),
               _BookshelfSection(
                 title: _HomeShelfDestination.communityClassics
@@ -609,10 +653,8 @@ class _GenreSection extends ConsumerWidget {
           const SizedBox(height: 28),
         ],
       ),
-      error: (_, _) => _SectionError(
-        title: title,
-        onRetry: () => refreshHomepage(ref),
-      ),
+      error: (_, _) =>
+          _SectionError(title: title, onRetry: () => refreshHomepage(ref)),
     );
   }
 }
@@ -902,29 +944,57 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                       ),
                     ),
                   ),
-                  DropdownButton<HomeAuthorRanking>(
-                    value: _ranking,
-                    underline: const SizedBox.shrink(),
-                    borderRadius: BorderRadius.circular(8),
-                    items: HomeAuthorRanking.values
+                  PopupMenuButton<HomeAuthorRanking>(
+                    tooltip: _rankingLabel(_ranking, l10n),
+                    initialValue: _ranking,
+                    onSelected: (value) => setState(() => _ranking = value),
+                    itemBuilder: (context) => HomeAuthorRanking.values
                         .map(
-                          (ranking) => DropdownMenuItem(
+                          (ranking) => PopupMenuItem(
                             value: ranking,
                             child: Text(_rankingLabel(ranking, l10n)),
                           ),
                         )
                         .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _ranking = value);
-                    },
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 156),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _rankingLabel(_ranking, l10n),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.expand_more_rounded, size: 18),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 132,
+              height: 146,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
@@ -948,7 +1018,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                       arguments: PublicProfileArguments(userId: author.id),
                     ),
                     child: SizedBox(
-                      width: 86,
+                      width: 96,
                       child: Column(
                         children: [
                           CircleAvatar(
@@ -1541,7 +1611,8 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                             ],
                                           ),
                                           clipBehavior: Clip.antiAlias,
-                                          child: book.coverUrl != null &&
+                                          child:
+                                              book.coverUrl != null &&
                                                   book.coverUrl!.isNotEmpty
                                               ? CachedNetworkImage(
                                                   imageUrl: book.coverUrl!,

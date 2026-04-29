@@ -574,7 +574,7 @@ as int,
 /// @nodoc
 mixin _$DailyTopic {
 
- String get id; String get topicName; String get description; String get fullDescription; String get coverImageUrl; bool get isEnabled;
+ String get id; String get topicName; String get description; String get fullDescription; String get coverImageUrl; bool get isEnabled; dynamic get timestamp; dynamic get createdAt; dynamic get updatedAt;
 /// Create a copy of DailyTopic
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -587,16 +587,16 @@ $DailyTopicCopyWith<DailyTopic> get copyWith => _$DailyTopicCopyWithImpl<DailyTo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyTopic&&(identical(other.id, id) || other.id == id)&&(identical(other.topicName, topicName) || other.topicName == topicName)&&(identical(other.description, description) || other.description == description)&&(identical(other.fullDescription, fullDescription) || other.fullDescription == fullDescription)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyTopic&&(identical(other.id, id) || other.id == id)&&(identical(other.topicName, topicName) || other.topicName == topicName)&&(identical(other.description, description) || other.description == description)&&(identical(other.fullDescription, fullDescription) || other.fullDescription == fullDescription)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&const DeepCollectionEquality().equals(other.timestamp, timestamp)&&const DeepCollectionEquality().equals(other.createdAt, createdAt)&&const DeepCollectionEquality().equals(other.updatedAt, updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,topicName,description,fullDescription,coverImageUrl,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,topicName,description,fullDescription,coverImageUrl,isEnabled,const DeepCollectionEquality().hash(timestamp),const DeepCollectionEquality().hash(createdAt),const DeepCollectionEquality().hash(updatedAt));
 
 @override
 String toString() {
-  return 'DailyTopic(id: $id, topicName: $topicName, description: $description, fullDescription: $fullDescription, coverImageUrl: $coverImageUrl, isEnabled: $isEnabled)';
+  return 'DailyTopic(id: $id, topicName: $topicName, description: $description, fullDescription: $fullDescription, coverImageUrl: $coverImageUrl, isEnabled: $isEnabled, timestamp: $timestamp, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -607,7 +607,7 @@ abstract mixin class $DailyTopicCopyWith<$Res>  {
   factory $DailyTopicCopyWith(DailyTopic value, $Res Function(DailyTopic) _then) = _$DailyTopicCopyWithImpl;
 @useResult
 $Res call({
- String id, String topicName, String description, String fullDescription, String coverImageUrl, bool isEnabled
+ String id, String topicName, String description, String fullDescription, String coverImageUrl, bool isEnabled, dynamic timestamp, dynamic createdAt, dynamic updatedAt
 });
 
 
@@ -624,7 +624,7 @@ class _$DailyTopicCopyWithImpl<$Res>
 
 /// Create a copy of DailyTopic
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? topicName = null,Object? description = null,Object? fullDescription = null,Object? coverImageUrl = null,Object? isEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? topicName = null,Object? description = null,Object? fullDescription = null,Object? coverImageUrl = null,Object? isEnabled = null,Object? timestamp = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,topicName: null == topicName ? _self.topicName : topicName // ignore: cast_nullable_to_non_nullable
@@ -632,7 +632,10 @@ as String,description: null == description ? _self.description : description // 
 as String,fullDescription: null == fullDescription ? _self.fullDescription : fullDescription // ignore: cast_nullable_to_non_nullable
 as String,coverImageUrl: null == coverImageUrl ? _self.coverImageUrl : coverImageUrl // ignore: cast_nullable_to_non_nullable
 as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
+as dynamic,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as dynamic,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as dynamic,
   ));
 }
 
@@ -717,10 +720,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled,  dynamic timestamp,  dynamic createdAt,  dynamic updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DailyTopic() when $default != null:
-return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled);case _:
+return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled,_that.timestamp,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -738,10 +741,10 @@ return $default(_that.id,_that.topicName,_that.description,_that.fullDescription
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled,  dynamic timestamp,  dynamic createdAt,  dynamic updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _DailyTopic():
-return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled);case _:
+return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled,_that.timestamp,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -758,10 +761,10 @@ return $default(_that.id,_that.topicName,_that.description,_that.fullDescription
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String topicName,  String description,  String fullDescription,  String coverImageUrl,  bool isEnabled,  dynamic timestamp,  dynamic createdAt,  dynamic updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _DailyTopic() when $default != null:
-return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled);case _:
+return $default(_that.id,_that.topicName,_that.description,_that.fullDescription,_that.coverImageUrl,_that.isEnabled,_that.timestamp,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -772,8 +775,8 @@ return $default(_that.id,_that.topicName,_that.description,_that.fullDescription
 /// @nodoc
 @JsonSerializable()
 
-class _DailyTopic implements DailyTopic {
-  const _DailyTopic({this.id = '', this.topicName = '', this.description = '', this.fullDescription = '', this.coverImageUrl = '', this.isEnabled = true});
+class _DailyTopic extends DailyTopic {
+  const _DailyTopic({this.id = '', this.topicName = '', this.description = '', this.fullDescription = '', this.coverImageUrl = '', this.isEnabled = true, this.timestamp, this.createdAt, this.updatedAt}): super._();
   factory _DailyTopic.fromJson(Map<String, dynamic> json) => _$DailyTopicFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -782,6 +785,9 @@ class _DailyTopic implements DailyTopic {
 @override@JsonKey() final  String fullDescription;
 @override@JsonKey() final  String coverImageUrl;
 @override@JsonKey() final  bool isEnabled;
+@override final  dynamic timestamp;
+@override final  dynamic createdAt;
+@override final  dynamic updatedAt;
 
 /// Create a copy of DailyTopic
 /// with the given fields replaced by the non-null parameter values.
@@ -796,16 +802,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyTopic&&(identical(other.id, id) || other.id == id)&&(identical(other.topicName, topicName) || other.topicName == topicName)&&(identical(other.description, description) || other.description == description)&&(identical(other.fullDescription, fullDescription) || other.fullDescription == fullDescription)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyTopic&&(identical(other.id, id) || other.id == id)&&(identical(other.topicName, topicName) || other.topicName == topicName)&&(identical(other.description, description) || other.description == description)&&(identical(other.fullDescription, fullDescription) || other.fullDescription == fullDescription)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&const DeepCollectionEquality().equals(other.timestamp, timestamp)&&const DeepCollectionEquality().equals(other.createdAt, createdAt)&&const DeepCollectionEquality().equals(other.updatedAt, updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,topicName,description,fullDescription,coverImageUrl,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,topicName,description,fullDescription,coverImageUrl,isEnabled,const DeepCollectionEquality().hash(timestamp),const DeepCollectionEquality().hash(createdAt),const DeepCollectionEquality().hash(updatedAt));
 
 @override
 String toString() {
-  return 'DailyTopic(id: $id, topicName: $topicName, description: $description, fullDescription: $fullDescription, coverImageUrl: $coverImageUrl, isEnabled: $isEnabled)';
+  return 'DailyTopic(id: $id, topicName: $topicName, description: $description, fullDescription: $fullDescription, coverImageUrl: $coverImageUrl, isEnabled: $isEnabled, timestamp: $timestamp, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -816,7 +822,7 @@ abstract mixin class _$DailyTopicCopyWith<$Res> implements $DailyTopicCopyWith<$
   factory _$DailyTopicCopyWith(_DailyTopic value, $Res Function(_DailyTopic) _then) = __$DailyTopicCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String topicName, String description, String fullDescription, String coverImageUrl, bool isEnabled
+ String id, String topicName, String description, String fullDescription, String coverImageUrl, bool isEnabled, dynamic timestamp, dynamic createdAt, dynamic updatedAt
 });
 
 
@@ -833,7 +839,7 @@ class __$DailyTopicCopyWithImpl<$Res>
 
 /// Create a copy of DailyTopic
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? topicName = null,Object? description = null,Object? fullDescription = null,Object? coverImageUrl = null,Object? isEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? topicName = null,Object? description = null,Object? fullDescription = null,Object? coverImageUrl = null,Object? isEnabled = null,Object? timestamp = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_DailyTopic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,topicName: null == topicName ? _self.topicName : topicName // ignore: cast_nullable_to_non_nullable
@@ -841,7 +847,10 @@ as String,description: null == description ? _self.description : description // 
 as String,fullDescription: null == fullDescription ? _self.fullDescription : fullDescription // ignore: cast_nullable_to_non_nullable
 as String,coverImageUrl: null == coverImageUrl ? _self.coverImageUrl : coverImageUrl // ignore: cast_nullable_to_non_nullable
 as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
+as dynamic,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as dynamic,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as dynamic,
   ));
 }
 

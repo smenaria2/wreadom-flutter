@@ -94,6 +94,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.attachNavigator(_navigatorKey);
     _initDeepLinks();
   }
 

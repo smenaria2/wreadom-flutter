@@ -64,7 +64,10 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
           final displayCount = (_limit < ids.length) ? _limit : ids.length;
           final hasMore = _limit < ids.length;
           final visibleIds = ids.take(displayCount).toList();
-          final profilesAsync = ref.watch(publicProfilesProvider(visibleIds));
+          final profilesKey = visibleIds.join('|');
+          final profilesAsync = ref.watch(
+            publicProfilesByStableIdsProvider(profilesKey),
+          );
 
           return profilesAsync.when(
             data: (profiles) => ListView.separated(

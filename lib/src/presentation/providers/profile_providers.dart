@@ -19,15 +19,31 @@ final publicProfileProvider = FutureProvider.family<UserModel?, String>((
       .getPublicProfile(userId, viewerUserId: viewer?.id);
 });
 
-final publicProfilesProvider = FutureProvider.family<List<UserModel>, List<String>>((
-  ref,
-  userIds,
-) async {
-  final viewer = await ref.watch(currentUserProvider.future);
-  return ref
-      .watch(profileRepositoryProvider)
-      .getPublicProfilesByIds(userIds, viewerUserId: viewer?.id);
-});
+final publicProfilesProvider =
+    FutureProvider.family<List<UserModel>, List<String>>((ref, userIds) async {
+      final normalizedIds = userIds
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      final viewer = await ref.watch(currentUserProvider.future);
+      return ref
+          .watch(profileRepositoryProvider)
+          .getPublicProfilesByIds(normalizedIds, viewerUserId: viewer?.id);
+    });
+
+final publicProfilesByStableIdsProvider =
+    FutureProvider.family<List<UserModel>, String>((ref, idsKey) async {
+      final ids = idsKey
+          .split('|')
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty)
+          .toList();
+      final viewer = await ref.watch(currentUserProvider.future);
+      return ref
+          .watch(profileRepositoryProvider)
+          .getPublicProfilesByIds(ids, viewerUserId: viewer?.id);
+    });
 
 final profileSearchProvider = FutureProvider.family<List<UserModel>, String>((
   ref,

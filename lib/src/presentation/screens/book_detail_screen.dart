@@ -7,6 +7,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/message.dart';
@@ -26,6 +27,7 @@ import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/generated_book_cover.dart';
+import 'static_info_screen.dart';
 
 class BookDetailScreen extends ConsumerStatefulWidget {
   const BookDetailScreen({
@@ -58,8 +60,15 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       body: bookAsync.when(
         data: (book) {
           if (book == null) {
-            return Center(
-              child: Text(AppLocalizations.of(context)!.bookNotFound),
+            return StaticInfoScreen(
+              title: 'Content Not Found',
+              body:
+                  'This book may have been deleted or is no longer available.',
+              actionLabel: AppLocalizations.of(context)!.searchBooks,
+              onAction: () => Navigator.of(context).pushNamed(
+                AppRoutes.discovery,
+                arguments: {'query': widget.bookId},
+              ),
             );
           }
           if (widget.initialReaderChapterIndex != null) {
@@ -174,171 +183,191 @@ class _BookDetailBody extends ConsumerWidget {
         (book.isOriginal ?? false) &&
         authorId == currentUser.id;
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 330,
-          pinned: true,
-          actions: [
-            if (canEdit)
+    Future<void> refresh() async {
+      ref.invalidate(bookDetailProvider(book.id));
+      ref.invalidate(bookChaptersProvider(book.id));
+      ref.invalidate(bookCommentsProvider(book.id));
+      ref.invalidate(currentUserProvider);
+      await Future.wait([
+        ref.read(bookDetailProvider(book.id).future).catchError((_) => null),
+        ref
+            .read(bookChaptersProvider(book.id).future)
+            .catchError((_) => <Chapter>[]),
+        ref
+            .read(bookCommentsProvider(book.id).future)
+            .catchError((_) => <Comment>[]),
+      ]);
+    }
+
+    return RefreshIndicator(
+      onRefresh: refresh,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 330,
+            pinned: true,
+            actions: [
+              if (canEdit)
+                IconButton(
+                  tooltip: AppLocalizations.of(context)!.editBook,
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => Navigator.of(context).pushNamed(
+                    AppRoutes.writerPad,
+                    arguments: WriterPadArguments(book: book),
+                  ),
+                ),
               IconButton(
-                tooltip: AppLocalizations.of(context)!.editBook,
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => Navigator.of(context).pushNamed(
-                  AppRoutes.writerPad,
-                  arguments: WriterPadArguments(book: book),
+                icon: const Icon(Icons.share_outlined),
+                onPressed: () => Share.share(
+                  AppLocalizations.of(
+                    context,
+                  )!.shareBookMessage(book.title, AppLinkHelper.book(book.id)),
+                  subject: book.title,
                 ),
               ),
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () => Share.share(
-                AppLocalizations.of(
-                  context,
-                )!.shareBookMessage(book.title, AppLinkHelper.book(book.id)),
-                subject: book.title,
-              ),
-            ),
-            if (!canEdit)
-              IconButton(
-                tooltip: AppLocalizations.of(context)!.reportBook,
-                icon: const Icon(Icons.report_problem_outlined),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (context) =>
-                      ReportDialog(targetId: book.id, targetType: 'book'),
+              if (!canEdit)
+                IconButton(
+                  tooltip: AppLocalizations.of(context)!.reportBook,
+                  icon: const Icon(Icons.report_problem_outlined),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) =>
+                        ReportDialog(targetId: book.id, targetType: 'book'),
+                  ),
                 ),
-              ),
-          ],
-          flexibleSpace: FlexibleSpaceBar(
-            background: Stack(
-              fit: StackFit.expand,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.8),
-                        theme.colorScheme.surface,
-                      ],
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          theme.colorScheme.primary.withValues(alpha: 0.8),
+                          theme.colorScheme.surface,
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: heroTag == null
-                        ? _DetailCover(book: book)
-                        : Hero(
-                            tag: heroTag!,
-                            child: _DetailCover(book: book),
-                          ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: heroTag == null
+                          ? _DetailCover(book: book)
+                          : Hero(
+                              tag: heroTag!,
+                              child: _DetailCover(book: book),
+                            ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(20),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              Text(
-                book.title,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                Text(
+                  book.title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              _AuthorLine(
-                authors: authors.isNotEmpty
-                    ? authors
-                    : AppLocalizations.of(context)!.unknownAuthor,
-                authorAsync: authorAsync,
-                authorId: authorId,
-              ),
-              const SizedBox(height: 16),
-              _StatsRow(book: book),
-              if (book.subjects.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                _AuthorLine(
+                  authors: authors.isNotEmpty
+                      ? authors
+                      : AppLocalizations.of(context)!.unknownAuthor,
+                  authorAsync: authorAsync,
+                  authorId: authorId,
+                ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: book.subjects.take(5).map((subject) {
-                    return ActionChip(
-                      label: Text(
-                        subject,
-                        style: const TextStyle(fontSize: 12),
+                _StatsRow(book: book),
+                if (book.subjects.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: book.subjects.take(5).map((subject) {
+                      return ActionChip(
+                        label: Text(
+                          subject,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: theme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.5),
+                        side: BorderSide.none,
+                        onPressed: () => Navigator.of(context).pushNamed(
+                          AppRoutes.discovery,
+                          arguments: {'query': 'topic:$subject'},
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.menu_book_rounded),
+                        label: Text(
+                          _hasProgress(userAsync, book.id)
+                              ? AppLocalizations.of(context)!.continueReading
+                              : AppLocalizations.of(context)!.startReading,
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => _openReader(context, ref, userAsync),
                       ),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.5),
-                      side: BorderSide.none,
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        AppRoutes.discovery,
-                        arguments: {'query': 'topic:$subject'},
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.menu_book_rounded),
-                      label: Text(
-                        _hasProgress(userAsync, book.id)
-                            ? AppLocalizations.of(context)!.continueReading
-                            : AppLocalizations.of(context)!.startReading,
-                      ),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    _SaveDownloadButton(book: book),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () => _openReader(context, ref, userAsync),
+                      onPressed: () => _showSendToChatSheet(context, ref, book),
+                      child: const Icon(Icons.send_rounded),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _SaveDownloadButton(book: book),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () => _showSendToChatSheet(context, ref, book),
-                    child: const Icon(Icons.send_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              if ((book.description ?? '').isNotEmpty) ...[
-                Text(
-                  AppLocalizations.of(context)!.aboutThisBook,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                _ExpandableText(text: book.description!),
-              ],
-              const SizedBox(height: 28),
-              _LatestDiscussionSection(book: book),
-              const SizedBox(height: 32),
-            ]),
+                const SizedBox(height: 28),
+                if ((book.description ?? '').isNotEmpty) ...[
+                  Text(
+                    AppLocalizations.of(context)!.aboutThisBook,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _ExpandableText(text: book.description!),
+                ],
+                const SizedBox(height: 28),
+                _LatestDiscussionSection(book: book),
+                const SizedBox(height: 32),
+              ]),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -22,9 +22,7 @@ const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v1';
 const _homepageMetadataCacheTtl = Duration(minutes: 30);
 
 final homepageRefreshCounterProvider =
-    NotifierProvider<HomepageRefreshCounter, int>(
-      HomepageRefreshCounter.new,
-    );
+    NotifierProvider<HomepageRefreshCounter, int>(HomepageRefreshCounter.new);
 
 class HomepageRefreshCounter extends Notifier<int> {
   @override
@@ -33,7 +31,15 @@ class HomepageRefreshCounter extends Notifier<int> {
   void bump() => state++;
 }
 
-void refreshHomepage(WidgetRef ref) {
+Future<void> refreshHomepage(WidgetRef ref) async {
+  final prefs = ref.read(sharedPreferencesProvider);
+  await Future.wait([
+    prefs.remove(_homepageMetadataCacheKey),
+    prefs.remove(_homepageMetadataCacheUpdatedAtKey),
+    prefs.remove(_homepageBooksCacheKey),
+    prefs.remove(_homepageAuthorWorksCacheKey),
+    prefs.remove(_homepageIABooksCacheKey),
+  ]);
   ref.read(homepageRefreshCounterProvider.notifier).bump();
   ref.invalidate(homepageMetadataProvider);
   ref.invalidate(homepageBooksProvider);
@@ -46,6 +52,7 @@ void refreshHomepage(WidgetRef ref) {
   ref.invalidate(homepageOriginalsProvider);
   ref.invalidate(homepagePopularProvider);
   ref.invalidate(homepageRecentProvider);
+  ref.invalidate(homepageGenreProvider);
 }
 
 T? _readCachedValue<T>(
@@ -68,6 +75,72 @@ Future<void> _writeCachedValue(
   Object json,
 ) async {
   await prefs.setString(key, jsonEncode(json));
+}
+
+Future<List<Book>> _safeBookList(Future<List<Book>> request) async {
+  try {
+    return await request;
+  } catch (_) {
+    return <Book>[];
+  }
+}
+
+Future<List<String>> _safeStringList(Future<List<String>> request) async {
+  try {
+    return await request;
+  } catch (_) {
+    return <String>[];
+  }
+}
+
+List<Book> _uniqueBooks(Iterable<Book> books) {
+  final byId = <String, Book>{};
+  for (final book in books) {
+    byId.putIfAbsent(book.id, () => book);
+  }
+  return byId.values.toList();
+}
+
+List<Book> _withoutIds(List<Book> books, Set<String> ids, {int limit = 20}) {
+  final result = <Book>[];
+  final seen = <String>{};
+  for (final book in books) {
+    if (ids.contains(book.id) || !seen.add(book.id)) continue;
+    result.add(book);
+    if (result.length >= limit) break;
+  }
+  if (result.length >= limit) return result;
+
+  for (final book in books) {
+    if (!seen.add(book.id)) continue;
+    result.add(book);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+List<Book> _homepageAllowedBooks(
+  Iterable<Book> books,
+  Set<String> upvotedIaIds,
+) {
+  return books.where((book) {
+    if (!_isArchiveBook(book)) return true;
+    return upvotedIaIds.contains(book.id);
+  }).toList();
+}
+
+double _bookPopularityScore(
+  Book book,
+  Map<String, BookRecommendationStats> statsData,
+) {
+  final avgRating = book.averageRating ?? 0.0;
+  final ratingsCount = book.ratingsCount ?? 0;
+  final stats = statsData[book.id];
+  final reads = math.log((book.viewCount ?? 0) + 1) / math.ln10;
+  return reads +
+      avgRating * math.log(ratingsCount + 1) / math.ln10 +
+      (stats?.recommendationCount ?? 0) * 0.2 +
+      ((stats?.upvotes ?? 0) - (stats?.downvotes ?? 0)) * 0.05;
 }
 
 final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
@@ -104,7 +177,11 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     }
 
     final metadata = HomepageMetadata.fromJson(data);
-    await _writeCachedValue(prefs, _homepageMetadataCacheKey, metadata.toJson());
+    await _writeCachedValue(
+      prefs,
+      _homepageMetadataCacheKey,
+      metadata.toJson(),
+    );
     await prefs.setInt(_homepageMetadataCacheUpdatedAtKey, now);
     return metadata;
   } catch (_) {
@@ -151,66 +228,75 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageBooksCacheKey,
-    (json) => (json as List)
-        .map((raw) => Book.fromJson(asStringMap(raw)))
-        .toList(),
+    (json) =>
+        (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
     return cached;
   }
 
   try {
-  final metadata = await ref.watch(homepageMetadataProvider.future);
-  final statsData = metadata.recommendationStats;
-  final repo = ref.watch(bookRepositoryProvider);
-  final communityIds = _positiveRecommendationIds(metadata, limit: 60);
+    final metadata = await ref.watch(homepageMetadataProvider.future);
+    final statsData = metadata.recommendationStats;
+    final repo = ref.watch(bookRepositoryProvider);
+    final communityIds = _positiveRecommendationIds(metadata, limit: 60);
+    final upvotedIaIds = (await _safeStringList(
+      repo.getUpvotedIABookIds(),
+    )).toSet();
 
-  final results = await Future.wait([
-    repo.getOriginalBooks(limit: 60),
-    if (communityIds.isNotEmpty)
-      repo.getBooksByIds(communityIds)
-    else
-      Future.value(<Book>[]),
-  ]);
-  final downloaded = ref.watch(offlineServiceProvider).getDownloadedBooks();
+    final results = await Future.wait([
+      _safeBookList(repo.getOriginalBooks(limit: 120)),
+      communityIds.isNotEmpty
+          ? _safeBookList(repo.getBooksByIds(communityIds))
+          : Future.value(<Book>[]),
+      _safeBookList(repo.getPopularBooks(limit: 80)),
+      _safeBookList(repo.getUpvotedIABooks(limit: 40)),
+    ]);
+    final downloaded = ref.watch(offlineServiceProvider).getDownloadedBooks();
 
-  final Map<String, Book> uniqueBooks = {};
+    final Map<String, Book> uniqueBooks = {};
 
-  void addBooks(List<Book> books) {
-    for (final book in books) {
-      uniqueBooks[book.id] = book;
-    }
-  }
-
-  addBooks(results[0]);
-  addBooks(results[1]);
-  addBooks(downloaded);
-
-  final combinedBooks = uniqueBooks.values.toList();
-
-  combinedBooks.sort((a, b) {
-    double getScore(Book book) {
-      final avgRating = book.averageRating ?? 0.0;
-      final ratingsCount = book.ratingsCount ?? 0;
-      final stats = statsData[book.id];
-
-      final popularityScore =
-          avgRating * math.log(ratingsCount + 1) / math.ln10 +
-          (stats?.recommendationCount ?? 0) * 0.1;
-
-      final weekInMs = 7 * 24 * 60 * 60 * 1000;
-      final ageInWeeks = book.createdAt != null
-          ? (DateTime.now().millisecondsSinceEpoch - book.createdAt!) / weekInMs
-          : 0;
-
-      final recencyScore = math.exp(-math.max(0, ageInWeeks) * 0.1);
-      return popularityScore * (1 + recencyScore);
+    void addBooks(List<Book> books) {
+      for (final book in books) {
+        uniqueBooks[book.id] = book;
+      }
     }
 
-    final scoreA = getScore(a);
-    final scoreB = getScore(b);
-    return scoreB.compareTo(scoreA); // Descending
-  });
+    addBooks(results[0]);
+    addBooks(results[1]);
+    addBooks(results[2]);
+    addBooks(results[3]);
+    addBooks(downloaded);
+
+    final combinedBooks = _homepageAllowedBooks(
+      uniqueBooks.values,
+      upvotedIaIds,
+    );
+
+    combinedBooks.sort((a, b) {
+      double getScore(Book book) {
+        final avgRating = book.averageRating ?? 0.0;
+        final ratingsCount = book.ratingsCount ?? 0;
+        final stats = statsData[book.id];
+
+        final popularityScore =
+            avgRating * math.log(ratingsCount + 1) / math.ln10 +
+            (stats?.recommendationCount ?? 0) * 0.1;
+
+        final weekInMs = 7 * 24 * 60 * 60 * 1000;
+        final ageInWeeks = book.createdAt != null
+            ? (DateTime.now().millisecondsSinceEpoch - book.createdAt!) /
+                  weekInMs
+            : 0;
+
+        final recencyScore = math.exp(-math.max(0, ageInWeeks) * 0.1);
+        return popularityScore * (1 + recencyScore);
+      }
+
+      final scoreA = getScore(a);
+      final scoreB = getScore(b);
+      return scoreB.compareTo(scoreA); // Descending
+    });
 
     await _writeCachedValue(
       prefs,
@@ -237,9 +323,8 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageAuthorWorksCacheKey,
-    (json) => (json as List)
-        .map((raw) => Book.fromJson(asStringMap(raw)))
-        .toList(),
+    (json) =>
+        (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
     return cached;
@@ -378,9 +463,11 @@ final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
     return recency * 2.0 + reads + rating + recommendations;
   }
 
-  final sorted = books.where(_isPublishedOriginal).toList()
+  final originals = books.where(_isPublishedOriginal).take(10).toList();
+  final excluded = originals.map((book) => book.id).toSet();
+  final sorted = _withoutIds(books, excluded, limit: books.length)
     ..sort((a, b) => score(b).compareTo(score(a)));
-  return sorted.take(20).toList();
+  return sorted.take(24).toList();
 });
 
 bool _isPublishedOriginal(Book book) {
@@ -425,9 +512,8 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageIABooksCacheKey,
-    (json) => (json as List)
-        .map((raw) => Book.fromJson(asStringMap(raw)))
-        .toList(),
+    (json) =>
+        (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
     return cached;
@@ -461,33 +547,87 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
 // Category Providers powered by the Homepage combined list
 final homepageOriginalsProvider = FutureProvider<List<Book>>((ref) async {
   final books = await ref.watch(homepageBooksProvider.future);
-  return books.where((b) => b.isOriginal ?? false).toList();
+  final originals = books.where(_isPublishedOriginal).toList()
+    ..sort((a, b) {
+      final aTime = a.updatedAt ?? a.createdAt ?? 0;
+      final bTime = b.updatedAt ?? b.createdAt ?? 0;
+      return bTime.compareTo(aTime);
+    });
+  return originals.take(24).toList();
 });
 
 final homepagePopularProvider = FutureProvider<List<Book>>((ref) async {
+  final metadata = await ref.watch(homepageMetadataProvider.future);
   final books = await ref.watch(homepageBooksProvider.future);
-  return books.take(20).toList();
+  final originals = await ref.watch(homepageOriginalsProvider.future);
+  final trending = await ref.watch(homepageTrendingWorksProvider.future);
+  final excluded = {
+    ...originals.take(10).map((book) => book.id),
+    ...trending.take(10).map((book) => book.id),
+  };
+  final sorted = List<Book>.from(books)
+    ..sort(
+      (a, b) => _bookPopularityScore(
+        b,
+        metadata.recommendationStats,
+      ).compareTo(_bookPopularityScore(a, metadata.recommendationStats)),
+    );
+  return _withoutIds(sorted, excluded, limit: 24);
 });
 
 final homepageRecentProvider = FutureProvider<List<Book>>((ref) async {
   final books = await ref.watch(homepageBooksProvider.future);
+  final originals = await ref.watch(homepageOriginalsProvider.future);
+  final trending = await ref.watch(homepageTrendingWorksProvider.future);
+  final excluded = {
+    ...originals.take(8).map((book) => book.id),
+    ...trending.take(8).map((book) => book.id),
+  };
   final sorted = List<Book>.from(books)
     ..sort((a, b) {
       final tA = a.createdAt ?? 0;
       final tB = b.createdAt ?? 0;
       return tB.compareTo(tA);
     });
-  return sorted.take(20).toList();
+  return _withoutIds(sorted, excluded, limit: 24);
 });
 
 final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
   ref,
   genre,
 ) async {
+  ref.watch(homepageRefreshCounterProvider);
+  final repo = ref.watch(bookRepositoryProvider);
+  final normalized = genre.trim();
+  if (normalized.isEmpty) return <Book>[];
+  final upvotedIaIds = (await _safeStringList(
+    repo.getUpvotedIABookIds(),
+  )).toSet();
+
   final books = await ref.watch(homepageBooksProvider.future);
-  return books.where((book) {
-    final categories = book.topics ?? book.subjects;
-    if (categories.isEmpty) return false;
-    return categories.any((c) => c.toLowerCase() == genre.toLowerCase());
+  final localMatches = books.where((book) {
+    final categories = [...book.subjects, ...?book.topics, ...book.bookshelves];
+    return categories.any(
+      (category) => category.toLowerCase().contains(normalized.toLowerCase()),
+    );
   }).toList();
+
+  final remoteMatches = await Future.wait([
+    _safeBookList(repo.getBooksByGenre(normalized, limit: 36)),
+    _safeBookList(repo.getOriginalBooksByTopic(normalized, limit: 24)),
+  ]);
+
+  final combined = _uniqueBooks(
+    _homepageAllowedBooks([
+      ...localMatches,
+      ...remoteMatches.expand((books) => books),
+    ], upvotedIaIds),
+  );
+  combined.sort(
+    (a, b) => _bookPopularityScore(b, const <String, BookRecommendationStats>{})
+        .compareTo(
+          _bookPopularityScore(a, const <String, BookRecommendationStats>{}),
+        ),
+  );
+  return combined.take(36).toList();
 });

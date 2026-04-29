@@ -60,6 +60,9 @@ _DailyTopic _$DailyTopicFromJson(Map<String, dynamic> json) => _DailyTopic(
   fullDescription: json['fullDescription'] as String? ?? '',
   coverImageUrl: json['coverImageUrl'] as String? ?? '',
   isEnabled: json['isEnabled'] as bool? ?? true,
+  timestamp: json['timestamp'],
+  createdAt: json['createdAt'],
+  updatedAt: json['updatedAt'],
 );
 
 Map<String, dynamic> _$DailyTopicToJson(_DailyTopic instance) =>
@@ -70,4 +73,7 @@ Map<String, dynamic> _$DailyTopicToJson(_DailyTopic instance) =>
       'fullDescription': instance.fullDescription,
       'coverImageUrl': instance.coverImageUrl,
       'isEnabled': instance.isEnabled,
+      'timestamp': instance.timestamp,
+      'createdAt': instance.createdAt,
+      'updatedAt': instance.updatedAt,
     };

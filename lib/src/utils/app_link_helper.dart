@@ -32,7 +32,15 @@ class AppLinkHelper {
     final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
     final queryBookId = uri.queryParameters['book'];
     final queryPostId = uri.queryParameters['post'];
+    final queryTopicId = uri.queryParameters['id'];
+    final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
     if (segments.isEmpty) {
+      if (queryPage == 'writer') {
+        return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+      }
+      if (queryPage == 'search' || queryPage == 'discovery') {
+        return const ResolvedAppLink(AppRoutes.discovery, null);
+      }
       if (_hasValue(queryBookId)) {
         return ResolvedAppLink(
           AppRoutes.bookDetail,
@@ -43,6 +51,9 @@ class AppLinkHelper {
       if (_hasValue(queryPostId)) {
         return ResolvedAppLink(AppRoutes.postDetail, queryPostId);
       }
+      if (_hasValue(queryTopicId) && queryPage == 'daily-topic') {
+        return ResolvedAppLink(AppRoutes.dailyTopic, queryTopicId);
+      }
       return _resolveMalformedQueryPath(rawLink);
     }
 
@@ -52,6 +63,7 @@ class AppLinkHelper {
     switch (type) {
       case 'book':
       case 'b':
+        id ??= queryBookId;
         if (_hasValue(id)) {
           return ResolvedAppLink(AppRoutes.bookDetail, id!);
         }
@@ -67,12 +79,22 @@ class AppLinkHelper {
         break;
       case 'user':
       case 'u':
+      case 'profile':
         if (_hasValue(id)) {
           return ResolvedAppLink(AppRoutes.publicProfile, id!);
         }
         break;
+      case 'messages':
+      case 'message':
+      case 'conversation':
+      case 'conversations':
+        id ??= uri.queryParameters['conversationId'];
+        if (_hasValue(id)) {
+          return ResolvedAppLink(AppRoutes.conversation, id!);
+        }
+        break;
       case 'daily-topic':
-        id ??= uri.queryParameters['id'];
+        id ??= queryTopicId;
         return ResolvedAppLink(AppRoutes.dailyTopic, _hasValue(id) ? id : null);
       case 'category':
         if (_hasValue(id)) {

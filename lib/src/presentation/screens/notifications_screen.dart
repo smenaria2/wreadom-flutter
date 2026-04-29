@@ -14,16 +14,16 @@ import '../../domain/models/app_notification.dart';
 
 enum _NotificationFilter {
   all,
-  messages,
+  content,
   posts,
-  books;
+  messages;
 
   String label(AppLocalizations l10n) {
     return switch (this) {
       _NotificationFilter.all => l10n.all,
-      _NotificationFilter.messages => l10n.messages,
+      _NotificationFilter.content => 'Content',
       _NotificationFilter.posts => l10n.posts,
-      _NotificationFilter.books => l10n.books,
+      _NotificationFilter.messages => l10n.messages,
     };
   }
 
@@ -39,21 +39,22 @@ enum _NotificationFilter {
     final haystack = '$type $text $link ${targetType ?? ''}';
 
     return switch (this) {
-      _NotificationFilter.messages =>
-        type == 'message' ||
-            haystack.contains('message') ||
-            haystack.contains('chat'),
+      _NotificationFilter.content =>
+        haystack.contains('book') ||
+            haystack.contains('story') ||
+            haystack.contains('chapter') ||
+            haystack.contains('review') ||
+            haystack.contains('quote') ||
+            haystack.contains('published'),
       _NotificationFilter.posts =>
         haystack.contains('post') ||
             haystack.contains('comment') ||
             haystack.contains('like') ||
             haystack.contains('follow'),
-      _NotificationFilter.books =>
-        haystack.contains('book') ||
-            haystack.contains('story') ||
-            haystack.contains('chapter') ||
-            haystack.contains('review') ||
-            haystack.contains('quote'),
+      _NotificationFilter.messages =>
+        type == 'message' ||
+            haystack.contains('message') ||
+            haystack.contains('chat'),
       _NotificationFilter.all => true,
     };
   }
@@ -184,47 +185,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
                               if (!context.mounted) return;
 
-                              final metadata = item.metadata ?? {};
-                              if (item.type == 'message') {
-                                final convId =
-                                    metadata['conversationId']?.toString() ??
-                                    metadata['id']?.toString() ??
-                                    (item.targetId != null &&
-                                            item.targetId!.isNotEmpty
-                                        ? item.targetId
-                                        : null) ??
-                                    '';
-
-                                if (convId.isNotEmpty &&
-                                    convId != 'null' &&
-                                    convId != 'undefined' &&
-                                    !convId.contains('/') &&
-                                    convId.length > 5) {
-                                  Navigator.of(context).pushNamed(
-                                    AppRoutes.conversation,
-                                    arguments: ConversationArguments(
-                                      conversationId: convId,
-                                      title: item.actorName,
-                                    ),
-                                  );
-                                } else {
-                                  debugPrint(
-                                    'Invalid conversationId in notification: $convId',
-                                  );
-                                }
-                                return;
-                              }
-
                               final target = NotificationTargetResolver.resolve(
                                 item,
                               );
                               if (target != null) {
-                                final routeArgs =
-                                    target.route == AppRoutes.publicProfile
-                                    ? PublicProfileArguments(
-                                        userId: target.payload,
-                                      )
-                                    : target.payload;
+                                final routeArgs = switch (target.route) {
+                                  AppRoutes.publicProfile =>
+                                    PublicProfileArguments(
+                                      userId: target.payload,
+                                    ),
+                                  AppRoutes.conversation =>
+                                    ConversationArguments(
+                                      conversationId: target.payload,
+                                      title: item.actorName,
+                                    ),
+                                  _ => target.payload,
+                                };
                                 Navigator.of(
                                   context,
                                 ).pushNamed(target.route, arguments: routeArgs);
@@ -257,9 +233,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     if (noNotifications) return l10n.noNotificationsYet;
     return switch (_filter) {
       _NotificationFilter.all => l10n.noNotificationsYet,
-      _NotificationFilter.messages => l10n.noMessageNotificationsYet,
+      _NotificationFilter.content => l10n.noBookNotificationsYet,
       _NotificationFilter.posts => l10n.noPostNotificationsYet,
-      _NotificationFilter.books => l10n.noBookNotificationsYet,
+      _NotificationFilter.messages => l10n.noMessageNotificationsYet,
     };
   }
 }

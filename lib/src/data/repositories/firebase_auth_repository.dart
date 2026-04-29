@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, debugPrint;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -347,9 +348,41 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateFcmToken(String userId, String token) async {
-    await _firestore.collection('users').doc(userId).update({
-      'fcmTokens': FieldValue.arrayUnion([token]),
+    final userRef = _firestore.collection('users').doc(userId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      final data = snapshot.data() ?? const <String, dynamic>{};
+      final registryRaw = data['fcmTokenRegistry'];
+      final registry = registryRaw is List
+          ? registryRaw
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .where((item) => item['token']?.toString() != token)
+                .toList()
+          : <Map<String, dynamic>>[];
+      registry.insert(0, {
+        'token': token,
+        'platform': _fcmPlatformLabel(),
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      transaction.set(userRef, {
+        'fcmTokens': FieldValue.arrayUnion([token]),
+        'fcmTokenRegistry': registry.take(10).toList(),
+      }, SetOptions(merge: true));
     });
+  }
+
+  String _fcmPlatformLabel() {
+    if (kIsWeb) return 'web';
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'android',
+      TargetPlatform.iOS => 'ios',
+      TargetPlatform.macOS => 'macos',
+      TargetPlatform.windows => 'windows',
+      TargetPlatform.linux => 'linux',
+      TargetPlatform.fuchsia => 'fuchsia',
+    };
   }
 
   @override

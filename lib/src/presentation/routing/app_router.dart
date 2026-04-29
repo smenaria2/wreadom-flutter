@@ -80,7 +80,7 @@ class AppRouter {
   static MaterialPageRoute _notFound([String? message]) {
     return MaterialPageRoute(
       builder: (_) => StaticInfoScreen(
-        title: 'Not Found',
+        title: 'Page Not Found',
         body: message ?? 'The requested page could not be found.',
       ),
     );
@@ -247,7 +247,9 @@ class AppRouter {
       case AppRoutes.help:
         return MaterialPageRoute(builder: (_) => const HelpScreen());
       case AppRoutes.languageSettings:
-        return MaterialPageRoute(builder: (_) => const LanguageSettingsScreen());
+        return MaterialPageRoute(
+          builder: (_) => const LanguageSettingsScreen(),
+        );
       case AppRoutes.privacy:
         return MaterialPageRoute(
           builder: (_) => const StaticInfoScreen(

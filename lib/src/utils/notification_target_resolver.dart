@@ -13,10 +13,13 @@ class NotificationTargetResolver {
   static NotificationTarget? resolve(AppNotification notification) {
     final metadata = notification.metadata ?? const <String, dynamic>{};
     final linkTarget = AppLinkHelper.resolve(notification.link);
+    final type = notification.type.toLowerCase();
 
     final bookId = _firstValid([
       metadata['bookId'],
       metadata['book'],
+      metadata['contentId'],
+      _queryValue(notification.link, 'book'),
       _idFromLink(notification.link, ['book', 'b']),
       linkTarget?.route == AppRoutes.bookDetail ? linkTarget?.payload : null,
     ]);
@@ -25,62 +28,123 @@ class NotificationTargetResolver {
       metadata['postId'],
       metadata['feedPostId'],
       metadata['feedId'],
+      _queryValue(notification.link, 'post'),
       _idFromLink(notification.link, ['post', 'posts', 'feed', 'p']),
       linkTarget?.route == AppRoutes.postDetail ? linkTarget?.payload : null,
     ]);
 
+    final conversationId = _firstValid([
+      metadata['conversationId'],
+      metadata['id'],
+      linkTarget?.route == AppRoutes.conversation ? linkTarget?.payload : null,
+    ]);
+
     final userId = _firstValid([
       metadata['userId'],
+      metadata['authorId'],
+      metadata['profileId'],
       notification.actorId,
-      _idFromLink(notification.link, ['user', 'u']),
+      _idFromLink(notification.link, ['user', 'u', 'profile']),
       linkTarget?.route == AppRoutes.publicProfile ? linkTarget?.payload : null,
     ]);
 
-    final type = notification.type.toLowerCase();
-    final targetId = _clean(notification.targetId);
+    if (linkTarget?.route == AppRoutes.bookDetail &&
+        linkTarget?.payload != null) {
+      return NotificationTarget(AppRoutes.bookDetail, linkTarget!.payload!);
+    }
+    if (linkTarget?.route == AppRoutes.postDetail &&
+        linkTarget?.payload != null) {
+      return NotificationTarget(AppRoutes.postDetail, linkTarget!.payload!);
+    }
+    if (linkTarget?.route == AppRoutes.conversation &&
+        linkTarget?.payload != null) {
+      return NotificationTarget(AppRoutes.conversation, linkTarget!.payload!);
+    }
+    if (linkTarget?.route == AppRoutes.publicProfile &&
+        linkTarget?.payload != null) {
+      return NotificationTarget(AppRoutes.publicProfile, linkTarget!.payload!);
+    }
 
-    final isBookActivity =
-        type.contains('book') ||
-        type.contains('chapter') ||
-        type.contains('quote') ||
-        type.contains('review') ||
-        (type.contains('comment') && bookId != null);
+    final targetType = _clean(metadata['targetType'])?.toLowerCase();
+    final isBookType = _isBookType(type, targetType);
+    final isPostType = _isPostType(type, targetType);
+    final isMessageType = type == 'message' || type == 'groupmessage';
+    final isProfileType =
+        type == 'follow' ||
+        type == 'follower' ||
+        type == 'following' ||
+        type == 'testimonial' ||
+        type.contains('follow');
+    final hasAmbiguousContentType =
+        type == 'comment' ||
+        type == 'reply' ||
+        type == 'like' ||
+        type == 'mention';
 
-    if (isBookActivity && bookId != null) {
+    if ((isBookType || (hasAmbiguousContentType && bookId != null)) &&
+        bookId != null) {
       return NotificationTarget(AppRoutes.bookDetail, bookId);
     }
 
-    if ((type == 'follow' || type == 'following' || type.contains('follow')) &&
-        userId != null) {
+    if ((isPostType || (hasAmbiguousContentType && postId != null)) &&
+        postId != null) {
+      return NotificationTarget(AppRoutes.postDetail, postId);
+    }
+
+    if (isMessageType && conversationId != null) {
+      return NotificationTarget(AppRoutes.conversation, conversationId);
+    }
+
+    if (isProfileType && userId != null) {
       return NotificationTarget(AppRoutes.publicProfile, userId);
     }
 
-    final isPostActivity =
+    final targetId = _clean(notification.targetId);
+
+    if (linkTarget?.payload != null) {
+      return NotificationTarget(linkTarget!.route, linkTarget.payload!);
+    }
+
+    if (isBookType && targetId != null) {
+      return NotificationTarget(AppRoutes.bookDetail, targetId);
+    }
+    if (isPostType && targetId != null) {
+      return NotificationTarget(AppRoutes.postDetail, targetId);
+    }
+    if (isMessageType && targetId != null) {
+      return NotificationTarget(AppRoutes.conversation, targetId);
+    }
+    if (isProfileType && targetId != null) {
+      return NotificationTarget(AppRoutes.publicProfile, targetId);
+    }
+
+    return null;
+  }
+
+  static bool _isBookType(String type, String? targetType) {
+    return targetType == 'book' ||
+        targetType == 'content' ||
+        type == 'published' ||
+        type == 'chapter_update' ||
+        type == 'review' ||
+        type == 'book' ||
+        type == 'chapter' ||
+        type == 'quote' ||
+        type.contains('book') ||
+        type.contains('chapter') ||
+        type.contains('quote') ||
+        type.contains('review');
+  }
+
+  static bool _isPostType(String type, String? targetType) {
+    return targetType == 'post' ||
+        targetType == 'feed' ||
+        targetType == 'feedpost' ||
         type == 'post' ||
         type == 'feedpost' ||
         type == 'feed_comment' ||
         type == 'feed_reply' ||
-        type.contains('post') ||
-        type == 'like' ||
-        type == 'comment' ||
-        type == 'reply';
-
-    if (isPostActivity && postId != null) {
-      return NotificationTarget(AppRoutes.postDetail, postId);
-    }
-
-    if (!isBookActivity && !isPostActivity && linkTarget?.payload != null) {
-      return NotificationTarget(linkTarget!.route, linkTarget.payload!);
-    }
-
-    if (isBookActivity && targetId != null) {
-      return NotificationTarget(AppRoutes.bookDetail, targetId);
-    }
-    if (isPostActivity && targetId != null) {
-      return NotificationTarget(AppRoutes.postDetail, targetId);
-    }
-
-    return null;
+        type.contains('post');
   }
 
   static String? _idFromLink(String link, List<String> pathNames) {
@@ -93,6 +157,12 @@ class NotificationTargetResolver {
       }
     }
     return null;
+  }
+
+  static String? _queryValue(String link, String key) {
+    final uri = Uri.tryParse(link);
+    if (uri == null) return null;
+    return _clean(uri.queryParameters[key]);
   }
 
   static String? _firstValid(List<dynamic> values) {

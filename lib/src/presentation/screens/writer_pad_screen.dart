@@ -630,6 +630,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 label: l10n.contentType,
                 value: _contentType,
                 values: _taxonomy.contentTypes,
+                displayLabel: _localizedContentType,
                 onChanged: (value) {
                   setState(() {
                     _contentType = value;
@@ -647,6 +648,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 label: l10n.category,
                 value: _category,
                 values: _currentCategories,
+                displayLabel: _localizedCategory,
                 onChanged: (value) {
                   setState(() {
                     _category = value;
@@ -660,6 +662,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 label: l10n.language,
                 value: _language,
                 values: _languageOptions,
+                displayLabel: _localizedLanguage,
                 onChanged: (value) {
                   setState(() {
                     _language = value;
@@ -864,6 +867,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     required String value,
     required List<String> values,
     required ValueChanged<String> onChanged,
+    String Function(String)? displayLabel,
   }) {
     final onSurfaceColor = _onWriterSurfaceColor(context);
     final fieldColor = _writerFieldColor(context);
@@ -888,8 +892,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       ),
       items: values
           .map(
-            (item) =>
-                DropdownMenuItem(value: item, child: Text(_titleCase(item))),
+            (item) => DropdownMenuItem(
+              value: item,
+              child: Text(displayLabel?.call(item) ?? _titleCase(item)),
+            ),
           )
           .toList(),
       onChanged: (value) {
@@ -1546,6 +1552,89 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       'malayalam': 'Malayalam',
     };
     return aliases[normalized] ?? value!.trim();
+  }
+
+  bool get _isHindiLocale =>
+      Localizations.localeOf(context).languageCode == 'hi';
+
+  String _localizedContentType(String value) {
+    if (!_isHindiLocale) return _titleCase(value);
+    return switch (value.trim().toLowerCase()) {
+      'story' => 'कहानी',
+      'poem' || 'poetry' => 'कविता',
+      'article' => 'लेख',
+      _ => _titleCase(value),
+    };
+  }
+
+  String _localizedCategory(String value) {
+    if (!_isHindiLocale) return _titleCase(value);
+    const labels = {
+      'romance': 'रोमांस',
+      'mystery': 'रहस्य',
+      'thriller': 'थ्रिलर',
+      'science fiction': 'विज्ञान कथा',
+      'fantasy': 'फंतासी',
+      'horror': 'हॉरर',
+      'adventure': 'साहसिक',
+      'historical fiction': 'ऐतिहासिक कथा',
+      'young adult': 'युवा साहित्य',
+      'literary fiction': 'साहित्यिक कथा',
+      'comedy': 'हास्य',
+      'drama': 'नाटक',
+      'crime': 'अपराध',
+      'stories': 'कहानियां',
+      'fan fiction': 'फैन फिक्शन',
+      'lyrical': 'गीतात्मक',
+      'narrative': 'कथात्मक',
+      'haiku': 'हाइकु',
+      'free verse': 'मुक्त छंद',
+      'sonnet': 'सॉनेट',
+      'ghazal': 'ग़ज़ल',
+      'blank verse': 'अतुकांत छंद',
+      'ode': 'ओड',
+      'elegy': 'शोकगीत',
+      'ballad': 'बैलेड',
+      'prose poetry': 'गद्य कविता',
+      'spoken word': 'स्पोकन वर्ड',
+      'visual poetry': 'दृश्य कविता',
+      'acrostic': 'अक्रॉस्टिक',
+      'experimental': 'प्रयोगात्मक',
+      'technology': 'प्रौद्योगिकी',
+      'science': 'विज्ञान',
+      'health': 'स्वास्थ्य',
+      'education': 'शिक्षा',
+      'business': 'व्यवसाय',
+      'politics': 'राजनीति',
+      'travel': 'यात्रा',
+      'lifestyle': 'जीवनशैली',
+      'personal development': 'व्यक्तिगत विकास',
+      'finance': 'वित्त',
+      'environment': 'पर्यावरण',
+      'arts & culture': 'कला और संस्कृति',
+      'food & cooking': 'भोजन और पाक-कला',
+      'sports': 'खेल',
+      'history': 'इतिहास',
+      'other': 'अन्य',
+    };
+    return labels[value.trim().toLowerCase()] ?? _titleCase(value);
+  }
+
+  String _localizedLanguage(String value) {
+    if (!_isHindiLocale) return _titleCase(value);
+    const labels = {
+      'hindi': 'हिंदी',
+      'english': 'अंग्रेज़ी',
+      'bengali': 'बंगाली',
+      'telugu': 'तेलुगु',
+      'marathi': 'मराठी',
+      'tamil': 'तमिल',
+      'gujarati': 'गुजराती',
+      'urdu': 'उर्दू',
+      'kannada': 'कन्नड़',
+      'malayalam': 'मलयालम',
+    };
+    return labels[value.trim().toLowerCase()] ?? _titleCase(value);
   }
 
   String _titleCase(String value) {

@@ -34,6 +34,7 @@ class FirebaseFollowRepository implements FollowRepository {
       transaction.set(followRef, {
         'followerId': followerId,
         'followingId': followingId,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
 
@@ -48,6 +49,12 @@ class FirebaseFollowRepository implements FollowRepository {
 
   @override
   Future<bool> isFollowing(String followerId, String followingId) async {
+    final deterministic = await _firestore
+        .collection('follows')
+        .doc(_followDocId(followerId, followingId))
+        .get();
+    if (deterministic.exists) return true;
+
     final snapshot = await _firestore
         .collection('follows')
         .where('followerId', isEqualTo: followerId)
@@ -63,9 +70,7 @@ class FirebaseFollowRepository implements FollowRepository {
         .collection('follows')
         .where('followerId', isEqualTo: followerId)
         .get();
-    return snapshot.docs
-        .map((doc) => doc.data()['followingId'] as String)
-        .toList();
+    return _uniqueIds(snapshot.docs, 'followingId');
   }
 
   @override
@@ -74,9 +79,27 @@ class FirebaseFollowRepository implements FollowRepository {
         .collection('follows')
         .where('followingId', isEqualTo: followingId)
         .get();
-    return snapshot.docs
-        .map((doc) => doc.data()['followerId'] as String)
-        .toList();
+    return _uniqueIds(snapshot.docs, 'followerId');
+  }
+
+  List<String> _uniqueIds(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    String field,
+  ) {
+    final ids = <String>[];
+    final seen = <String>{};
+    for (final doc in docs) {
+      final id = doc.data()[field]?.toString().trim();
+      if (id == null ||
+          id.isEmpty ||
+          id == 'null' ||
+          id == 'undefined' ||
+          id.contains('/')) {
+        continue;
+      }
+      if (seen.add(id)) ids.add(id);
+    }
+    return ids;
   }
 
   @override

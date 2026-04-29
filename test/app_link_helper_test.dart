@@ -111,11 +111,16 @@ void main() {
     test('resolves discovery and writer paths without payloads', () {
       final discovery = AppLinkHelper.resolve('/search');
       final writer = AppLinkHelper.resolve('/writer');
+      final writerQuery = AppLinkHelper.resolve(
+        'https://wreadom.in/?page=writer',
+      );
 
       expect(discovery?.route, AppRoutes.discovery);
       expect(discovery?.payload, isNull);
       expect(writer?.route, AppRoutes.writerDashboard);
       expect(writer?.payload, isNull);
+      expect(writerQuery?.route, AppRoutes.writerDashboard);
+      expect(writerQuery?.payload, isNull);
     });
   });
 }

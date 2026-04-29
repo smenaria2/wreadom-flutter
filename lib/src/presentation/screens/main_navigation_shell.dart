@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/navigation_providers.dart';
@@ -20,6 +21,8 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
+  StreamSubscription<String>? _tokenRefreshSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +42,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       final token = await notificationService.getFcmToken();
       if (token != null) {
         final user = await ref.read(currentUserProvider.future);
-        final existingTokens = user?.fcmTokens ?? const <String>[];
-        if (user != null && !existingTokens.contains(token)) {
+        if (user != null) {
           try {
             await ref
                 .read(authRepositoryProvider)
@@ -52,6 +54,25 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         }
       }
     }
+
+    _tokenRefreshSubscription ??= notificationService.onTokenRefresh.listen((
+      token,
+    ) async {
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) return;
+      try {
+        await ref.read(authRepositoryProvider).updateFcmToken(user.id, token);
+        debugPrint('Refreshed FCM token updated successfully');
+      } catch (e) {
+        debugPrint('Failed to update refreshed FCM token: $e');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tokenRefreshSubscription?.cancel();
+    super.dispose();
   }
 
   List<Widget> get _screens => [

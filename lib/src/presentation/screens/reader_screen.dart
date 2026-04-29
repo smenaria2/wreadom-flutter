@@ -1075,15 +1075,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final blocks = _ttsBlocksForChapter(chapter);
     if (blocks.isEmpty || blockIndex < 0 || blockIndex >= blocks.length) return;
 
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
     _stopTtsRequested = true;
     _ttsSession++;
     await _tts.stop();
     await Future.delayed(const Duration(milliseconds: 100));
 
     if (!mounted) return;
-    final scrollOffset = _scrollController.hasClients
-        ? _scrollController.offset
-        : null;
     setState(() {
       _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
@@ -1161,6 +1161,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkList.length - 1,
     );
 
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
     // Stop current playback
     _stopTtsRequested = true;
     _ttsSession++;
@@ -1177,6 +1180,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isTtsPlaying = false;
       _isTtsPreparing = true;
     });
+    _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
     await _runTtsFromIndex(chapter, targetIndex);
   }
@@ -2931,6 +2935,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
 enum _ReaderBlockKind { text, heading, quote, image, media }
 
+String _viewChapterCommentsLabel(BuildContext context) =>
+    AppLocalizations.of(context)!.viewChapterComments;
+
 class _ReaderContentBlock {
   const _ReaderContentBlock({
     required this.kind,
@@ -3143,9 +3150,7 @@ class _ChapterDrawer extends StatelessWidget {
                   ),
                   trailing: commentCount > 0
                       ? IconButton(
-                          tooltip: AppLocalizations.of(
-                            context,
-                          )!.viewChapterComments,
+                          tooltip: _viewChapterCommentsLabel(context),
                           icon: Badge(
                             label: Text('$commentCount'),
                             child: const Icon(
@@ -3581,12 +3586,26 @@ class _ReaderBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = theme == ReaderTheme.dark
-        ? const Color(0xFF1E1E1E)
-        : Colors.white;
-    final textColor = theme == ReaderTheme.dark
-        ? Colors.white70
-        : Colors.black54;
+    final bgColor = switch (theme) {
+      ReaderTheme.dark => const Color(0xFF1E1E1E),
+      ReaderTheme.sepia => const Color(0xFFE9DCC0),
+      ReaderTheme.light || ReaderTheme.system => Colors.white,
+    };
+    final textColor = switch (theme) {
+      ReaderTheme.dark => Colors.white70,
+      ReaderTheme.sepia => const Color(0xFF5F5447),
+      ReaderTheme.light || ReaderTheme.system => Colors.black54,
+    };
+    final progressColor = switch (theme) {
+      ReaderTheme.sepia => const Color(0xFF8A5A2B),
+      ReaderTheme.dark => Theme.of(context).colorScheme.primary,
+      ReaderTheme.light ||
+      ReaderTheme.system => Theme.of(context).colorScheme.primary,
+    };
+    final progressBackground = switch (theme) {
+      ReaderTheme.sepia => const Color(0xFFD8C59E),
+      _ => textColor.withValues(alpha: 0.1),
+    };
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -3616,10 +3635,8 @@ class _ReaderBottomBar extends StatelessWidget {
               children: [
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: textColor.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).colorScheme.primary,
-                  ),
+                  backgroundColor: progressBackground,
+                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                   minHeight: 2,
                 ),
                 Expanded(
