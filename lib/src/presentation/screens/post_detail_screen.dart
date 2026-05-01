@@ -346,7 +346,7 @@ class _TargetCommentHeader extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.push_pin_rounded,
+            Icons.notifications_active_outlined,
             size: 16,
             color: Theme.of(context).colorScheme.primary,
           ),

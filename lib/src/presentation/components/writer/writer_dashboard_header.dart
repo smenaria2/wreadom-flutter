@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../providers/auth_providers.dart';
+import '../../providers/follow_providers.dart';
 import '../../providers/writer_providers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -26,6 +27,12 @@ class WriterDashboardHeader extends ConsumerWidget {
           0,
           (sum, book) => sum + (book.viewCount ?? 0),
         );
+        final followersCount = ref
+            .watch(userFollowersListProvider(user.id))
+            .maybeWhen(
+              data: (followers) => followers.length,
+              orElse: () => user.followersCount ?? 0,
+            );
 
         return Container(
           width: double.infinity,
@@ -128,7 +135,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                     ),
                     _InfoItem(
                       label: l10n.followers,
-                      value: '${user.followersCount ?? 0}',
+                      value: '$followersCount',
                       icon: Icons.people_rounded,
                     ),
                   ],

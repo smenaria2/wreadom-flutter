@@ -30,22 +30,10 @@ class _HelpScreenState extends State<HelpScreen> {
             question: l10n.faqOfflineReadingQ,
             answer: l10n.faqOfflineReadingA,
           ),
-          _FAQ(
-            question: l10n.faqBookmarksQ,
-            answer: l10n.faqBookmarksA,
-          ),
-          _FAQ(
-            question: l10n.faqQuoteCommentQ,
-            answer: l10n.faqQuoteCommentA,
-          ),
-          _FAQ(
-            question: l10n.faqWhatAreReadsQ,
-            answer: l10n.faqWhatAreReadsA,
-          ),
-          _FAQ(
-            question: l10n.faqTapToSeekQ,
-            answer: l10n.faqTapToSeekA,
-          ),
+          _FAQ(question: l10n.faqBookmarksQ, answer: l10n.faqBookmarksA),
+          _FAQ(question: l10n.faqQuoteCommentQ, answer: l10n.faqQuoteCommentA),
+          _FAQ(question: l10n.faqWhatAreReadsQ, answer: l10n.faqWhatAreReadsA),
+          _FAQ(question: l10n.faqTapToSeekQ, answer: l10n.faqTapToSeekA),
           _FAQ(
             question: l10n.faqShareQuoteImageQ,
             answer: l10n.faqShareQuoteImageA,
@@ -57,18 +45,9 @@ class _HelpScreenState extends State<HelpScreen> {
         icon: Icons.edit_note_rounded,
         color: Colors.orange,
         faqs: [
-          _FAQ(
-            question: l10n.faqStartStoryQ,
-            answer: l10n.faqStartStoryA,
-          ),
-          _FAQ(
-            question: l10n.faqAutoSaveQ,
-            answer: l10n.faqAutoSaveA,
-          ),
-          _FAQ(
-            question: l10n.faqPublishWorkQ,
-            answer: l10n.faqPublishWorkA,
-          ),
+          _FAQ(question: l10n.faqStartStoryQ, answer: l10n.faqStartStoryA),
+          _FAQ(question: l10n.faqAutoSaveQ, answer: l10n.faqAutoSaveA),
+          _FAQ(question: l10n.faqPublishWorkQ, answer: l10n.faqPublishWorkA),
           _FAQ(
             question: l10n.faqOrganizeChaptersQ,
             answer: l10n.faqOrganizeChaptersA,
@@ -80,26 +59,28 @@ class _HelpScreenState extends State<HelpScreen> {
         ],
       ),
       _HelpCategory(
+        title: l10n.helpCategoryCollaboration,
+        icon: Icons.handshake_outlined,
+        color: Colors.indigo,
+        faqs: [
+          _FAQ(
+            question: l10n.faqCollaborationQ,
+            answer: l10n.faqCollaborationA,
+          ),
+        ],
+      ),
+      _HelpCategory(
         title: l10n.helpCategoryDiscovery,
         icon: Icons.explore_rounded,
         color: Colors.green,
         faqs: [
-          _FAQ(
-            question: l10n.faqFindBooksQ,
-            answer: l10n.faqFindBooksA,
-          ),
-          _FAQ(
-            question: l10n.faqOriginalsQ,
-            answer: l10n.faqOriginalsA,
-          ),
+          _FAQ(question: l10n.faqFindBooksQ, answer: l10n.faqFindBooksA),
+          _FAQ(question: l10n.faqOriginalsQ, answer: l10n.faqOriginalsA),
           _FAQ(
             question: l10n.faqInternetArchiveQ,
             answer: l10n.faqInternetArchiveA,
           ),
-          _FAQ(
-            question: l10n.faqFeedUpdatesQ,
-            answer: l10n.faqFeedUpdatesA,
-          ),
+          _FAQ(question: l10n.faqFeedUpdatesQ, answer: l10n.faqFeedUpdatesA),
         ],
       ),
       _HelpCategory(
@@ -107,30 +88,18 @@ class _HelpScreenState extends State<HelpScreen> {
         icon: Icons.people_alt_rounded,
         color: Colors.purple,
         faqs: [
-          _FAQ(
-            question: l10n.faqDailyTopicQ,
-            answer: l10n.faqDailyTopicA,
-          ),
+          _FAQ(question: l10n.faqDailyTopicQ, answer: l10n.faqDailyTopicA),
           _FAQ(
             question: l10n.faqDailyTopicsParticipationQ,
             answer: l10n.faqDailyTopicsParticipationA,
           ),
-          _FAQ(
-            question: l10n.faqFollowAuthorQ,
-            answer: l10n.faqFollowAuthorA,
-          ),
-          _FAQ(
-            question: l10n.faqMessagingQ,
-            answer: l10n.faqMessagingA,
-          ),
+          _FAQ(question: l10n.faqFollowAuthorQ, answer: l10n.faqFollowAuthorA),
+          _FAQ(question: l10n.faqMessagingQ, answer: l10n.faqMessagingA),
           _FAQ(
             question: l10n.faqMessagingRulesQ,
             answer: l10n.faqMessagingRulesA,
           ),
-          _FAQ(
-            question: l10n.faqPinUnpinQ,
-            answer: l10n.faqPinUnpinA,
-          ),
+          _FAQ(question: l10n.faqPinUnpinQ, answer: l10n.faqPinUnpinA),
           _FAQ(
             question: l10n.faqReportContentQ,
             answer: l10n.faqReportContentA,
@@ -142,10 +111,7 @@ class _HelpScreenState extends State<HelpScreen> {
         icon: Icons.account_circle_rounded,
         color: Colors.red,
         faqs: [
-          _FAQ(
-            question: l10n.faqChangeThemeQ,
-            answer: l10n.faqChangeThemeA,
-          ),
+          _FAQ(question: l10n.faqChangeThemeQ, answer: l10n.faqChangeThemeA),
           _FAQ(
             question: l10n.faqChangeLanguageQ,
             answer: l10n.faqChangeLanguageA,
@@ -343,55 +309,63 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 
   Widget _buildSupportFooter(ThemeData theme, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.outlineVariant),
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          border: Border(
+            top: BorderSide(color: theme.colorScheme.outlineVariant),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.stillNeedHelp,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    l10n.communitySupportAssist,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  l10n.stillNeedHelp,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => const SubmitErrorDialog(),
+                    );
+                  },
+                  icon: const Icon(Icons.bug_report_outlined, size: 18),
+                  label: Text(l10n.submitError),
                 ),
-                Text(
-                  l10n.communitySupportAssist,
-                  style: theme.textTheme.bodySmall,
+                FilledButton.icon(
+                  onPressed: () => _emailSupport(context, l10n),
+                  icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                  label: Text(l10n.emailSupport),
                 ),
               ],
             ),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (context) => const SubmitErrorDialog(),
-              );
-            },
-                icon: const Icon(Icons.bug_report_outlined, size: 18),
-                label: Text(l10n.submitError),
-              ),
-              FilledButton.icon(
-                onPressed: () => _emailSupport(context, l10n),
-                icon: const Icon(Icons.mail_outline_rounded, size: 18),
-                label: Text(l10n.emailSupport),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

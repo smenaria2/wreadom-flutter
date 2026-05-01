@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../providers/feed_providers.dart';
@@ -16,11 +17,32 @@ class HomeFeedScreen extends ConsumerStatefulWidget {
 
 class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   FeedFilter _selectedFilter = FeedFilter.following;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _selectFilter(FeedFilter filter) {
+    setState(() => _selectedFilter = filter);
+    _pageController.animateToPage(
+      FeedFilter.values.indexOf(filter),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+    HapticFeedback.selectionClick();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final feedState = ref.watch(pagedFeedPostsProvider(_selectedFilter));
     final feedController = ref.read(
       pagedFeedPostsProvider(_selectedFilter).notifier,
     );
@@ -95,113 +117,25 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                   ],
                   selected: {_selectedFilter},
                   onSelectionChanged: (selection) {
-                    setState(() => _selectedFilter = selection.first);
+                    _selectFilter(selection.first);
                   },
                 ),
               ),
             ),
-            if (feedState.isInitialLoading)
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (feedState.error != null)
-              SliverFillRemaining(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: 48,
-                          color: Colors.red[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.somethingWentWrong,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          feedState.error.toString(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colorScheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: feedController.refresh,
-                          icon: const Icon(Icons.refresh),
-                          label: Text(l10n.tryAgain),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            else if (feedState.items.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.feed_outlined,
-                        size: 64,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.35,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _selectedFilter == FeedFilter.following
-                            ? l10n.noFollowingPosts
-                            : l10n.noPosts,
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.beFirstToPost,
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.75,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.edit_rounded),
-                        label: Text(l10n.createAPost),
-                        onPressed: () => showCreatePostSheet(context),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.only(bottom: 132),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    if (index == feedState.items.length) {
-                      return _LoadMoreFeedButton(
-                        isLoading: feedState.isLoadingMore,
-                        hasMore: feedState.hasMore,
-                        onPressed: feedController.loadMore,
-                      );
-                    }
-                    return FeedPostCard(post: feedState.items[index]);
-                  }, childCount: feedState.items.length + 1),
-                ),
+            SliverFillRemaining(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: FeedFilter.values.length,
+                onPageChanged: (index) {
+                  setState(() => _selectedFilter = FeedFilter.values[index]);
+                  HapticFeedback.selectionClick();
+                },
+                itemBuilder: (context, index) {
+                  final filter = FeedFilter.values[index];
+                  return _FeedFilterPage(filter: filter);
+                },
               ),
+            ),
           ],
         ),
       ),
@@ -211,6 +145,114 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
         icon: const Icon(Icons.edit_rounded),
         label: Text(l10n.post),
       ),
+    );
+  }
+}
+
+class _FeedFilterPage extends ConsumerWidget {
+  const _FeedFilterPage({required this.filter});
+
+  final FeedFilter filter;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final feedState = ref.watch(pagedFeedPostsProvider(filter));
+    final feedController = ref.read(pagedFeedPostsProvider(filter).notifier);
+    final l10n = AppLocalizations.of(context)!;
+
+    if (feedState.isInitialLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (feedState.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Colors.red[300],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.somethingWentWrong,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                feedState.error.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: feedController.refresh,
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.tryAgain),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (feedState.items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.feed_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              filter == FeedFilter.following
+                  ? l10n.noFollowingPosts
+                  : l10n.noPosts,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.beFirstToPost,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(l10n.createAPost),
+              onPressed: () => showCreatePostSheet(context),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 132),
+      itemCount: feedState.items.length + 1,
+      itemBuilder: (context, index) {
+        if (index == feedState.items.length) {
+          return _LoadMoreFeedButton(
+            isLoading: feedState.isLoadingMore,
+            hasMore: feedState.hasMore,
+            onPressed: feedController.loadMore,
+          );
+        }
+        return FeedPostCard(post: feedState.items[index]);
+      },
     );
   }
 }

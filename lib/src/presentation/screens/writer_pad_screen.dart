@@ -1538,6 +1538,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildCollaborationSection() {
+    final l10n = AppLocalizations.of(context)!;
     final existingBook = widget.book;
     final isAccepted =
         existingBook != null && isAcceptedCollaboration(existingBook);
@@ -1581,7 +1582,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: Text(
-              'Collab',
+              l10n.collab,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: _onWriterSurfaceColor(context),
                 fontWeight: FontWeight.w800,
@@ -1589,10 +1590,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             ),
             subtitle: Text(
               isAccepted
-                  ? 'Accepted collaboration. Both authors can edit this book.'
+                  ? l10n.collabAcceptedDescription
                   : isPending
-                  ? 'Request pending. The co-author can preview and respond.'
-                  : 'Invite one followed author to co-write this book.',
+                  ? l10n.collabPendingDescription
+                  : l10n.collabInviteDescription,
               style: TextStyle(
                 color: _onWriterSurfaceColor(context).withValues(alpha: 0.65),
               ),
@@ -1617,13 +1618,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             profilesAsync.when(
               loading: () => const LinearProgressIndicator(),
               error: (_, _) => Text(
-                'Could not load followed authors.',
+                l10n.collabLoadAuthorsFailed,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               data: (_) {
                 if (dropdownProfiles.isEmpty) {
                   return Text(
-                    'Follow an author first to invite them.',
+                    l10n.collabFollowAuthorFirst,
                     style: TextStyle(
                       color: _onWriterSurfaceColor(
                         context,
@@ -1637,7 +1638,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       : null,
                   dropdownColor: _writerSurfaceColor(context),
                   decoration: InputDecoration(
-                    labelText: 'Co-author',
+                    labelText: l10n.coAuthor,
                     filled: true,
                     fillColor: _writerFieldColor(context),
                     enabledBorder: OutlineInputBorder(

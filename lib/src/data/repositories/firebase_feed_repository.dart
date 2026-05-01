@@ -319,14 +319,6 @@ class FirebaseFeedRepository implements FeedRepository {
       'likes': const <String>[],
       'replies': const <Map<String, dynamic>>[],
     });
-
-    try {
-      await postRef.update({'commentCount': FieldValue.increment(1)});
-    } catch (error) {
-      debugPrint(
-        '[FirebaseFeedRepository] Comment saved but count update failed: $error',
-      );
-    }
   }
 
   @override
@@ -349,7 +341,7 @@ class FirebaseFeedRepository implements FeedRepository {
 
   @override
   Future<void> deleteComment(String postId, String commentId) async {
-    await _deleteTopLevelComment(postId, commentId);
+    await _deleteTopLevelComment(commentId);
   }
 
   @override
@@ -454,19 +446,11 @@ class FirebaseFeedRepository implements FeedRepository {
     });
   }
 
-  Future<bool> _deleteTopLevelComment(String postId, String commentId) async {
+  Future<bool> _deleteTopLevelComment(String commentId) async {
     final commentRef = _firestore.collection('comments').doc(commentId);
-    final postRef = _firestore.collection(_collection).doc(postId);
     final snap = await commentRef.get();
     if (!snap.exists) return false;
     await commentRef.delete();
-    try {
-      await postRef.update({'commentCount': FieldValue.increment(-1)});
-    } catch (error) {
-      debugPrint(
-        '[FirebaseFeedRepository] Comment deleted but count update failed: $error',
-      );
-    }
     return true;
   }
 

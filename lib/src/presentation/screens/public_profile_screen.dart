@@ -47,6 +47,18 @@ class PublicProfileScreen extends ConsumerWidget {
                 data: (books) => books.length,
                 orElse: () => user.pinnedWorks?.length ?? 0,
               );
+          final followersCount = ref
+              .watch(userFollowersListProvider(user.id))
+              .maybeWhen(
+                data: (followers) => followers.length,
+                orElse: () => user.followersCount ?? 0,
+              );
+          final followingCount = ref
+              .watch(userFollowingListProvider(user.id))
+              .maybeWhen(
+                data: (following) => following.length,
+                orElse: () => user.followingCount ?? 0,
+              );
           final level = (user.privacyLevel ?? 'public').toLowerCase();
           final followersOnly =
               level == 'followers' ||
@@ -139,7 +151,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           Expanded(
                             child: _StatChip(
                               label: l10n.followers,
-                              value: '${user.followersCount ?? 0}',
+                              value: '$followersCount',
                               onTap: () => Navigator.of(context).pushNamed(
                                 AppRoutes.followList,
                                 arguments: FollowListArguments(
@@ -154,7 +166,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           Expanded(
                             child: _StatChip(
                               label: l10n.following,
-                              value: '${user.followingCount ?? 0}',
+                              value: '$followingCount',
                               onTap: () => Navigator.of(context).pushNamed(
                                 AppRoutes.followList,
                                 arguments: FollowListArguments(

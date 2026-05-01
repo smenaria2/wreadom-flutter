@@ -1085,6 +1085,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get noBookNotificationsYet => 'अभी कोई रचना नोटिफ़िकेशन नहीं';
 
   @override
+  String get notificationContentFilter => 'रचना';
+
+  @override
   String get showLess => 'कम दिखाएं';
 
   @override
@@ -1103,6 +1106,46 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noDraftsYet => 'अभी कोई ड्राफ़्ट नहीं है';
+
+  @override
+  String get draft => 'ड्राफ़्ट';
+
+  @override
+  String get lastUpdate => 'आखिरी अपडेट';
+
+  @override
+  String get editStory => 'रचना संपादित करें';
+
+  @override
+  String get collaboration => 'सहयोग';
+
+  @override
+  String get collab => 'सहयोग';
+
+  @override
+  String get collabAcceptedDescription =>
+      'सहयोग स्वीकार हो गया है। दोनों लेखक इस रचना को संपादित कर सकते हैं।';
+
+  @override
+  String get collabPendingDescription =>
+      'अनुरोध लंबित है। सह-लेखक इसे देख कर जवाब दे सकते हैं।';
+
+  @override
+  String get collabInviteDescription =>
+      'इस रचना को साथ लिखने के लिए किसी फॉलो किए गए लेखक को आमंत्रित करें।';
+
+  @override
+  String get collabLoadAuthorsFailed => 'फॉलो किए गए लेखक लोड नहीं हो सके।';
+
+  @override
+  String get collabFollowAuthorFirst =>
+      'आमंत्रित करने के लिए पहले किसी लेखक को फॉलो करें।';
+
+  @override
+  String get coAuthor => 'सह-लेखक';
+
+  @override
+  String get wantsToCollaborate => 'आपके साथ सहयोग करना चाहते हैं।';
 
   @override
   String couldNotDeleteDraft(String error) {
@@ -1145,6 +1188,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get sentYouAMessage => 'ने आपको संदेश भेजा।';
+
+  @override
+  String get sentYouBook => 'ने आपको रचना भेजी।';
 
   @override
   String get targetComment => 'लक्षित टिप्पणी';
@@ -1505,6 +1551,9 @@ class AppLocalizationsHi extends AppLocalizations {
       'ने आपकी रचना वाली टिप्पणी का जवाब दिया।';
 
   @override
+  String get commentedOnYourContent => 'ने आपकी रचना पर टिप्पणी की।';
+
+  @override
   String get reviewedYourBook => 'ने आपकी रचना की समीक्षा की।';
 
   @override
@@ -1575,6 +1624,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get helpCategoryAccount => 'खाता';
 
   @override
+  String get helpCategoryCollaboration => 'सहयोग';
+
+  @override
   String get faqCustomizeReaderQ => 'मैं रीडर को कैसे कस्टमाइज़ करूँ?';
 
   @override
@@ -1630,6 +1682,13 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get faqOrganizeChaptersA =>
       'बिल्कुल! नए अध्याय जोड़ने, उनके बीच स्विच करने या अपनी कहानी की संरचना को बदलने के लिए एडिटर में अध्याय मेनू (लिस्ट आइकन) का उपयोग करें।';
+
+  @override
+  String get faqCollaborationQ => 'सहयोग कैसे काम करता है?';
+
+  @override
+  String get faqCollaborationA =>
+      'Writer Pad में Collaboration चालू करें और जिसे आप फॉलो करते हैं उसे सह-लेखक चुनें। उन्हें अनुरोध मिलेगा, और स्वीकार होने के बाद दोनों लेखक रचना संपादित कर सकते हैं और पुस्तक पेज पर साथ दिखते हैं।';
 
   @override
   String get faqFindBooksQ => 'मुझे नई रचनाएँ कैसे मिलेंगी?';

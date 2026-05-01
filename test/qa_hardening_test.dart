@@ -414,8 +414,8 @@ void main() {
     expect(source, contains('_followDocId'));
     expect(source, contains('transaction.get(followRef)'));
     expect(source, contains('if (existing.exists) return;'));
-    expect(source, contains('if (deletedCount == 0) return;'));
-    expect(source, contains('FieldValue.increment(-deletedCount)'));
+    expect(source, isNot(contains('FieldValue.increment(1)')));
+    expect(source, isNot(contains('FieldValue.increment(-deletedCount)')));
     expect(source, isNot(contains(".collection('follows').doc(), {")));
   });
 
@@ -466,7 +466,14 @@ void main() {
 
       expect(feedSource, contains("_firestore.collection('comments').doc()"));
       expect(feedSource, contains("'feedPostId': postId"));
-      expect(feedSource, contains("'commentCount': FieldValue.increment(1)"));
+      expect(
+        feedSource,
+        isNot(contains("'commentCount': FieldValue.increment(1)")),
+      );
+      expect(
+        feedSource,
+        isNot(contains("'commentCount': FieldValue.increment(-1)")),
+      );
       expect(feedSource, contains('_addTopLevelCommentReply'));
       expect(feedSource, contains('_updateTopLevelReplies'));
       expect(
@@ -479,19 +486,18 @@ void main() {
     },
   );
 
-  test('feed comment writes do not depend on count update permission', () {
+  test('feed comment writes leave comment counts to Cloud Functions', () {
     final feedSource = File(
       'lib/src/data/repositories/firebase_feed_repository.dart',
     ).readAsStringSync();
 
     final setIndex = feedSource.indexOf('await commentRef.set');
-    final countIndex = feedSource.indexOf(
-      "'commentCount': FieldValue.increment(1)",
-    );
     expect(setIndex, greaterThan(-1));
-    expect(countIndex, greaterThan(setIndex));
-    expect(feedSource, contains('try {'));
-    expect(feedSource, contains('Comment saved but count update failed'));
+    expect(feedSource, isNot(contains("'commentCount': FieldValue.increment")));
+    expect(
+      feedSource,
+      isNot(contains('Comment saved but count update failed')),
+    );
   });
 
   test('feed actions and follow writes require signed-in ownership shapes', () {

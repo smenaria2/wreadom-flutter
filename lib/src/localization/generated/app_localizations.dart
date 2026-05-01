@@ -2048,6 +2048,12 @@ abstract class AppLocalizations {
   /// **'No content notifications yet'**
   String get noBookNotificationsYet;
 
+  /// No description provided for @notificationContentFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get notificationContentFilter;
+
   /// No description provided for @showLess.
   ///
   /// In en, this message translates to:
@@ -2083,6 +2089,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No drafts yet'**
   String get noDraftsYet;
+
+  /// No description provided for @draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get draft;
+
+  /// No description provided for @lastUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update'**
+  String get lastUpdate;
+
+  /// No description provided for @editStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit story'**
+  String get editStory;
+
+  /// No description provided for @collaboration.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration'**
+  String get collaboration;
+
+  /// No description provided for @collab.
+  ///
+  /// In en, this message translates to:
+  /// **'Collab'**
+  String get collab;
+
+  /// No description provided for @collabAcceptedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted collaboration. Both authors can edit this content.'**
+  String get collabAcceptedDescription;
+
+  /// No description provided for @collabPendingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Request pending. The co-author can preview and respond.'**
+  String get collabPendingDescription;
+
+  /// No description provided for @collabInviteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite one followed author to co-write this content.'**
+  String get collabInviteDescription;
+
+  /// No description provided for @collabLoadAuthorsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load followed authors.'**
+  String get collabLoadAuthorsFailed;
+
+  /// No description provided for @collabFollowAuthorFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow an author first to invite them.'**
+  String get collabFollowAuthorFirst;
+
+  /// No description provided for @coAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Co-author'**
+  String get coAuthor;
+
+  /// No description provided for @wantsToCollaborate.
+  ///
+  /// In en, this message translates to:
+  /// **'wants to collaborate with you.'**
+  String get wantsToCollaborate;
 
   /// Shown when deleting a draft fails
   ///
@@ -2149,6 +2227,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sent you a message.'**
   String get sentYouAMessage;
+
+  /// No description provided for @sentYouBook.
+  ///
+  /// In en, this message translates to:
+  /// **'sent you a book.'**
+  String get sentYouBook;
 
   /// No description provided for @targetComment.
   ///
@@ -2768,6 +2852,12 @@ abstract class AppLocalizations {
   /// **'replied to your content comment.'**
   String get repliedToYourBookComment;
 
+  /// No description provided for @commentedOnYourContent.
+  ///
+  /// In en, this message translates to:
+  /// **'commented on your content.'**
+  String get commentedOnYourContent;
+
   /// No description provided for @reviewedYourBook.
   ///
   /// In en, this message translates to:
@@ -2882,6 +2972,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get helpCategoryAccount;
 
+  /// No description provided for @helpCategoryCollaboration.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration'**
+  String get helpCategoryCollaboration;
+
   /// No description provided for @faqCustomizeReaderQ.
   ///
   /// In en, this message translates to:
@@ -2977,6 +3073,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.'**
   String get faqOrganizeChaptersA;
+
+  /// No description provided for @faqCollaborationQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do collaborations work?'**
+  String get faqCollaborationQ;
+
+  /// No description provided for @faqCollaborationA.
+  ///
+  /// In en, this message translates to:
+  /// **'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the book page.'**
+  String get faqCollaborationA;
 
   /// No description provided for @faqFindBooksQ.
   ///

@@ -1086,6 +1086,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noBookNotificationsYet => 'No content notifications yet';
 
   @override
+  String get notificationContentFilter => 'Content';
+
+  @override
   String get showLess => 'Show less';
 
   @override
@@ -1104,6 +1107,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDraftsYet => 'No drafts yet';
+
+  @override
+  String get draft => 'Draft';
+
+  @override
+  String get lastUpdate => 'Last update';
+
+  @override
+  String get editStory => 'Edit story';
+
+  @override
+  String get collaboration => 'Collaboration';
+
+  @override
+  String get collab => 'Collab';
+
+  @override
+  String get collabAcceptedDescription =>
+      'Accepted collaboration. Both authors can edit this content.';
+
+  @override
+  String get collabPendingDescription =>
+      'Request pending. The co-author can preview and respond.';
+
+  @override
+  String get collabInviteDescription =>
+      'Invite one followed author to co-write this content.';
+
+  @override
+  String get collabLoadAuthorsFailed => 'Could not load followed authors.';
+
+  @override
+  String get collabFollowAuthorFirst =>
+      'Follow an author first to invite them.';
+
+  @override
+  String get coAuthor => 'Co-author';
+
+  @override
+  String get wantsToCollaborate => 'wants to collaborate with you.';
 
   @override
   String couldNotDeleteDraft(String error) {
@@ -1148,6 +1191,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sentYouAMessage => 'sent you a message.';
+
+  @override
+  String get sentYouBook => 'sent you a book.';
 
   @override
   String get targetComment => 'Target comment';
@@ -1505,6 +1551,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repliedToYourBookComment => 'replied to your content comment.';
 
   @override
+  String get commentedOnYourContent => 'commented on your content.';
+
+  @override
   String get reviewedYourBook => 'reviewed your content.';
 
   @override
@@ -1575,6 +1624,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpCategoryAccount => 'Account';
 
   @override
+  String get helpCategoryCollaboration => 'Collaboration';
+
+  @override
   String get faqCustomizeReaderQ => 'How do I customize the reader?';
 
   @override
@@ -1629,6 +1681,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get faqOrganizeChaptersA =>
       'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.';
+
+  @override
+  String get faqCollaborationQ => 'How do collaborations work?';
+
+  @override
+  String get faqCollaborationA =>
+      'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the book page.';
 
   @override
   String get faqFindBooksQ => 'How do I find new books?';

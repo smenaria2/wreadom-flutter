@@ -336,7 +336,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         _optimisticLiked ??
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
-    final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
+    final commentsCount = post.id == null
+        ? post.commentCount ?? post.comments?.length ?? 0
+        : ref
+              .watch(feedPostCommentsProvider(post.id!))
+              .maybeWhen(
+                data: (comments) => comments.length,
+                orElse: () => post.commentCount ?? post.comments?.length ?? 0,
+              );
     final bookIdText = post.bookId?.toString();
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';

@@ -37,13 +37,6 @@ class FirebaseFollowRepository implements FollowRepository {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
-
-      transaction.set(_firestore.collection('users').doc(followerId), {
-        'followingCount': FieldValue.increment(1),
-      }, SetOptions(merge: true));
-      transaction.set(_firestore.collection('users').doc(followingId), {
-        'followersCount': FieldValue.increment(1),
-      }, SetOptions(merge: true));
     });
   }
 
@@ -122,21 +115,11 @@ class FirebaseFollowRepository implements FollowRepository {
         ...matching.docs.map((doc) => doc.reference),
       };
 
-      var deletedCount = 0;
       for (final ref in refs) {
         final existing = await transaction.get(ref);
         if (!existing.exists) continue;
         transaction.delete(ref);
-        deletedCount++;
       }
-      if (deletedCount == 0) return;
-
-      transaction.set(_firestore.collection('users').doc(followerId), {
-        'followingCount': FieldValue.increment(-deletedCount),
-      }, SetOptions(merge: true));
-      transaction.set(_firestore.collection('users').doc(followingId), {
-        'followersCount': FieldValue.increment(-deletedCount),
-      }, SetOptions(merge: true));
     });
   }
 }

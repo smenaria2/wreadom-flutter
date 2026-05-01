@@ -729,9 +729,11 @@ class _AuthorLine extends StatelessWidget {
           user: primaryUser,
           label: primaryName.isEmpty ? fallback : primaryName,
         ),
-        Text(
-          'with',
-          style: theme.textTheme.bodyMedium?.copyWith(
+        Tooltip(
+          message: AppLocalizations.of(context)!.collaboration,
+          child: Icon(
+            Icons.handshake_outlined,
+            size: 18,
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
@@ -872,7 +874,7 @@ class _LatestDiscussionSectionState
             const SizedBox(height: 12),
             if (targetComment != null) ...[
               _BookTargetCommentHeader(
-                label: AppLocalizations.of(context)!.targetComment,
+                label: AppLocalizations.of(context)!.fromNotifications,
               ),
               CommentTile(
                 key: ValueKey(
@@ -947,7 +949,7 @@ class _BookTargetCommentHeader extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.push_pin_rounded,
+            Icons.notifications_active_outlined,
             size: 16,
             color: Theme.of(context).colorScheme.primary,
           ),

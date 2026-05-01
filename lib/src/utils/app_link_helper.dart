@@ -2,6 +2,7 @@ import '../presentation/routing/app_routes.dart';
 
 class AppLinkHelper {
   static const host = 'wreadom.in';
+  static const wwwHost = 'www.wreadom.in';
   static const origin = 'https://$host';
 
   static String book(String bookId) {
@@ -27,7 +28,7 @@ class AppLinkHelper {
     if (uri == null) return null;
 
     final isWebLink = uri.scheme == 'http' || uri.scheme == 'https';
-    if (isWebLink && uri.host != host) return null;
+    if (isWebLink && uri.host != host && uri.host != wwwHost) return null;
 
     final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
     final queryBookId = uri.queryParameters['book'];

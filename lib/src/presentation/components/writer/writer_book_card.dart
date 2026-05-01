@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/book.dart';
 import '../../../utils/book_collaboration_utils.dart';
 import '../../utils/date_formatter.dart';
@@ -23,10 +24,16 @@ class WriterBookCard extends StatelessWidget {
     final isPublished = book.status == 'published';
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final publishedLabel = l10n?.published ?? 'Published';
+    final draftLabel = l10n?.draft ?? 'Draft';
+    final lastUpdateLabel = l10n?.lastUpdate ?? 'Last update';
+    final editStoryLabel = l10n?.editStory ?? 'Edit story';
+    final deleteDraftLabel = l10n?.deleteDraftTitle ?? 'Delete draft';
 
     return Semantics(
       button: true,
-      label: '${book.title}, ${isPublished ? 'published' : 'draft'} story',
+      label: '${book.title}, ${isPublished ? publishedLabel : draftLabel}',
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         elevation: 0,
@@ -85,7 +92,7 @@ class WriterBookCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Last update: ${formatTimestamp(book.updatedAt)}',
+                              '$lastUpdateLabel: ${formatTimestamp(book.updatedAt)}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -116,7 +123,7 @@ class WriterBookCard extends StatelessWidget {
                 if (onEditStory != null) ...[
                   const SizedBox(width: 8),
                   Tooltip(
-                    message: 'Edit story',
+                    message: editStoryLabel,
                     child: IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       color: colorScheme.onSurfaceVariant,
@@ -127,7 +134,7 @@ class WriterBookCard extends StatelessWidget {
                 if (onDeleteDraft != null) ...[
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Delete draft',
+                    message: deleteDraftLabel,
                     child: IconButton(
                       icon: const Icon(Icons.delete_outline_rounded),
                       color: colorScheme.error,
@@ -157,7 +164,7 @@ class _CollabBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        'Collab',
+        AppLocalizations.of(context)?.collab ?? 'Collab',
         style: TextStyle(
           color: colorScheme.onSecondaryContainer,
           fontSize: 10,
@@ -176,6 +183,9 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final label = isPublished
+        ? AppLocalizations.of(context)?.published ?? 'Published'
+        : AppLocalizations.of(context)?.draft ?? 'Draft';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -185,7 +195,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        isPublished ? 'Published' : 'Draft',
+        label,
         style: TextStyle(
           color: isPublished ? Colors.green : colorScheme.onTertiaryContainer,
           fontSize: 10,
