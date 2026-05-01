@@ -66,9 +66,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final text = _textController.text.trim();
     if (text.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.writeSomethingFirst)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.writeSomethingFirst)));
       return;
     }
 
@@ -112,6 +112,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
 
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
@@ -128,7 +131,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         final l10n = AppLocalizations.of(context)!;
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorWithDetails(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.errorWithDetails(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -328,7 +334,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _pickedImage == null ? l10n.addImage : _pickedImage!.name,
+                        _pickedImage == null
+                            ? l10n.addImage
+                            : _pickedImage!.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -374,8 +382,14 @@ class _VisibilitySelector extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           items: [
-            DropdownMenuItem(value: 'public', child: Text(AppLocalizations.of(context)!.public)),
-            DropdownMenuItem(value: 'followers', child: Text(AppLocalizations.of(context)!.followers)),
+            DropdownMenuItem(
+              value: 'public',
+              child: Text(AppLocalizations.of(context)!.public),
+            ),
+            DropdownMenuItem(
+              value: 'followers',
+              child: Text(AppLocalizations.of(context)!.followers),
+            ),
           ],
           onChanged: onChanged,
         ),

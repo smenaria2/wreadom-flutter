@@ -10,6 +10,7 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/message_display_utils.dart';
 import '../utils/swipe_hint.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
@@ -55,14 +56,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final messagesAsync = ref.watch(
-      conversationMessagesProvider(widget.conversationId),
+    final messagesState = ref.watch(
+      pagedConversationMessagesProvider(widget.conversationId),
+    );
+    final messagesController = ref.read(
+      pagedConversationMessagesProvider(widget.conversationId).notifier,
     );
     final conversationAsync = ref.watch(
       conversationProvider(widget.conversationId),
     );
     final currentUser = ref.watch(currentUserProvider).asData?.value;
-    final messages = messagesAsync.asData?.value ?? const <Message>[];
+    final messages = messagesState.items;
     final conversation = conversationAsync.asData?.value;
     final otherUserId =
         conversation != null &&
@@ -126,25 +130,71 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       body: Column(
         children: [
           Expanded(
-            child: messagesAsync.when(
-              data: (messages) => ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final message = messages[index];
-                  final isMine = message.senderId == currentUser?.id;
-                  return Align(
-                    alignment: isMine
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: _MessageBubble(message: message, isMine: isMine),
+            child: Builder(
+              builder: (context) {
+                if (messagesState.isInitialLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (messagesState.error != null) {
+                  return Center(
+                    child: Text(
+                      l10n.failedToLoadWithError(
+                        messagesState.error.toString(),
+                      ),
+                    ),
                   );
-                },
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Text(l10n.failedToLoadWithError(error.toString())),
-              ),
+                }
+                if (messages.isEmpty) {
+                  return Center(child: Text(l10n.noMessagesYet));
+                }
+                final hasLoader = messagesState.hasMore;
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length + (hasLoader ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (hasLoader && index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: messagesState.isLoadingMore
+                                ? null
+                                : messagesController.loadMore,
+                            icon: messagesState.isLoadingMore
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.history_rounded),
+                            label: Text(l10n.loadMore),
+                          ),
+                        ),
+                      );
+                    }
+                    final messageIndex = index - (hasLoader ? 1 : 0);
+                    final message = messages[messageIndex];
+                    final isMine = message.senderId == currentUser?.id;
+                    final placement = messageGroupPlacement(
+                      messages,
+                      messageIndex,
+                    );
+                    return Align(
+                      alignment: isMine
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: _MessageBubble(
+                        message: message,
+                        isMine: isMine,
+                        showSender: placement.startsGroup,
+                        bottomMargin: placement.continuesGroup ? 4 : 10,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
           if (isBlocked || waitingForReply)
@@ -226,6 +276,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                     text: text,
                                   );
                               _controller.clear();
+                              await messagesController.refresh();
                             } on MessageLimitException catch (error) {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -367,10 +418,17 @@ class _ConversationTitle extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, required this.isMine});
+  const _MessageBubble({
+    required this.message,
+    required this.isMine,
+    required this.showSender,
+    required this.bottomMargin,
+  });
 
   final Message message;
   final bool isMine;
+  final bool showSender;
+  final double bottomMargin;
 
   @override
   Widget build(BuildContext context) {
@@ -381,7 +439,7 @@ class _MessageBubble extends StatelessWidget {
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: bottomMargin),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: color,
@@ -391,8 +449,10 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _MessageSender(message: message),
-          const SizedBox(height: 6),
+          if (showSender) ...[
+            _MessageSender(message: message),
+            const SizedBox(height: 6),
+          ],
           if (message.type == 'story' && message.storyData != null)
             _StoryMessageCard(story: message.storyData!)
           else

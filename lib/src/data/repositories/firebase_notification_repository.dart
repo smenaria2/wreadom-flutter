@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/models/app_notification.dart';
+import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../utils/firestore_utils.dart';
+import '../../utils/map_utils.dart';
 
 class FirebaseNotificationRepository implements NotificationRepository {
   FirebaseNotificationRepository({FirebaseFirestore? firestore})
@@ -69,5 +71,34 @@ class FirebaseNotificationRepository implements NotificationRepository {
           }).toList();
           return items;
         });
+  }
+
+  @override
+  Future<PagedResult<AppNotification>> getNotificationsPage(
+    String userId, {
+    int limit = 25,
+    Object? cursor,
+  }) async {
+    Query query = _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .limit(limit + 1);
+
+    if (cursor is DocumentSnapshot) {
+      query = query.startAfterDocument(cursor);
+    }
+
+    final snapshot = await query.get();
+    final pageDocs = snapshot.docs.take(limit).toList();
+    final items = pageDocs.map((doc) {
+      final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+      return AppNotification.fromJson(data);
+    }).toList();
+    return PagedResult(
+      items: items,
+      hasMore: snapshot.docs.length > limit,
+      nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+    );
   }
 }

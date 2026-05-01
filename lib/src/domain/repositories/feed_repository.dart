@@ -1,18 +1,33 @@
 import 'dart:typed_data';
 import '../models/comment.dart';
 import '../models/feed_post.dart';
+import '../models/paged_result.dart';
 
 abstract class FeedRepository {
   Future<List<FeedPost>> getFeedPosts({int limit = 10, dynamic lastDoc});
+  Future<PagedResult<FeedPost>> getFeedPostsPage({
+    int limit = 10,
+    Object? cursor,
+  });
   Future<List<FeedPost>> getFollowingFeed(
     List<String> followedUserIds, {
     int limit = 10,
     dynamic lastDoc,
   });
+  Future<PagedResult<FeedPost>> getFollowingFeedPage(
+    List<String> followedUserIds, {
+    int limit = 10,
+    Object? cursor,
+  });
   Future<List<FeedPost>> getUserFeedPosts(
     String userId, {
     int limit = 10,
     dynamic lastDoc,
+  });
+  Future<PagedResult<FeedPost>> getUserFeedPostsPage(
+    String userId, {
+    int limit = 10,
+    Object? cursor,
   });
   Future<void> createFeedPost(FeedPost post);
   Future<FeedPost?> findUserReviewPost({

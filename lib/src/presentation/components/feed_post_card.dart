@@ -155,6 +155,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
       ref.invalidate(userFeedPostsProvider(widget.post.userId));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
       ref.invalidate(singlePostProvider(widget.post.id!));
 
       if (!mounted) return;
@@ -310,6 +314,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
     ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
     ref.invalidate(userFeedPostsProvider(widget.post.userId));
+    ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+    ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
+    ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+    ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
     ref.invalidate(singlePostProvider(postId));
   }
 
@@ -903,6 +911,10 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
       await HapticFeedback.lightImpact();
       _ctrl.value.clear();
       setState(() => _replyingTo = null);

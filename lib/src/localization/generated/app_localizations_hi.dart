@@ -1150,6 +1150,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get targetComment => 'लक्षित टिप्पणी';
 
   @override
+  String get fromNotifications => 'सूचनाओं से';
+
+  @override
   String get removeReadingHistoryTitle => 'पढ़ने के इतिहास से हटाएं?';
 
   @override

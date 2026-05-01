@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/models/message.dart';
+import '../../domain/models/paged_result.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../utils/firestore_utils.dart';
+import '../../utils/map_utils.dart';
 
 class FirebaseMessageRepository implements MessageRepository {
   FirebaseMessageRepository({FirebaseFirestore? firestore})
@@ -173,12 +175,47 @@ class FirebaseMessageRepository implements MessageRepository {
         .limit(50)
         .snapshots()
         .map((snapshot) {
-          final items = snapshot.docs.map((doc) {
-            final data = mapFirestoreData(doc.data(), doc.id);
-            return Conversation.fromJson(data);
-          }).toList();
+          final items = snapshot.docs
+              .map((doc) {
+                final data = mapFirestoreData(doc.data(), doc.id);
+                return Conversation.fromJson(data);
+              })
+              .where((conversation) => conversation.lastMessage != null)
+              .toList();
           return items;
         });
+  }
+
+  @override
+  Future<PagedResult<Conversation>> getConversationsPage(
+    String userId, {
+    int limit = 25,
+    Object? cursor,
+  }) async {
+    Query query = _firestore
+        .collection('conversations')
+        .where('participants', arrayContains: userId)
+        .orderBy('updatedAt', descending: true)
+        .limit(limit + 1);
+
+    if (cursor is DocumentSnapshot) {
+      query = query.startAfterDocument(cursor);
+    }
+
+    final snapshot = await query.get();
+    final pageDocs = snapshot.docs.take(limit).toList();
+    final items = pageDocs
+        .map((doc) {
+          final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+          return Conversation.fromJson(data);
+        })
+        .where((conversation) => conversation.lastMessage != null)
+        .toList();
+    return PagedResult(
+      items: items,
+      hasMore: snapshot.docs.length > limit,
+      nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+    );
   }
 
   @override
@@ -212,6 +249,43 @@ class FirebaseMessageRepository implements MessageRepository {
           }).toList();
           return items;
         });
+  }
+
+  @override
+  Future<PagedResult<Message>> getMessagesPage(
+    String conversationId, {
+    int limit = 25,
+    Object? cursor,
+  }) async {
+    if (conversationId.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    Query query = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(limit + 1);
+
+    if (cursor is DocumentSnapshot) {
+      query = query.startAfterDocument(cursor);
+    }
+
+    final snapshot = await query.get();
+    final pageDocs = snapshot.docs.take(limit).toList();
+    final items = pageDocs
+        .map((doc) {
+          final data = mapFirestoreData(doc.data(), doc.id);
+          return Message.fromJson(data);
+        })
+        .toList()
+        .reversed
+        .toList();
+    return PagedResult(
+      items: items,
+      hasMore: snapshot.docs.length > limit,
+      nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+    );
   }
 
   Future<void> _sendMessageDocument({

@@ -2164,6 +2164,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             chapter: chapter,
           );
           ref.invalidate(feedPostsProvider);
+          ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+          ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+          ref.invalidate(pagedUserFeedPostsProvider(user.id));
         }
 
         setState(() {

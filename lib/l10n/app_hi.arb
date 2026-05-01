@@ -462,6 +462,7 @@
   "blockUserBody": "वे अब इस बातचीत में संदेश नहीं भेज पाएंगे।",
   "sentYouAMessage": "ने आपको संदेश भेजा।",
   "targetComment": "लक्षित टिप्पणी",
+  "fromNotifications": "सूचनाओं से",
   "removeReadingHistoryTitle": "पढ़ने के इतिहास से हटाएं?",
   "removeReadingHistoryBody": "यह केवल रचना को आपके पढ़ने के इतिहास से हटाएगा।",
   "gotIt": "समझ गया",

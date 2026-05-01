@@ -658,6 +658,7 @@
   "blockUserBody": "They will no longer be able to send messages in this conversation.",
   "sentYouAMessage": "sent you a message.",
   "targetComment": "Target comment",
+  "fromNotifications": "from notifications",
   "removeReadingHistoryTitle": "Remove from read history?",
   "removeReadingHistoryBody": "This only removes the content from your read history.",
   "gotIt": "Got it",

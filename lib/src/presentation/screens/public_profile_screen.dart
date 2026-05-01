@@ -492,7 +492,8 @@ class _PublicPostsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(userFeedPostsProvider(userId));
+    final state = ref.watch(pagedUserFeedPostsProvider(userId));
+    final controller = ref.read(pagedUserFeedPostsProvider(userId).notifier);
     final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,20 +505,33 @@ class _PublicPostsSection extends ConsumerWidget {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        postsAsync.when(
-          data: (posts) {
-            if (posts.isEmpty) {
-              return Text(l10n.noPosts);
-            }
-            return Column(
-              children: [
-                for (final post in posts.take(10)) FeedPostCard(post: post),
-              ],
-            );
-          },
-          loading: () => const LinearProgressIndicator(),
-          error: (error, _) => Text(l10n.failedToLoadPosts(error.toString())),
-        ),
+        if (state.isInitialLoading)
+          const LinearProgressIndicator()
+        else if (state.error != null)
+          Text(l10n.failedToLoadPosts(state.error.toString()))
+        else if (state.items.isEmpty)
+          Text(l10n.noPosts)
+        else
+          Column(
+            children: [
+              for (final post in state.items) FeedPostCard(post: post),
+              if (state.hasMore)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: TextButton.icon(
+                    onPressed: state.isLoadingMore ? null : controller.loadMore,
+                    icon: state.isLoadingMore
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add_rounded),
+                    label: Text(l10n.loadMore),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }

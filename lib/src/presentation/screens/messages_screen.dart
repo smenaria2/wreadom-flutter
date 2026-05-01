@@ -7,6 +7,7 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/message_display_utils.dart';
 import '../utils/swipe_hint.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
@@ -34,92 +35,143 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final conversationsAsync = ref.watch(conversationsProvider);
+    final conversationsState = ref.watch(pagedConversationsProvider);
+    final conversationsController = ref.read(
+      pagedConversationsProvider.notifier,
+    );
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.messages)),
-      body: conversationsAsync.when(
-        data: (conversations) {
-          if (conversations.isEmpty) {
-            return Center(child: Text(l10n.noConversationsYet));
-          }
-          return ListView.separated(
-            itemCount: conversations.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final conversation = conversations[index];
-              final otherId = conversation.participants.firstWhere(
-                (id) => id != currentUser?.id,
-                orElse: () => conversation.participants.first,
-              );
-              final other = conversation.participantDetails[otherId];
-              final title =
-                  conversation.name ??
-                  other?.displayName ??
-                  other?.username ??
-                  l10n.conversation;
-              return _ConversationSwipeShell(
-                onDelete: currentUser == null
-                    ? null
-                    : () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text(l10n.deleteChatTitle),
-                            content: Text(l10n.deleteConversationBody),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                child: Text(l10n.cancel),
-                              ),
-                              FilledButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
-                                child: Text(l10n.delete),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirmed != true) return;
-                        await ref
-                            .read(messageRepositoryProvider)
-                            .deleteConversationForUser(
-                              conversationId: conversation.id,
-                              userId: currentUser.id,
-                            );
-                        ref.invalidate(conversationsProvider);
-                      },
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(title.characters.first.toUpperCase()),
+      body: RefreshIndicator(
+        onRefresh: conversationsController.refresh,
+        child: Builder(
+          builder: (context) {
+            if (conversationsState.isInitialLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (conversationsState.error != null) {
+              return Center(
+                child: Text(
+                  l10n.failedToLoadWithError(
+                    conversationsState.error.toString(),
                   ),
-                  title: Text(title),
-                  subtitle: Text(
-                    conversation.lastMessage?.text ?? l10n.noMessagesYet,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pushNamed(
-                      AppRoutes.conversation,
-                      arguments: ConversationArguments(
-                        conversationId: conversation.id,
-                        title: title,
-                        subtitle: other?.username,
-                      ),
-                    );
-                  },
                 ),
               );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
+            }
+            final conversations = visibleConversations(
+              conversationsState.items,
+            );
+            if (conversations.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.6,
+                    child: Center(child: Text(l10n.noConversationsYet)),
+                  ),
+                ],
+              );
+            }
+            return ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount:
+                  conversations.length + (conversationsState.hasMore ? 1 : 0),
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                if (index == conversations.length &&
+                    conversationsState.hasMore) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: conversationsState.isLoadingMore
+                            ? null
+                            : conversationsController.loadMore,
+                        icon: conversationsState.isLoadingMore
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add_rounded),
+                        label: Text(l10n.loadMore),
+                      ),
+                    ),
+                  );
+                }
+                final conversation = conversations[index];
+                final otherId = conversation.participants.firstWhere(
+                  (id) => id != currentUser?.id,
+                  orElse: () => conversation.participants.first,
+                );
+                final other = conversation.participantDetails[otherId];
+                final title =
+                    conversation.name ??
+                    other?.displayName ??
+                    other?.username ??
+                    l10n.conversation;
+                return _ConversationSwipeShell(
+                  onDelete: currentUser == null
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text(l10n.deleteChatTitle),
+                              content: Text(l10n.deleteConversationBody),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: Text(l10n.cancel),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: Text(l10n.delete),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed != true) return;
+                          await ref
+                              .read(messageRepositoryProvider)
+                              .deleteConversationForUser(
+                                conversationId: conversation.id,
+                                userId: currentUser.id,
+                              );
+                          await conversationsController.refresh();
+                        },
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      child: Text(title.characters.first.toUpperCase()),
+                    ),
+                    title: Text(title),
+                    subtitle: Text(
+                      conversation.lastMessage?.text ?? l10n.noMessagesYet,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.conversation,
+                        arguments: ConversationArguments(
+                          conversationId: conversation.id,
+                          title: title,
+                          subtitle: other?.username,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

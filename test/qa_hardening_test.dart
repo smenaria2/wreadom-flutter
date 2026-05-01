@@ -1335,7 +1335,7 @@ void main() {
     ).readAsStringSync();
     final l10n = englishL10n();
 
-    expect(postSource, contains('l10n.targetComment'));
+    expect(postSource, contains('l10n.fromNotifications'));
     expect(bookSource, contains('targetCommentId'));
     expect(commentSource, contains('isTargetComment'));
     expect(commentSource, contains('isTargetReply'));
@@ -1344,6 +1344,7 @@ void main() {
     expect(conversationSource, contains('swipe_hint_seen_conversation_v1'));
     for (final key in [
       'targetComment',
+      'fromNotifications',
       'removeReadingHistoryTitle',
       'removeReadingHistoryBody',
       'gotIt',

@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
+import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
@@ -14,6 +15,15 @@ class FirebaseFeedRepository implements FeedRepository {
 
   @override
   Future<List<FeedPost>> getFeedPosts({int limit = 10, dynamic lastDoc}) async {
+    final page = await getFeedPostsPage(limit: limit, cursor: lastDoc);
+    return page.items;
+  }
+
+  @override
+  Future<PagedResult<FeedPost>> getFeedPostsPage({
+    int limit = 10,
+    Object? cursor,
+  }) async {
     try {
       debugPrint('[FirebaseFeedRepository] Fetching feed posts...');
       Query query = _firestore
@@ -22,10 +32,10 @@ class FirebaseFeedRepository implements FeedRepository {
           .where('userIsDeactivated', isNotEqualTo: true)
           .orderBy('userIsDeactivated')
           .orderBy('timestamp', descending: true)
-          .limit(limit);
+          .limit(limit + 1);
 
-      if (lastDoc != null && lastDoc is DocumentSnapshot) {
-        query = query.startAfterDocument(lastDoc);
+      if (cursor != null && cursor is DocumentSnapshot) {
+        query = query.startAfterDocument(cursor);
       }
 
       debugPrint('[FirebaseFeedRepository] Running query...');
@@ -34,7 +44,9 @@ class FirebaseFeedRepository implements FeedRepository {
         '[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.',
       );
 
-      final posts = snapshot.docs
+      final docs = snapshot.docs;
+      final pageDocs = docs.take(limit).toList();
+      final posts = pageDocs
           .map((doc) {
             try {
               final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
@@ -52,7 +64,11 @@ class FirebaseFeedRepository implements FeedRepository {
       debugPrint(
         '[FirebaseFeedRepository] Successfully parsed ${posts.length} posts.',
       );
-      return posts;
+      return PagedResult(
+        items: posts,
+        hasMore: docs.length > limit,
+        nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+      );
     } catch (e, stack) {
       debugPrint('[FirebaseFeedRepository] CRITICAL ERROR: $e');
       debugPrint(stack.toString());
@@ -66,7 +82,23 @@ class FirebaseFeedRepository implements FeedRepository {
     int limit = 10,
     dynamic lastDoc,
   }) async {
-    if (followedUserIds.isEmpty) return [];
+    final page = await getFollowingFeedPage(
+      followedUserIds,
+      limit: limit,
+      cursor: lastDoc,
+    );
+    return page.items;
+  }
+
+  @override
+  Future<PagedResult<FeedPost>> getFollowingFeedPage(
+    List<String> followedUserIds, {
+    int limit = 10,
+    Object? cursor,
+  }) async {
+    if (followedUserIds.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
 
     try {
       final chunks = [];
@@ -81,6 +113,7 @@ class FirebaseFeedRepository implements FeedRepository {
 
       final List<FeedPost> allPosts = [];
 
+      final cursorTimestamp = cursor is int ? cursor : null;
       for (final chunk in chunks) {
         Query query = _firestore
             .collection(_collection)
@@ -88,26 +121,30 @@ class FirebaseFeedRepository implements FeedRepository {
             .where('userIsDeactivated', isNotEqualTo: true)
             .orderBy('userIsDeactivated')
             .orderBy('timestamp', descending: true)
-            .limit(limit);
-
-        if (lastDoc != null && lastDoc is DocumentSnapshot) {
-          query = query.startAfterDocument(lastDoc);
-        }
+            .limit(cursorTimestamp == null ? limit + 1 : 50);
 
         final snapshot = await query.get();
         allPosts.addAll(
-          snapshot.docs.map((doc) {
-            final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
-            return FeedPost.fromJson(data);
-          }).toList(),
+          snapshot.docs
+              .map((doc) {
+                final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+                return FeedPost.fromJson(data);
+              })
+              .where(
+                (post) =>
+                    cursorTimestamp == null || post.timestamp < cursorTimestamp,
+              )
+              .toList(),
         );
       }
 
       allPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      if (allPosts.length > limit) {
-        return allPosts.sublist(0, limit);
-      }
-      return allPosts;
+      final pageItems = allPosts.take(limit).toList();
+      return PagedResult(
+        items: pageItems,
+        hasMore: allPosts.length > limit,
+        nextCursor: pageItems.isEmpty ? cursor : pageItems.last.timestamp,
+      );
     } catch (e) {
       debugPrint('[FirebaseFeedRepository] Error fetching following feed: $e');
       rethrow;
@@ -120,18 +157,34 @@ class FirebaseFeedRepository implements FeedRepository {
     int limit = 10,
     dynamic lastDoc,
   }) async {
+    final page = await getUserFeedPostsPage(
+      userId,
+      limit: limit,
+      cursor: lastDoc,
+    );
+    return page.items;
+  }
+
+  @override
+  Future<PagedResult<FeedPost>> getUserFeedPostsPage(
+    String userId, {
+    int limit = 10,
+    Object? cursor,
+  }) async {
     Query query = _firestore
         .collection(_collection)
         .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
-        .limit(limit);
+        .limit(limit + 1);
 
-    if (lastDoc != null && lastDoc is DocumentSnapshot) {
-      query = query.startAfterDocument(lastDoc);
+    if (cursor != null && cursor is DocumentSnapshot) {
+      query = query.startAfterDocument(cursor);
     }
 
     final snapshot = await query.get();
-    return snapshot.docs
+    final docs = snapshot.docs;
+    final pageDocs = docs.take(limit).toList();
+    final posts = pageDocs
         .map((doc) {
           try {
             final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
@@ -145,6 +198,11 @@ class FirebaseFeedRepository implements FeedRepository {
         })
         .whereType<FeedPost>()
         .toList();
+    return PagedResult(
+      items: posts,
+      hasMore: docs.length > limit,
+      nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+    );
   }
 
   @override
@@ -173,7 +231,8 @@ class FirebaseFeedRepository implements FeedRepository {
       final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
       final post = FeedPost.fromJson(data);
       final matchesBook = '${post.bookId ?? ''}' == bookId;
-      final matchesChapter = (post.chapterId ?? '').trim() == (chapterId ?? '').trim();
+      final matchesChapter =
+          (post.chapterId ?? '').trim() == (chapterId ?? '').trim();
       if (matchesBook && matchesChapter) {
         return post;
       }

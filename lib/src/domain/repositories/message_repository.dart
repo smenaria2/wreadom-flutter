@@ -1,4 +1,5 @@
 import '../models/message.dart';
+import '../models/paged_result.dart';
 import '../models/user_model.dart';
 
 class MessageLimitException implements Exception {
@@ -12,8 +13,18 @@ class MessageLimitException implements Exception {
 
 abstract class MessageRepository {
   Stream<List<Conversation>> watchConversations(String userId);
+  Future<PagedResult<Conversation>> getConversationsPage(
+    String userId, {
+    int limit = 25,
+    Object? cursor,
+  });
   Stream<Conversation?> watchConversation(String conversationId);
   Stream<List<Message>> watchMessages(String conversationId);
+  Future<PagedResult<Message>> getMessagesPage(
+    String conversationId, {
+    int limit = 25,
+    Object? cursor,
+  });
   Future<String> getOrCreateDirectConversation({
     required UserModel currentUser,
     required UserModel otherUser,

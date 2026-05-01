@@ -88,6 +88,9 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       ref.invalidate(feedPostsProvider);
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedUserFeedPostsProvider(user.id));
 
       if (mounted) {
         Navigator.of(context).pop();

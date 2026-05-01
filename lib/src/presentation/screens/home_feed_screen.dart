@@ -20,15 +20,17 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final feedAsync = ref.watch(filteredFeedPostsProvider(_selectedFilter));
+    final feedState = ref.watch(pagedFeedPostsProvider(_selectedFilter));
+    final feedController = ref.read(
+      pagedFeedPostsProvider(_selectedFilter).notifier,
+    );
 
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(filteredFeedPostsProvider(_selectedFilter)),
+        onRefresh: feedController.refresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -98,66 +100,12 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                 ),
               ),
             ),
-            feedAsync.when(
-              data: (posts) {
-                if (posts.isEmpty) {
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.feed_outlined,
-                            size: 64,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.35,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _selectedFilter == FeedFilter.following
-                                ? l10n.noFollowingPosts
-                                : l10n.noPosts,
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.beFirstToPost,
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.75,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton.icon(
-                            icon: const Icon(Icons.edit_rounded),
-                            label: Text(l10n.createAPost),
-                            onPressed: () => showCreatePostSheet(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.only(bottom: 132),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => FeedPostCard(post: posts[index]),
-                      childCount: posts.length,
-                    ),
-                  ),
-                );
-              },
-              loading: () => const SliverFillRemaining(
+            if (feedState.isInitialLoading)
+              const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, stack) => SliverFillRemaining(
+              )
+            else if (feedState.error != null)
+              SliverFillRemaining(
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -180,15 +128,13 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          err.toString(),
+                          feedState.error.toString(),
                           textAlign: TextAlign.center,
                           style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(
-                          onPressed: () => ref.invalidate(
-                            filteredFeedPostsProvider(_selectedFilter),
-                          ),
+                          onPressed: feedController.refresh,
                           icon: const Icon(Icons.refresh),
                           label: Text(l10n.tryAgain),
                         ),
@@ -196,8 +142,66 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                     ),
                   ),
                 ),
+              )
+            else if (feedState.items.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.feed_outlined,
+                        size: 64,
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _selectedFilter == FeedFilter.following
+                            ? l10n.noFollowingPosts
+                            : l10n.noPosts,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.beFirstToPost,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.75,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.edit_rounded),
+                        label: Text(l10n.createAPost),
+                        onPressed: () => showCreatePostSheet(context),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.only(bottom: 132),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    if (index == feedState.items.length) {
+                      return _LoadMoreFeedButton(
+                        isLoading: feedState.isLoadingMore,
+                        hasMore: feedState.hasMore,
+                        onPressed: feedController.loadMore,
+                      );
+                    }
+                    return FeedPostCard(post: feedState.items[index]);
+                  }, childCount: feedState.items.length + 1),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -206,6 +210,40 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
         onPressed: () => showCreatePostSheet(context),
         icon: const Icon(Icons.edit_rounded),
         label: Text(l10n.post),
+      ),
+    );
+  }
+}
+
+class _LoadMoreFeedButton extends StatelessWidget {
+  const _LoadMoreFeedButton({
+    required this.isLoading,
+    required this.hasMore,
+    required this.onPressed,
+  });
+
+  final bool isLoading;
+  final bool hasMore;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!hasMore) return const SizedBox(height: 24);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: TextButton.icon(
+          onPressed: isLoading ? null : onPressed,
+          icon: isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_rounded),
+          label: Text(l10n.loadMore),
+        ),
       ),
     );
   }

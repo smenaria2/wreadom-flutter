@@ -69,13 +69,14 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  int _limit = 25;
-  static const int _increment = 25;
   _NotificationFilter _filter = _NotificationFilter.all;
 
   @override
   Widget build(BuildContext context) {
-    final notificationsAsync = ref.watch(notificationsProvider);
+    final notificationsState = ref.watch(pagedNotificationsProvider);
+    final notificationsController = ref.read(
+      pagedNotificationsProvider.notifier,
+    );
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -89,157 +90,173 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               await ref
                   .read(notificationRepositoryProvider)
                   .markAllAsRead(user.id);
+              await notificationsController.refresh();
             },
             child: Text(l10n.markAllRead),
           ),
         ],
       ),
-      body: notificationsAsync.when(
-        data: (items) {
-          final filteredItems = _groupNotificationItems(
-            items.where(_filter.matches).toList(),
-          );
+      body: RefreshIndicator(
+        onRefresh: notificationsController.refresh,
+        child: Builder(
+          builder: (context) {
+            if (notificationsState.isInitialLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (notificationsState.error != null) {
+              return Center(
+                child: Text('Failed to load: ${notificationsState.error}'),
+              );
+            }
+            final items = notificationsState.items;
+            final filteredItems = _groupNotificationItems(
+              items.where(_filter.matches).toList(),
+            );
 
-          final displayCount = (_limit < filteredItems.length)
-              ? _limit
-              : filteredItems.length;
-          final hasMore = _limit < filteredItems.length;
-
-          return Column(
-            children: [
-              _NotificationFilterBar(
-                selected: _filter,
-                onSelected: (filter) {
-                  setState(() {
-                    _filter = filter;
-                    _limit = _increment;
-                  });
-                },
-              ),
-              Expanded(
-                child: filteredItems.isEmpty
-                    ? Center(child: Text(_emptyText(context, items.isEmpty)))
-                    : ListView.separated(
-                        itemCount: displayCount + (hasMore ? 1 : 0),
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          if (index == displayCount && hasMore) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16.0,
-                              ),
-                              child: Center(
-                                child: TextButton.icon(
-                                  onPressed: () =>
-                                      setState(() => _limit += _increment),
-                                  icon: const Icon(Icons.add_rounded),
-                                  label: Text(l10n.loadMore),
+            return Column(
+              children: [
+                _NotificationFilterBar(
+                  selected: _filter,
+                  onSelected: (filter) {
+                    setState(() => _filter = filter);
+                  },
+                ),
+                Expanded(
+                  child: filteredItems.isEmpty
+                      ? Center(child: Text(_emptyText(context, items.isEmpty)))
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount:
+                              filteredItems.length +
+                              (notificationsState.hasMore ? 1 : 0),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            if (index == filteredItems.length &&
+                                notificationsState.hasMore) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16.0,
                                 ),
-                              ),
-                            );
-                          }
-                          final displayItem = filteredItems[index];
-                          final item = displayItem.latest;
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: item.actorPhotoURL != null
-                                  ? CachedNetworkImageProvider(
-                                      item.actorPhotoURL!,
-                                    )
-                                  : null,
-                              child: item.actorPhotoURL == null
-                                  ? Text(
-                                      item.actorName.isEmpty
-                                          ? '?'
-                                          : item.actorName[0].toUpperCase(),
-                                    )
-                                  : null,
-                            ),
-                            title: Text(item.actorName),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(displayItem.subtitle(l10n)),
-                                Text(
-                                  FormatUtils.relativeTime(item.timestamp),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontSize: 12,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            trailing: displayItem.isRead
-                                ? null
-                                : const Icon(
-                                    Icons.circle,
-                                    size: 10,
-                                    color: Colors.blue,
+                                child: Center(
+                                  child: TextButton.icon(
+                                    onPressed: notificationsState.isLoadingMore
+                                        ? null
+                                        : notificationsController.loadMore,
+                                    icon: notificationsState.isLoadingMore
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.add_rounded),
+                                    label: Text(l10n.loadMore),
                                   ),
-                            onTap: () async {
-                              for (final notification
-                                  in displayItem.notifications) {
-                                if (notification.id != null) {
-                                  await ref
-                                      .read(notificationRepositoryProvider)
-                                      .markAsRead(notification.id!);
-                                }
-                              }
-
-                              if (!context.mounted) return;
-
-                              final target = NotificationTargetResolver.resolve(
-                                item,
+                                ),
                               );
-                              if (target != null) {
-                                final routeArgs = switch (target.route) {
-                                  AppRoutes.publicProfile =>
-                                    PublicProfileArguments(
-                                      userId: target.payload,
-                                    ),
-                                  AppRoutes.bookDetail => BookDetailArguments(
-                                    bookId: target.payload,
-                                    targetCommentId: target.commentId,
-                                    targetReplyId: target.replyId,
+                            }
+                            final displayItem = filteredItems[index];
+                            final item = displayItem.latest;
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: item.actorPhotoURL != null
+                                    ? CachedNetworkImageProvider(
+                                        item.actorPhotoURL!,
+                                      )
+                                    : null,
+                                child: item.actorPhotoURL == null
+                                    ? Text(
+                                        item.actorName.isEmpty
+                                            ? '?'
+                                            : item.actorName[0].toUpperCase(),
+                                      )
+                                    : null,
+                              ),
+                              title: Text(item.actorName),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(displayItem.subtitle(l10n)),
+                                  Text(
+                                    FormatUtils.relativeTime(item.timestamp),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontSize: 12,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
-                                  AppRoutes.postDetail => PostDetailArguments(
-                                    postId: target.payload,
-                                    targetCommentId: target.commentId,
-                                    targetReplyId: target.replyId,
-                                  ),
-                                  AppRoutes.conversation =>
-                                    ConversationArguments(
-                                      conversationId: target.payload,
-                                      title: item.actorName,
+                                ],
+                              ),
+                              trailing: displayItem.isRead
+                                  ? null
+                                  : const Icon(
+                                      Icons.circle,
+                                      size: 10,
+                                      color: Colors.blue,
                                     ),
-                                  _ => target.payload,
-                                };
-                                Navigator.of(
-                                  context,
-                                ).pushNamed(target.route, arguments: routeArgs);
-                              } else {
-                                ref
-                                    .read(selectedTabProvider.notifier)
-                                    .setTab(1);
-                                Navigator.of(context).popUntil(
-                                  (route) =>
-                                      route.settings.name == AppRoutes.main ||
-                                      route.isFirst,
-                                );
-                              }
-                            },
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load: $error')),
+                              onTap: () async {
+                                for (final notification
+                                    in displayItem.notifications) {
+                                  if (notification.id != null) {
+                                    await ref
+                                        .read(notificationRepositoryProvider)
+                                        .markAsRead(notification.id!);
+                                  }
+                                }
+
+                                if (!context.mounted) return;
+
+                                final target =
+                                    NotificationTargetResolver.resolve(item);
+                                if (target != null) {
+                                  final routeArgs = switch (target.route) {
+                                    AppRoutes.publicProfile =>
+                                      PublicProfileArguments(
+                                        userId: target.payload,
+                                      ),
+                                    AppRoutes.bookDetail => BookDetailArguments(
+                                      bookId: target.payload,
+                                      targetCommentId: target.commentId,
+                                      targetReplyId: target.replyId,
+                                    ),
+                                    AppRoutes.postDetail => PostDetailArguments(
+                                      postId: target.payload,
+                                      targetCommentId: target.commentId,
+                                      targetReplyId: target.replyId,
+                                    ),
+                                    AppRoutes.conversation =>
+                                      ConversationArguments(
+                                        conversationId: target.payload,
+                                        title: item.actorName,
+                                      ),
+                                    _ => target.payload,
+                                  };
+                                  Navigator.of(context).pushNamed(
+                                    target.route,
+                                    arguments: routeArgs,
+                                  );
+                                } else {
+                                  ref
+                                      .read(selectedTabProvider.notifier)
+                                      .setTab(1);
+                                  Navigator.of(context).popUntil(
+                                    (route) =>
+                                        route.settings.name == AppRoutes.main ||
+                                        route.isFirst,
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

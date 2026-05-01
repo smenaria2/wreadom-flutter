@@ -2156,6 +2156,12 @@ abstract class AppLocalizations {
   /// **'Target comment'**
   String get targetComment;
 
+  /// No description provided for @fromNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'from notifications'**
+  String get fromNotifications;
+
   /// No description provided for @removeReadingHistoryTitle.
   ///
   /// In en, this message translates to:

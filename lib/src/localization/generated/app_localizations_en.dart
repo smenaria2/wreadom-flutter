@@ -1153,6 +1153,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get targetComment => 'Target comment';
 
   @override
+  String get fromNotifications => 'from notifications';
+
+  @override
   String get removeReadingHistoryTitle => 'Remove from read history?';
 
   @override

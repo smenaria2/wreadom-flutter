@@ -183,6 +183,10 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -229,7 +233,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (targetComment != null) ...[
-                    _TargetCommentHeader(label: l10n.targetComment),
+                    _TargetCommentHeader(label: l10n.fromNotifications),
                     CommentTile(
                       key: ValueKey(
                         'post-detail-target-comment-${targetComment.id ?? targetComment.timestamp}',
