@@ -24,6 +24,7 @@ import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
 import '../components/profile/user_history_tab.dart';
 import '../components/profile/user_saved_tab.dart';
+import '../components/profile/user_downloaded_tab.dart';
 import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
@@ -79,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
             );
 
         return DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             endDrawer: const _ProfileSideMenu(),
             body: NestedScrollView(
@@ -181,6 +182,11 @@ class ProfileScreen extends ConsumerWidget {
                     pinned: true,
                     delegate: _SliverAppBarDelegate(
                       TabBar(
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        labelPadding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                        ),
                         labelColor: Theme.of(context).colorScheme.primary,
                         unselectedLabelColor: Colors.grey,
                         indicatorColor: Theme.of(context).colorScheme.primary,
@@ -190,6 +196,7 @@ class ProfileScreen extends ConsumerWidget {
                           Tab(text: l10n.posts),
                           Tab(text: l10n.history),
                           Tab(text: l10n.saved),
+                          Tab(text: l10n.downloaded),
                         ],
                       ),
                     ),
@@ -202,6 +209,7 @@ class ProfileScreen extends ConsumerWidget {
                   UserPostsTab(userId: user.id),
                   const UserHistoryTab(),
                   const UserSavedTab(),
+                  const UserDownloadedTab(),
                 ],
               ),
             ),

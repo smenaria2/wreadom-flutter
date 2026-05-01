@@ -793,8 +793,8 @@ exports.createAudioReviewDownloadUrl = functionsV1
       return {downloadUrl};
     });
 
-exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").onRun(async () => {
-  const [booksSnapshot, authorsSnapshot, topicsSnapshot] = await Promise.all([
+async function refreshHomepageMetadataInternal() {
+  const [booksSnapshot, authorsSnapshot, topicsSnapshot, bannersSnapshot] = await Promise.all([
     db.collection("books")
         .where("status", "==", "published")
         .where("isOriginal", "==", true)
@@ -808,6 +808,12 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
         .get()
         .catch(() => null),
     db.collection("daily-topics")
+        .where("isEnabled", "==", true)
+        .orderBy("timestamp", "desc")
+        .limit(10)
+        .get()
+        .catch(() => null),
+    db.collection("home-banners")
         .where("isEnabled", "==", true)
         .orderBy("timestamp", "desc")
         .limit(10)
@@ -841,10 +847,15 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
     id: doc.id,
     ...doc.data(),
   }));
+  const homeBanners = (bannersSnapshot?.docs || []).map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
 
   await db.collection("settings").doc("homepage_metadata").set({
     authors,
     dailyTopics,
+    homeBanners,
     recommendationStats,
     lastRefreshedAt: Date.now(),
   }, {merge: true});
@@ -853,6 +864,33 @@ exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").
     authorCount: authors.length,
     bookCount: Object.keys(recommendationStats).length,
     topicCount: dailyTopics.length,
+    bannerCount: homeBanners.length,
   });
+}
+
+exports.refreshHomepageMetadata = functionsV1.pubsub.schedule("every 24 hours").onRun(async () => {
+  await refreshHomepageMetadataInternal();
   return null;
+});
+
+exports.onDailyTopicWrite = functionsV1.firestore
+    .document("daily-topics/{topicId}")
+    .onWrite(async () => {
+      await refreshHomepageMetadataInternal();
+      return null;
+    });
+
+exports.onHomeBannerWrite = functionsV1.firestore
+    .document("home-banners/{bannerId}")
+    .onWrite(async () => {
+      await refreshHomepageMetadataInternal();
+      return null;
+    });
+
+exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functionsV1.https.HttpsError("unauthenticated", "User must be logged in.");
+  }
+  await refreshHomepageMetadataInternal();
+  return {success: true, message: "Homepage metadata refreshed successfully."};
 });

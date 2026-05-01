@@ -26,6 +26,8 @@ class CommentTile extends ConsumerStatefulWidget {
     this.actionColor,
     this.bookId,
     this.bookAuthorId,
+    this.isTargetComment = false,
+    this.targetReplyId,
   });
 
   final Comment comment;
@@ -35,6 +37,8 @@ class CommentTile extends ConsumerStatefulWidget {
   final Color? actionColor;
   final String? bookId;
   final String? bookAuthorId;
+  final bool isTargetComment;
+  final String? targetReplyId;
 
   @override
   ConsumerState<CommentTile> createState() => _CommentTileState();
@@ -240,7 +244,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         ? Icons.edit_outlined
         : Icons.report_problem_outlined;
 
-    return Column(
+    final tile = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SwipeActionShell(
@@ -448,6 +452,11 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       textColor: widget.textColor,
                       metadataColor: widget.metadataColor,
                       actionColor: widget.actionColor,
+                      isTargetReply:
+                          widget.targetReplyId != null &&
+                          (reply.id == widget.targetReplyId ||
+                              reply.timestamp.toString() ==
+                                  widget.targetReplyId),
                     ),
                   )
                   .toList(),
@@ -455,6 +464,19 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           ),
         Divider(color: widget.metadataColor?.withValues(alpha: 0.25)),
       ],
+    );
+    if (!widget.isTargetComment) return tile;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.45),
+        ),
+      ),
+      child: tile,
     );
   }
 }
@@ -470,6 +492,7 @@ class ReplyTile extends ConsumerStatefulWidget {
     this.textColor,
     this.metadataColor,
     this.actionColor,
+    this.isTargetReply = false,
   });
 
   final String? commentId;
@@ -480,6 +503,7 @@ class ReplyTile extends ConsumerStatefulWidget {
   final Color? textColor;
   final Color? metadataColor;
   final Color? actionColor;
+  final bool isTargetReply;
 
   @override
   ConsumerState<ReplyTile> createState() => _ReplyTileState();
@@ -624,7 +648,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
 
     final l10n = AppLocalizations.of(context)!;
     final isOwner = user != null && reply.userId == user.id;
-    return _SwipeActionShell(
+    final tile = _SwipeActionShell(
       leftLabel: isOwner ? l10n.edit : l10n.report,
       leftIcon: isOwner ? Icons.edit_outlined : Icons.report_problem_outlined,
       rightLabel: l10n.reply,
@@ -760,6 +784,16 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
           ],
         ),
       ),
+    );
+    if (!widget.isTargetReply) return tile;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: tile,
     );
   }
 }

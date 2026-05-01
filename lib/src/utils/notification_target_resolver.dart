@@ -3,10 +3,17 @@ import '../presentation/routing/app_routes.dart';
 import 'app_link_helper.dart';
 
 class NotificationTarget {
-  const NotificationTarget(this.route, this.payload);
+  const NotificationTarget(
+    this.route,
+    this.payload, {
+    this.commentId,
+    this.replyId,
+  });
 
   final String route;
   final String payload;
+  final String? commentId;
+  final String? replyId;
 }
 
 class NotificationTargetResolver {
@@ -38,6 +45,19 @@ class NotificationTargetResolver {
       metadata['id'],
       linkTarget?.route == AppRoutes.conversation ? linkTarget?.payload : null,
     ]);
+    final commentId = _firstValid([
+      metadata['commentId'],
+      metadata['parentCommentId'],
+      metadata['targetCommentId'],
+      _queryValue(notification.link, 'comment'),
+      _queryValue(notification.link, 'commentId'),
+    ]);
+    final replyId = _firstValid([
+      metadata['replyId'],
+      metadata['targetReplyId'],
+      _queryValue(notification.link, 'reply'),
+      _queryValue(notification.link, 'replyId'),
+    ]);
 
     final userId = _firstValid([
       metadata['userId'],
@@ -50,11 +70,21 @@ class NotificationTargetResolver {
 
     if (linkTarget?.route == AppRoutes.bookDetail &&
         linkTarget?.payload != null) {
-      return NotificationTarget(AppRoutes.bookDetail, linkTarget!.payload!);
+      return NotificationTarget(
+        AppRoutes.bookDetail,
+        linkTarget!.payload!,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
     if (linkTarget?.route == AppRoutes.postDetail &&
         linkTarget?.payload != null) {
-      return NotificationTarget(AppRoutes.postDetail, linkTarget!.payload!);
+      return NotificationTarget(
+        AppRoutes.postDetail,
+        linkTarget!.payload!,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
     if (linkTarget?.route == AppRoutes.conversation &&
         linkTarget?.payload != null) {
@@ -83,12 +113,22 @@ class NotificationTargetResolver {
 
     if ((isBookType || (hasAmbiguousContentType && bookId != null)) &&
         bookId != null) {
-      return NotificationTarget(AppRoutes.bookDetail, bookId);
+      return NotificationTarget(
+        AppRoutes.bookDetail,
+        bookId,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
 
     if ((isPostType || (hasAmbiguousContentType && postId != null)) &&
         postId != null) {
-      return NotificationTarget(AppRoutes.postDetail, postId);
+      return NotificationTarget(
+        AppRoutes.postDetail,
+        postId,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
 
     if (isMessageType && conversationId != null) {
@@ -106,10 +146,20 @@ class NotificationTargetResolver {
     }
 
     if (isBookType && targetId != null) {
-      return NotificationTarget(AppRoutes.bookDetail, targetId);
+      return NotificationTarget(
+        AppRoutes.bookDetail,
+        targetId,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
     if (isPostType && targetId != null) {
-      return NotificationTarget(AppRoutes.postDetail, targetId);
+      return NotificationTarget(
+        AppRoutes.postDetail,
+        targetId,
+        commentId: commentId,
+        replyId: replyId,
+      );
     }
     if (isMessageType && targetId != null) {
       return NotificationTarget(AppRoutes.conversation, targetId);

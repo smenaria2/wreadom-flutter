@@ -7,12 +7,33 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/swipe_hint.dart';
 
-class MessagesScreen extends ConsumerWidget {
+class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends ConsumerState<MessagesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      showSwipeHintOnce(
+        context: context,
+        key: 'swipe_hint_seen_messages_v1',
+        message: l10n.swipeHintMessages,
+        actionLabel: l10n.gotIt,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final conversationsAsync = ref.watch(conversationsProvider);
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     final l10n = AppLocalizations.of(context)!;
@@ -105,16 +126,14 @@ class MessagesScreen extends ConsumerWidget {
 }
 
 class _ConversationSwipeShell extends StatefulWidget {
-  const _ConversationSwipeShell({
-    required this.child,
-    required this.onDelete,
-  });
+  const _ConversationSwipeShell({required this.child, required this.onDelete});
 
   final Widget child;
   final Future<void> Function()? onDelete;
 
   @override
-  State<_ConversationSwipeShell> createState() => _ConversationSwipeShellState();
+  State<_ConversationSwipeShell> createState() =>
+      _ConversationSwipeShellState();
 }
 
 class _ConversationSwipeShellState extends State<_ConversationSwipeShell> {

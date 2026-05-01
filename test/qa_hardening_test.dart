@@ -1135,4 +1135,222 @@ void main() {
     expect(comment.toJson(), containsPair('audioMimeType', 'audio/mp4'));
     expect(comment.toJson(), containsPair('audioSizeBytes', 123456));
   });
+
+  test('onboarding is wired as a once-per-user signed-in gate', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final gateSource = File(
+      'lib/src/presentation/screens/onboarding_gate.dart',
+    ).readAsStringSync();
+    final enArb = englishL10n();
+
+    expect(mainSource, contains('OnboardingGate'));
+    expect(mainSource, contains('userId: user.uid'));
+    expect(gateSource, contains("onboarding_seen_\${widget.userId}_v1"));
+    expect(gateSource, contains('setBool(_prefsKey, true)'));
+    for (final key in [
+      'onboardingDiscoverTitle',
+      'onboardingOfflineTitle',
+      'onboardingWriteTitle',
+      'onboardingCommunityTitle',
+      'onboardingProfileTitle',
+    ]) {
+      expect(enArb[key], isA<String>());
+    }
+  });
+
+  test('profile separates saved and downloaded offline content', () {
+    final profileSource = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+    final savedSource = File(
+      'lib/src/presentation/components/profile/user_saved_tab.dart',
+    ).readAsStringSync();
+    final downloadedSource = File(
+      'lib/src/presentation/components/profile/user_downloaded_tab.dart',
+    ).readAsStringSync();
+    final providerSource = File(
+      'lib/src/presentation/providers/book_providers.dart',
+    ).readAsStringSync();
+    final serviceSource = File(
+      'lib/src/data/services/offline_service.dart',
+    ).readAsStringSync();
+
+    expect(profileSource, contains('DefaultTabController'));
+    expect(profileSource, contains('length: 5'));
+    expect(profileSource, contains('UserDownloadedTab'));
+    expect(savedSource, contains('savedBooksProvider'));
+    expect(downloadedSource, contains('downloadedBookEntriesProvider'));
+    expect(downloadedSource, contains('deleteBook(entry.book.id)'));
+    expect(downloadedSource, contains('homepageDownloadedBooksProvider'));
+    expect(serviceSource, contains('class OfflineBookEntry'));
+    expect(serviceSource, contains('downloadedAt'));
+    expect(serviceSource, contains('sizeBytes'));
+    expect(providerSource, contains('return [];'));
+    expect(providerSource, isNot(contains('...offlineBooks.where')));
+  });
+
+  test('public profile hides author metrics but keeps three summary stats', () {
+    final ownAboutSource = File(
+      'lib/src/presentation/components/profile/user_about_tab.dart',
+    ).readAsStringSync();
+    final publicSource = File(
+      'lib/src/presentation/screens/public_profile_screen.dart',
+    ).readAsStringSync();
+
+    expect(ownAboutSource, contains('AuthorStatsPanel(user: user)'));
+    expect(publicSource, isNot(contains('AuthorStatsPanel')));
+    expect(publicSource, contains('Row('));
+    expect(publicSource, contains('label: l10n.followers'));
+    expect(publicSource, contains('label: l10n.following'));
+    expect(publicSource, contains('label: l10n.works'));
+  });
+
+  test('support contact email is updated across help and legal pages', () {
+    final helpSource = File(
+      'lib/src/presentation/screens/help_screen.dart',
+    ).readAsStringSync();
+    final routerSource = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+
+    expect(helpSource, contains("path: 'contact@wreadom.in'"));
+    expect(helpSource, contains('LaunchMode.externalApplication'));
+    expect(helpSource, contains('SubmitErrorDialog'));
+    expect(routerSource, contains('contact@wreadom.in'));
+    expect(routerSource, isNot(contains('smenaria2@gmail.com')));
+  });
+
+  test('feed book cards show book title above writer name context', () {
+    final modelSource = File(
+      'lib/src/domain/models/feed_post.dart',
+    ).readAsStringSync();
+    final cardSource = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    final detailSource = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+
+    expect(modelSource, contains('String? bookAuthorName'));
+    expect(cardSource, contains('post.bookAuthorName'));
+    expect(cardSource, contains('bookDetailProvider(bookIdText)'));
+    expect(cardSource, contains('resolvedBookAuthorName'));
+    expect(cardSource, contains('resolvedBookTitle'));
+    expect(
+      cardSource.indexOf('if (resolvedBookTitle.isNotEmpty)'),
+      lessThan(cardSource.indexOf('if (resolvedBookAuthorName.isNotEmpty)')),
+    );
+    expect(cardSource, isNot(contains('l10n.regarding')));
+    expect(detailSource, contains('bookAuthorName: bookAuthorName(book)'));
+    expect(
+      readerSource,
+      contains("'bookAuthorName': bookAuthorName(widget.book)"),
+    );
+    expect(
+      readerSource,
+      contains('bookAuthorName: bookAuthorName(widget.book)'),
+    );
+  });
+
+  test('profile saved and history tabs expose remove actions', () {
+    final profileSource = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+    final savedSource = File(
+      'lib/src/presentation/components/profile/user_saved_tab.dart',
+    ).readAsStringSync();
+    final historySource = File(
+      'lib/src/presentation/components/profile/user_history_tab.dart',
+    ).readAsStringSync();
+
+    expect(profileSource, contains('isScrollable: true'));
+    expect(profileSource, contains('tabAlignment: TabAlignment.start'));
+    expect(savedSource, contains('updateUserSavedBooks'));
+    expect(savedSource, contains('_RemovableBookGridItem'));
+    expect(historySource, contains('updateUserReadingHistory'));
+    expect(historySource, contains('_RemovableHistoryGridItem'));
+  });
+
+  test('save flow asks before downloading and removing offline copy', () {
+    final source = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+    final l10n = englishL10n();
+
+    expect(source, contains('l10n.downloadSavedBookTitle'));
+    expect(source, contains('offlineServiceProvider'));
+    expect(source, contains('removeDownload == true'));
+    expect(source, contains('homepageDownloadedBooksProvider'));
+    for (final key in [
+      'bookSaved',
+      'downloadSavedBookTitle',
+      'downloadSavedBookBody',
+      'notNow',
+      'download',
+      'keep',
+    ]) {
+      expect(l10n[key], isA<String>());
+    }
+  });
+
+  test('notifications group message rows and carry comment targets', () {
+    final notificationSource = File(
+      'lib/src/presentation/screens/notifications_screen.dart',
+    ).readAsStringSync();
+    final resolverSource = File(
+      'lib/src/utils/notification_target_resolver.dart',
+    ).readAsStringSync();
+    final routerSource = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+
+    expect(notificationSource, contains('_groupNotificationItems'));
+    expect(notificationSource, contains('displayItem.notifications'));
+    expect(notificationSource, contains('PostDetailArguments'));
+    expect(notificationSource, contains('BookDetailArguments'));
+    expect(resolverSource, contains('commentId'));
+    expect(resolverSource, contains('replyId'));
+    expect(routerSource, contains('targetCommentId'));
+    expect(routerSource, contains('targetReplyId'));
+  });
+
+  test('target comments and swipe hints are wired', () {
+    final postSource = File(
+      'lib/src/presentation/screens/post_detail_screen.dart',
+    ).readAsStringSync();
+    final bookSource = File(
+      'lib/src/presentation/screens/book_detail_screen.dart',
+    ).readAsStringSync();
+    final commentSource = File(
+      'lib/src/presentation/widgets/comment_widgets.dart',
+    ).readAsStringSync();
+    final messagesSource = File(
+      'lib/src/presentation/screens/messages_screen.dart',
+    ).readAsStringSync();
+    final conversationSource = File(
+      'lib/src/presentation/screens/conversation_screen.dart',
+    ).readAsStringSync();
+    final l10n = englishL10n();
+
+    expect(postSource, contains('l10n.targetComment'));
+    expect(bookSource, contains('targetCommentId'));
+    expect(commentSource, contains('isTargetComment'));
+    expect(commentSource, contains('isTargetReply'));
+    expect(bookSource, contains('swipe_hint_seen_book_comments_v1'));
+    expect(messagesSource, contains('swipe_hint_seen_messages_v1'));
+    expect(conversationSource, contains('swipe_hint_seen_conversation_v1'));
+    for (final key in [
+      'targetComment',
+      'removeReadingHistoryTitle',
+      'removeReadingHistoryBody',
+      'gotIt',
+      'swipeHintBookComments',
+      'swipeHintMessages',
+    ]) {
+      expect(l10n[key], isA<String>());
+    }
+  });
 }

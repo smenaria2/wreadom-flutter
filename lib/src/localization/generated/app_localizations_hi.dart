@@ -84,6 +84,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get saved => 'सेव किए गए';
 
   @override
+  String get downloaded => 'डाउनलोड';
+
+  @override
   String get profileSettings => 'प्रोफ़ाइल सेटिंग्स';
 
   @override
@@ -349,6 +352,15 @@ class AppLocalizationsHi extends AppLocalizations {
       'इंटरनेट आर्काइव की रचनाओं को तैयार होने में थोड़ा समय लग सकता है।';
 
   @override
+  String get viewPdf => 'PDF देखें';
+
+  @override
+  String get upvote => 'अपवोट';
+
+  @override
+  String get downvote => 'डाउनवोट';
+
+  @override
   String get offline => 'ऑफलाइन';
 
   @override
@@ -394,6 +406,24 @@ class AppLocalizationsHi extends AppLocalizations {
   String get genrePoetry => 'कविता';
 
   @override
+  String get genreClassic => 'क्लासिक';
+
+  @override
+  String get genreSocial => 'सामाजिक';
+
+  @override
+  String get genreHistory => 'इतिहास';
+
+  @override
+  String get genreStories => 'कहानियाँ';
+
+  @override
+  String get genreCompetition => 'रीडम् प्रतियोगिता #1';
+
+  @override
+  String get genreOther => 'अन्य';
+
+  @override
   String get genreBiography => 'जीवनी';
 
   @override
@@ -409,7 +439,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get shelfCommunityClassics => 'सामुदायिक क्लासिक्स';
 
   @override
-  String get shelfOriginals => 'रीडम् मूल';
+  String get shelfOriginals => 'रीडम् ओरिजिनल';
 
   @override
   String get shelfTrending => 'ट्रेंडिंग रचनाएं';
@@ -703,6 +733,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get noBioYet => 'अभी परिचय नहीं जोड़ा गया है';
 
   @override
+  String get averageRating => 'औसत रेटिंग';
+
+  @override
+  String get totalReads => 'कुल पढ़े गए';
+
+  @override
+  String get booksPublished => 'प्रकाशित रचनाएँ';
+
+  @override
+  String get dateJoined => 'जुड़ने की तारीख';
+
+  @override
   String get activity => 'गतिविधि';
 
   @override
@@ -959,6 +1001,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String get unsave => 'सेव हटाएं';
 
   @override
+  String get bookSaved => 'रचना सेव हो गई।';
+
+  @override
+  String get downloadSavedBookTitle => 'ऑफ़लाइन पढ़ने के लिए डाउनलोड करें?';
+
+  @override
+  String get downloadSavedBookBody =>
+      'इस रचना को बिना इंटरनेट के भी उपलब्ध रखें।';
+
+  @override
+  String get notNow => 'अभी नहीं';
+
+  @override
+  String get download => 'डाउनलोड';
+
+  @override
+  String get keep => 'रखें';
+
+  @override
   String get bookSavedDownloaded =>
       'रचना सेव हो गई और ऑफ़लाइन पढ़ने के लिए डाउनलोड हो गई।';
 
@@ -1035,7 +1096,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get writerDashboard => 'लेखक डैशबोर्ड';
 
   @override
-  String get createContent => 'रचना बनाएं';
+  String get createContent => 'रचना लिखें';
 
   @override
   String get noPublishedStoriesYet => 'अभी कोई प्रकाशित कहानी नहीं है';
@@ -1086,6 +1147,27 @@ class AppLocalizationsHi extends AppLocalizations {
   String get sentYouAMessage => 'ने आपको संदेश भेजा।';
 
   @override
+  String get targetComment => 'लक्षित टिप्पणी';
+
+  @override
+  String get removeReadingHistoryTitle => 'पढ़ने के इतिहास से हटाएं?';
+
+  @override
+  String get removeReadingHistoryBody =>
+      'यह केवल रचना को आपके पढ़ने के इतिहास से हटाएगा।';
+
+  @override
+  String get gotIt => 'समझ गया';
+
+  @override
+  String get swipeHintBookComments =>
+      'कार्रवाइयां देखने के लिए टिप्पणियों को बाएं या दाएं स्वाइप करें।';
+
+  @override
+  String get swipeHintMessages =>
+      'उपलब्ध कार्रवाइयां देखने के लिए संदेश पंक्तियों को स्वाइप करें।';
+
+  @override
   String get sentMessage => 'संदेश भेजा गया';
 
   @override
@@ -1108,6 +1190,65 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noSavedBooksYet => 'अभी कोई सेव की गई रचना नहीं है।';
+
+  @override
+  String get noDownloadedBooksYet => 'अभी कोई डाउनलोड की गई रचना नहीं है।';
+
+  @override
+  String failedToLoadDownloadedBooks(String error) {
+    return 'डाउनलोड की गई रचनाएँ लोड नहीं हो सकीं: $error';
+  }
+
+  @override
+  String downloadedOn(String date) {
+    return 'डाउनलोड: $date';
+  }
+
+  @override
+  String get removeDownloadedBookTitle => 'डाउनलोड हटाएँ?';
+
+  @override
+  String removeDownloadedBookBody(String title) {
+    return '\"$title\" को ऑफलाइन स्टोरेज से हटाएँ।';
+  }
+
+  @override
+  String get downloadRemoved => 'डाउनलोड हटा दिया गया।';
+
+  @override
+  String get onboardingDiscoverTitle => 'अपनी अगली रचना खोजें';
+
+  @override
+  String get onboardingDiscoverBody =>
+      'अपने मूड के अनुसार ओरिजिनल, क्लासिक्स, ट्रेंडिंग रचनाएँ और लेखक खोजें।';
+
+  @override
+  String get onboardingOfflineTitle => 'कहीं भी पढ़ें';
+
+  @override
+  String get onboardingOfflineBody =>
+      'रचनाएँ डिवाइस पर डाउनलोड करें और नेटवर्क न होने पर भी पढ़ना जारी रखें।';
+
+  @override
+  String get onboardingWriteTitle => 'लिखें और प्रकाशित करें';
+
+  @override
+  String get onboardingWriteBody =>
+      'अध्याय ड्राफ्ट करें, विवरण जोड़ें, अपनी रचना प्रकाशित करें और Wreadom लेखक के रूप में आगे बढ़ें।';
+
+  @override
+  String get onboardingCommunityTitle => 'बातचीत में शामिल हों';
+
+  @override
+  String get onboardingCommunityBody =>
+      'कम्युनिटी के पाठकों और लेखकों के साथ उद्धरण, समीक्षा, पोस्ट और टिप्पणियाँ साझा करें।';
+
+  @override
+  String get onboardingProfileTitle => 'Wreadom को अपना बनाएँ';
+
+  @override
+  String get onboardingProfileBody =>
+      'लेखकों को फ़ॉलो करें, संदेश भेजें, अपनी शेल्फ सँभालें और यादगार प्रोफ़ाइल बनाएँ।';
 
   @override
   String get noPostsYetStartSharing =>
@@ -1298,6 +1439,18 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get back => 'वापस';
+
+  @override
+  String get next => 'आगे';
+
+  @override
+  String get skip => 'छोड़ें';
+
+  @override
+  String get done => 'पूरा';
+
+  @override
+  String get open => 'खोलें';
 
   @override
   String get chapterOverview => 'अध्याय सूची';
@@ -1598,11 +1751,11 @@ class AppLocalizationsHi extends AppLocalizations {
       'अपने होम फीड पर डेली टॉपिक बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।';
 
   @override
-  String get faqFeedUpdatesQ => 'What shows up in my Feed?';
+  String get faqFeedUpdatesQ => 'मेरी फीड में क्या दिखता है?';
 
   @override
   String get faqFeedUpdatesA =>
-      'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.';
+      'आपकी फीड उन लेखकों के अपडेट का एक व्यक्तिगत स्ट्रीम है जिन्हें आप फ़ॉलो करते हैं, जिसमें नई पोस्ट, समीक्षाएं और अध्याय शामिल हैं।';
 
   @override
   String get faqMultiChapterWriterQ =>
@@ -1629,6 +1782,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get contactUs => 'हमसे संपर्क करें';
+
+  @override
+  String get emailSupport => 'ईमेल सहायता';
 
   @override
   String noHelpTopicsFound(String query) {

@@ -11,6 +11,7 @@ import '../screens/discovery_screen.dart';
 import '../screens/follow_list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/help_screen.dart';
+import '../screens/home_banner_screen.dart';
 import '../screens/language_settings_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
@@ -43,11 +44,15 @@ class BookDetailArguments {
     required this.bookId,
     this.book,
     this.initialReaderChapterIndex,
+    this.targetCommentId,
+    this.targetReplyId,
   });
 
   final String bookId;
   final Book? book;
   final int? initialReaderChapterIndex;
+  final String? targetCommentId;
+  final String? targetReplyId;
 }
 
 class ConversationArguments {
@@ -70,10 +75,17 @@ class WriterPadArguments {
 }
 
 class PostDetailArguments {
-  const PostDetailArguments({required this.postId, this.post});
+  const PostDetailArguments({
+    required this.postId,
+    this.post,
+    this.targetCommentId,
+    this.targetReplyId,
+  });
 
   final String postId;
   final FeedPost? post;
+  final String? targetCommentId;
+  final String? targetReplyId;
 }
 
 class AppRouter {
@@ -138,6 +150,10 @@ class AppRouter {
             initialReaderChapterIndex: args is BookDetailArguments
                 ? args.initialReaderChapterIndex
                 : null,
+            targetCommentId: args is BookDetailArguments
+                ? args.targetCommentId
+                : null,
+            targetReplyId: args is BookDetailArguments ? args.targetReplyId : null,
           ),
         );
       case AppRoutes.reader:
@@ -217,7 +233,16 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
-          builder: (_) => PostDetailScreen(postId: postId, preloadedPost: post),
+          builder: (_) => PostDetailScreen(
+            postId: postId,
+            preloadedPost: post,
+            targetCommentId: args is PostDetailArguments
+                ? args.targetCommentId
+                : null,
+            targetReplyId: args is PostDetailArguments
+                ? args.targetReplyId
+                : null,
+          ),
         );
       case AppRoutes.category:
         final args = arguments ?? settings.arguments;
@@ -287,6 +312,14 @@ class AppRouter {
             topicId: topicId,
             preloadedTopic: topicArgs?.topic,
           ),
+        );
+      case AppRoutes.homeBanner:
+        final args = arguments ?? settings.arguments;
+        if (args is! HomeBannerArguments) {
+          return _notFound('Banner details are missing.');
+        }
+        return MaterialPageRoute(
+          builder: (_) => HomeBannerScreen(banner: args.banner),
         );
       case AppRoutes.competition:
         return MaterialPageRoute(
@@ -457,14 +490,14 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 In accordance with the Information Technology Act, 2000, and the DPDPA 2023, we have appointed a Grievance Officer to address your concerns regarding data protection and privacy:
 
 Name: S. Menaria
-Email: smenaria2@gmail.com
+Email: contact@wreadom.in
 Response Time: Within 30 days of receiving a complaint
 
 13. Contact Us
 
 If you have any questions about this Privacy Policy or our data practices, please contact us at:
 
-Email: smenaria2@gmail.com''';
+Email: contact@wreadom.in''';
 
 const _termsOfUseBody = r'''Last Updated: February 20, 2026
 
@@ -565,7 +598,7 @@ We respect intellectual property rights and expect our users to do the same. If 
 - A statement of good faith belief that the use is unauthorized
 - A statement of accuracy under penalty of perjury
 
-Send notices to: smenaria2@gmail.com
+Send notices to: contact@wreadom.in
 
 10. Disclaimer of Warranties
 
@@ -636,7 +669,7 @@ These Terms, along with our Privacy Policy, constitute the entire agreement betw
 
 If you have any questions about these Terms, please contact us:
 
-Email: smenaria2@gmail.com
+Email: contact@wreadom.in
 
 Important Notice:
 

@@ -134,37 +134,44 @@ class PublicProfileScreen extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
+                      Row(
                         children: [
-                          _StatChip(
-                            label: l10n.followers,
-                            value: '${user.followersCount ?? 0}',
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.followList,
-                              arguments: FollowListArguments(
-                                userId: userId,
-                                mode: FollowListMode.followers,
-                                title: l10n.followers,
+                          Expanded(
+                            child: _StatChip(
+                              label: l10n.followers,
+                              value: '${user.followersCount ?? 0}',
+                              onTap: () => Navigator.of(context).pushNamed(
+                                AppRoutes.followList,
+                                arguments: FollowListArguments(
+                                  userId: userId,
+                                  mode: FollowListMode.followers,
+                                  title: l10n.followers,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          _StatChip(
-                            label: l10n.following,
-                            value: '${user.followingCount ?? 0}',
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.followList,
-                              arguments: FollowListArguments(
-                                userId: userId,
-                                mode: FollowListMode.following,
-                                title: l10n.following,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _StatChip(
+                              label: l10n.following,
+                              value: '${user.followingCount ?? 0}',
+                              onTap: () => Navigator.of(context).pushNamed(
+                                AppRoutes.followList,
+                                arguments: FollowListArguments(
+                                  userId: userId,
+                                  mode: FollowListMode.following,
+                                  title: l10n.following,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          _StatChip(label: l10n.works, value: '$worksCount'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _StatChip(
+                              label: l10n.works,
+                              value: '$worksCount',
+                            ),
+                          ),
                         ],
                       ),
                       if (!isSelf) ...[
@@ -196,11 +203,7 @@ class PublicProfileScreen extends ConsumerWidget {
                       ] else if (followersOnly)
                         followingAsync.maybeWhen(
                           data: (isFollowing) => isFollowing
-                              ? const Column(
-                                  children: [
-                                    SizedBox(height: 28),
-                                  ],
-                                )
+                              ? const Column(children: [SizedBox(height: 28)])
                               : const SizedBox.shrink(),
                           orElse: () => const SizedBox.shrink(),
                         ),
@@ -399,13 +402,40 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      label: Text('$value $label', overflow: TextOverflow.ellipsis),
-      onPressed: onTap,
-      side: BorderSide.none,
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.primaryContainer.withValues(alpha: 0.5),
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

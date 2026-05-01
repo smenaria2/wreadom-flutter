@@ -15,6 +15,7 @@ class AppRoutes {
   static const terms = '/terms';
   static const certificate = '/certificate';
   static const dailyTopic = '/daily-topic';
+  static const homeBanner = '/home-banner';
   static const competition = '/competition';
   static const discovery = '/discovery';
   static const postDetail = '/post-detail';

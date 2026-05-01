@@ -18,10 +18,13 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
+import '../providers/homepage_providers.dart';
 import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/book_author_utils.dart';
+import '../utils/swipe_hint.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
@@ -36,12 +39,16 @@ class BookDetailScreen extends ConsumerStatefulWidget {
     this.preloadedBook,
     this.heroTag,
     this.initialReaderChapterIndex,
+    this.targetCommentId,
+    this.targetReplyId,
   });
 
   final String bookId;
   final Book? preloadedBook;
   final String? heroTag;
   final int? initialReaderChapterIndex;
+  final String? targetCommentId;
+  final String? targetReplyId;
 
   @override
   ConsumerState<BookDetailScreen> createState() => _BookDetailScreenState();
@@ -49,6 +56,21 @@ class BookDetailScreen extends ConsumerStatefulWidget {
 
 class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
   final Set<String> _preloadedBookIds = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      showSwipeHintOnce(
+        context: context,
+        key: 'swipe_hint_seen_book_comments_v1',
+        message: l10n.swipeHintBookComments,
+        actionLabel: l10n.gotIt,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +100,12 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
             );
           }
           _preloadChapters(book.id);
-          return _BookDetailBody(book: book, heroTag: widget.heroTag);
+          return _BookDetailBody(
+            book: book,
+            heroTag: widget.heroTag,
+            targetCommentId: widget.targetCommentId,
+            targetReplyId: widget.targetReplyId,
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
@@ -159,11 +186,33 @@ class _ReaderDeepLinkLauncherState
   }
 }
 
+bool _isArchiveBook(Book book) {
+  return book.source == 'archive' ||
+      (book.source == null &&
+          !(book.id.length == 20 &&
+              RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(book.id)));
+}
+
+bool _hasArchivePdfViewer(Book book) {
+  return _isArchiveBook(book) && (book.identifier?.trim().isNotEmpty == true);
+}
+
+void _openArchivePdf(BuildContext context, Book book) {
+  Navigator.of(context).pushNamed(AppRoutes.archiveReader, arguments: book);
+}
+
 class _BookDetailBody extends ConsumerWidget {
-  const _BookDetailBody({required this.book, this.heroTag});
+  const _BookDetailBody({
+    required this.book,
+    this.heroTag,
+    this.targetCommentId,
+    this.targetReplyId,
+  });
 
   final Book book;
   final String? heroTag;
+  final String? targetCommentId;
+  final String? targetReplyId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -349,6 +398,14 @@ class _BookDetailBody extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (_hasArchivePdfViewer(book)) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _openArchivePdf(context, book),
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: Text(AppLocalizations.of(context)!.viewPdf),
+                  ),
+                ],
                 const SizedBox(height: 28),
                 if ((book.description ?? '').isNotEmpty) ...[
                   Text(
@@ -361,7 +418,11 @@ class _BookDetailBody extends ConsumerWidget {
                   _ExpandableText(text: book.description!),
                 ],
                 const SizedBox(height: 28),
-                _LatestDiscussionSection(book: book),
+                _LatestDiscussionSection(
+                  book: book,
+                  targetCommentId: targetCommentId,
+                  targetReplyId: targetReplyId,
+                ),
                 const SizedBox(height: 32),
               ]),
             ),
@@ -448,6 +509,7 @@ class _BookDetailBody extends ConsumerWidget {
                       text: text,
                       bookId: book.id,
                       bookTitle: book.title,
+                      bookAuthorName: bookAuthorName(book),
                       bookCover: book.coverUrl,
                       timestamp: DateTime.now().millisecondsSinceEpoch,
                       likes: const [],
@@ -694,9 +756,15 @@ class _AuthorLine extends StatelessWidget {
 }
 
 class _LatestDiscussionSection extends ConsumerStatefulWidget {
-  const _LatestDiscussionSection({required this.book});
+  const _LatestDiscussionSection({
+    required this.book,
+    this.targetCommentId,
+    this.targetReplyId,
+  });
 
   final Book book;
+  final String? targetCommentId;
+  final String? targetReplyId;
 
   @override
   ConsumerState<_LatestDiscussionSection> createState() =>
@@ -715,7 +783,15 @@ class _LatestDiscussionSectionState
     return commentsAsync.when(
       data: (comments) {
         if (comments.isEmpty) return const SizedBox.shrink();
-        final visible = comments.take(_visibleCount).toList();
+        final targetComment = _targetComment(comments);
+        final visible =
+            (targetComment == null
+                    ? comments
+                    : comments
+                          .where((comment) => comment.id != targetComment.id)
+                          .toList())
+                .take(_visibleCount)
+                .toList();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -726,6 +802,23 @@ class _LatestDiscussionSectionState
               ),
             ),
             const SizedBox(height: 12),
+            if (targetComment != null) ...[
+              _BookTargetCommentHeader(
+                label: AppLocalizations.of(context)!.targetComment,
+              ),
+              CommentTile(
+                key: ValueKey(
+                  'book-target-comment-${targetComment.id ?? targetComment.timestamp}',
+                ),
+                comment: targetComment,
+                bookId: widget.book.id,
+                bookAuthorId: widget.book.authorId,
+                onReply: () => _showReplySheet(targetComment),
+                isTargetComment: true,
+                targetReplyId: widget.targetReplyId,
+              ),
+              const SizedBox(height: 8),
+            ],
             for (final comment in visible)
               CommentTile(
                 key: ValueKey(
@@ -763,6 +856,87 @@ class _LatestDiscussionSectionState
           CommentReplySheet(comment: comment, bookId: widget.book.id),
     );
   }
+
+  Comment? _targetComment(List<Comment> comments) {
+    final targetId = widget.targetCommentId?.trim();
+    if (targetId == null || targetId.isEmpty) return null;
+    for (final comment in comments) {
+      if (comment.id == targetId) return comment;
+    }
+    return null;
+  }
+}
+
+class _BookTargetCommentHeader extends StatelessWidget {
+  const _BookTargetCommentHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.push_pin_rounded,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchiveVoteButton extends StatelessWidget {
+  const _ArchiveVoteButton({
+    required this.icon,
+    required this.selectedIcon,
+    required this.count,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final int count;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(selected ? selectedIcon : icon, size: 18),
+      label: Text(_formatVoteCount(count)),
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        foregroundColor: selected ? theme.colorScheme.primary : null,
+        side: BorderSide(
+          color: selected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant,
+        ),
+      ),
+    );
+  }
+
+  static String _formatVoteCount(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return n.toString();
+  }
 }
 
 class _StatsRow extends ConsumerWidget {
@@ -783,6 +957,7 @@ class _StatsRow extends ConsumerWidget {
       runSpacing: 8,
       children: [
         _RatingStat(summary: rating),
+        if (_isArchiveBook(book)) _ArchiveVotesInline(book: book),
         _Stat(
           icon: Icons.visibility_outlined,
           label: AppLocalizations.of(
@@ -822,6 +997,47 @@ class _StatsRow extends ConsumerWidget {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
+  }
+}
+
+class _ArchiveVotesInline extends ConsumerWidget {
+  const _ArchiveVotesInline({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(bookVoteStatsProvider(book.id));
+    final userVoteAsync = ref.watch(userBookVoteProvider(book.id));
+    final currentVote = userVoteAsync.asData?.value;
+
+    return statsAsync.maybeWhen(
+      data: (stats) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ArchiveVoteButton(
+            icon: Icons.thumb_up_alt_outlined,
+            selectedIcon: Icons.thumb_up_alt,
+            count: stats.upvotes,
+            selected: currentVote == 'up',
+            onPressed: () => ref
+                .read(bookVoteControllerProvider)
+                .vote(book.id, currentVote == 'up' ? null : 'up'),
+          ),
+          const SizedBox(width: 6),
+          _ArchiveVoteButton(
+            icon: Icons.thumb_down_alt_outlined,
+            selectedIcon: Icons.thumb_down_alt,
+            count: stats.downvotes,
+            selected: currentVote == 'down',
+            onPressed: () => ref
+                .read(bookVoteControllerProvider)
+                .vote(book.id, currentVote == 'down' ? null : 'down'),
+          ),
+        ],
+      ),
+      orElse: () => const SizedBox.shrink(),
+    );
   }
 }
 
@@ -1018,7 +1234,7 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
     final savedBooks = List<dynamic>.from(user.savedBooks);
     final isSaved = savedBooks.any((id) => id?.toString() == idStr);
 
-    if (isSaved && _isDownloaded) {
+    if (isSaved) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -1044,20 +1260,68 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
         await ref
             .read(authRepositoryProvider)
             .updateUserSavedBooks(user.id, savedBooks);
+        if (_isDownloaded && mounted) {
+          final removeDownload = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.removeDownloadedBookTitle),
+              content: Text(l10n.removeDownloadedBookBody(widget.book.title)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.keep),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.remove),
+                ),
+              ],
+            ),
+          );
+          if (removeDownload == true) {
+            await ref.read(offlineServiceProvider).deleteBook(widget.book.id);
+            if (mounted) setState(() => _isDownloaded = false);
+            ref.invalidate(downloadedBooksProvider);
+            ref.invalidate(downloadedBookEntriesProvider);
+            ref.invalidate(homepageDownloadedBooksProvider);
+          }
+        }
         ref.invalidate(currentUserProvider);
         ref.invalidate(savedBooksProvider);
       }
       return;
     }
 
-    setState(() => _isDownloading = true);
     try {
-      if (!isSaved) {
-        savedBooks.add(widget.book.id);
-        await ref
-            .read(authRepositoryProvider)
-            .updateUserSavedBooks(user.id, savedBooks);
-      }
+      savedBooks.add(widget.book.id);
+      await ref
+          .read(authRepositoryProvider)
+          .updateUserSavedBooks(user.id, savedBooks);
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(savedBooksProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.bookSaved)));
+      final shouldDownload = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.downloadSavedBookTitle),
+          content: Text(l10n.downloadSavedBookBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.notNow),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.download),
+            ),
+          ],
+        ),
+      );
+      if (shouldDownload != true) return;
+      setState(() => _isDownloading = true);
       final chapters = await ref.read(
         bookChaptersProvider(widget.book.id).future,
       );
@@ -1070,8 +1334,9 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
           _isDownloading = false;
           _isDownloaded = true;
         });
-        ref.invalidate(currentUserProvider);
-        ref.invalidate(savedBooksProvider);
+        ref.invalidate(downloadedBooksProvider);
+        ref.invalidate(downloadedBookEntriesProvider);
+        ref.invalidate(homepageDownloadedBooksProvider);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.bookSavedDownloaded)));

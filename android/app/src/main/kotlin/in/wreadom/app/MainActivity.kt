@@ -1,4 +1,4 @@
-package `in`.wreadom.librebook_flutter
+package `in`.wreadom.app
 
 import io.flutter.embedding.android.FlutterActivity
 

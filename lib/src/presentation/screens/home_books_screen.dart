@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
+import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
@@ -11,6 +12,7 @@ import '../../domain/models/book.dart';
 import 'book_detail_screen.dart';
 import 'category_books_screen.dart';
 import 'daily_topic_screen.dart';
+import 'home_banner_screen.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../providers/auth_providers.dart';
@@ -103,17 +105,7 @@ class HomeBooksScreen extends ConsumerWidget {
     final trendingAsync = ref.watch(homepageTrendingWorksProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
     final iaAsync = ref.watch(homepageIABooksProvider);
-    final mysteryAsync = ref.watch(homepageGenreProvider('mystery'));
-    final poetryAsync = ref.watch(homepageGenreProvider('poetry'));
-    final classicsAsync = ref.watch(homepageGenreProvider('classic'));
-    final romanceAsync = ref.watch(homepageGenreProvider('romance'));
-    final socialAsync = ref.watch(homepageGenreProvider('social'));
-    final historyAsync = ref.watch(homepageGenreProvider('history'));
-    final storiesAsync = ref.watch(homepageGenreProvider('stories'));
-    final competitionAsync = ref.watch(
-      homepageGenreProvider('Wreadom Competition #1'),
-    );
-    final otherAsync = ref.watch(homepageGenreProvider('other'));
+    final bannersAsync = ref.watch(homeBannersProvider);
 
     // Watch saved books for the new section
 
@@ -167,6 +159,9 @@ class HomeBooksScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _AuthorSpotlight(),
+              const SizedBox(height: 16),
+
+              _HomeBannerStrip(bannersAsync: bannersAsync),
               const SizedBox(height: 16),
 
               const _HeroBanner(),
@@ -239,62 +234,8 @@ class HomeBooksScreen extends ConsumerWidget {
               const SizedBox(height: 28),
 
               // ─── Genre Sections (Filtered) ─────────────────────────────
-              _GenreSection(
-                title: l10n.genreMystery,
-                booksAsync: mysteryAsync,
-                genre: 'Mystery',
-                sectionId: 'mystery',
-              ),
               const _AuthorsSection(),
               const SizedBox(height: 28),
-              _GenreSection(
-                title: l10n.genrePoetry,
-                booksAsync: poetryAsync,
-                genre: 'Poetry',
-                sectionId: 'poetry',
-              ),
-              _GenreSection(
-                title: 'Classic',
-                booksAsync: classicsAsync,
-                genre: 'Classic',
-                sectionId: 'classic',
-              ),
-              _GenreSection(
-                title: l10n.genreRomance,
-                booksAsync: romanceAsync,
-                genre: 'Romance',
-                sectionId: 'romance',
-              ),
-              _GenreSection(
-                title: 'Social',
-                booksAsync: socialAsync,
-                genre: 'Social',
-                sectionId: 'social',
-              ),
-              _GenreSection(
-                title: 'History',
-                booksAsync: historyAsync,
-                genre: 'History',
-                sectionId: 'history',
-              ),
-              _GenreSection(
-                title: 'Stories',
-                booksAsync: storiesAsync,
-                genre: 'Stories',
-                sectionId: 'stories',
-              ),
-              _GenreSection(
-                title: 'Wreadom Competition #1',
-                booksAsync: competitionAsync,
-                genre: 'Wreadom Competition #1',
-                sectionId: 'wreadom-competition-1',
-              ),
-              _GenreSection(
-                title: 'Other',
-                booksAsync: otherAsync,
-                genre: 'Other',
-                sectionId: 'other',
-              ),
               _BookshelfSection(
                 title: _HomeShelfDestination.communityClassics
                     .getLocalizedCategory(l10n),
@@ -307,6 +248,52 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
+              const SizedBox(height: 28),
+              _LazyGenreSection(
+                title: l10n.genreMystery,
+                providerKey: 'mystery',
+                sectionId: 'mystery',
+              ),
+              _LazyGenreSection(
+                title: l10n.genrePoetry,
+                providerKey: 'poetry',
+                sectionId: 'poetry',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreClassic,
+                providerKey: 'classic',
+                sectionId: 'classic',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreRomance,
+                providerKey: 'romance',
+                sectionId: 'romance',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreSocial,
+                providerKey: 'social',
+                sectionId: 'social',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreHistory,
+                providerKey: 'history',
+                sectionId: 'history',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreStories,
+                providerKey: 'stories',
+                sectionId: 'stories',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreCompetition,
+                providerKey: 'Wreadom Competition #1',
+                sectionId: 'wreadom-competition-1',
+              ),
+              _LazyGenreSection(
+                title: l10n.genreOther,
+                providerKey: 'other',
+                sectionId: 'other',
+              ),
               const SizedBox(height: 32),
             ],
           ),
@@ -317,6 +304,102 @@ class HomeBooksScreen extends ConsumerWidget {
 }
 
 // ─── Hero Banner ─────────────────────────────────────────────────────────────
+class _HomeBannerStrip extends StatelessWidget {
+  const _HomeBannerStrip({required this.bannersAsync});
+
+  final AsyncValue<List<HomeBanner>> bannersAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return bannersAsync.maybeWhen(
+      data: (banners) {
+        if (banners.isEmpty) return const SizedBox.shrink();
+        final banner = banners.first;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => Navigator.of(context).pushNamed(
+              AppRoutes.homeBanner,
+              arguments: HomeBannerArguments(banner: banner),
+            ),
+            child: Ink(
+              height: 88,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).colorScheme.primaryContainer,
+                image: banner.coverImageUrl.isEmpty
+                    ? null
+                    : DecorationImage(
+                        image: CachedNetworkImageProvider(banner.coverImageUrl),
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.72),
+                      Colors.black.withValues(alpha: 0.16),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              banner.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (banner.subtitle.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                banner.subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.86),
+                                  fontSize: 12,
+                                  height: 1.25,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
 class _HeroBanner extends ConsumerStatefulWidget {
   const _HeroBanner();
 
@@ -613,20 +696,19 @@ class _DailyTopicCard extends StatelessWidget {
   }
 }
 
-class _GenreSection extends ConsumerWidget {
+class _LazyGenreSection extends ConsumerWidget {
   final String title;
-  final AsyncValue<List<Book>> booksAsync;
-  final String genre;
+  final String providerKey;
   final String sectionId;
-  const _GenreSection({
+  const _LazyGenreSection({
     required this.title,
-    required this.booksAsync,
-    required this.genre,
+    required this.providerKey,
     required this.sectionId,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final booksAsync = ref.watch(homepageGenreProvider(providerKey));
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) return const SizedBox.shrink();
@@ -643,16 +725,7 @@ class _GenreSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => Column(
-        children: [
-          _BookshelfSection(
-            title: title,
-            booksAsync: booksAsync,
-            sectionId: sectionId,
-          ),
-          const SizedBox(height: 28),
-        ],
-      ),
+      loading: () => const SizedBox.shrink(),
       error: (_, _) =>
           _SectionError(title: title, onRetry: () => refreshHomepage(ref)),
     );

@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "601247128838-0ntnrp5moggiaaetrmvhsnnb4rgh8t3a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.wreadom.app",
+            "certificate_hash": "36a6e1c1019dd030e28882a622a965662183ec1e"
+          }
+        },
+        {
           "client_id": "601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/user_model.dart';
+import 'author_stats_panel.dart';
 
 class UserAboutTab extends StatelessWidget {
   const UserAboutTab({super.key, required this.user});
@@ -27,6 +28,8 @@ class UserAboutTab extends StatelessWidget {
             height: 1.5,
           ),
         ),
+        const SizedBox(height: 20),
+        AuthorStatsPanel(user: user),
       ],
     );
   }

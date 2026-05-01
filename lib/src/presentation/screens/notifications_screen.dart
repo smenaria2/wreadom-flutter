@@ -96,7 +96,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
       body: notificationsAsync.when(
         data: (items) {
-          final filteredItems = items.where(_filter.matches).toList();
+          final filteredItems = _groupNotificationItems(
+            items.where(_filter.matches).toList(),
+          );
 
           final displayCount = (_limit < filteredItems.length)
               ? _limit
@@ -136,7 +138,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               ),
                             );
                           }
-                          final item = filteredItems[index];
+                          final displayItem = filteredItems[index];
+                          final item = displayItem.latest;
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundImage: item.actorPhotoURL != null
@@ -156,7 +159,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.text),
+                                Text(displayItem.subtitle(l10n)),
                                 Text(
                                   FormatUtils.relativeTime(item.timestamp),
                                   style: Theme.of(context).textTheme.bodySmall
@@ -169,7 +172,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 ),
                               ],
                             ),
-                            trailing: item.isRead
+                            trailing: displayItem.isRead
                                 ? null
                                 : const Icon(
                                     Icons.circle,
@@ -177,10 +180,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                     color: Colors.blue,
                                   ),
                             onTap: () async {
-                              if (item.id != null) {
-                                await ref
-                                    .read(notificationRepositoryProvider)
-                                    .markAsRead(item.id!);
+                              for (final notification
+                                  in displayItem.notifications) {
+                                if (notification.id != null) {
+                                  await ref
+                                      .read(notificationRepositoryProvider)
+                                      .markAsRead(notification.id!);
+                                }
                               }
 
                               if (!context.mounted) return;
@@ -194,6 +200,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                     PublicProfileArguments(
                                       userId: target.payload,
                                     ),
+                                  AppRoutes.bookDetail => BookDetailArguments(
+                                    bookId: target.payload,
+                                    targetCommentId: target.commentId,
+                                    targetReplyId: target.replyId,
+                                  ),
+                                  AppRoutes.postDetail => PostDetailArguments(
+                                    postId: target.payload,
+                                    targetCommentId: target.commentId,
+                                    targetReplyId: target.replyId,
+                                  ),
                                   AppRoutes.conversation =>
                                     ConversationArguments(
                                       conversationId: target.payload,
@@ -237,6 +253,80 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       _NotificationFilter.posts => l10n.noPostNotificationsYet,
       _NotificationFilter.messages => l10n.noMessageNotificationsYet,
     };
+  }
+}
+
+List<_NotificationListItem> _groupNotificationItems(
+  List<AppNotification> notifications,
+) {
+  final result = <_NotificationListItem>[];
+  final messageGroups = <String, List<AppNotification>>{};
+
+  for (final notification in notifications) {
+    if (!_isMessageNotification(notification)) {
+      result.add(_NotificationListItem.single(notification));
+      continue;
+    }
+    final metadata = notification.metadata ?? const <String, dynamic>{};
+    final conversationId =
+        metadata['conversationId']?.toString().trim().isNotEmpty == true
+        ? metadata['conversationId'].toString().trim()
+        : NotificationTargetResolver.resolve(notification)?.payload;
+    final key = conversationId == null || conversationId.isEmpty
+        ? notification.actorId
+        : '${notification.actorId}:$conversationId';
+    messageGroups.putIfAbsent(key, () => <AppNotification>[]).add(notification);
+  }
+
+  for (final group in messageGroups.values) {
+    group.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    result.add(_NotificationListItem.group(group));
+  }
+
+  result.sort((a, b) => b.latest.timestamp.compareTo(a.latest.timestamp));
+  return result;
+}
+
+bool _isMessageNotification(AppNotification notification) {
+  final type = notification.type.toLowerCase();
+  final text = notification.text.toLowerCase();
+  return type == 'message' ||
+      type == 'groupmessage' ||
+      text.contains('message');
+}
+
+class _NotificationListItem {
+  const _NotificationListItem._(this.notifications);
+
+  factory _NotificationListItem.single(AppNotification notification) =>
+      _NotificationListItem._([notification]);
+
+  factory _NotificationListItem.group(List<AppNotification> notifications) =>
+      _NotificationListItem._(notifications);
+
+  final List<AppNotification> notifications;
+
+  AppNotification get latest => notifications.first;
+  bool get isRead => notifications.every((notification) => notification.isRead);
+  bool get isMessageGroup =>
+      notifications.length > 1 && _isMessageNotification(latest);
+
+  String subtitle(AppLocalizations l10n) {
+    if (!isMessageGroup && !_isMessageNotification(latest)) return latest.text;
+    final preview = _messagePreview(latest.text, l10n);
+    if (preview.isEmpty) return l10n.sentYouAMessage;
+    return '${l10n.sentYouAMessage} $preview';
+  }
+
+  String _messagePreview(String text, AppLocalizations l10n) {
+    var preview = text.trim();
+    final marker = l10n.sentYouAMessage.replaceAll('.', '').trim();
+    preview = preview.replaceFirst(
+      RegExp(RegExp.escape(marker), caseSensitive: false),
+      '',
+    );
+    preview = preview.replaceFirst(RegExp(r'^[:\-\s]+'), '').trim();
+    return preview;
   }
 }
 

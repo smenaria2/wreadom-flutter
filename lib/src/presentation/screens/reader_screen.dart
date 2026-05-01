@@ -19,6 +19,7 @@ import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/user_model.dart';
 import '../../data/services/audio_review_upload_service.dart';
+import '../../data/services/reader_ad_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -32,6 +33,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
+import '../utils/book_author_utils.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -96,7 +98,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int _ttsChunkIndex = 0;
   int _activeTtsBlockIndex = -1;
   final GlobalKey _quoteImageKey = GlobalKey();
+  late final ReaderAdService _readerAdService;
   _QuoteSharePayload? _quoteSharePayload;
+  bool _isNavigatingToNextChapterWithAd = false;
   Timer? _progressSaveDebounce;
   bool _initialScrollRestored = false;
   double? _pendingSavedScrollProgress;
@@ -127,6 +131,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _chapterIndex = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
+    _readerAdService = ReaderAdService();
+    unawaited(_readerAdService.preloadNextChapterAd());
+    if (_isInternetArchiveBook) {
+      unawaited(_readerAdService.showArchiveLoadingAd());
+    }
     _tts = FlutterTts();
     _configureTts();
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
@@ -310,6 +319,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   bool get _useLegacyTtsTapSeeking => false;
 
+  bool get _isInternetArchiveBook {
+    return widget.book.source == 'archive' ||
+        (widget.book.source == null &&
+            !(widget.book.id.length == 20 &&
+                RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(widget.book.id)));
+  }
+
   Future<void> _saveProgressForUser(
     String userId, {
     required int chapterIndex,
@@ -378,7 +394,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (mounted) ref.invalidate(currentUserProvider);
     }
     await HapticFeedback.selectionClick();
-    _goToChapter(currentChapterIndex + 1);
+    await _showNextChapterAdAndGoTo(currentChapterIndex + 1);
+  }
+
+  Future<void> _showNextChapterAdAndGoTo(int index) async {
+    if (_isNavigatingToNextChapterWithAd) return;
+    _isNavigatingToNextChapterWithAd = true;
+    try {
+      await _readerAdService.showNextChapterAdIfReady();
+      if (!mounted) return;
+      _goToChapter(index);
+    } finally {
+      _isNavigatingToNextChapterWithAd = false;
+    }
   }
 
   void _scheduleProgressSave() {
@@ -445,6 +473,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _audioRecordingTimer?.cancel();
     unawaited(_audioRecorder.dispose());
     unawaited(_tts.stop());
+    _readerAdService.dispose();
     super.dispose();
   }
 
@@ -835,7 +864,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         hasPrevious: _chapterIndex > 0,
         hasNext: _chapterIndex < chapters.length - 1,
         onPrevious: () => _goToChapter(_chapterIndex - 1),
-        onNext: () => _goToChapter(_chapterIndex + 1),
+        onNext: () => unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1)),
         onClose: () => Navigator.of(context).pop(),
       ),
     );
@@ -1997,6 +2026,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       'rating': _chapterRating,
       'bookId': widget.book.id,
       'bookTitle': widget.book.title,
+      'bookAuthorName': bookAuthorName(widget.book),
       'bookCover': widget.book.coverUrl,
       'chapterTitle': chapter?.title,
       'chapterId': chapter?.id?.toString(),
@@ -2024,6 +2054,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             rating: _chapterRating,
             bookId: widget.book.id,
             bookTitle: widget.book.title,
+            bookAuthorName: bookAuthorName(widget.book),
             bookCover: widget.book.coverUrl,
             chapterTitle: chapter?.title,
             chapterId: chapter?.id?.toString(),

@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get saved;
 
+  /// No description provided for @downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get downloaded;
+
   /// No description provided for @profileSettings.
   ///
   /// In en, this message translates to:
@@ -740,6 +746,24 @@ abstract class AppLocalizations {
   /// **'Internet Archive content can take a moment to prepare.'**
   String get internetArchivePreparation;
 
+  /// No description provided for @viewPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'View PDF'**
+  String get viewPdf;
+
+  /// No description provided for @upvote.
+  ///
+  /// In en, this message translates to:
+  /// **'Upvote'**
+  String get upvote;
+
+  /// No description provided for @downvote.
+  ///
+  /// In en, this message translates to:
+  /// **'Downvote'**
+  String get downvote;
+
   /// No description provided for @offline.
   ///
   /// In en, this message translates to:
@@ -829,6 +853,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Poetry'**
   String get genrePoetry;
+
+  /// No description provided for @genreClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get genreClassic;
+
+  /// No description provided for @genreSocial.
+  ///
+  /// In en, this message translates to:
+  /// **'Social'**
+  String get genreSocial;
+
+  /// No description provided for @genreHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get genreHistory;
+
+  /// No description provided for @genreStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories'**
+  String get genreStories;
+
+  /// No description provided for @genreCompetition.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom Competition #1'**
+  String get genreCompetition;
+
+  /// No description provided for @genreOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get genreOther;
 
   /// No description provided for @genreBiography.
   ///
@@ -1370,6 +1430,30 @@ abstract class AppLocalizations {
   /// **'No bio yet.'**
   String get noBioYet;
 
+  /// No description provided for @averageRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Average rating'**
+  String get averageRating;
+
+  /// No description provided for @totalReads.
+  ///
+  /// In en, this message translates to:
+  /// **'Total reads'**
+  String get totalReads;
+
+  /// No description provided for @booksPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Books published'**
+  String get booksPublished;
+
+  /// No description provided for @dateJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get dateJoined;
+
   /// No description provided for @activity.
   ///
   /// In en, this message translates to:
@@ -1820,6 +1904,42 @@ abstract class AppLocalizations {
   /// **'Unsave'**
   String get unsave;
 
+  /// No description provided for @bookSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Content saved.'**
+  String get bookSaved;
+
+  /// No description provided for @downloadSavedBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download for offline reading?'**
+  String get downloadSavedBookTitle;
+
+  /// No description provided for @downloadSavedBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this content available even when you are offline.'**
+  String get downloadSavedBookBody;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get download;
+
+  /// No description provided for @keep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get keep;
+
   /// No description provided for @bookSavedDownloaded.
   ///
   /// In en, this message translates to:
@@ -2030,6 +2150,42 @@ abstract class AppLocalizations {
   /// **'sent you a message.'**
   String get sentYouAMessage;
 
+  /// No description provided for @targetComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Target comment'**
+  String get targetComment;
+
+  /// No description provided for @removeReadingHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from read history?'**
+  String get removeReadingHistoryTitle;
+
+  /// No description provided for @removeReadingHistoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This only removes the content from your read history.'**
+  String get removeReadingHistoryBody;
+
+  /// No description provided for @gotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get gotIt;
+
+  /// No description provided for @swipeHintBookComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe comments left or right to reveal actions.'**
+  String get swipeHintBookComments;
+
+  /// No description provided for @swipeHintMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe message rows to reveal available actions.'**
+  String get swipeHintMessages;
+
   /// No description provided for @sentMessage.
   ///
   /// In en, this message translates to:
@@ -2077,6 +2233,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No saved content yet.'**
   String get noSavedBooksYet;
+
+  /// No description provided for @noDownloadedBooksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloaded content yet.'**
+  String get noDownloadedBooksYet;
+
+  /// No description provided for @failedToLoadDownloadedBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load downloaded content: {error}'**
+  String failedToLoadDownloadedBooks(String error);
+
+  /// No description provided for @downloadedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded {date}'**
+  String downloadedOn(String date);
+
+  /// No description provided for @removeDownloadedBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove download?'**
+  String get removeDownloadedBookTitle;
+
+  /// No description provided for @removeDownloadedBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{title}\" from offline storage.'**
+  String removeDownloadedBookBody(String title);
+
+  /// No description provided for @downloadRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Download removed.'**
+  String get downloadRemoved;
+
+  /// No description provided for @onboardingDiscoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover your next read'**
+  String get onboardingDiscoverTitle;
+
+  /// No description provided for @onboardingDiscoverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse originals, classics, trending works, and authors curated for your reading mood.'**
+  String get onboardingDiscoverBody;
+
+  /// No description provided for @onboardingOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read anywhere'**
+  String get onboardingOfflineTitle;
+
+  /// No description provided for @onboardingOfflineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Download content to your device and keep reading even when the network disappears.'**
+  String get onboardingOfflineBody;
+
+  /// No description provided for @onboardingWriteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Write and publish'**
+  String get onboardingWriteTitle;
+
+  /// No description provided for @onboardingWriteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft chapters, add details, publish your work, and grow your presence as a Wreadom author.'**
+  String get onboardingWriteBody;
+
+  /// No description provided for @onboardingCommunityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the conversation'**
+  String get onboardingCommunityTitle;
+
+  /// No description provided for @onboardingCommunityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Share quotes, reviews, posts, and comments with readers and writers across the community.'**
+  String get onboardingCommunityBody;
+
+  /// No description provided for @onboardingProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Wreadom yours'**
+  String get onboardingProfileTitle;
+
+  /// No description provided for @onboardingProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow creators, message connections, manage your shelf, and shape a profile readers remember.'**
+  String get onboardingProfileBody;
 
   /// No description provided for @noPostsYetStartSharing.
   ///
@@ -2425,6 +2677,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get back;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
 
   /// No description provided for @chapterOverview.
   ///
@@ -2953,6 +3229,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact Us'**
   String get contactUs;
+
+  /// No description provided for @emailSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Email support'**
+  String get emailSupport;
 
   /// No description provided for @noHelpTopicsFound.
   ///

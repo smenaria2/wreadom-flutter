@@ -5,6 +5,7 @@ import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
+import '../../utils/book_author_utils.dart';
 
 class QuoteSheet extends ConsumerStatefulWidget {
   final Book book;
@@ -51,6 +52,7 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
         type: 'quote',
         bookId: widget.book.id,
         bookTitle: widget.book.title,
+        bookAuthorName: bookAuthorName(widget.book),
         bookCover: widget.book.coverUrl,
         text: _commentController.text.trim(),
         quote: quoteText,

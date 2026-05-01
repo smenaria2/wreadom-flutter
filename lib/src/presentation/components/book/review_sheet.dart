@@ -5,6 +5,7 @@ import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
+import '../../utils/book_author_utils.dart';
 
 /// Shows a sheet for writing a book review.
 void showReviewSheet(BuildContext context, Book book) {
@@ -77,6 +78,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
         rating: _rating,
         bookId: widget.book.id.toString(),
         bookTitle: widget.book.title,
+        bookAuthorName: bookAuthorName(widget.book),
         bookCover: widget.book.coverUrl,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         likes: const [],

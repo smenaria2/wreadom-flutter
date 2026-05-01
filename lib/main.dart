@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -18,13 +19,13 @@ import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
+import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
-
 
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -35,6 +36,9 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     AppLogCollector.init();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await MobileAds.instance.initialize();
+    }
     FlutterError.onError = (details) {
       AppLogCollector.recordFlutterError(details);
       FlutterError.presentError(details);
@@ -141,7 +145,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeMode = ref.watch(appThemeControllerProvider);
     final locale = ref.watch(localeControllerProvider);
 
-
     return ScreenUtilInit(
       designSize: const Size(390, 844),
       minTextAdapt: true,
@@ -196,7 +199,10 @@ class AuthWrapper extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user != null) {
-          return const MainNavigationShell();
+          return OnboardingGate(
+            userId: user.uid,
+            child: const MainNavigationShell(),
+          );
         }
         return const LoginScreen();
       },

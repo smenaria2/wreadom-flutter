@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:hive_ce/hive.dart';
 import 'package:flutter/foundation.dart';
 
@@ -5,6 +7,18 @@ import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../utils/map_utils.dart';
+
+class OfflineBookEntry {
+  const OfflineBookEntry({
+    required this.book,
+    required this.downloadedAt,
+    required this.sizeBytes,
+  });
+
+  final Book book;
+  final DateTime? downloadedAt;
+  final int sizeBytes;
+}
 
 class OfflineService {
   factory OfflineService() => _instance;
@@ -61,20 +75,38 @@ class OfflineService {
 
   List<Book> getDownloadedBooks() {
     if (!Hive.isBoxOpen(_booksBoxName)) return [];
-    return _booksBox.values
-        .map((json) {
+    return getDownloadedBookEntries()
+        .map((entry) => entry.book)
+        .whereType<Book>()
+        .toList();
+  }
+
+  List<OfflineBookEntry> getDownloadedBookEntries() {
+    if (!Hive.isBoxOpen(_booksBoxName)) return [];
+    return _booksBox.keys
+        .map((key) {
           try {
-            final map = asStringMap(json);
+            final bookId = key.toString();
+            final rawBook = _booksBox.get(key);
+            final map = asStringMap(rawBook);
             final bookJson = map['book'] is Map ? map['book'] : map;
-            return Book.fromJson(asStringMap(bookJson));
+            final downloadedAtMs = (map['downloadedAt'] as num?)?.toInt();
+            final rawChapters = _chaptersBox.get(bookId);
+            return OfflineBookEntry(
+              book: Book.fromJson(asStringMap(bookJson)),
+              downloadedAt: downloadedAtMs == null
+                  ? null
+                  : DateTime.fromMillisecondsSinceEpoch(downloadedAtMs),
+              sizeBytes: _estimatedSizeBytes(rawBook) + _estimatedSizeBytes(rawChapters),
+            );
           } catch (error) {
             debugPrint(
-              '[OfflineService] Skipping invalid offline book: $error',
+              '[OfflineService] Skipping invalid offline book metadata: $error',
             );
             return null;
           }
         })
-        .whereType<Book>()
+        .whereType<OfflineBookEntry>()
         .toList();
   }
 
@@ -129,5 +161,14 @@ class OfflineService {
       );
     }
     return value.toString();
+  }
+
+  int _estimatedSizeBytes(dynamic value) {
+    if (value == null) return 0;
+    try {
+      return utf8.encode(jsonEncode(_hiveSafeValue(value))).length;
+    } catch (_) {
+      return utf8.encode(value.toString()).length;
+    }
   }
 }

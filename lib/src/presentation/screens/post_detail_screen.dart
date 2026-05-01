@@ -16,10 +16,18 @@ import '../widgets/comment_widgets.dart';
 import 'static_info_screen.dart';
 
 class PostDetailScreen extends ConsumerWidget {
-  const PostDetailScreen({super.key, required this.postId, this.preloadedPost});
+  const PostDetailScreen({
+    super.key,
+    required this.postId,
+    this.preloadedPost,
+    this.targetCommentId,
+    this.targetReplyId,
+  });
 
   final String postId;
   final FeedPost? preloadedPost;
+  final String? targetCommentId;
+  final String? targetReplyId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,7 +68,11 @@ class PostDetailScreen extends ConsumerWidget {
             child: ListView(
               children: [
                 FeedPostCard(post: effectivePost, openOnTap: false),
-                _InlineComments(post: effectivePost),
+                _InlineComments(
+                  post: effectivePost,
+                  targetCommentId: targetCommentId,
+                  targetReplyId: targetReplyId,
+                ),
               ],
             ),
           );
@@ -69,7 +81,11 @@ class PostDetailScreen extends ConsumerWidget {
             ? ListView(
                 children: [
                   FeedPostCard(post: preloadedPost!, openOnTap: false),
-                  _InlineComments(post: preloadedPost!),
+                  _InlineComments(
+                    post: preloadedPost!,
+                    targetCommentId: targetCommentId,
+                    targetReplyId: targetReplyId,
+                  ),
                 ],
               )
             : const Center(child: CircularProgressIndicator()),
@@ -81,9 +97,15 @@ class PostDetailScreen extends ConsumerWidget {
 }
 
 class _InlineComments extends ConsumerStatefulWidget {
-  const _InlineComments({required this.post});
+  const _InlineComments({
+    required this.post,
+    this.targetCommentId,
+    this.targetReplyId,
+  });
 
   final FeedPost post;
+  final String? targetCommentId;
+  final String? targetReplyId;
 
   @override
   ConsumerState<_InlineComments> createState() => _InlineCommentsState();
@@ -197,9 +219,30 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                   child: Text(l10n.noCommentsYet),
                 );
               }
+              final targetComment = _targetComment(comments);
+              final visibleComments = targetComment == null
+                  ? comments
+                  : comments
+                        .where((comment) => comment.id != targetComment.id)
+                        .toList();
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final comment in comments)
+                  if (targetComment != null) ...[
+                    _TargetCommentHeader(label: l10n.targetComment),
+                    CommentTile(
+                      key: ValueKey(
+                        'post-detail-target-comment-${targetComment.id ?? targetComment.timestamp}',
+                      ),
+                      comment: targetComment,
+                      onReply: () =>
+                          setState(() => _replyingTo = targetComment),
+                      isTargetComment: true,
+                      targetReplyId: widget.targetReplyId,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  for (final comment in visibleComments)
                     CommentTile(
                       key: ValueKey(
                         'post-detail-comment-${comment.id ?? comment.timestamp}',
@@ -271,6 +314,45 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                     : const Icon(Icons.send_rounded),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Comment? _targetComment(List<Comment> comments) {
+    final targetId = widget.targetCommentId?.trim();
+    if (targetId == null || targetId.isEmpty) return null;
+    for (final comment in comments) {
+      if (comment.id == targetId) return comment;
+    }
+    return null;
+  }
+}
+
+class _TargetCommentHeader extends StatelessWidget {
+  const _TargetCommentHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.push_pin_rounded,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

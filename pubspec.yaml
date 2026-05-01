@@ -80,6 +80,7 @@ dependencies:
   webview_flutter_web: ^0.2.3+4
   webview_flutter_android: ^4.11.0
   webview_flutter_wkwebview: ^3.24.5
+  google_mobile_ads: ^8.0.0
 
 dev_dependencies:
   flutter_test:

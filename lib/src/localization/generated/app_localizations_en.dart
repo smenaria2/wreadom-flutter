@@ -84,6 +84,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saved => 'Saved';
 
   @override
+  String get downloaded => 'Downloaded';
+
+  @override
   String get profileSettings => 'Profile Settings';
 
   @override
@@ -347,6 +350,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Internet Archive content can take a moment to prepare.';
 
   @override
+  String get viewPdf => 'View PDF';
+
+  @override
+  String get upvote => 'Upvote';
+
+  @override
+  String get downvote => 'Downvote';
+
+  @override
   String get offline => 'Offline';
 
   @override
@@ -390,6 +402,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get genrePoetry => 'Poetry';
+
+  @override
+  String get genreClassic => 'Classic';
+
+  @override
+  String get genreSocial => 'Social';
+
+  @override
+  String get genreHistory => 'History';
+
+  @override
+  String get genreStories => 'Stories';
+
+  @override
+  String get genreCompetition => 'Wreadom Competition #1';
+
+  @override
+  String get genreOther => 'Other';
 
   @override
   String get genreBiography => 'Biography';
@@ -701,6 +731,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noBioYet => 'No bio yet.';
 
   @override
+  String get averageRating => 'Average rating';
+
+  @override
+  String get totalReads => 'Total reads';
+
+  @override
+  String get booksPublished => 'Books published';
+
+  @override
+  String get dateJoined => 'Joined';
+
+  @override
   String get activity => 'Activity';
 
   @override
@@ -958,6 +1000,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unsave => 'Unsave';
 
   @override
+  String get bookSaved => 'Content saved.';
+
+  @override
+  String get downloadSavedBookTitle => 'Download for offline reading?';
+
+  @override
+  String get downloadSavedBookBody =>
+      'Keep this content available even when you are offline.';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get download => 'Download';
+
+  @override
+  String get keep => 'Keep';
+
+  @override
   String get bookSavedDownloaded =>
       'Content saved and downloaded for offline reading.';
 
@@ -1089,6 +1150,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sentYouAMessage => 'sent you a message.';
 
   @override
+  String get targetComment => 'Target comment';
+
+  @override
+  String get removeReadingHistoryTitle => 'Remove from read history?';
+
+  @override
+  String get removeReadingHistoryBody =>
+      'This only removes the content from your read history.';
+
+  @override
+  String get gotIt => 'Got it';
+
+  @override
+  String get swipeHintBookComments =>
+      'Swipe comments left or right to reveal actions.';
+
+  @override
+  String get swipeHintMessages =>
+      'Swipe message rows to reveal available actions.';
+
+  @override
   String get sentMessage => 'Message sent';
 
   @override
@@ -1111,6 +1193,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSavedBooksYet => 'No saved content yet.';
+
+  @override
+  String get noDownloadedBooksYet => 'No downloaded content yet.';
+
+  @override
+  String failedToLoadDownloadedBooks(String error) {
+    return 'Failed to load downloaded content: $error';
+  }
+
+  @override
+  String downloadedOn(String date) {
+    return 'Downloaded $date';
+  }
+
+  @override
+  String get removeDownloadedBookTitle => 'Remove download?';
+
+  @override
+  String removeDownloadedBookBody(String title) {
+    return 'Remove \"$title\" from offline storage.';
+  }
+
+  @override
+  String get downloadRemoved => 'Download removed.';
+
+  @override
+  String get onboardingDiscoverTitle => 'Discover your next read';
+
+  @override
+  String get onboardingDiscoverBody =>
+      'Browse originals, classics, trending works, and authors curated for your reading mood.';
+
+  @override
+  String get onboardingOfflineTitle => 'Read anywhere';
+
+  @override
+  String get onboardingOfflineBody =>
+      'Download content to your device and keep reading even when the network disappears.';
+
+  @override
+  String get onboardingWriteTitle => 'Write and publish';
+
+  @override
+  String get onboardingWriteBody =>
+      'Draft chapters, add details, publish your work, and grow your presence as a Wreadom author.';
+
+  @override
+  String get onboardingCommunityTitle => 'Join the conversation';
+
+  @override
+  String get onboardingCommunityBody =>
+      'Share quotes, reviews, posts, and comments with readers and writers across the community.';
+
+  @override
+  String get onboardingProfileTitle => 'Make Wreadom yours';
+
+  @override
+  String get onboardingProfileBody =>
+      'Follow creators, message connections, manage your shelf, and shape a profile readers remember.';
 
   @override
   String get noPostsYetStartSharing =>
@@ -1299,6 +1440,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get back => 'Back';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get open => 'Open';
 
   @override
   String get chapterOverview => 'Chapter overview';
@@ -1624,6 +1777,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactUs => 'Contact Us';
+
+  @override
+  String get emailSupport => 'Email support';
 
   @override
   String noHelpTopicsFound(String query) {

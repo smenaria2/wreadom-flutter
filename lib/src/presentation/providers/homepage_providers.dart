@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
@@ -19,6 +20,7 @@ const _homepageMetadataCacheUpdatedAtKey =
 const _homepageBooksCacheKey = 'homepage_books_cache_v1';
 const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v1';
+const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageMetadataCacheTtl = Duration(minutes: 30);
 
 final homepageRefreshCounterProvider =
@@ -39,6 +41,7 @@ Future<void> refreshHomepage(WidgetRef ref) async {
     prefs.remove(_homepageBooksCacheKey),
     prefs.remove(_homepageAuthorWorksCacheKey),
     prefs.remove(_homepageIABooksCacheKey),
+    prefs.remove(_homepageBannersCacheKey),
   ]);
   ref.read(homepageRefreshCounterProvider.notifier).bump();
   ref.invalidate(homepageMetadataProvider);
@@ -53,6 +56,7 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ref.invalidate(homepagePopularProvider);
   ref.invalidate(homepageRecentProvider);
   ref.invalidate(homepageGenreProvider);
+  ref.invalidate(homeBannersProvider);
 }
 
 T? _readCachedValue<T>(
@@ -188,6 +192,60 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     if (cached != null) return cached;
     rethrow;
   }
+});
+
+final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cached = _readCachedValue<List<HomeBanner>>(
+    prefs,
+    _homepageBannersCacheKey,
+    (json) => (json as List)
+        .map((raw) => HomeBanner.fromJson(asStringMap(raw)))
+        .toList(),
+  );
+  if (refreshTick == 0 && cached != null) return cached;
+
+  final byId = <String, HomeBanner>{};
+
+  try {
+    final metadataDoc = await FirebaseFirestore.instance
+        .collection('settings')
+        .doc('homepage_metadata')
+        .get();
+    final rawBanners = asStringMap(metadataDoc.data())['homeBanners'];
+    if (rawBanners is List) {
+      for (final raw in rawBanners.whereType<Map>()) {
+        final banner = HomeBanner.fromJson(asStringMap(raw));
+        if (banner.id.isNotEmpty) byId[banner.id] = banner;
+      }
+    }
+  } catch (_) {}
+
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('home-banners')
+        .limit(10)
+        .get();
+    for (final doc in snapshot.docs) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['id'] = doc.id;
+      final banner = HomeBanner.fromJson(data);
+      byId[banner.id] = banner;
+    }
+  } catch (_) {}
+
+  final banners =
+      byId.values
+          .where((banner) => banner.isEnabled && banner.title.trim().isNotEmpty)
+          .toList()
+        ..sort((a, b) => b.sortTimestamp.compareTo(a.sortTimestamp));
+  await _writeCachedValue(
+    prefs,
+    _homepageBannersCacheKey,
+    banners.map((banner) => banner.toJson()).toList(),
+  );
+  return banners;
 });
 
 List<String> _positiveRecommendationIds(

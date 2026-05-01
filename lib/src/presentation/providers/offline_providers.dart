@@ -10,3 +10,11 @@ final downloadedBooksProvider = FutureProvider<List>((ref) async {
   await service.init();
   return service.getDownloadedBooks();
 });
+
+final downloadedBookEntriesProvider = FutureProvider<List<OfflineBookEntry>>((
+  ref,
+) async {
+  final service = ref.watch(offlineServiceProvider);
+  await service.init();
+  return service.getDownloadedBookEntries();
+});

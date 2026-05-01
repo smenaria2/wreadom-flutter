@@ -7,6 +7,7 @@ import '../../domain/models/feed_post.dart';
 import '../../domain/models/comment.dart';
 import '../providers/feed_providers.dart';
 import '../providers/auth_providers.dart';
+import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../widgets/comment_widgets.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -328,6 +329,38 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
     final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
+    final bookIdText = post.bookId?.toString();
+    final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
+    final storedBookTitle = post.bookTitle?.trim() ?? '';
+    final fallbackBookAsync =
+        (storedBookAuthorName.isEmpty || storedBookTitle.isEmpty) &&
+            bookIdText != null &&
+            bookIdText.trim().isNotEmpty
+        ? ref.watch(bookDetailProvider(bookIdText))
+        : null;
+    final resolvedBookAuthorName = storedBookAuthorName.isNotEmpty
+        ? storedBookAuthorName
+        : fallbackBookAsync?.maybeWhen(
+                data: (book) {
+                  final author = book?.authors
+                      .map((author) => author.name.trim())
+                      .where((name) => name.isNotEmpty)
+                      .join(', ');
+                  return author == null || author.isEmpty ? null : author;
+                },
+                orElse: () => null,
+              ) ??
+              '';
+    final resolvedBookTitle = storedBookTitle.isNotEmpty
+        ? storedBookTitle
+        : fallbackBookAsync?.maybeWhen(
+                data: (book) {
+                  final title = book?.title.trim();
+                  return title == null || title.isEmpty ? null : title;
+                },
+                orElse: () => null,
+              ) ??
+              '';
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -524,16 +557,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             ],
 
             // ─── Book reference ───────────────────────────────
-            if (post.bookTitle != null) ...[
+            if (post.bookTitle != null || bookIdText != null) ...[
               const SizedBox(height: 10),
               InkWell(
                 onTap: () {
-                  if (post.bookId != null) {
+                  if (bookIdText != null) {
                     Navigator.of(context).pushNamed(
                       AppRoutes.bookDetail,
-                      arguments: BookDetailArguments(
-                        bookId: post.bookId.toString(),
-                      ),
+                      arguments: BookDetailArguments(bookId: bookIdText),
                     );
                   }
                 },
@@ -569,22 +600,29 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              l10n.regarding,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Theme.of(context).colorScheme.primary,
+                            if (resolvedBookTitle.isNotEmpty)
+                              Text(
+                                resolvedBookTitle,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            Text(
-                              post.bookTitle!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                            if (resolvedBookAuthorName.isNotEmpty &&
+                                resolvedBookTitle.isNotEmpty)
+                              const SizedBox(height: 2),
+                            if (resolvedBookAuthorName.isNotEmpty)
+                              Text(
+                                resolvedBookAuthorName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
                           ],
                         ),
                       ),

@@ -256,6 +256,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Home banners
+    match /home-banners/{bannerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Book recommendations / Archive votes
+    match /recommendations/{recommendationId} {
+      allow read: if true;
+      allow create, update: if signedIn() &&
+        request.resource.data.userId == uid() &&
+        recommendationId == uid() + '_' + request.resource.data.bookId &&
+        request.resource.data.type in ['up', 'down'];
+      allow delete: if signedIn() && resource.data.userId == uid();
+    }
+
+    match /book_stats/{bookId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // IA Upvotes cache
     match /ia_upvotes/{bookId} {
       allow read: if true;

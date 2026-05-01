@@ -27,6 +27,7 @@
   "posts": "Posts",
   "history": "Read Content",
   "saved": "Saved",
+  "downloaded": "Downloaded",
   "profileSettings": "Profile Settings",
   "displayName": "Display Name",
   "penName": "Pen Name",
@@ -168,6 +169,9 @@
   "shareChapter": "Share Chapter",
   "closeReader": "Close Reader",
   "internetArchivePreparation": "Internet Archive content can take a moment to prepare.",
+  "viewPdf": "View PDF",
+  "upvote": "Upvote",
+  "downvote": "Downvote",
   "offline": "Offline",
   "readAloud": "Read aloud",
   "stop": "Stop",
@@ -183,6 +187,12 @@
   "genreHistorical": "Historical",
   "genreAdventure": "Adventure",
   "genrePoetry": "Poetry",
+  "genreClassic": "Classic",
+  "genreSocial": "Social",
+  "genreHistory": "History",
+  "genreStories": "Stories",
+  "genreCompetition": "Wreadom Competition #1",
+  "genreOther": "Other",
   "genreBiography": "Biography",
   "genrePhilosophy": "Philosophy",
   "writer": "Writer",
@@ -412,6 +422,10 @@
     }
   },
   "noBioYet": "No bio yet.",
+  "averageRating": "Average rating",
+  "totalReads": "Total reads",
+  "booksPublished": "Books published",
+  "dateJoined": "Joined",
   "activity": "Activity",
   "loadMore": "Load more",
   "themeDialogTitle": "Theme",
@@ -564,6 +578,12 @@
   "removeSavedBookTitle": "Remove saved content?",
   "removeSavedBookBody": "The offline download will stay available unless you remove it separately.",
   "unsave": "Unsave",
+  "bookSaved": "Content saved.",
+  "downloadSavedBookTitle": "Download for offline reading?",
+  "downloadSavedBookBody": "Keep this content available even when you are offline.",
+  "notNow": "Not now",
+  "download": "Download",
+  "keep": "Keep",
   "bookSavedDownloaded": "Content saved and downloaded for offline reading.",
   "published": "Published",
   "drafts": "Drafts",
@@ -637,6 +657,12 @@
   "oneMessageAllowed": "Only one message allowed unless the recipient replies.",
   "blockUserBody": "They will no longer be able to send messages in this conversation.",
   "sentYouAMessage": "sent you a message.",
+  "targetComment": "Target comment",
+  "removeReadingHistoryTitle": "Remove from read history?",
+  "removeReadingHistoryBody": "This only removes the content from your read history.",
+  "gotIt": "Got it",
+  "swipeHintBookComments": "Swipe comments left or right to reveal actions.",
+  "swipeHintMessages": "Swipe message rows to reveal available actions.",
   "sentMessage": "Message sent",
   "viewComments": "View Comments",
   "writeReview": "Write Review",
@@ -688,6 +714,43 @@
     }
   },
   "noSavedBooksYet": "No saved content yet.",
+  "noDownloadedBooksYet": "No downloaded content yet.",
+  "failedToLoadDownloadedBooks": "Failed to load downloaded content: {error}",
+  "@failedToLoadDownloadedBooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadedOn": "Downloaded {date}",
+  "@downloadedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "removeDownloadedBookTitle": "Remove download?",
+  "removeDownloadedBookBody": "Remove \"{title}\" from offline storage.",
+  "@removeDownloadedBookBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadRemoved": "Download removed.",
+  "onboardingDiscoverTitle": "Discover your next read",
+  "onboardingDiscoverBody": "Browse originals, classics, trending works, and authors curated for your reading mood.",
+  "onboardingOfflineTitle": "Read anywhere",
+  "onboardingOfflineBody": "Download content to your device and keep reading even when the network disappears.",
+  "onboardingWriteTitle": "Write and publish",
+  "onboardingWriteBody": "Draft chapters, add details, publish your work, and grow your presence as a Wreadom author.",
+  "onboardingCommunityTitle": "Join the conversation",
+  "onboardingCommunityBody": "Share quotes, reviews, posts, and comments with readers and writers across the community.",
+  "onboardingProfileTitle": "Make Wreadom yours",
+  "onboardingProfileBody": "Follow creators, message connections, manage your shelf, and shape a profile readers remember.",
   "noPostsYetStartSharing": "No posts yet.\nStart sharing your reading journey!",
   "changeProfilePicture": "Change profile picture",
   "changeCoverPicture": "Change cover picture",
@@ -788,6 +851,10 @@
   },
   "startedFollowingYou": "started following you.",
   "back": "Back",
+  "next": "Next",
+  "skip": "Skip",
+  "done": "Done",
+  "open": "Open",
   "chapterOverview": "Chapter overview",
   "chapterCount": "{count, plural, =1{1 chapter} other{{count} chapters}}",
   "@chapterCount": {
@@ -918,6 +985,7 @@
   "stillNeedHelp": "Still need help?",
   "communitySupportAssist": "Our community team is here to assist.",
   "contactUs": "Contact Us",
+  "emailSupport": "Email support",
   "noHelpTopicsFound": "No help topics found for \"{query}\"",
   "@noHelpTopicsFound": {
     "placeholders": {

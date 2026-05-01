@@ -27,6 +27,7 @@ abstract class FeedPost with _$FeedPost {
     type, // 'comment' | 'quote' | 'review' | 'testimony' | 'post'
     dynamic bookId,
     String? bookTitle,
+    String? bookAuthorName,
     String? bookCover,
     required String text,
     String? quote,

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../data/services/reader_ad_service.dart';
 import '../../domain/models/book.dart';
 import 'webview_platform_helper.dart';
 
@@ -16,6 +19,7 @@ class ArchiveReaderScreen extends StatefulWidget {
 
 class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
   WebViewController? _controller;
+  final ReaderAdService _readerAdService = ReaderAdService();
   bool _isLoading = true;
   double _loadingProgress = 0;
   bool _hasError = false;
@@ -24,7 +28,14 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
   void initState() {
     super.initState();
     initializeWebViewPlatform();
+    unawaited(_readerAdService.showArchiveLoadingAd());
     _initController();
+  }
+
+  @override
+  void dispose() {
+    _readerAdService.dispose();
+    super.dispose();
   }
 
   void _initController() {
@@ -79,7 +90,6 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
       );
       controller.loadRequest(Uri.https('archive.org', '/embed/$identifier'));
 
-
       setState(() {
         _controller = controller;
         _isLoading = true;
@@ -97,8 +107,6 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
       });
     }
   }
-
-
 
   Future<void> _launchPdf() async {
     final pdfUrl = widget.book.formats['application/pdf'];
@@ -134,7 +142,6 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
               tooltip: 'View PDF',
               onPressed: _launchPdf,
             ),
-
         ],
       ),
       body: Stack(

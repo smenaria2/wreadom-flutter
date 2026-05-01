@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/widgets/submit_error_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -368,22 +369,48 @@ class _HelpScreenState extends State<HelpScreen> {
               ],
             ),
           ),
-          FilledButton.icon(
-            onPressed: () {
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
               showDialog<void>(
                 context: context,
                 builder: (context) => const SubmitErrorDialog(),
               );
             },
-            icon: const Icon(Icons.mail_outline_rounded, size: 18),
-            label: Text(l10n.contactUs),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-            ),
+                icon: const Icon(Icons.bug_report_outlined, size: 18),
+                label: Text(l10n.submitError),
+              ),
+              FilledButton.icon(
+                onPressed: () => _emailSupport(context, l10n),
+                icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                label: Text(l10n.emailSupport),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _emailSupport(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'contact@wreadom.in',
+      queryParameters: {'subject': 'Wreadom support'},
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorWithDetails('contact@wreadom.in'))),
+      );
+    }
   }
 
   Widget _buildEmptyState(AppLocalizations l10n) {

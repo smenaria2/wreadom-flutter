@@ -10,6 +10,7 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/swipe_hint.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -29,6 +30,21 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      showSwipeHintOnce(
+        context: context,
+        key: 'swipe_hint_seen_conversation_v1',
+        message: l10n.swipeHintMessages,
+        actionLabel: l10n.gotIt,
+      );
+    });
+  }
 
   @override
   void dispose() {
