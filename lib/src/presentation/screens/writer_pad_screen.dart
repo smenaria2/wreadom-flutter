@@ -10,7 +10,10 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/user_model.dart';
 import '../../localization/generated/app_localizations.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../providers/auth_providers.dart';
+import '../providers/follow_providers.dart';
+import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
 import '../utils/writer_html_codec.dart';
@@ -72,6 +75,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _category = 'Romance';
   String _language = 'Hindi';
   String? _coverUrl;
+  bool _collabEnabled = false;
+  String? _selectedCollaboratorId;
+  String? _selectedCollaboratorName;
+  String? _selectedCollaboratorPhotoURL;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
@@ -152,6 +159,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _contentType = _contentTypeFromBook(book?.contentType);
     _language = _languageFromBook(book?.languages.firstOrNull);
     _category = _initialCategory(book);
+    _collabEnabled =
+        book?.collaboratorId?.trim().isNotEmpty == true &&
+        book?.collaborationStatus != collaborationStatusDeclined;
+    _selectedCollaboratorId = book?.collaboratorId?.trim();
+    _selectedCollaboratorName = book?.collaboratorName?.trim();
+    _selectedCollaboratorPhotoURL = book?.collaboratorPhotoURL?.trim();
     if (!_currentCategories.contains(_category)) {
       _category = _defaultCategory;
     }
@@ -680,6 +693,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        _buildCollaborationSection(),
         const SizedBox(height: 16),
         FilledButton.icon(
           onPressed: _isSaving
@@ -1302,6 +1317,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
     final user = await _currentUserOrNull();
     if (user == null) return;
+    if (_collabEnabled &&
+        !isAcceptedCollaboration(widget.book ?? _emptyBookForCollabCheck()) &&
+        (_selectedCollaboratorId == null ||
+            _selectedCollaboratorId!.trim().isEmpty)) {
+      _showSnack('Select a co-author before saving collaboration.');
+      setState(() => _setStep(1));
+      return;
+    }
 
     setState(() {
       _isSaving = true;
@@ -1417,6 +1440,51 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         .where((topic) => topic.isNotEmpty)
         .toList();
     final subjects = <String>{_category, ...topics}.toList();
+    final existingBook = widget.book;
+    final primaryAuthorId = existingBook?.authorId?.trim().isNotEmpty == true
+        ? existingBook!.authorId!.trim()
+        : user.id;
+    final primaryAuthorName = primaryAuthorId == user.id
+        ? (user.displayName ?? user.username)
+        : existingBook?.authors.firstOrNull?.name.trim().isNotEmpty == true
+        ? existingBook!.authors.first.name.trim()
+        : 'Author';
+    final collaborationWasAccepted =
+        existingBook != null && isAcceptedCollaboration(existingBook);
+    final collaboratorId = collaborationWasAccepted
+        ? existingBook.collaboratorId?.trim()
+        : _collabEnabled
+        ? _selectedCollaboratorId?.trim()
+        : null;
+    final collaboratorName = collaborationWasAccepted
+        ? existingBook.collaboratorName?.trim()
+        : _collabEnabled
+        ? _selectedCollaboratorName?.trim()
+        : null;
+    final collaboratorPhotoURL = collaborationWasAccepted
+        ? existingBook.collaboratorPhotoURL?.trim()
+        : _collabEnabled
+        ? _selectedCollaboratorPhotoURL?.trim()
+        : null;
+    final collaborationStatus = collaborationWasAccepted
+        ? collaborationStatusAccepted
+        : _collabEnabled && collaboratorId != null && collaboratorId.isNotEmpty
+        ? collaborationStatusPending
+        : null;
+    final bookAuthors = <Author>[
+      Author(name: primaryAuthorName, birthYear: null, deathYear: null),
+      if (collaborationStatus == collaborationStatusAccepted &&
+          collaboratorName != null &&
+          collaboratorName.isNotEmpty)
+        Author(name: collaboratorName, birthYear: null, deathYear: null),
+    ];
+    final authorIds = collaborationStatus == collaborationStatusAccepted
+        ? <String>{
+            primaryAuthorId,
+            if (collaboratorId != null && collaboratorId.isNotEmpty)
+              collaboratorId,
+          }.toList()
+        : <String>[primaryAuthorId];
     return Book(
       id: _bookId ?? widget.book?.id ?? '',
       title: _titleController.value.text.trim().isEmpty
@@ -1424,13 +1492,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           : _titleController.value.text.trim(),
       description: _descriptionController.value.text.trim(),
       coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
-      authors: [
-        Author(
-          name: user.displayName ?? user.username,
-          birthYear: null,
-          deathYear: null,
-        ),
-      ],
+      authors: bookAuthors,
       subjects: subjects,
       languages: [_language],
       formats: widget.book?.formats ?? const {},
@@ -1441,7 +1503,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       source: 'firestore',
       isOriginal: true,
       contentType: _contentType,
-      authorId: user.id,
+      authorId: primaryAuthorId,
       chapters: chapters,
       status: status,
       createdAt: widget.book?.createdAt ?? now,
@@ -1454,6 +1516,186 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       ratingsCount: widget.book?.ratingsCount,
       topics: topics,
       chapterCount: chapters.length,
+      collaborationStatus: collaborationStatus,
+      collaboratorId: collaboratorId?.isEmpty == true ? null : collaboratorId,
+      collaboratorName: collaboratorName?.isEmpty == true
+          ? null
+          : collaboratorName,
+      collaboratorPhotoURL: collaboratorPhotoURL?.isEmpty == true
+          ? null
+          : collaboratorPhotoURL,
+      collaborationRequestedBy:
+          collaborationStatus == collaborationStatusPending
+          ? (existingBook?.collaborationRequestedBy ?? user.id)
+          : existingBook?.collaborationRequestedBy,
+      collaborationRequestedAt:
+          collaborationStatus == collaborationStatusPending
+          ? (existingBook?.collaborationRequestedAt ?? now)
+          : existingBook?.collaborationRequestedAt,
+      collaborationRespondedAt: existingBook?.collaborationRespondedAt,
+      authorIds: authorIds,
+    );
+  }
+
+  Widget _buildCollaborationSection() {
+    final existingBook = widget.book;
+    final isAccepted =
+        existingBook != null && isAcceptedCollaboration(existingBook);
+    final isPending =
+        existingBook != null && isPendingCollaboration(existingBook);
+    final canEditInvite = !isAccepted;
+    final followingAsync = ref.watch(followingListProvider);
+    final followingIds = followingAsync.asData?.value ?? const <String>[];
+    final profilesKey = followingIds.join('|');
+    final profilesAsync = profilesKey.isEmpty
+        ? const AsyncValue<List<UserModel>>.data(<UserModel>[])
+        : ref.watch(publicProfilesByStableIdsProvider(profilesKey));
+    final profiles = profilesAsync.asData?.value ?? const <UserModel>[];
+    final selectedId = _selectedCollaboratorId?.trim();
+    final selectedKnown =
+        selectedId != null &&
+        selectedId.isNotEmpty &&
+        profiles.any((profile) => profile.id == selectedId);
+    final dropdownProfiles = [
+      ...profiles,
+      if (!selectedKnown &&
+          selectedId != null &&
+          selectedId.isNotEmpty &&
+          _selectedCollaboratorName?.isNotEmpty == true)
+        UserModel(
+          id: selectedId,
+          username: _selectedCollaboratorName!,
+          email: '',
+          displayName: _selectedCollaboratorName,
+          photoURL: _selectedCollaboratorPhotoURL,
+          readingHistory: const [],
+          savedBooks: const [],
+          bookmarks: const [],
+        ),
+    ];
+
+    return _surface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              'Collab',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: _onWriterSurfaceColor(context),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            subtitle: Text(
+              isAccepted
+                  ? 'Accepted collaboration. Both authors can edit this book.'
+                  : isPending
+                  ? 'Request pending. The co-author can preview and respond.'
+                  : 'Invite one followed author to co-write this book.',
+              style: TextStyle(
+                color: _onWriterSurfaceColor(context).withValues(alpha: 0.65),
+              ),
+            ),
+            value: _collabEnabled,
+            onChanged: canEditInvite
+                ? (value) {
+                    setState(() {
+                      _collabEnabled = value;
+                      if (!value) {
+                        _selectedCollaboratorId = null;
+                        _selectedCollaboratorName = null;
+                        _selectedCollaboratorPhotoURL = null;
+                      }
+                    });
+                    _markDirty();
+                  }
+                : null,
+          ),
+          if (_collabEnabled) ...[
+            const SizedBox(height: 12),
+            profilesAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, _) => Text(
+                'Could not load followed authors.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              data: (_) {
+                if (dropdownProfiles.isEmpty) {
+                  return Text(
+                    'Follow an author first to invite them.',
+                    style: TextStyle(
+                      color: _onWriterSurfaceColor(
+                        context,
+                      ).withValues(alpha: 0.72),
+                    ),
+                  );
+                }
+                return DropdownButtonFormField<String>(
+                  initialValue: selectedKnown || !canEditInvite
+                      ? selectedId
+                      : null,
+                  dropdownColor: _writerSurfaceColor(context),
+                  decoration: InputDecoration(
+                    labelText: 'Co-author',
+                    filled: true,
+                    fillColor: _writerFieldColor(context),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  items: dropdownProfiles
+                      .map(
+                        (profile) => DropdownMenuItem(
+                          value: profile.id,
+                          child: Text(_profileName(profile)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: canEditInvite
+                      ? (value) {
+                          final profile = dropdownProfiles
+                              .where((item) => item.id == value)
+                              .firstOrNull;
+                          setState(() {
+                            _selectedCollaboratorId = value;
+                            _selectedCollaboratorName = profile == null
+                                ? null
+                                : _profileName(profile);
+                            _selectedCollaboratorPhotoURL = profile?.photoURL;
+                          });
+                          _markDirty();
+                        }
+                      : null,
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Book _emptyBookForCollabCheck() {
+    return const Book(
+      id: '',
+      title: '',
+      authors: [],
+      subjects: [],
+      languages: [],
+      formats: {},
+      downloadCount: 0,
+      mediaType: 'text',
+      bookshelves: [],
     );
   }
 
@@ -1643,6 +1885,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         .where((part) => part.isNotEmpty)
         .map((part) => part[0].toUpperCase() + part.substring(1))
         .join(' ');
+  }
+
+  String _profileName(UserModel profile) {
+    final displayName = profile.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+    final penName = profile.penName?.trim();
+    if (penName != null && penName.isNotEmpty) return penName;
+    return profile.username.trim().isEmpty ? 'Author' : profile.username.trim();
   }
 }
 

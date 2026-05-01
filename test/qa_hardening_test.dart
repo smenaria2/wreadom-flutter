@@ -602,9 +602,9 @@ void main() {
       );
       expect(
         rulesSource,
-        contains("allow create: if ownsIncomingAny('authorId', 'userId');"),
+        contains("allow create: if ownsIncomingAny('authorId', 'userId') &&"),
       );
-      expect(rulesSource, contains("ownsExistingAny('authorId', 'userId')"));
+      expect(rulesSource, contains("function canEditBookData(data)"));
       expect(
         rulesSource,
         contains("request.resource.data.reporterId == uid() ||"),

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 
@@ -161,27 +162,44 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Book>> getUserBooks(String userId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('authorId', isEqualTo: userId)
-          .where('status', isEqualTo: 'published')
-          .orderBy('updatedAt', descending: true)
-          .get();
+      final byId = <String, Book>{};
 
-      return snapshot.docs
-          .map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<Book>()
-          .toList();
+      Future<void> addBooksFrom(Query query) async {
+        final snapshot = await query.get();
+        for (final doc in snapshot.docs) {
+          try {
+            final data = normalizeBookMapForModel(
+              asStringMap(doc.data()),
+              doc.id,
+            );
+            final book = Book.fromJson(data);
+            final isPrimary = book.authorId?.trim() == userId;
+            if (!isPrimary && !isAcceptedCollaboration(book)) continue;
+            byId[book.id] = book;
+          } catch (_) {}
+        }
+      }
+
+      await Future.wait([
+        addBooksFrom(
+          _firestore
+              .collection(_collection)
+              .where('authorId', isEqualTo: userId)
+              .where('status', isEqualTo: 'published')
+              .orderBy('updatedAt', descending: true),
+        ),
+        addBooksFrom(
+          _firestore
+              .collection(_collection)
+              .where('authorIds', arrayContains: userId)
+              .where('status', isEqualTo: 'published')
+              .orderBy('updatedAt', descending: true),
+        ),
+      ]);
+
+      final books = byId.values.toList()
+        ..sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
+      return books;
     } catch (e, stack) {
       debugPrint('[FirebaseBookRepository] Error getting user books: $e');
       Error.throwWithStackTrace(e, stack);

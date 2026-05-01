@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
+import '../../utils/book_collaboration_utils.dart';
 import '../components/writer/writer_book_card.dart';
 import '../components/writer/writer_dashboard_header.dart';
+import '../providers/auth_providers.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
@@ -17,6 +19,7 @@ class WriterDashboardScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final activeTab = ref.watch(writerDashboardTabProvider);
     final booksAsync = ref.watch(filteredMyBooksProvider);
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -120,7 +123,13 @@ class WriterDashboardScreen extends ConsumerWidget {
                         book: book,
                         onTap: isPublished ? openStoryPage : openEditor,
                         onEditStory: isPublished ? openEditor : null,
-                        onDeleteDraft: isPublished
+                        onDeleteDraft:
+                            isPublished ||
+                                currentUser == null ||
+                                !canDeleteCollaborativeBook(
+                                  book,
+                                  currentUser.id,
+                                )
                             ? null
                             : () => _confirmDeleteDraft(context, ref, book.id),
                       );

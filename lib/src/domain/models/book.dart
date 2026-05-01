@@ -36,6 +36,14 @@ abstract class Book with _$Book {
     int? ratingsCount,
     List<String>? topics,
     int? chapterCount,
+    String? collaborationStatus,
+    String? collaboratorId,
+    String? collaboratorName,
+    String? collaboratorPhotoURL,
+    String? collaborationRequestedBy,
+    int? collaborationRequestedAt,
+    int? collaborationRespondedAt,
+    List<String>? authorIds,
   }) = _Book;
 
   factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);

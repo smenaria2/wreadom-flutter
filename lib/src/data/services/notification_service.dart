@@ -178,6 +178,12 @@ class NotificationService {
           ),
         );
         return;
+      case AppRoutes.collaborationRequest:
+        navigator.pushNamed(
+          target.route,
+          arguments: CollaborationRequestArguments(bookId: target.payload),
+        );
+        return;
       case AppRoutes.dailyTopic:
         navigator.pushNamed(target.route, arguments: target.payload);
         return;

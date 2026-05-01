@@ -6,6 +6,7 @@ import '../../utils/app_link_helper.dart';
 import '../screens/book_detail_screen.dart';
 import '../screens/category_books_screen.dart';
 import '../screens/conversation_screen.dart';
+import '../screens/collaboration_request_screen.dart';
 import '../screens/daily_topic_screen.dart';
 import '../screens/discovery_screen.dart';
 import '../screens/follow_list_screen.dart';
@@ -88,6 +89,12 @@ class PostDetailArguments {
   final String? targetReplyId;
 }
 
+class CollaborationRequestArguments {
+  const CollaborationRequestArguments({required this.bookId});
+
+  final String bookId;
+}
+
 class AppRouter {
   static MaterialPageRoute _notFound([String? message]) {
     return MaterialPageRoute(
@@ -153,7 +160,9 @@ class AppRouter {
             targetCommentId: args is BookDetailArguments
                 ? args.targetCommentId
                 : null,
-            targetReplyId: args is BookDetailArguments ? args.targetReplyId : null,
+            targetReplyId: args is BookDetailArguments
+                ? args.targetReplyId
+                : null,
           ),
         );
       case AppRoutes.reader:
@@ -190,6 +199,17 @@ class AppRouter {
             title: args.title,
             subtitle: args.subtitle,
           ),
+        );
+      case AppRoutes.collaborationRequest:
+        final argsValue = arguments ?? settings.arguments;
+        final bookId = argsValue is CollaborationRequestArguments
+            ? argsValue.bookId
+            : argsValue?.toString();
+        if (bookId == null || bookId.trim().isEmpty) {
+          return _notFound('Collaboration request details are missing.');
+        }
+        return MaterialPageRoute(
+          builder: (_) => CollaborationRequestScreen(bookId: bookId),
         );
       case AppRoutes.writerDashboard:
         return MaterialPageRoute(builder: (_) => const WriterDashboardScreen());

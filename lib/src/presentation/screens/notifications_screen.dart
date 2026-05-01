@@ -232,6 +232,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                         conversationId: target.payload,
                                         title: item.actorName,
                                       ),
+                                    AppRoutes.collaborationRequest =>
+                                      CollaborationRequestArguments(
+                                        bookId: target.payload,
+                                      ),
                                     _ => target.payload,
                                   };
                                   Navigator.of(context).pushNamed(

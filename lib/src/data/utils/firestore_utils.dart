@@ -159,6 +159,9 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   m['topics'] = m['topics'] is List
       ? (m['topics'] as List).map((e) => e.toString()).toList()
       : null;
+  m['authorIds'] = m['authorIds'] is List
+      ? (m['authorIds'] as List).map((e) => e.toString()).toList()
+      : null;
 
   // Ensure formats map exists
   if (m['formats'] is Map) {
@@ -200,6 +203,14 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   }
   if (m['updatedAt'] is Timestamp) {
     m['updatedAt'] = (m['updatedAt'] as Timestamp).millisecondsSinceEpoch;
+  }
+  if (m['collaborationRequestedAt'] is Timestamp) {
+    m['collaborationRequestedAt'] =
+        (m['collaborationRequestedAt'] as Timestamp).millisecondsSinceEpoch;
+  }
+  if (m['collaborationRespondedAt'] is Timestamp) {
+    m['collaborationRespondedAt'] =
+        (m['collaborationRespondedAt'] as Timestamp).millisecondsSinceEpoch;
   }
 
   return m;

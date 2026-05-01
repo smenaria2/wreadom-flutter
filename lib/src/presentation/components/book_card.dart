@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../domain/models/book.dart';
+import '../../utils/book_collaboration_utils.dart';
+import '../utils/book_author_utils.dart';
 import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
 
@@ -59,16 +61,52 @@ class BookCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 2),
-            Text(
-              book.authors.isNotEmpty ? book.authors.first.name : 'Unknown',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 11,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bookAuthorName(book).isNotEmpty
+                        ? bookAuthorName(book)
+                        : 'Unknown',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                if (isAcceptedCollaboration(book)) ...[
+                  const SizedBox(width: 4),
+                  const _TinyCollabTag(),
+                ],
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TinyCollabTag extends StatelessWidget {
+  const _TinyCollabTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'Collab',
+        style: TextStyle(
+          color: scheme.onSecondaryContainer,
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

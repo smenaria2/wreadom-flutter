@@ -66,7 +66,60 @@ service cloud.firestore {
     function isBookAuthor(bookId) {
       return signedIn() &&
         exists(/databases/$(database)/documents/books/$(bookId)) &&
-        get(/databases/$(database)/documents/books/$(bookId)).data.authorId == uid();
+        canEditBookData(get(/databases/$(database)/documents/books/$(bookId)).data);
+    }
+
+    function canEditBookData(data) {
+      return signedIn() && (
+        data.authorId == uid() ||
+        (
+          data.collaborationStatus == 'accepted' &&
+          data.authorIds is list &&
+          uid() in data.authorIds
+        )
+      );
+    }
+
+    function isPrimaryBookAuthorData(data) {
+      return signedIn() && data.authorId == uid();
+    }
+
+    function validCollaborationInvite(data) {
+      return !('collaboratorId' in data) ||
+        !('collaborationStatus' in data) ||
+        data.collaborationStatus == null ||
+        (
+          data.collaborationStatus == 'pending' &&
+          data.collaboratorId is string &&
+          data.collaboratorId != uid() &&
+          data.authorIds is list &&
+          data.authorIds.size() == 1 &&
+          uid() in data.authorIds &&
+          exists(/databases/$(database)/documents/follows/$(uid() + '_' + data.collaboratorId))
+        );
+    }
+
+    function validCollaborationResponse() {
+      return signedIn() &&
+        resource.data.collaborationStatus == 'pending' &&
+        resource.data.collaboratorId == uid() &&
+        request.resource.data.collaboratorId == resource.data.collaboratorId &&
+        request.resource.data.authorId == resource.data.authorId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'collaborationStatus',
+          'collaborationRespondedAt',
+          'authorIds',
+          'updatedAt'
+        ]) &&
+        (
+          request.resource.data.collaborationStatus == 'declined' ||
+          (
+            request.resource.data.collaborationStatus == 'accepted' &&
+            request.resource.data.authorIds is list &&
+            resource.data.authorId in request.resource.data.authorIds &&
+            resource.data.collaboratorId in request.resource.data.authorIds
+          )
+        );
     }
 
     function validCommentAudioFields(data) {
@@ -185,13 +238,23 @@ service cloud.firestore {
     // Books and their sub-collections
     match /books/{bookId} {
       allow read: if true;
-      allow create: if ownsIncomingAny('authorId', 'userId');
-      allow update: if (signedIn() && ownsExistingAny('authorId', 'userId')) ||
+      allow create: if ownsIncomingAny('authorId', 'userId') &&
+        validCollaborationInvite(request.resource.data);
+      allow update: if (
+          signedIn() &&
+          canEditBookData(resource.data) &&
+          request.resource.data.authorId == resource.data.authorId &&
+          (
+            resource.data.collaborationStatus == 'accepted' ||
+            isPrimaryBookAuthorData(resource.data)
+          )
+        ) ||
+        validCollaborationResponse() ||
         (
           onlyChanges(['viewCount']) &&
           validCounterDelta('viewCount', 0, 1)
         );
-      allow delete: if ownsExistingAny('authorId', 'userId');
+      allow delete: if isPrimaryBookAuthorData(resource.data);
 
       // Sub-collection for tracking unique views
       match /views/{viewerKey} {
@@ -201,7 +264,8 @@ service cloud.firestore {
       // Sub-collection for book chapters
       match /chapters/{chapterId} {
         allow read: if true;
-        allow write: if signedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.authorId == uid();
+        allow write: if signedIn() &&
+          canEditBookData(get(/databases/$(database)/documents/books/$(bookId)).data);
       }
     }
 

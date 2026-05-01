@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../domain/models/book.dart';
+import '../../../utils/book_collaboration_utils.dart';
 import '../../utils/date_formatter.dart';
 
 class WriterBookCard extends StatelessWidget {
@@ -77,6 +78,10 @@ class WriterBookCard extends StatelessWidget {
                       Row(
                         children: [
                           _StatusBadge(isPublished: isPublished),
+                          if (isAcceptedCollaboration(book)) ...[
+                            const SizedBox(width: 6),
+                            const _CollabBadge(),
+                          ],
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -133,6 +138,30 @@ class WriterBookCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollabBadge extends StatelessWidget {
+  const _CollabBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'Collab',
+        style: TextStyle(
+          color: colorScheme.onSecondaryContainer,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

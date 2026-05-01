@@ -7,6 +7,7 @@ class AppRoutes {
   static const publicProfile = '/public-profile';
   static const notifications = '/notifications';
   static const conversation = '/conversation';
+  static const collaborationRequest = '/collaboration-request';
   static const writerDashboard = '/writer-dashboard';
   static const writerPad = '/writer-pad';
   static const profileSettings = '/profile-settings';

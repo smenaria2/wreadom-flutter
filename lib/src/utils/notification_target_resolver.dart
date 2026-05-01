@@ -95,6 +95,10 @@ class NotificationTargetResolver {
       return NotificationTarget(AppRoutes.publicProfile, linkTarget!.payload!);
     }
 
+    if (type == 'collaboration_request' && bookId != null) {
+      return NotificationTarget(AppRoutes.collaborationRequest, bookId);
+    }
+
     final targetType = _clean(metadata['targetType'])?.toLowerCase();
     final isBookType = _isBookType(type, targetType);
     final isPostType = _isPostType(type, targetType);

@@ -202,6 +202,27 @@ function diffAddedReplies(before = [], after = []) {
   });
 }
 
+function acceptedBookAuthorIds(book = {}) {
+  const ids = new Set();
+  const primaryId = normalizeString(book.authorId);
+  if (primaryId) {
+    ids.add(primaryId);
+  }
+  const status = normalizeString(book.collaborationStatus).toLowerCase();
+  const collaboratorId = normalizeString(book.collaboratorId);
+  if (status === "accepted") {
+    if (Array.isArray(book.authorIds)) {
+      for (const id of book.authorIds.map((value) => normalizeString(`${value}`))) {
+        if (id) ids.add(id);
+      }
+    }
+    if (collaboratorId) {
+      ids.add(collaboratorId);
+    }
+  }
+  return Array.from(ids);
+}
+
 async function updateBookReviewAggregates(bookId) {
   const normalizedBookId = normalizeString(bookId);
   if (!normalizedBookId) {
@@ -468,26 +489,28 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
       const bookSnapshot = await db.collection("books").doc(bookId).get();
       if (bookSnapshot.exists) {
         const book = bookSnapshot.data() || {};
-        const ownerId = normalizeString(book.authorId);
+        const ownerIds = acceptedBookAuthorIds(book);
         const notificationType = Number(afterData.rating || 0) > 0 ? "book_review" : "book_comment";
         const isAudioReview = notificationType === "book_review" &&
           (normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
-        await createNotificationDoc(
-            `book_comment_${commentId}`,
-            buildNotification({
-              userId: ownerId,
-              actorId,
-              actorName,
-              actorPhotoURL,
-              type: notificationType,
-              text: isAudioReview ?
-                "submitted an audio review on your content" :
-                Number(afterData.rating || 0) > 0 ? "left a review on your content" : "commented on your content",
-              link: `/book?id=${bookId}`,
-              targetId: bookId,
-              metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
-            }),
-        );
+        for (const ownerId of ownerIds) {
+          await createNotificationDoc(
+              `book_comment_${commentId}_${ownerId}`,
+              buildNotification({
+                userId: ownerId,
+                actorId,
+                actorName,
+                actorPhotoURL,
+                type: notificationType,
+                text: isAudioReview ?
+                  "submitted an audio review on your content" :
+                  Number(afterData.rating || 0) > 0 ? "left a review on your content" : "commented on your content",
+                link: `/book?id=${bookId}`,
+                targetId: bookId,
+                metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
+              }),
+          );
+        }
       }
     }
   }
@@ -622,25 +645,26 @@ async function notifyBookOwnerForAudioReview(commentId, data = {}) {
     return;
   }
   const book = bookSnapshot.data() || {};
-  const ownerId = normalizeString(book.authorId);
-  await createNotificationDoc(
-      `book_audio_review_${commentId}`,
-      buildNotification({
-        userId: ownerId,
-        actorId,
-        actorName: userDisplayName(data),
-        actorPhotoURL: normalizeString(data.userPhotoURL) || null,
-        type: "book_review",
-        text: "submitted an audio review on your content",
-        link: `/book?id=${bookId}`,
-        targetId: bookId,
-        metadata: {
-          bookId,
-          commentId,
-          hasAudio: true,
-        },
-      }),
-  );
+  for (const ownerId of acceptedBookAuthorIds(book)) {
+    await createNotificationDoc(
+        `book_audio_review_${commentId}_${ownerId}`,
+        buildNotification({
+          userId: ownerId,
+          actorId,
+          actorName: userDisplayName(data),
+          actorPhotoURL: normalizeString(data.userPhotoURL) || null,
+          type: "book_review",
+          text: "submitted an audio review on your content",
+          link: `/book?id=${bookId}`,
+          targetId: bookId,
+          metadata: {
+            bookId,
+            commentId,
+            hasAudio: true,
+          },
+        }),
+    );
+  }
 }
 
 exports.onMessageCreated = functionsV1.firestore.document("conversations/{conversationId}/messages/{messageId}").onCreate(async (snapshot, context) => {
@@ -704,6 +728,36 @@ exports.onBookWritten = functionsV1.firestore.document("books/{bookId}").onWrite
   const isPublished = normalizeString(afterData.status).toLowerCase() === "published";
   if (!wasPublished && isPublished) {
     await notifyFollowersForPublishedBook(context.params.bookId, afterData);
+  }
+  const beforeCollaboratorId = normalizeString(beforeData?.collaboratorId);
+  const afterCollaboratorId = normalizeString(afterData.collaboratorId);
+  const beforeCollabStatus = normalizeString(beforeData?.collaborationStatus).toLowerCase();
+  const afterCollabStatus = normalizeString(afterData.collaborationStatus).toLowerCase();
+  if (
+    afterCollaboratorId &&
+    afterCollabStatus === "pending" &&
+    (beforeCollaboratorId !== afterCollaboratorId || beforeCollabStatus !== "pending")
+  ) {
+    const authorId = normalizeString(afterData.authorId);
+    const authorData = await getUserDoc(authorId);
+    const actorName = userDisplayName(authorData || afterData);
+    await createNotificationDoc(
+        `collaboration_request_${context.params.bookId}_${afterCollaboratorId}`,
+        buildNotification({
+          userId: afterCollaboratorId,
+          actorId: authorId,
+          actorName,
+          actorPhotoURL: normalizeString(authorData?.photoURL) || null,
+          type: "collaboration_request",
+          text: `${actorName} wants to collaborate with you.`,
+          link: `/collaboration?book=${context.params.bookId}`,
+          targetId: context.params.bookId,
+          metadata: {
+            bookId: context.params.bookId,
+            collaboratorId: afterCollaboratorId,
+          },
+        }),
+    );
   }
   return null;
 });

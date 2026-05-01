@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/repositories/writer_repository.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
@@ -36,28 +37,41 @@ class FirebaseWriterRepository implements WriterRepository {
     String userId, {
     String status = 'all',
   }) async {
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('books')
-        .where('authorId', isEqualTo: userId);
-    if (status != 'all') {
-      query = query.where('status', isEqualTo: status);
+    final byId = <String, Book>{};
+
+    Future<void> addBooksFrom(Query<Map<String, dynamic>> query) async {
+      if (status != 'all') {
+        query = query.where('status', isEqualTo: status);
+      }
+      final snapshot = await query.get();
+      for (final doc in snapshot.docs) {
+        try {
+          final data = normalizeBookMapForModel(doc.data(), doc.id);
+          final book = Book.fromJson(data);
+          if (book.status == 'deleted') continue;
+          final isPrimary = book.authorId?.trim() == userId;
+          if (!isPrimary && !isAcceptedCollaboration(book)) continue;
+          byId[book.id] = book;
+        } catch (e) {
+          debugPrint(
+            '[FirebaseWriterRepository] Error parsing book ${doc.id}: $e',
+          );
+        }
+      }
     }
-    final snapshot = await query.get();
-    final items = snapshot.docs
-        .map((doc) {
-          try {
-            final data = normalizeBookMapForModel(doc.data(), doc.id);
-            return Book.fromJson(data);
-          } catch (e) {
-            debugPrint(
-              '[FirebaseWriterRepository] Error parsing book ${doc.id}: $e',
-            );
-            return null;
-          }
-        })
-        .whereType<Book>()
-        .where((book) => book.status != 'deleted')
-        .toList();
+
+    await Future.wait([
+      addBooksFrom(
+        _firestore.collection('books').where('authorId', isEqualTo: userId),
+      ),
+      addBooksFrom(
+        _firestore
+            .collection('books')
+            .where('authorIds', arrayContains: userId),
+      ),
+    ]);
+
+    final items = byId.values.toList();
 
     items.sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
     return items;
@@ -71,6 +85,43 @@ class FirebaseWriterRepository implements WriterRepository {
         .collection('books')
         .doc(bookId)
         .set(data, SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> respondToCollaborationRequest({
+    required String bookId,
+    required String userId,
+    required bool accept,
+  }) async {
+    final bookRef = _firestore.collection('books').doc(bookId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(bookRef);
+      if (!snapshot.exists) {
+        throw StateError('Book not found.');
+      }
+      final book = Book.fromJson(
+        normalizeBookMapForModel(snapshot.data(), snapshot.id),
+      );
+      if (book.collaboratorId?.trim() != userId ||
+          book.collaborationStatus != collaborationStatusPending) {
+        throw StateError('This collaboration request is no longer available.');
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final primaryId = book.authorId?.trim();
+      final collaboratorId = book.collaboratorId?.trim();
+      final update = <String, dynamic>{
+        'collaborationStatus': accept
+            ? collaborationStatusAccepted
+            : collaborationStatusDeclined,
+        'collaborationRespondedAt': now,
+        'updatedAt': now,
+      };
+      if (accept && primaryId != null && collaboratorId != null) {
+        update['authorIds'] = <String>[primaryId, collaboratorId];
+      }
+      transaction.set(bookRef, update, SetOptions(merge: true));
+    });
   }
 
   Map<String, dynamic> _bookToFirestoreJson(Book book) {

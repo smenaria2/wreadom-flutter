@@ -14,6 +14,7 @@ import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -217,20 +218,22 @@ class _BookDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final authors = book.authors
-        .map((a) => a.name)
-        .where((n) => n.isNotEmpty)
-        .join(', ');
     final userAsync = ref.watch(currentUserProvider);
     final currentUser = userAsync.asData?.value;
     final authorId = (book.isOriginal ?? false) ? book.authorId?.trim() : null;
     final authorAsync = authorId == null || authorId.isEmpty
         ? null
         : ref.watch(publicProfileProvider(authorId));
+    final collaboratorId = isAcceptedCollaboration(book)
+        ? book.collaboratorId?.trim()
+        : null;
+    final collaboratorAsync = collaboratorId == null || collaboratorId.isEmpty
+        ? null
+        : ref.watch(publicProfileProvider(collaboratorId));
     final canEdit =
         currentUser != null &&
         (book.isOriginal ?? false) &&
-        authorId == currentUser.id;
+        canEditCollaborativeBook(book, currentUser.id);
 
     Future<void> refresh() async {
       ref.invalidate(bookDetailProvider(book.id));
@@ -329,12 +332,17 @@ class _BookDetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 _AuthorLine(
-                  authors: authors.isNotEmpty
-                      ? authors
-                      : AppLocalizations.of(context)!.unknownAuthor,
+                  book: book,
+                  fallback: AppLocalizations.of(context)!.unknownAuthor,
                   authorAsync: authorAsync,
                   authorId: authorId,
+                  collaboratorAsync: collaboratorAsync,
+                  collaboratorId: collaboratorId,
                 ),
+                if (isAcceptedCollaboration(book)) ...[
+                  const SizedBox(height: 10),
+                  const _CollabChip(),
+                ],
                 const SizedBox(height: 16),
                 _StatsRow(book: book),
                 if (book.subjects.isNotEmpty) ...[
@@ -670,35 +678,103 @@ class _BookDetailBody extends ConsumerWidget {
 
 class _AuthorLine extends StatelessWidget {
   const _AuthorLine({
-    required this.authors,
+    required this.book,
+    required this.fallback,
     required this.authorAsync,
     required this.authorId,
+    required this.collaboratorAsync,
+    required this.collaboratorId,
   });
 
-  final String authors;
+  final Book book;
+  final String fallback;
   final AsyncValue<UserModel?>? authorAsync;
   final String? authorId;
+  final AsyncValue<UserModel?>? collaboratorAsync;
+  final String? collaboratorId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final user = authorAsync?.asData?.value;
-    final targetUserId = authorId?.trim();
+    final primaryUser = authorAsync?.asData?.value;
+    final collaboratorUser = collaboratorAsync?.asData?.value;
+    final primaryName = primaryAuthorDisplayName(book, primaryUser);
+    final coAuthorName = collaboratorDisplayName(book, collaboratorUser);
+
+    if (!isAcceptedCollaboration(book)) {
+      return Row(
+        children: [
+          Expanded(
+            child: _AuthorPill(
+              userId: authorId,
+              user: primaryUser,
+              label: primaryName.isEmpty ? fallback : primaryName,
+            ),
+          ),
+          if (authorId?.trim().isNotEmpty == true) ...[
+            const SizedBox(width: 8),
+            FollowButton(targetUserId: authorId!.trim(), compact: true),
+          ],
+        ],
+      );
+    }
+
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        _AuthorPill(
+          userId: authorId,
+          user: primaryUser,
+          label: primaryName.isEmpty ? fallback : primaryName,
+        ),
+        Text(
+          'with',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        _AuthorPill(
+          userId: collaboratorId,
+          user: collaboratorUser,
+          label: coAuthorName.isEmpty ? fallback : coAuthorName,
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthorPill extends StatelessWidget {
+  const _AuthorPill({
+    required this.userId,
+    required this.user,
+    required this.label,
+  });
+
+  final String? userId;
+  final UserModel? user;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final targetUserId = userId?.trim();
     final canOpenProfile = targetUserId != null && targetUserId.isNotEmpty;
-    final displayName = _displayName(user, authors);
-    final authorContent = Row(
+    final photoURL = user?.photoURL?.trim();
+    final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (user?.photoURL != null && user!.photoURL!.isNotEmpty) ...[
+        if (photoURL != null && photoURL.isNotEmpty) ...[
           CircleAvatar(
             radius: 12,
-            backgroundImage: CachedNetworkImageProvider(user.photoURL!),
+            backgroundImage: CachedNetworkImageProvider(photoURL),
           ),
           const SizedBox(width: 8),
         ],
         Flexible(
           child: Text(
-            displayName,
+            label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -712,48 +788,38 @@ class _AuthorLine extends StatelessWidget {
       ],
     );
 
-    return Row(
-      children: [
-        Expanded(
-          child: canOpenProfile
-              ? InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => Navigator.of(context).pushNamed(
-                    AppRoutes.publicProfile,
-                    arguments: PublicProfileArguments(userId: targetUserId),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: authorContent,
-                  ),
-                )
-              : authorContent,
-        ),
-        if (canOpenProfile) ...[
-          const SizedBox(width: 8),
-          FollowButton(targetUserId: targetUserId, compact: true),
-        ],
-      ],
+    if (!canOpenProfile) return content;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => Navigator.of(context).pushNamed(
+        AppRoutes.publicProfile,
+        arguments: PublicProfileArguments(userId: targetUserId),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: content,
+      ),
     );
   }
+}
 
-  static String _displayName(UserModel? user, String fallback) {
-    final displayName = user?.displayName?.trim();
-    if (displayName != null && displayName.isNotEmpty) {
-      return displayName;
-    }
+class _CollabChip extends StatelessWidget {
+  const _CollabChip();
 
-    final penName = user?.penName?.trim();
-    if (penName != null && penName.isNotEmpty) {
-      return penName;
-    }
-
-    final username = user?.username.trim();
-    if (username != null && username.isNotEmpty) {
-      return username;
-    }
-
-    return fallback;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Chip(
+      avatar: const Icon(Icons.group_outlined, size: 16),
+      label: const Text('Collab'),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: scheme.secondaryContainer.withValues(alpha: 0.7),
+      labelStyle: TextStyle(
+        color: scheme.onSecondaryContainer,
+        fontWeight: FontWeight.w700,
+      ),
+      side: BorderSide(color: scheme.outlineVariant),
+    );
   }
 }
 

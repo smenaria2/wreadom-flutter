@@ -45,6 +45,16 @@ _Book _$BookFromJson(Map<String, dynamic> json) => _Book(
   ratingsCount: (json['ratingsCount'] as num?)?.toInt(),
   topics: (json['topics'] as List<dynamic>?)?.map((e) => e as String).toList(),
   chapterCount: (json['chapterCount'] as num?)?.toInt(),
+  collaborationStatus: json['collaborationStatus'] as String?,
+  collaboratorId: json['collaboratorId'] as String?,
+  collaboratorName: json['collaboratorName'] as String?,
+  collaboratorPhotoURL: json['collaboratorPhotoURL'] as String?,
+  collaborationRequestedBy: json['collaborationRequestedBy'] as String?,
+  collaborationRequestedAt: (json['collaborationRequestedAt'] as num?)?.toInt(),
+  collaborationRespondedAt: (json['collaborationRespondedAt'] as num?)?.toInt(),
+  authorIds: (json['authorIds'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
 );
 
 Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
@@ -76,4 +86,12 @@ Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
   'ratingsCount': instance.ratingsCount,
   'topics': instance.topics,
   'chapterCount': instance.chapterCount,
+  'collaborationStatus': instance.collaborationStatus,
+  'collaboratorId': instance.collaboratorId,
+  'collaboratorName': instance.collaboratorName,
+  'collaboratorPhotoURL': instance.collaboratorPhotoURL,
+  'collaborationRequestedBy': instance.collaborationRequestedBy,
+  'collaborationRequestedAt': instance.collaborationRequestedAt,
+  'collaborationRespondedAt': instance.collaborationRespondedAt,
+  'authorIds': instance.authorIds,
 };
