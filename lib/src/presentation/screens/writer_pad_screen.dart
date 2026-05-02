@@ -1472,13 +1472,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         : collaborationWasAccepted
         ? collaborationStatusAccepted
         : collaborationStatusPending;
-    final bookAuthors = <Author>[
-      Author(name: primaryAuthorName, birthYear: null, deathYear: null),
-      if (collaborationStatus == collaborationStatusAccepted &&
-          collaboratorName != null &&
-          collaboratorName.isNotEmpty)
-        Author(name: collaboratorName, birthYear: null, deathYear: null),
-    ];
+    final bookAuthors =
+        collaborationStatus == collaborationStatusAccepted &&
+            existingBook?.authors.isNotEmpty == true
+        ? existingBook!.authors
+        : <Author>[
+            Author(name: primaryAuthorName, birthYear: null, deathYear: null),
+            if (collaborationStatus == collaborationStatusAccepted &&
+                collaboratorName != null &&
+                collaboratorName.isNotEmpty)
+              Author(name: collaboratorName, birthYear: null, deathYear: null),
+          ];
     final authorIds = collaborationStatus == collaborationStatusAccepted
         ? <String>{
             primaryAuthorId,
