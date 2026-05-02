@@ -1024,6 +1024,7 @@ void main() {
     expect(writerSource, contains('showLink: false'));
     expect(writerSource, contains('l10n.collabEditWarning'));
     expect(writerSource, contains('canRemoveAccepted'));
+    expect(writerSource, contains('canChangeCollaborator'));
     expect(
       writerSource,
       contains('collaborationStatus == collaborationStatusPending'),
@@ -1031,6 +1032,9 @@ void main() {
     expect(bookDetailSource, contains('l10n.shareToFeed'));
     expect(bookDetailSource, contains('l10n.defaultShareMessage'));
     expect(bookDetailSource, contains('collabBookInfo'));
+    expect(bookDetailSource, contains('_localizedContentType'));
+    expect(bookDetailSource, contains('contentTypeStory'));
+    expect(bookDetailSource, contains('chapterCount > 1'));
     expect(bookDetailSource, isNot(contains('_CollabChip')));
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
@@ -1054,6 +1058,46 @@ void main() {
     expect(commentTileSource, contains('color: Colors.black'));
     expect(readerSource, contains('_shareReviewToFeed'));
     expect(readerSource, contains('Share to feed'));
+  });
+
+  test('account-scoped notification token and pager reset stay wired', () {
+    final authRepositorySource = File(
+      'lib/src/data/repositories/firebase_auth_repository.dart',
+    ).readAsStringSync();
+    final authContractSource = File(
+      'lib/src/domain/repositories/auth_repository.dart',
+    ).readAsStringSync();
+    final navigationSource = File(
+      'lib/src/presentation/screens/main_navigation_shell.dart',
+    ).readAsStringSync();
+    final notificationProviderSource = File(
+      'lib/src/presentation/providers/notification_providers.dart',
+    ).readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final functionsSource = File('functions/index.js').readAsStringSync();
+
+    expect(authContractSource, contains('claimFcmToken'));
+    expect(authContractSource, contains('removeFcmToken'));
+    expect(authRepositorySource, contains("httpsCallable('claimFcmToken')"));
+    expect(authRepositorySource, contains("httpsCallable('removeFcmToken')"));
+    expect(
+      authRepositorySource,
+      contains("where('fcmTokens', arrayContains: token)"),
+    );
+    expect(
+      authRepositorySource,
+      contains('FirebaseMessaging.instance.getToken()'),
+    );
+    expect(navigationSource, contains('claimFcmToken'));
+    expect(notificationProviderSource, contains('_loadedUserId'));
+    expect(
+      notificationProviderSource,
+      contains('previousUserId != nextUserId'),
+    );
+    expect(mainSource, contains('ref.invalidate(pagedNotificationsProvider)'));
+    expect(functionsSource, contains('exports.claimFcmToken'));
+    expect(functionsSource, contains('exports.removeFcmToken'));
+    expect(functionsSource, contains('registryWithoutToken'));
   });
 
   test('profile privacy and collab localization hardening stays wired', () {

@@ -1042,6 +1042,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get draftDeleted => 'ड्राफ़्ट हटा दिया गया।';
 
   @override
+  String get removeCollabBeforeDelete =>
+      'यह ड्राफ़्ट हटाने से पहले सहलेखन हटाएं।';
+
+  @override
   String get deleteConversationBody => 'यह बातचीत आपके इनबॉक्स से हट जाएगी।';
 
   @override
@@ -1158,6 +1162,12 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get wantsToCollaborate => 'आपके साथ सहलेखन करना चाहते हैं।';
+
+  @override
+  String get removedYouAsCoAuthor => 'ने आपको सह-लेखक से हटा दिया।';
+
+  @override
+  String get removedThemselfAsCoAuthor => 'ने खुद को सह-लेखक से हटा लिया।';
 
   @override
   String couldNotDeleteDraft(String error) {
@@ -1396,6 +1406,15 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get contentType => 'रचना का प्रकार';
+
+  @override
+  String get contentTypeStory => 'कहानी';
+
+  @override
+  String get contentTypePoem => 'कविता';
+
+  @override
+  String get contentTypeArticle => 'लेख';
 
   @override
   String get category => 'श्रेणी';

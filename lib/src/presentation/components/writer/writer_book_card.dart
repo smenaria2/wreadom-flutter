@@ -10,6 +10,7 @@ class WriterBookCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onEditStory;
   final VoidCallback? onDeleteDraft;
+  final VoidCallback? onDeleteBlocked;
 
   const WriterBookCard({
     super.key,
@@ -17,6 +18,7 @@ class WriterBookCard extends StatelessWidget {
     required this.onTap,
     this.onEditStory,
     this.onDeleteDraft,
+    this.onDeleteBlocked,
   });
 
   @override
@@ -131,14 +133,16 @@ class WriterBookCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (onDeleteDraft != null) ...[
+                if (onDeleteDraft != null || onDeleteBlocked != null) ...[
                   const SizedBox(width: 4),
                   Tooltip(
                     message: deleteDraftLabel,
                     child: IconButton(
                       icon: const Icon(Icons.delete_outline_rounded),
-                      color: colorScheme.error,
-                      onPressed: onDeleteDraft,
+                      color: onDeleteDraft == null
+                          ? colorScheme.onSurfaceVariant
+                          : colorScheme.error,
+                      onPressed: onDeleteDraft ?? onDeleteBlocked,
                     ),
                   ),
                 ],

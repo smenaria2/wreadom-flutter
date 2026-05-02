@@ -129,10 +129,42 @@ service cloud.firestore {
         request.resource.data.authorIds is list &&
         request.resource.data.authorIds.size() == 1 &&
         resource.data.authorId in request.resource.data.authorIds &&
+        request.resource.data.authors is list &&
+        request.resource.data.authors.size() == 1 &&
         request.resource.data.collaborationStatus == null &&
         request.resource.data.collaboratorId == null &&
         request.resource.data.collaboratorName == null &&
-        request.resource.data.collaboratorPhotoURL == null;
+        request.resource.data.collaboratorPhotoURL == null &&
+        (
+          resource.data.collaborationStatus != 'accepted' ||
+          (
+            request.resource.data.collaborationRemovedBy == uid() &&
+            request.resource.data.collaborationRemovedAt is int &&
+            request.resource.data.removedCollaboratorId == resource.data.collaboratorId
+          )
+        );
+    }
+
+    function validPrimaryBookUpdate() {
+      return signedIn() &&
+        isPrimaryBookAuthorData(resource.data) &&
+        resource.data.collaborationStatus != 'accepted' &&
+        request.resource.data.authorId == resource.data.authorId &&
+        validCollaborationInvite(request.resource.data);
+    }
+
+    function validAcceptedCollaborationEdit() {
+      return signedIn() &&
+        resource.data.collaborationStatus == 'accepted' &&
+        canEditBookData(resource.data) &&
+        request.resource.data.status != 'deleted' &&
+        request.resource.data.authorId == resource.data.authorId &&
+        request.resource.data.authors == resource.data.authors &&
+        request.resource.data.authorIds == resource.data.authorIds &&
+        request.resource.data.collaborationStatus == resource.data.collaborationStatus &&
+        request.resource.data.collaboratorId == resource.data.collaboratorId &&
+        request.resource.data.collaboratorName == resource.data.collaboratorName &&
+        request.resource.data.collaboratorPhotoURL == resource.data.collaboratorPhotoURL;
     }
 
     function validCommentAudioFields(data) {
@@ -253,22 +285,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if ownsIncomingAny('authorId', 'userId') &&
         validCollaborationInvite(request.resource.data);
-      allow update: if (
-          signedIn() &&
-          canEditBookData(resource.data) &&
-          request.resource.data.authorId == resource.data.authorId &&
-          (
-            resource.data.collaborationStatus == 'accepted' ||
-            isPrimaryBookAuthorData(resource.data)
-          )
-        ) ||
+      allow update: if validPrimaryBookUpdate() ||
+        validAcceptedCollaborationEdit() ||
         validCollaborationResponse() ||
         validCollaborationRemoval() ||
         (
           onlyChanges(['viewCount']) &&
           validCounterDelta('viewCount', 0, 1)
         );
-      allow delete: if isPrimaryBookAuthorData(resource.data);
+      allow delete: if isPrimaryBookAuthorData(resource.data) &&
+        resource.data.collaborationStatus != 'accepted';
 
       // Sub-collection for tracking unique views
       match /views/{viewerKey} {
@@ -293,7 +319,8 @@ service cloud.firestore {
         request.resource.data.type in [
           'follow', 'follower', 'post_like', 'feed_comment', 'feed_reply', 
           'book_comment', 'book_review', 'book_reply', 'like', 'comment', 'reply',
-          'message', 'collaboration_request', 'collaboration_accepted', 'mention'
+          'message', 'collaboration_request', 'collaboration_accepted',
+          'collaboration_removed', 'mention'
         ];
       allow update: if signedIn() &&
         resource.data.userId == uid() &&

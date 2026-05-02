@@ -29,7 +29,8 @@ bool canEditCollaborativeBook(Book book, String userId) {
 }
 
 bool canDeleteCollaborativeBook(Book book, String userId) {
-  return book.authorId?.trim() == userId.trim();
+  return book.authorId?.trim() == userId.trim() &&
+      !isAcceptedCollaboration(book);
 }
 
 String primaryAuthorDisplayName(Book book, UserModel? user) {

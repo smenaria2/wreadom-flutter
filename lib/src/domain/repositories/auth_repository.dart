@@ -37,5 +37,9 @@ abstract class AuthRepository {
 
   Future<void> updateFcmToken(String userId, String token);
 
+  Future<void> claimFcmToken(String userId, String token);
+
+  Future<void> removeFcmToken(String userId, String token);
+
   Future<List<UserModel>> searchUsers(String searchTerm, {int maxResults = 5});
 }

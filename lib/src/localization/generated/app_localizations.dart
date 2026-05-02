@@ -1982,6 +1982,12 @@ abstract class AppLocalizations {
   /// **'Draft deleted.'**
   String get draftDeleted;
 
+  /// No description provided for @removeCollabBeforeDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove collaboration before deleting this draft.'**
+  String get removeCollabBeforeDelete;
+
   /// No description provided for @deleteConversationBody.
   ///
   /// In en, this message translates to:
@@ -2179,6 +2185,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'wants to collaborate with you.'**
   String get wantsToCollaborate;
+
+  /// No description provided for @removedYouAsCoAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'removed you as co-author.'**
+  String get removedYouAsCoAuthor;
+
+  /// No description provided for @removedThemselfAsCoAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'removed themselves as co-author.'**
+  String get removedThemselfAsCoAuthor;
 
   /// Shown when deleting a draft fails
   ///
@@ -2599,6 +2617,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Content type'**
   String get contentType;
+
+  /// No description provided for @contentTypeStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Story'**
+  String get contentTypeStory;
+
+  /// No description provided for @contentTypePoem.
+  ///
+  /// In en, this message translates to:
+  /// **'Poem'**
+  String get contentTypePoem;
+
+  /// No description provided for @contentTypeArticle.
+  ///
+  /// In en, this message translates to:
+  /// **'Article'**
+  String get contentTypeArticle;
 
   /// No description provided for @category.
   ///

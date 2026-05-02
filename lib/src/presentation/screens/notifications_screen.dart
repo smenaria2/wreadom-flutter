@@ -550,6 +550,12 @@ class _NotificationListItem {
         text.endsWith('wants to collaborate with you.')) {
       return l10n.wantsToCollaborate;
     }
+    if (type == 'collaboration_removed') {
+      if (text.contains('removed themselves')) {
+        return l10n.removedThemselfAsCoAuthor;
+      }
+      return l10n.removedYouAsCoAuthor;
+    }
     return notification.text;
   }
 

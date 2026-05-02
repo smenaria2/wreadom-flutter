@@ -32,9 +32,20 @@ final pagedNotificationsProvider =
 class PagedNotificationsController
     extends Notifier<PagedListState<AppNotification>> {
   Object? _cursor;
+  String? _loadedUserId;
 
   @override
   PagedListState<AppNotification> build() {
+    ref.listen(currentUserProvider, (previous, next) {
+      final previousUserId = previous?.asData?.value?.id;
+      final nextUserId = next.asData?.value?.id;
+      if (previousUserId != nextUserId) {
+        _cursor = null;
+        _loadedUserId = nextUserId;
+        state = const PagedListState(isInitialLoading: true);
+        Future.microtask(refresh);
+      }
+    });
     Future.microtask(refresh);
     return const PagedListState();
   }
@@ -57,9 +68,15 @@ class PagedNotificationsController
     try {
       final user = await ref.read(currentUserProvider.future);
       if (user == null) {
+        _loadedUserId = null;
         state = const PagedListState(hasMore: false);
         return;
       }
+      if (_loadedUserId != null && _loadedUserId != user.id) {
+        _cursor = null;
+        reset = true;
+      }
+      _loadedUserId = user.id;
       final page = await ref
           .read(notificationRepositoryProvider)
           .getNotificationsPage(

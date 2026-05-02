@@ -1014,6 +1014,12 @@ class _StatsRow extends ConsumerWidget {
       children: [
         _RatingStat(summary: rating),
         if (_isArchiveBook(book)) _ArchiveVotesInline(book: book),
+        if (_localizedContentType(context, book) case final contentType?)
+          _Stat(
+            icon: Icons.category_outlined,
+            label: contentType,
+            color: textColor,
+          ),
         _Stat(
           icon: Icons.visibility_outlined,
           label: AppLocalizations.of(
@@ -1021,16 +1027,31 @@ class _StatsRow extends ConsumerWidget {
           )!.readsStat(_formatCount(book.viewCount ?? 0)),
           color: textColor,
         ),
-        if (book.chapterCount != null || (book.chapters?.isNotEmpty ?? false))
+        if (_resolvedChapterCount(book) case final chapterCount?
+            when chapterCount > 1)
           _Stat(
             icon: Icons.menu_book_outlined,
-            label: AppLocalizations.of(context)!.chaptersStat(
-              (book.chapterCount ?? book.chapters!.length).toString(),
-            ),
+            label: AppLocalizations.of(
+              context,
+            )!.chaptersStat(chapterCount.toString()),
             color: textColor,
           ),
       ],
     );
+  }
+
+  int? _resolvedChapterCount(Book book) {
+    return book.chapterCount ?? book.chapters?.length;
+  }
+
+  String? _localizedContentType(BuildContext context, Book book) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (book.contentType?.trim().toLowerCase()) {
+      'story' => l10n.contentTypeStory,
+      'poem' => l10n.contentTypePoem,
+      'article' => l10n.contentTypeArticle,
+      _ => null,
+    };
   }
 
   _RatingSummary _ratingSummary(Book book, List<Comment> comments) {

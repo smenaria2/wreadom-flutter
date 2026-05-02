@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'
+    hide NotificationSettings;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, debugPrint;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -11,6 +14,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final firebase.FirebaseAuth _auth = firebase.FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   static const int _maxFanOutWritesPerBatch = 450;
 
   FirebaseAuthRepository() {
@@ -241,6 +245,17 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      try {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) {
+          await removeFcmToken(currentUser.uid, token);
+        }
+      } catch (e) {
+        debugPrint('Failed to remove FCM token during logout: $e');
+      }
+    }
     await _auth.signOut();
     await _googleSignIn.signOut();
   }
@@ -388,29 +403,83 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateFcmToken(String userId, String token) async {
-    final userRef = _firestore.collection('users').doc(userId);
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(userRef);
-      final data = snapshot.data() ?? const <String, dynamic>{};
-      final registryRaw = data['fcmTokenRegistry'];
-      final registry = registryRaw is List
-          ? registryRaw
-                .whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .where((item) => item['token']?.toString() != token)
-                .toList()
-          : <Map<String, dynamic>>[];
-      registry.insert(0, {
-        'token': token,
-        'platform': _fcmPlatformLabel(),
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
-      });
+    await claimFcmToken(userId, token);
+  }
 
-      transaction.set(userRef, {
-        'fcmTokens': FieldValue.arrayUnion([token]),
-        'fcmTokenRegistry': registry.take(10).toList(),
-      }, SetOptions(merge: true));
+  @override
+  Future<void> claimFcmToken(String userId, String token) async {
+    final trimmedToken = token.trim();
+    if (userId.trim().isEmpty || trimmedToken.isEmpty) return;
+    try {
+      await _functions.httpsCallable('claimFcmToken').call({
+        'token': trimmedToken,
+        'platform': _fcmPlatformLabel(),
+      });
+    } catch (e) {
+      debugPrint('claimFcmToken callable failed, using client fallback: $e');
+      await _claimFcmTokenClientFallback(userId, trimmedToken);
+    }
+  }
+
+  Future<void> _claimFcmTokenClientFallback(String userId, String token) async {
+    final existing = await _firestore
+        .collection('users')
+        .where('fcmTokens', arrayContains: token)
+        .get();
+    final tokenClaimBatch = _firestore.batch();
+    for (final doc in existing.docs) {
+      if (doc.id == userId) continue;
+      tokenClaimBatch.update(doc.reference, {
+        'fcmTokens': FieldValue.arrayRemove([token]),
+      });
+    }
+    final userRef = _firestore.collection('users').doc(userId);
+    final userSnapshot = await userRef.get();
+    final data = userSnapshot.data() ?? const <String, dynamic>{};
+    final registry = _registryWithoutToken(data['fcmTokenRegistry'], token);
+    registry.insert(0, {
+      'token': token,
+      'platform': _fcmPlatformLabel(),
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
+    tokenClaimBatch.set(userRef, {
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'fcmTokenRegistry': registry.take(10).toList(),
+    }, SetOptions(merge: true));
+    await tokenClaimBatch.commit();
+  }
+
+  @override
+  Future<void> removeFcmToken(String userId, String token) async {
+    final trimmedToken = token.trim();
+    if (userId.trim().isEmpty || trimmedToken.isEmpty) return;
+    try {
+      await _functions.httpsCallable('removeFcmToken').call({
+        'token': trimmedToken,
+      });
+    } catch (e) {
+      debugPrint('removeFcmToken callable failed, using client fallback: $e');
+      final userRef = _firestore.collection('users').doc(userId);
+      final snapshot = await userRef.get();
+      final registry = _registryWithoutToken(
+        snapshot.data()?['fcmTokenRegistry'],
+        trimmedToken,
+      );
+      await userRef.set({
+        'fcmTokens': FieldValue.arrayRemove([trimmedToken]),
+        'fcmTokenRegistry': registry,
+      }, SetOptions(merge: true));
+    }
+  }
+
+  List<Map<String, dynamic>> _registryWithoutToken(Object? raw, String token) {
+    return raw is List
+        ? raw
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .where((item) => item['token']?.toString() != token)
+              .toList()
+        : <Map<String, dynamic>>[];
   }
 
   String _fcmPlatformLabel() {

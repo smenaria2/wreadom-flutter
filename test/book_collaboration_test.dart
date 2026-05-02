@@ -43,7 +43,7 @@ void main() {
     expect(collaborativeAuthorLine(book), 'X Author with Y Author');
   });
 
-  test('accepted collaborator can edit but cannot delete', () {
+  test('accepted collaboration can edit but cannot delete until removed', () {
     final book = _book(
       collaborationStatus: collaborationStatusAccepted,
       collaboratorId: 'co1',
@@ -52,7 +52,15 @@ void main() {
 
     expect(canEditCollaborativeBook(book, 'author1'), isTrue);
     expect(canEditCollaborativeBook(book, 'co1'), isTrue);
+    expect(canDeleteCollaborativeBook(book, 'author1'), isFalse);
     expect(canDeleteCollaborativeBook(book, 'co1'), isFalse);
+    expect(
+      canDeleteCollaborativeBook(
+        _book(authorIds: const ['author1']),
+        'author1',
+      ),
+      isTrue,
+    );
   });
 
   test('collaboration notification opens request route', () {
@@ -84,6 +92,9 @@ void main() {
     expect(source, contains('allow delete: if isPrimaryBookAuthorData'));
     expect(source, contains('validCollaborationResponse()'));
     expect(source, contains('validCollaborationRemoval()'));
+    expect(source, contains('validAcceptedCollaborationEdit()'));
+    expect(source, contains("request.resource.data.status != 'deleted'"));
+    expect(source, contains("resource.data.collaborationStatus != 'accepted'"));
     expect(
       source,
       contains("resource.data.collaborationStatus in ['pending', 'accepted']"),
@@ -101,6 +112,10 @@ void main() {
     expect(source, contains('for (const ownerId of ownerIds)'));
     expect(source, contains('type: "collaboration_request"'));
     expect(source, contains('wants to collaborate with you.'));
+    expect(source, contains('type: "collaboration_removed"'));
+    expect(source, contains('removed themselves as co-author'));
+    expect(source, contains('removed you as co-author'));
+    expect(source, contains('deleteNotificationDoc(`collaboration_request_'));
   });
 }
 

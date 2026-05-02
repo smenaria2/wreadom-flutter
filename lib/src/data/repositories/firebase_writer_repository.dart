@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/book.dart';
@@ -11,6 +12,7 @@ class FirebaseWriterRepository implements WriterRepository {
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
 
   @override
   Future<String> createBook(Book book) async {
@@ -81,10 +83,30 @@ class FirebaseWriterRepository implements WriterRepository {
   Future<void> updateBook(String bookId, Book book) async {
     final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
-    await _firestore
-        .collection('books')
-        .doc(bookId)
-        .set(data, SetOptions(merge: true));
+    final bookRef = _firestore.collection('books').doc(bookId);
+    final existing = await bookRef.get();
+    if (existing.exists) {
+      final existingBook = Book.fromJson(
+        normalizeBookMapForModel(existing.data(), existing.id),
+      );
+      final removedCollaboratorId = existingBook.collaboratorId?.trim();
+      final isCollabRemoval =
+          existingBook.collaborationStatus == collaborationStatusAccepted &&
+          removedCollaboratorId != null &&
+          removedCollaboratorId.isNotEmpty &&
+          book.collaborationStatus == null &&
+          book.collaboratorId == null;
+      if (isCollabRemoval) {
+        data['collaborationRemovedBy'] = _auth.currentUser?.uid;
+        data['collaborationRemovedAt'] = DateTime.now().millisecondsSinceEpoch;
+        data['removedCollaboratorId'] = removedCollaboratorId;
+      } else if (book.collaborationStatus == collaborationStatusPending) {
+        data['collaborationRemovedBy'] = null;
+        data['collaborationRemovedAt'] = null;
+        data['removedCollaboratorId'] = null;
+      }
+    }
+    await bookRef.set(data, SetOptions(merge: true));
   }
 
   @override

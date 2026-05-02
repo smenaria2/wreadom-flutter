@@ -1562,6 +1562,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         currentUserId.isNotEmpty &&
         (currentUserId == primaryAuthorId || currentUserId == collaboratorId);
     final canEditInvite = !isAccepted || canRemoveAccepted;
+    final canChangeCollaborator = !isAccepted;
     final followingAsync = ref.watch(followingListProvider);
     final followingIds = followingAsync.asData?.value ?? const <String>[];
     final profilesKey = followingIds.join('|');
@@ -1652,7 +1653,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   );
                 }
                 return DropdownButtonFormField<String>(
-                  initialValue: selectedKnown || !canEditInvite
+                  initialValue: selectedKnown || !canChangeCollaborator
                       ? selectedId
                       : null,
                   dropdownColor: _writerSurfaceColor(context),
@@ -1681,7 +1682,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         ),
                       )
                       .toList(),
-                  onChanged: canEditInvite
+                  onChanged: canChangeCollaborator
                       ? (value) {
                           final profile = dropdownProfiles
                               .where((item) => item.id == value)

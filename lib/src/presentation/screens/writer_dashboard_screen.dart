@@ -132,6 +132,17 @@ class WriterDashboardScreen extends ConsumerWidget {
                                 )
                             ? null
                             : () => _confirmDeleteDraft(context, ref, book.id),
+                        onDeleteBlocked:
+                            !isPublished &&
+                                currentUser != null &&
+                                isAcceptedCollaboration(book) &&
+                                book.authorId?.trim() == currentUser.id
+                            ? () => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.removeCollabBeforeDelete),
+                                ),
+                              )
+                            : null,
                       );
                     }, childCount: books.length),
                   ),

@@ -159,6 +159,12 @@ async function deleteNotificationDoc(docId) {
   await db.collection("notifications").doc(docId).delete().catch(() => undefined);
 }
 
+function registryWithoutToken(rawRegistry, token) {
+  return Array.isArray(rawRegistry) ?
+    rawRegistry.filter((item) => normalizeString(item?.token) !== token) :
+    [];
+}
+
 function buildNotification({
   userId,
   actorId,
@@ -184,6 +190,62 @@ function buildNotification({
     metadata,
   };
 }
+
+exports.claimFcmToken = functionsV1.https.onCall(async (data, context) => {
+  const uid = normalizeString(context.auth?.uid);
+  const token = normalizeString(data?.token);
+  const platform = normalizeString(data?.platform) || "unknown";
+  if (!uid) {
+    throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+  }
+  if (!token) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Missing FCM token.");
+  }
+
+  const existing = await db.collection("users").where("fcmTokens", "array-contains", token).get();
+  const batch = db.batch();
+  for (const doc of existing.docs) {
+    if (doc.id === uid) continue;
+    batch.set(doc.ref, {
+      fcmTokens: FieldValue.arrayRemove(token),
+      fcmTokenRegistry: registryWithoutToken(doc.data()?.fcmTokenRegistry, token),
+    }, {merge: true});
+  }
+
+  const userRef = db.collection("users").doc(uid);
+  const userSnapshot = await userRef.get();
+  const registry = registryWithoutToken(userSnapshot.data()?.fcmTokenRegistry, token);
+  registry.unshift({
+    token,
+    platform,
+    updatedAt: Date.now(),
+  });
+  batch.set(userRef, {
+    fcmTokens: FieldValue.arrayUnion(token),
+    fcmTokenRegistry: registry.slice(0, 10),
+  }, {merge: true});
+  await batch.commit();
+  return {ok: true};
+});
+
+exports.removeFcmToken = functionsV1.https.onCall(async (data, context) => {
+  const uid = normalizeString(context.auth?.uid);
+  const token = normalizeString(data?.token);
+  if (!uid) {
+    throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+  }
+  if (!token) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Missing FCM token.");
+  }
+
+  const userRef = db.collection("users").doc(uid);
+  const snapshot = await userRef.get();
+  await userRef.set({
+    fcmTokens: FieldValue.arrayRemove(token),
+    fcmTokenRegistry: registryWithoutToken(snapshot.data()?.fcmTokenRegistry, token),
+  }, {merge: true});
+  return {ok: true};
+});
 
 function diffAddedStrings(before = [], after = []) {
   const beforeSet = new Set(before.map((value) => `${value}`));
@@ -733,6 +795,47 @@ exports.onBookWritten = functionsV1.firestore.document("books/{bookId}").onWrite
   const afterCollaboratorId = normalizeString(afterData.collaboratorId);
   const beforeCollabStatus = normalizeString(beforeData?.collaborationStatus).toLowerCase();
   const afterCollabStatus = normalizeString(afterData.collaborationStatus).toLowerCase();
+  if (
+    beforeCollaboratorId &&
+    beforeCollabStatus === "pending" &&
+    (afterCollaboratorId !== beforeCollaboratorId || afterCollabStatus !== "pending")
+  ) {
+    await deleteNotificationDoc(`collaboration_request_${context.params.bookId}_${beforeCollaboratorId}`);
+  }
+  if (
+    beforeCollaboratorId &&
+    beforeCollabStatus === "accepted" &&
+    (!afterCollaboratorId || afterCollabStatus !== "accepted")
+  ) {
+    const authorId = normalizeString(beforeData?.authorId);
+    const removedBy = normalizeString(afterData.collaborationRemovedBy);
+    const actorId = removedBy || authorId;
+    const recipientId = actorId === beforeCollaboratorId ? authorId : beforeCollaboratorId;
+    if (actorId && recipientId && actorId !== recipientId) {
+      const actorData = await getUserDoc(actorId);
+      const actorName = userDisplayName(actorData || {});
+      await createNotificationDoc(
+          `collaboration_removed_${context.params.bookId}_${recipientId}_${normalizeString(afterData.collaborationRemovedAt) || Date.now()}`,
+          buildNotification({
+            userId: recipientId,
+            actorId,
+            actorName,
+            actorPhotoURL: normalizeString(actorData?.photoURL) || null,
+            type: "collaboration_removed",
+            text: actorId === authorId ?
+              `${actorName} removed you as co-author.` :
+              `${actorName} removed themselves as co-author.`,
+            link: `/book?id=${context.params.bookId}`,
+            targetId: context.params.bookId,
+            metadata: {
+              bookId: context.params.bookId,
+              removedCollaboratorId: beforeCollaboratorId,
+              removedBy: actorId,
+            },
+          }),
+      );
+    }
+  }
   if (
     afterCollaboratorId &&
     afterCollabStatus === "pending" &&

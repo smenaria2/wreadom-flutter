@@ -1042,6 +1042,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get draftDeleted => 'Draft deleted.';
 
   @override
+  String get removeCollabBeforeDelete =>
+      'Remove collaboration before deleting this draft.';
+
+  @override
   String get deleteConversationBody =>
       'This removes the conversation from your messages.';
 
@@ -1159,6 +1163,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wantsToCollaborate => 'wants to collaborate with you.';
+
+  @override
+  String get removedYouAsCoAuthor => 'removed you as co-author.';
+
+  @override
+  String get removedThemselfAsCoAuthor => 'removed themselves as co-author.';
 
   @override
   String couldNotDeleteDraft(String error) {
@@ -1399,6 +1409,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contentType => 'Content type';
+
+  @override
+  String get contentTypeStory => 'Story';
+
+  @override
+  String get contentTypePoem => 'Poem';
+
+  @override
+  String get contentTypeArticle => 'Article';
 
   @override
   String get category => 'Category';

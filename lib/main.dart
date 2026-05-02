@@ -15,6 +15,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/presentation/providers/auth_providers.dart';
+import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/screens/login_screen.dart';
@@ -194,6 +195,15 @@ class AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(authStateProvider, (previous, next) {
+      final previousId = previous?.asData?.value?.uid;
+      final nextId = next.asData?.value?.uid;
+      if (previousId != nextId) {
+        ref.invalidate(currentUserProvider);
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(pagedNotificationsProvider);
+      }
+    });
     final authState = ref.watch(authStateProvider);
 
     return authState.when(

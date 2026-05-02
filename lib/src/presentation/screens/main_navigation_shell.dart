@@ -46,7 +46,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
           try {
             await ref
                 .read(authRepositoryProvider)
-                .updateFcmToken(user.id, token);
+                .claimFcmToken(user.id, token);
             debugPrint('FCM Token updated successfully');
           } catch (e) {
             debugPrint('Failed to update FCM Token: $e');
@@ -61,7 +61,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       final user = await ref.read(currentUserProvider.future);
       if (user == null) return;
       try {
-        await ref.read(authRepositoryProvider).updateFcmToken(user.id, token);
+        await ref.read(authRepositoryProvider).claimFcmToken(user.id, token);
         debugPrint('Refreshed FCM token updated successfully');
       } catch (e) {
         debugPrint('Failed to update refreshed FCM token: $e');
