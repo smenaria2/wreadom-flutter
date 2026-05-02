@@ -33,6 +33,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
+import '../routing/app_router.dart';
 import '../utils/book_author_utils.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -724,7 +725,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         },
         onBack: () {
           Navigator.of(context).pop();
-          Navigator.of(context).maybePop();
+          Navigator.of(context).pushReplacementNamed(
+            AppRoutes.bookDetail,
+            arguments: BookDetailArguments(
+              bookId: widget.book.id,
+              book: widget.book,
+            ),
+          );
         },
       ),
       body: Container(
@@ -3109,12 +3116,30 @@ class _ChapterDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final surfaceColor = Color.alphaBlend(
+      backgroundColor.withValues(alpha: 0.55),
+      scheme.surface,
+    );
+    final headerSurface = Color.alphaBlend(
+      accentColor.withValues(alpha: 0.08),
+      surfaceColor,
+    );
+    final selectedSurface = Color.alphaBlend(
+      accentColor.withValues(alpha: 0.14),
+      surfaceColor,
+    );
     return Drawer(
-      backgroundColor: backgroundColor,
+      backgroundColor: surfaceColor,
       child: Column(
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(color: headerColor),
+            decoration: BoxDecoration(
+              color: headerSurface,
+              border: Border(
+                bottom: BorderSide(color: headerColor.withValues(alpha: 0.18)),
+              ),
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -3133,7 +3158,10 @@ class _ChapterDrawer extends StatelessWidget {
                   label: Text(AppLocalizations.of(context)!.back),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: textColor,
-                    side: BorderSide(color: textColor.withValues(alpha: 0.45)),
+                    backgroundColor: surfaceColor.withValues(alpha: 0.7),
+                    side: BorderSide(
+                      color: accentColor.withValues(alpha: 0.45),
+                    ),
                   ),
                 ),
               ],
@@ -3147,7 +3175,10 @@ class _ChapterDrawer extends StatelessWidget {
                 final isComplete = completedChapterIndexes.contains(index);
                 final commentCount = commentCounts[index] ?? 0;
                 return ListTile(
-                  selectedTileColor: accentColor.withValues(alpha: 0.12),
+                  selectedTileColor: selectedSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   leading: CircleAvatar(
                     backgroundColor: isComplete
                         ? Colors.green

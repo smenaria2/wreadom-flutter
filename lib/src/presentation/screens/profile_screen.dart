@@ -103,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                         opacity: innerBoxIsScrolled ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 200),
                         child: Text(
-                          user.displayName ?? user.username,
+                          _safeProfileDisplayName(user),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 16,
@@ -227,7 +227,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _shareProfile(BuildContext context, UserModel user, int worksCount) {
-    final name = user.displayName ?? user.username;
+    final name = _safeProfileDisplayName(user);
     shareUserProfileCard(
       context,
       user: user,
@@ -237,6 +237,19 @@ class ProfileScreen extends ConsumerWidget {
       )!.readWithUserOnWreadom(name, AppLinkHelper.user(user.id)),
     );
   }
+}
+
+String _safeProfileDisplayName(UserModel user) {
+  for (final value in [user.displayName, user.penName, user.username]) {
+    final trimmed = value?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+  }
+  return 'Reader';
+}
+
+String _safeProfileInitial(String displayName) {
+  final trimmed = displayName.trim();
+  return (trimmed.isEmpty ? 'Reader' : trimmed).characters.first.toUpperCase();
 }
 
 class _NotificationAction extends ConsumerWidget {
@@ -344,7 +357,8 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
     final user = widget.user;
     final coverUrl = user.coverPhotoURL;
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
-    final displayName = user.displayName ?? user.username;
+    final displayName = _safeProfileDisplayName(user);
+    final initial = _safeProfileInitial(displayName);
 
     return Stack(
       fit: StackFit.expand,
@@ -404,7 +418,7 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                           : null,
                       child: user.photoURL == null
                           ? Text(
-                              displayName.characters.first.toUpperCase(),
+                              initial,
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,

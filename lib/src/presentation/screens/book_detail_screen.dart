@@ -339,10 +339,6 @@ class _BookDetailBody extends ConsumerWidget {
                   collaboratorAsync: collaboratorAsync,
                   collaboratorId: collaboratorId,
                 ),
-                if (isAcceptedCollaboration(book)) ...[
-                  const SizedBox(height: 10),
-                  const _CollabChip(),
-                ],
                 const SizedBox(height: 16),
                 _StatsRow(book: book),
                 if (book.subjects.isNotEmpty) ...[
@@ -731,10 +727,20 @@ class _AuthorLine extends StatelessWidget {
         ),
         Tooltip(
           message: AppLocalizations.of(context)!.collaboration,
-          child: Icon(
-            Icons.handshake_outlined,
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
+          child: InkResponse(
+            radius: 20,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.collabBookInfo),
+                ),
+              );
+            },
+            child: Icon(
+              Icons.handshake_outlined,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         _AuthorPill(
@@ -801,26 +807,6 @@ class _AuthorPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: content,
       ),
-    );
-  }
-}
-
-class _CollabChip extends StatelessWidget {
-  const _CollabChip();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Chip(
-      avatar: const Icon(Icons.group_outlined, size: 16),
-      label: const Text('Collab'),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: scheme.secondaryContainer.withValues(alpha: 0.7),
-      labelStyle: TextStyle(
-        color: scheme.onSecondaryContainer,
-        fontWeight: FontWeight.w700,
-      ),
-      side: BorderSide(color: scheme.outlineVariant),
     );
   }
 }

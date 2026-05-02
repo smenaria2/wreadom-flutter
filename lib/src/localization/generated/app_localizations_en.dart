@@ -1143,6 +1143,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Follow an author first to invite them.';
 
   @override
+  String get collabEditWarning =>
+      'The co-author will be able to edit this book, remove chapters, and draft or unpublish the book.';
+
+  @override
+  String get collabBookInfo =>
+      'This book is a collaboration. Both authors can write and edit it.';
+
+  @override
+  String get selectCoAuthorBeforeSaving =>
+      'Select a co-author before saving collaboration.';
+
+  @override
   String get coAuthor => 'Co-author';
 
   @override

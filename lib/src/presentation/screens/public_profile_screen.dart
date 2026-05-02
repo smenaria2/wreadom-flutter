@@ -102,7 +102,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                   AppRoutes.conversation,
                                   arguments: ConversationArguments(
                                     conversationId: conversationId,
-                                    title: user.displayName ?? user.username,
+                                    title: _safePublicProfileDisplayName(user),
                                   ),
                                 );
                               }
@@ -118,7 +118,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
-                    user.displayName ?? user.username,
+                    _safePublicProfileDisplayName(user),
                     style: TextStyle(
                       color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
@@ -241,7 +241,7 @@ class PublicProfileScreen extends ConsumerWidget {
   }
 
   void _shareProfile(BuildContext context, UserModel user, int worksCount) {
-    final name = user.displayName ?? user.username;
+    final name = _safePublicProfileDisplayName(user);
     shareUserProfileCard(
       context,
       user: user,
@@ -251,6 +251,19 @@ class PublicProfileScreen extends ConsumerWidget {
       )!.readWithUserOnWreadom(name, AppLinkHelper.user(user.id)),
     );
   }
+}
+
+String _safePublicProfileDisplayName(UserModel user) {
+  for (final value in [user.displayName, user.penName, user.username]) {
+    final trimmed = value?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+  }
+  return 'Reader';
+}
+
+String _safePublicProfileInitial(String displayName) {
+  final trimmed = displayName.trim();
+  return (trimmed.isEmpty ? 'Reader' : trimmed).characters.first.toUpperCase();
 }
 
 class _PublicProfileContentTabs extends StatefulWidget {
@@ -347,7 +360,7 @@ class _PublicProfileHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final coverUrl = user.coverPhotoURL;
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
-    final displayName = user.displayName ?? user.username;
+    final displayName = _safePublicProfileDisplayName(user);
 
     return Stack(
       fit: StackFit.expand,
@@ -388,7 +401,7 @@ class _PublicProfileHeader extends StatelessWidget {
                     : null,
                 child: user.photoURL == null
                     ? Text(
-                        displayName.characters.first.toUpperCase(),
+                        _safePublicProfileInitial(displayName),
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,

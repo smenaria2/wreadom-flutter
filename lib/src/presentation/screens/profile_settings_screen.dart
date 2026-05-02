@@ -92,8 +92,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       .updateProfileDetails(
                         userId: user.id,
                         bio: _bioController.text.trim(),
-                        penName: _penNameController.text.trim(),
-                        displayName: _displayNameController.text.trim(),
+                        penName: _blankToNull(_penNameController.text),
+                        displayName: _blankToNull(_displayNameController.text),
                       );
                   await ref
                       .read(profileRepositoryProvider)
@@ -111,4 +111,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
     );
   }
+}
+
+String? _blankToNull(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

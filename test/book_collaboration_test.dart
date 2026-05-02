@@ -83,6 +83,15 @@ void main() {
     expect(source, contains("data.collaborationStatus == 'accepted'"));
     expect(source, contains('allow delete: if isPrimaryBookAuthorData'));
     expect(source, contains('validCollaborationResponse()'));
+    expect(source, contains('validCollaborationRemoval()'));
+    expect(
+      source,
+      contains("resource.data.collaborationStatus in ['pending', 'accepted']"),
+    );
+    expect(
+      source,
+      contains('request.resource.data.collaborationStatus == null'),
+    );
   });
 
   test('functions fan out book notifications to accepted authors', () {

@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'src/config/env_config.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -41,7 +42,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCkiPyC3xawvqek2ZUJPhLIupLKwRwW4t0',
+    apiKey: EnvConfig.firebaseWebApiKey,
     appId: '1:601247128838:web:1bd0d3f4e026297d025287',
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
@@ -51,7 +52,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDsm9w_Hkac6sXgBqweqSU_wYjfp4i19dM',
+    apiKey: EnvConfig.firebaseAndroidApiKey,
     appId: '1:601247128838:android:52362145c242e23c025287',
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
@@ -59,7 +60,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDZ-K5JtaISPaJ2dmcSRLlTwOZDylhM4Kc',
+    apiKey: EnvConfig.firebaseIosApiKey,
     appId: '1:601247128838:ios:893b6e08739de61e025287',
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
@@ -72,7 +73,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDZ-K5JtaISPaJ2dmcSRLlTwOZDylhM4Kc',
+    apiKey: EnvConfig.firebaseIosApiKey,
     appId: '1:601247128838:ios:893b6e08739de61e025287',
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',
@@ -85,7 +86,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDOgMpxNGS3sJ6Rnoh2m1l_kwjQPSOu_aw',
+    apiKey: EnvConfig.firebaseWindowsApiKey,
     appId: '1:601247128838:web:ab6e74e35064f216025287',
     messagingSenderId: '601247128838',
     projectId: 'studio-8109133561-1eb90',

@@ -74,6 +74,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _NotificationFilter _filter = _NotificationFilter.all;
+  String? _openingNotificationKey;
   late final PageController _pageController;
 
   @override
@@ -199,7 +200,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           }
                           final displayItem = filteredItems[index];
                           final item = displayItem.latest;
+                          final openKey = _notificationOpenKey(displayItem);
+                          final isOpening = _openingNotificationKey == openKey;
                           return ListTile(
+                            enabled: !isOpening,
                             leading: CircleAvatar(
                               backgroundImage: item.actorPhotoURL != null
                                   ? CachedNetworkImageProvider(
@@ -231,77 +235,103 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 ),
                               ],
                             ),
-                            trailing: displayItem.isRead
+                            trailing: isOpening
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : displayItem.isRead
                                 ? null
                                 : const Icon(
                                     Icons.circle,
                                     size: 10,
                                     color: Colors.blue,
                                   ),
-                            onTap: () async {
-                              for (final notification
-                                  in displayItem.notifications) {
-                                if (notification.id != null) {
-                                  await ref
-                                      .read(notificationRepositoryProvider)
-                                      .markAsRead(notification.id!);
-                                }
-                              }
+                            onTap: isOpening
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      _openingNotificationKey = openKey;
+                                    });
+                                    try {
+                                      await _markNotificationItemRead(
+                                        ref,
+                                        displayItem,
+                                      );
+                                      if (!context.mounted) return;
 
-                              if (!context.mounted) return;
+                                      final target =
+                                          NotificationTargetResolver.resolve(
+                                            item,
+                                          );
+                                      if (target != null) {
+                                        await _markMatchingCommentNotificationsRead(
+                                          ref,
+                                          displayItem.notifications,
+                                          target,
+                                        );
+                                        await _refreshTargetBeforeOpen(
+                                          ref,
+                                          target,
+                                        );
+                                        if (!context.mounted) return;
 
-                              final target = NotificationTargetResolver.resolve(
-                                item,
-                              );
-                              if (target != null) {
-                                await _markMatchingCommentNotificationsRead(
-                                  ref,
-                                  displayItem.notifications,
-                                  target,
-                                );
-                                await _refreshTargetBeforeOpen(ref, target);
-                                if (!context.mounted) return;
-
-                                final routeArgs = switch (target.route) {
-                                  AppRoutes.publicProfile =>
-                                    PublicProfileArguments(
-                                      userId: target.payload,
-                                    ),
-                                  AppRoutes.bookDetail => BookDetailArguments(
-                                    bookId: target.payload,
-                                    targetCommentId: target.commentId,
-                                    targetReplyId: target.replyId,
-                                  ),
-                                  AppRoutes.postDetail => PostDetailArguments(
-                                    postId: target.payload,
-                                    targetCommentId: target.commentId,
-                                    targetReplyId: target.replyId,
-                                  ),
-                                  AppRoutes.conversation =>
-                                    ConversationArguments(
-                                      conversationId: target.payload,
-                                      title: item.actorName,
-                                    ),
-                                  AppRoutes.collaborationRequest =>
-                                    CollaborationRequestArguments(
-                                      bookId: target.payload,
-                                    ),
-                                  _ => target.payload,
-                                };
-                                Navigator.of(
-                                  context,
-                                ).pushNamed(target.route, arguments: routeArgs);
-                              } else {
-                                ref
-                                    .read(selectedTabProvider.notifier)
-                                    .setTab(1);
-                                Navigator.of(context).popUntil(
-                                  (route) =>
-                                      route.settings.name == AppRoutes.main ||
-                                      route.isFirst,
-                                );
-                              }
-                            },
+                                        final routeArgs = switch (target
+                                            .route) {
+                                          AppRoutes.publicProfile =>
+                                            PublicProfileArguments(
+                                              userId: target.payload,
+                                            ),
+                                          AppRoutes.bookDetail =>
+                                            BookDetailArguments(
+                                              bookId: target.payload,
+                                              targetCommentId: target.commentId,
+                                              targetReplyId: target.replyId,
+                                            ),
+                                          AppRoutes.postDetail =>
+                                            PostDetailArguments(
+                                              postId: target.payload,
+                                              targetCommentId: target.commentId,
+                                              targetReplyId: target.replyId,
+                                            ),
+                                          AppRoutes.conversation =>
+                                            ConversationArguments(
+                                              conversationId: target.payload,
+                                              title: item.actorName,
+                                            ),
+                                          AppRoutes.collaborationRequest =>
+                                            CollaborationRequestArguments(
+                                              bookId: target.payload,
+                                            ),
+                                          _ => target.payload,
+                                        };
+                                        Navigator.of(context).pushNamed(
+                                          target.route,
+                                          arguments: routeArgs,
+                                        );
+                                      } else {
+                                        ref
+                                            .read(selectedTabProvider.notifier)
+                                            .setTab(1);
+                                        Navigator.of(context).popUntil(
+                                          (route) =>
+                                              route.settings.name ==
+                                                  AppRoutes.main ||
+                                              route.isFirst,
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted &&
+                                          _openingNotificationKey == openKey) {
+                                        setState(() {
+                                          _openingNotificationKey = null;
+                                        });
+                                      }
+                                    }
+                                  },
                           );
                         },
                       );
@@ -314,6 +344,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       ),
     );
+  }
+
+  String _notificationOpenKey(_NotificationListItem item) {
+    final ids = item.notifications
+        .map((notification) => notification.id?.trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .join('|');
+    if (ids.isNotEmpty) return ids;
+    final latest = item.latest;
+    return '${latest.type}:${latest.targetId}:${latest.timestamp}';
   }
 
   String _emptyText(
@@ -379,6 +420,21 @@ Future<void> _markMatchingCommentNotificationsRead(
     if (notificationTarget?.commentId == commentId) {
       await repository.markAsRead(id);
     }
+  }
+}
+
+Future<void> _markNotificationItemRead(
+  WidgetRef ref,
+  _NotificationListItem item,
+) async {
+  final repository = ref.read(notificationRepositoryProvider);
+  final ids = <String>{};
+  for (final notification in item.notifications) {
+    final id = notification.id?.trim();
+    if (id == null || id.isEmpty || notification.isRead || !ids.add(id)) {
+      continue;
+    }
+    await _ignoreRefresh(repository.markAsRead(id));
   }
 }
 

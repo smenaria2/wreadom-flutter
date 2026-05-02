@@ -585,7 +585,7 @@ void main() {
       );
       expect(
         rulesSource,
-        contains("function ownsExistingAny(primary, fallback)"),
+        isNot(contains("function ownsExistingAny(primary, fallback)")),
       );
       expect(rulesSource, contains("function isBookAuthor(bookId)"));
       expect(
@@ -675,8 +675,8 @@ void main() {
       expect(readerSource, contains('_splitLongPlainTextBlock'));
       expect(readerSource, contains('Back'));
       expect(readerSource, contains('Icons.arrow_back_rounded'));
-      expect(readerSource, isNot(contains('Go to book')));
-      expect(readerSource, isNot(contains('BookDetailArguments')));
+      expect(readerSource, contains('pushReplacementNamed'));
+      expect(readerSource, contains('BookDetailArguments'));
     },
   );
 
@@ -1022,8 +1022,16 @@ void main() {
     expect(writerSource, contains('l10n.writerCoverOptional'));
     expect(writerSource, contains('l10n.topicsOptional'));
     expect(writerSource, contains('showLink: false'));
+    expect(writerSource, contains('l10n.collabEditWarning'));
+    expect(writerSource, contains('canRemoveAccepted'));
+    expect(
+      writerSource,
+      contains('collaborationStatus == collaborationStatusPending'),
+    );
     expect(bookDetailSource, contains('l10n.shareToFeed'));
     expect(bookDetailSource, contains('l10n.defaultShareMessage'));
+    expect(bookDetailSource, contains('collabBookInfo'));
+    expect(bookDetailSource, isNot(contains('_CollabChip')));
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
     expect(feedCardSource, contains('updateFeedPost'));
@@ -1046,6 +1054,38 @@ void main() {
     expect(commentTileSource, contains('color: Colors.black'));
     expect(readerSource, contains('_shareReviewToFeed'));
     expect(readerSource, contains('Share to feed'));
+  });
+
+  test('profile privacy and collab localization hardening stays wired', () {
+    final profileSource = File(
+      'lib/src/presentation/screens/profile_screen.dart',
+    ).readAsStringSync();
+    final publicProfileSource = File(
+      'lib/src/presentation/screens/public_profile_screen.dart',
+    ).readAsStringSync();
+    final settingsSource = File(
+      'lib/src/presentation/screens/profile_settings_screen.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_profile_repository.dart',
+    ).readAsStringSync();
+    final hiL10n =
+        jsonDecode(File('lib/l10n/app_hi.arb').readAsStringSync())
+            as Map<String, dynamic>;
+
+    expect(profileSource, contains('_safeProfileDisplayName'));
+    expect(profileSource, contains('_safeProfileInitial'));
+    expect(publicProfileSource, contains('_safePublicProfileDisplayName'));
+    expect(publicProfileSource, contains('_safePublicProfileInitial'));
+    expect(
+      settingsSource,
+      contains('_blankToNull(_displayNameController.text)'),
+    );
+    expect(settingsSource, contains('_blankToNull(_penNameController.text)'));
+    expect(repositorySource, contains('_emptyStringDeletes'));
+    expect(hiL10n['collaboration'], 'सहलेखन');
+    expect(hiL10n['collab'], 'सहलेखन');
+    expect(hiL10n['helpCategoryCollaboration'], 'सहलेखन');
   });
 
   test('points are removed and home rankings replace leaderboard behavior', () {
@@ -1315,6 +1355,9 @@ void main() {
 
     expect(notificationSource, contains('_groupNotificationItems'));
     expect(notificationSource, contains('displayItem.notifications'));
+    expect(notificationSource, contains('_openingNotificationKey'));
+    expect(notificationSource, contains('_markNotificationItemRead'));
+    expect(notificationSource, contains('CircularProgressIndicator'));
     expect(notificationSource, contains('PostDetailArguments'));
     expect(notificationSource, contains('BookDetailArguments'));
     expect(resolverSource, contains('commentId'));

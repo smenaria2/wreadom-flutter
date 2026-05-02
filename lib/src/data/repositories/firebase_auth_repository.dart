@@ -277,50 +277,90 @@ class FirebaseAuthRepository implements AuthRepository {
 
     if (updates.isEmpty) return;
 
+    await _firestore.collection('users').doc(userId).update(updates);
+    await _fanOutProfileUpdates(userId, updates);
+  }
+
+  Future<void> _fanOutProfileUpdates(
+    String userId,
+    Map<String, dynamic> updates,
+  ) async {
+    final feedUpdates = <String, dynamic>{};
+    final commentUpdates = <String, dynamic>{};
+    final notificationUpdates = <String, dynamic>{};
+    final conversationUpdates = <String, dynamic>{};
+    if (updates.containsKey('displayName')) {
+      feedUpdates['displayName'] = updates['displayName'];
+      commentUpdates['userName'] = updates['displayName'];
+      notificationUpdates['actorName'] = updates['displayName'];
+      conversationUpdates['participantDetails.$userId.displayName'] =
+          updates['displayName'];
+    }
+    if (updates.containsKey('photoURL')) {
+      feedUpdates['userPhotoURL'] = updates['photoURL'];
+      commentUpdates['userPhotoURL'] = updates['photoURL'];
+      notificationUpdates['actorPhotoURL'] = updates['photoURL'];
+      conversationUpdates['participantDetails.$userId.photoURL'] =
+          updates['photoURL'];
+    }
+    if (feedUpdates.isEmpty && commentUpdates.isEmpty) return;
+
     final batches = <WriteBatch>[];
-    var currentBatch = _firestore.batch();
     var currentWriteCount = 0;
 
-    void queueUpdate(
-      DocumentReference<Map<String, dynamic>> reference,
-      Map<String, dynamic> data,
-    ) {
-      if (currentWriteCount >= _maxFanOutWritesPerBatch) {
-        batches.add(currentBatch);
-        currentBatch = _firestore.batch();
+    WriteBatch activeBatch() {
+      if (batches.isEmpty || currentWriteCount >= _maxFanOutWritesPerBatch) {
+        batches.add(_firestore.batch());
         currentWriteCount = 0;
       }
-      currentBatch.update(reference, data);
+      return batches.last;
+    }
+
+    void queueUpdate(
+      DocumentReference<Map<String, dynamic>> ref,
+      Map<String, dynamic> data,
+    ) {
+      if (data.isEmpty) return;
+      if (currentWriteCount >= _maxFanOutWritesPerBatch) {
+        batches.add(_firestore.batch());
+        currentWriteCount = 0;
+      }
+      activeBatch().update(ref, data);
       currentWriteCount++;
     }
 
-    queueUpdate(_firestore.collection('users').doc(userId), updates);
-
-    // 1. Comments
-    final comments = await _firestore
-        .collection('comments')
-        .where('userId', isEqualTo: userId)
-        .get();
-    for (var doc in comments.docs) {
-      final commentUpdate = <String, dynamic>{};
-      if (displayName != null) commentUpdate['username'] = displayName;
-      if (photoURL != null) commentUpdate['userPhotoURL'] = photoURL;
-      queueUpdate(doc.reference, commentUpdate);
+    Future<void> queueQuery(
+      Query<Map<String, dynamic>> query,
+      Map<String, dynamic> data,
+    ) async {
+      if (data.isEmpty) return;
+      final snapshot = await query.get();
+      for (final doc in snapshot.docs) {
+        queueUpdate(doc.reference, data);
+      }
     }
 
-    // 2. Feed Posts
-    final feedPosts = await _firestore
-        .collection('feed')
-        .where('userId', isEqualTo: userId)
-        .get();
-    for (var doc in feedPosts.docs) {
-      final feedUpdate = <String, dynamic>{};
-      if (displayName != null) feedUpdate['username'] = displayName;
-      if (photoURL != null) feedUpdate['userPhotoURL'] = photoURL;
-      queueUpdate(doc.reference, feedUpdate);
-    }
+    await queueQuery(
+      _firestore.collection('feed_posts').where('userId', isEqualTo: userId),
+      feedUpdates,
+    );
+    await queueQuery(
+      _firestore.collection('comments').where('userId', isEqualTo: userId),
+      commentUpdates,
+    );
+    await queueQuery(
+      _firestore
+          .collection('notifications')
+          .where('actorId', isEqualTo: userId),
+      notificationUpdates,
+    );
+    await queueQuery(
+      _firestore
+          .collection('conversations')
+          .where('participants', arrayContains: userId),
+      conversationUpdates,
+    );
 
-    if (currentWriteCount > 0) batches.add(currentBatch);
     for (final batch in batches) {
       await batch.commit();
     }

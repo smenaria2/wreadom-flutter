@@ -6,6 +6,8 @@
         android:label="Wreadom"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:enableOnBackInvokedCallback="false">
         <activity
             android:name=".MainActivity"

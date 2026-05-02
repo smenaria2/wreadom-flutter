@@ -30,13 +30,6 @@ service cloud.firestore {
       );
     }
 
-    function ownsExistingAny(primary, fallback) {
-      return signedIn() && (
-        resource.data[primary] == uid() ||
-        resource.data[fallback] == uid()
-      );
-    }
-
     function onlyChanges(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
@@ -120,6 +113,26 @@ service cloud.firestore {
             resource.data.collaboratorId in request.resource.data.authorIds
           )
         );
+    }
+
+    function validCollaborationRemoval() {
+      return signedIn() &&
+        resource.data.collaborationStatus in ['pending', 'accepted'] &&
+        (
+          resource.data.authorId == uid() ||
+          (
+            resource.data.collaborationStatus == 'accepted' &&
+            resource.data.collaboratorId == uid()
+          )
+        ) &&
+        request.resource.data.authorId == resource.data.authorId &&
+        request.resource.data.authorIds is list &&
+        request.resource.data.authorIds.size() == 1 &&
+        resource.data.authorId in request.resource.data.authorIds &&
+        request.resource.data.collaborationStatus == null &&
+        request.resource.data.collaboratorId == null &&
+        request.resource.data.collaboratorName == null &&
+        request.resource.data.collaboratorPhotoURL == null;
     }
 
     function validCommentAudioFields(data) {
@@ -250,6 +263,7 @@ service cloud.firestore {
           )
         ) ||
         validCollaborationResponse() ||
+        validCollaborationRemoval() ||
         (
           onlyChanges(['viewCount']) &&
           validCounterDelta('viewCount', 0, 1)
@@ -258,7 +272,7 @@ service cloud.firestore {
 
       // Sub-collection for tracking unique views
       match /views/{viewerKey} {
-        allow read, create: if true;
+        allow read, create: if signedIn();
       }
 
       // Sub-collection for book chapters
@@ -272,7 +286,15 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notificationId} {
       allow read: if signedIn() && resource.data.userId == uid();
-      allow create: if signedIn() && request.resource.data.actorId == uid();
+      // Allow creation only if actor is the signed-in user and payload is valid
+      allow create: if signedIn() && 
+        request.resource.data.actorId == uid() &&
+        request.resource.data.userId != uid() && // Prevent self-notifications
+        request.resource.data.type in [
+          'follow', 'follower', 'post_like', 'feed_comment', 'feed_reply', 
+          'book_comment', 'book_review', 'book_reply', 'like', 'comment', 'reply',
+          'message', 'collaboration_request', 'collaboration_accepted', 'mention'
+        ];
       allow update: if signedIn() &&
         resource.data.userId == uid() &&
         onlyChanges(['isRead']);
@@ -347,10 +369,6 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Catch-all read-only for other collections (e.g. metadata)
-    match /{document=**} {
-      allow read: if true;
-      allow write: if false;
-    }
+    // NO CATCH-ALL READ. Access must be explicit per collection.
   }
 }

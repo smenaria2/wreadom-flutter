@@ -246,11 +246,17 @@ class FirebaseProfileRepository implements ProfileRepository {
     String? displayName,
   }) async {
     final updates = <String, dynamic>{};
-    if (bio != null) updates['bio'] = bio;
-    if (penName != null) updates['penName'] = penName;
-    if (displayName != null) updates['displayName'] = displayName;
+    updates['bio'] = _emptyStringDeletes(bio);
+    updates['penName'] = _emptyStringDeletes(penName);
+    updates['displayName'] = _emptyStringDeletes(displayName);
     if (updates.isNotEmpty) {
       await _firestore.collection('users').doc(userId).update(updates);
     }
+  }
+
+  Object _emptyStringDeletes(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return FieldValue.delete();
+    return trimmed;
   }
 }

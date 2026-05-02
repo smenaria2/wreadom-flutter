@@ -1117,14 +1117,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get editStory => 'रचना संपादित करें';
 
   @override
-  String get collaboration => 'सहयोग';
+  String get collaboration => 'सहलेखन';
 
   @override
-  String get collab => 'सहयोग';
+  String get collab => 'सहलेखन';
 
   @override
   String get collabAcceptedDescription =>
-      'सहयोग स्वीकार हो गया है। दोनों लेखक इस रचना को संपादित कर सकते हैं।';
+      'सहलेखन स्वीकार हो गया है। दोनों लेखक इस रचना को संपादित कर सकते हैं।';
 
   @override
   String get collabPendingDescription =>
@@ -1142,10 +1142,22 @@ class AppLocalizationsHi extends AppLocalizations {
       'आमंत्रित करने के लिए पहले किसी लेखक को फॉलो करें।';
 
   @override
+  String get collabEditWarning =>
+      'सह-लेखक इस रचना को संपादित कर सकेंगे, अध्याय हटा सकेंगे, और रचना को ड्राफ्ट या अप्रकाशित कर सकेंगे।';
+
+  @override
+  String get collabBookInfo =>
+      'यह रचना सहलेखन में है। दोनों लेखक इसे लिख और संपादित कर सकते हैं।';
+
+  @override
+  String get selectCoAuthorBeforeSaving =>
+      'सहलेखन सहेजने से पहले सह-लेखक चुनें।';
+
+  @override
   String get coAuthor => 'सह-लेखक';
 
   @override
-  String get wantsToCollaborate => 'आपके साथ सहयोग करना चाहते हैं।';
+  String get wantsToCollaborate => 'आपके साथ सहलेखन करना चाहते हैं।';
 
   @override
   String couldNotDeleteDraft(String error) {
@@ -1624,7 +1636,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get helpCategoryAccount => 'खाता';
 
   @override
-  String get helpCategoryCollaboration => 'सहयोग';
+  String get helpCategoryCollaboration => 'सहलेखन';
 
   @override
   String get faqCustomizeReaderQ => 'मैं रीडर को कैसे कस्टमाइज़ करूँ?';
@@ -1684,11 +1696,11 @@ class AppLocalizationsHi extends AppLocalizations {
       'बिल्कुल! नए अध्याय जोड़ने, उनके बीच स्विच करने या अपनी कहानी की संरचना को बदलने के लिए एडिटर में अध्याय मेनू (लिस्ट आइकन) का उपयोग करें।';
 
   @override
-  String get faqCollaborationQ => 'सहयोग कैसे काम करता है?';
+  String get faqCollaborationQ => 'सहलेखन कैसे काम करता है?';
 
   @override
   String get faqCollaborationA =>
-      'Writer Pad में Collaboration चालू करें और जिसे आप फॉलो करते हैं उसे सह-लेखक चुनें। उन्हें अनुरोध मिलेगा, और स्वीकार होने के बाद दोनों लेखक रचना संपादित कर सकते हैं और पुस्तक पेज पर साथ दिखते हैं।';
+      'Writer Pad में सहलेखन चालू करें और जिसे आप फॉलो करते हैं उसे सह-लेखक चुनें। उन्हें अनुरोध मिलेगा, और स्वीकार होने के बाद दोनों लेखक रचना संपादित कर सकते हैं और पुस्तक पेज पर साथ दिखते हैं।';
 
   @override
   String get faqFindBooksQ => 'मुझे नई रचनाएँ कैसे मिलेंगी?';

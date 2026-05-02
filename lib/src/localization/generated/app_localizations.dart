@@ -2150,6 +2150,24 @@ abstract class AppLocalizations {
   /// **'Follow an author first to invite them.'**
   String get collabFollowAuthorFirst;
 
+  /// No description provided for @collabEditWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The co-author will be able to edit this book, remove chapters, and draft or unpublish the book.'**
+  String get collabEditWarning;
+
+  /// No description provided for @collabBookInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'This book is a collaboration. Both authors can write and edit it.'**
+  String get collabBookInfo;
+
+  /// No description provided for @selectCoAuthorBeforeSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a co-author before saving collaboration.'**
+  String get selectCoAuthorBeforeSaving;
+
   /// No description provided for @coAuthor.
   ///
   /// In en, this message translates to:

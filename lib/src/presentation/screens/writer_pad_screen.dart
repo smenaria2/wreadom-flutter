@@ -1321,7 +1321,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         !isAcceptedCollaboration(widget.book ?? _emptyBookForCollabCheck()) &&
         (_selectedCollaboratorId == null ||
             _selectedCollaboratorId!.trim().isEmpty)) {
-      _showSnack('Select a co-author before saving collaboration.');
+      _showSnack(l10n.selectCoAuthorBeforeSaving);
       setState(() => _setStep(1));
       return;
     }
@@ -1451,26 +1451,27 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         : 'Author';
     final collaborationWasAccepted =
         existingBook != null && isAcceptedCollaboration(existingBook);
-    final collaboratorId = collaborationWasAccepted
+    final collaboratorId = !_collabEnabled
+        ? null
+        : collaborationWasAccepted
         ? existingBook.collaboratorId?.trim()
-        : _collabEnabled
-        ? _selectedCollaboratorId?.trim()
-        : null;
-    final collaboratorName = collaborationWasAccepted
+        : _selectedCollaboratorId?.trim();
+    final collaboratorName = !_collabEnabled
+        ? null
+        : collaborationWasAccepted
         ? existingBook.collaboratorName?.trim()
-        : _collabEnabled
-        ? _selectedCollaboratorName?.trim()
-        : null;
-    final collaboratorPhotoURL = collaborationWasAccepted
+        : _selectedCollaboratorName?.trim();
+    final collaboratorPhotoURL = !_collabEnabled
+        ? null
+        : collaborationWasAccepted
         ? existingBook.collaboratorPhotoURL?.trim()
-        : _collabEnabled
-        ? _selectedCollaboratorPhotoURL?.trim()
-        : null;
-    final collaborationStatus = collaborationWasAccepted
+        : _selectedCollaboratorPhotoURL?.trim();
+    final collaborationStatus =
+        !_collabEnabled || collaboratorId == null || collaboratorId.isEmpty
+        ? null
+        : collaborationWasAccepted
         ? collaborationStatusAccepted
-        : _collabEnabled && collaboratorId != null && collaboratorId.isNotEmpty
-        ? collaborationStatusPending
-        : null;
+        : collaborationStatusPending;
     final bookAuthors = <Author>[
       Author(name: primaryAuthorName, birthYear: null, deathYear: null),
       if (collaborationStatus == collaborationStatusAccepted &&
@@ -1527,12 +1528,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       collaborationRequestedBy:
           collaborationStatus == collaborationStatusPending
           ? (existingBook?.collaborationRequestedBy ?? user.id)
-          : existingBook?.collaborationRequestedBy,
+          : null,
       collaborationRequestedAt:
           collaborationStatus == collaborationStatusPending
           ? (existingBook?.collaborationRequestedAt ?? now)
-          : existingBook?.collaborationRequestedAt,
-      collaborationRespondedAt: existingBook?.collaborationRespondedAt,
+          : null,
+      collaborationRespondedAt:
+          collaborationStatus == collaborationStatusAccepted
+          ? existingBook?.collaborationRespondedAt
+          : null,
       authorIds: authorIds,
     );
   }
@@ -1544,7 +1548,20 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         existingBook != null && isAcceptedCollaboration(existingBook);
     final isPending =
         existingBook != null && isPendingCollaboration(existingBook);
-    final canEditInvite = !isAccepted;
+    final currentUserId = ref
+        .watch(currentUserProvider)
+        .asData
+        ?.value
+        ?.id
+        .trim();
+    final primaryAuthorId = existingBook?.authorId?.trim();
+    final collaboratorId = existingBook?.collaboratorId?.trim();
+    final canRemoveAccepted =
+        isAccepted &&
+        currentUserId != null &&
+        currentUserId.isNotEmpty &&
+        (currentUserId == primaryAuthorId || currentUserId == collaboratorId);
+    final canEditInvite = !isAccepted || canRemoveAccepted;
     final followingAsync = ref.watch(followingListProvider);
     final followingIds = followingAsync.asData?.value ?? const <String>[];
     final profilesKey = followingIds.join('|');
@@ -1614,6 +1631,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 : null,
           ),
           if (_collabEnabled) ...[
+            const SizedBox(height: 12),
+            _CollabWarningCard(message: l10n.collabEditWarning),
             const SizedBox(height: 12),
             profilesAsync.when(
               loading: () => const LinearProgressIndicator(),
@@ -1894,6 +1913,47 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final penName = profile.penName?.trim();
     if (penName != null && penName.isNotEmpty) return penName;
     return profile.username.trim().isEmpty ? 'Author' : profile.username.trim();
+  }
+}
+
+class _CollabWarningCard extends StatelessWidget {
+  const _CollabWarningCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.tertiary.withValues(alpha: 0.25)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 20,
+              color: scheme.onTertiaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onTertiaryContainer,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

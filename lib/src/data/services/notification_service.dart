@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 
@@ -66,8 +68,9 @@ class NotificationService {
 
     // 4. Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Got a message whilst in the foreground!');
-      debugPrint('Message data: ${message.data}');
+      if (kDebugMode) {
+        debugPrint('Got a message whilst in the foreground!');
+      }
 
       if (message.notification != null) {
         _showLocalNotification(message, channel);
@@ -76,14 +79,18 @@ class NotificationService {
 
     // 5. Handle background interaction (when app is opened from notification)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('App opened from notification: ${message.data}');
+      if (kDebugMode) {
+        debugPrint('App opened from notification');
+      }
       _handleRemoteMessageNavigation(message);
     });
 
     // 6. Handle initial message (when app is killed and opened from notification)
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('App opened from terminated state: ${initialMessage.data}');
+      if (kDebugMode) {
+        debugPrint('App opened from terminated state');
+      }
       Future<void>.delayed(
         const Duration(milliseconds: 600),
         () => _handleRemoteMessageNavigation(initialMessage),
@@ -123,7 +130,9 @@ class NotificationService {
   void _onTapNotification(NotificationResponse response) {
     if (response.payload != null) {
       final data = jsonDecode(response.payload!) as Map<String, dynamic>;
-      debugPrint('Tapped local notification with data: $data');
+      if (kDebugMode) {
+        debugPrint('Tapped local notification');
+      }
       _navigateFromData(data);
     }
   }
@@ -133,6 +142,7 @@ class NotificationService {
   }
 
   void _navigateFromData(Map<String, dynamic> data) {
+    unawaited(_markNotificationDataRead(data));
     final rawLink =
         data['url']?.toString() ??
         data['link']?.toString() ??
@@ -164,10 +174,24 @@ class NotificationService {
         );
         return;
       case AppRoutes.bookDetail:
-        navigator.pushNamed(target.route, arguments: target.payload);
+        navigator.pushNamed(
+          target.route,
+          arguments: BookDetailArguments(
+            bookId: target.payload,
+            targetCommentId: target.commentId,
+            targetReplyId: target.replyId,
+          ),
+        );
         return;
       case AppRoutes.postDetail:
-        navigator.pushNamed(target.route, arguments: target.payload);
+        navigator.pushNamed(
+          target.route,
+          arguments: PostDetailArguments(
+            postId: target.payload,
+            targetCommentId: target.commentId,
+            targetReplyId: target.replyId,
+          ),
+        );
         return;
       case AppRoutes.conversation:
         navigator.pushNamed(
@@ -189,6 +213,24 @@ class NotificationService {
         return;
       default:
         navigator.pushNamed(target.route, arguments: target.payload);
+    }
+  }
+
+  Future<void> _markNotificationDataRead(Map<String, dynamic> data) async {
+    final notificationId =
+        data['notificationId']?.toString().trim().isNotEmpty == true
+        ? data['notificationId'].toString().trim()
+        : data['id']?.toString().trim();
+    if (notificationId == null || notificationId.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'isRead': true});
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Could not mark notification read: $error');
+      }
     }
   }
 

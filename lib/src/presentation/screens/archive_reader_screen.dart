@@ -86,6 +86,17 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
               });
             }
           },
+          onNavigationRequest: (NavigationRequest request) {
+            final uri = Uri.parse(request.url);
+            if (uri.host == 'archive.org' ||
+                uri.host.endsWith('.archive.org') ||
+                uri.host == 'googleads.g.doubleclick.net' || // Allow ads if necessary
+                uri.host == 'www.googleadservices.com') {
+              return NavigationDecision.navigate;
+            }
+            debugPrint('Blocking navigation to unauthorized host: ${uri.host}');
+            return NavigationDecision.prevent;
+          },
         ),
       );
       controller.loadRequest(Uri.https('archive.org', '/embed/$identifier'));
