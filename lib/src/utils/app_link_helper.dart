@@ -64,7 +64,7 @@ class AppLinkHelper {
     switch (type) {
       case 'book':
       case 'b':
-        id ??= queryBookId;
+        id ??= queryBookId ?? queryTopicId;
         if (_hasValue(id)) {
           return ResolvedAppLink(AppRoutes.bookDetail, id!);
         }

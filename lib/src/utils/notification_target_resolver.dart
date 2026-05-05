@@ -27,6 +27,7 @@ class NotificationTargetResolver {
       metadata['book'],
       metadata['contentId'],
       _queryValue(notification.link, 'book'),
+      _queryValue(notification.link, 'id'),
       _idFromLink(notification.link, ['book', 'b']),
       linkTarget?.route == AppRoutes.bookDetail ? linkTarget?.payload : null,
     ]);
@@ -179,12 +180,15 @@ class NotificationTargetResolver {
     return targetType == 'book' ||
         targetType == 'content' ||
         type == 'published' ||
+        type == 'new_creation' ||
+        type == 'newcreation' ||
         type == 'chapter_update' ||
         type == 'review' ||
         type == 'book' ||
         type == 'chapter' ||
         type == 'quote' ||
         type.contains('book') ||
+        type.contains('creation') ||
         type.contains('chapter') ||
         type.contains('quote') ||
         type.contains('review');

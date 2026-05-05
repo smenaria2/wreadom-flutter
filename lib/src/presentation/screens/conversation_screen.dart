@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
@@ -185,11 +186,31 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       alignment: isMine
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
-                      child: _MessageBubble(
-                        message: message,
-                        isMine: isMine,
-                        showSender: placement.startsGroup,
-                        bottomMargin: placement.continuesGroup ? 4 : 10,
+                      child: _MessageSwipeShell(
+                        enabled:
+                            isMine &&
+                            currentUser != null &&
+                            message.id?.trim().isNotEmpty == true,
+                        onDelete: () async {
+                          final messageId = message.id;
+                          if (currentUser == null || messageId == null) {
+                            return;
+                          }
+                          await ref
+                              .read(messageRepositoryProvider)
+                              .deleteMessage(
+                                conversationId: widget.conversationId,
+                                messageId: messageId,
+                                senderId: currentUser.id,
+                              );
+                          await messagesController.refresh();
+                        },
+                        child: _MessageBubble(
+                          message: message,
+                          isMine: isMine,
+                          showSender: placement.startsGroup,
+                          bottomMargin: placement.continuesGroup ? 4 : 10,
+                        ),
                       ),
                     );
                   },
@@ -412,6 +433,103 @@ class _ConversationTitle extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: content,
+      ),
+    );
+  }
+}
+
+class _MessageSwipeShell extends StatefulWidget {
+  const _MessageSwipeShell({
+    required this.child,
+    required this.enabled,
+    required this.onDelete,
+  });
+
+  final Widget child;
+  final bool enabled;
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_MessageSwipeShell> createState() => _MessageSwipeShellState();
+}
+
+class _MessageSwipeShellState extends State<_MessageSwipeShell> {
+  static const double _threshold = 64;
+  static const double _maxSlide = 88;
+
+  double _dragOffset = 0;
+  bool _hapticArmed = false;
+  bool _deleting = false;
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    if (!widget.enabled || _deleting) return;
+    final next = (_dragOffset + (details.primaryDelta ?? 0)).clamp(
+      -_maxSlide,
+      0,
+    );
+    final crossed = next.abs() >= _threshold;
+    if (crossed && !_hapticArmed) {
+      HapticFeedback.selectionClick();
+      _hapticArmed = true;
+    } else if (!crossed) {
+      _hapticArmed = false;
+    }
+    setState(() => _dragOffset = next.toDouble());
+  }
+
+  Future<void> _handleDragEnd(DragEndDetails details) async {
+    final shouldDelete = _dragOffset <= -_threshold;
+    setState(() {
+      _dragOffset = 0;
+      _hapticArmed = false;
+    });
+    if (!shouldDelete || _deleting) return;
+    HapticFeedback.lightImpact();
+    setState(() => _deleting = true);
+    try {
+      await widget.onDelete();
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _dragOffset.abs() > 8 ? 1 : 0,
+              duration: const Duration(milliseconds: 90),
+              child: const Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.delete_outline_rounded, size: 22),
+                ),
+              ),
+            ),
+          ),
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragUpdate: _handleDragUpdate,
+            onHorizontalDragEnd: _handleDragEnd,
+            onHorizontalDragCancel: () => setState(() {
+              _dragOffset = 0;
+              _hapticArmed = false;
+            }),
+            child: AnimatedContainer(
+              duration: _dragOffset == 0
+                  ? const Duration(milliseconds: 180)
+                  : Duration.zero,
+              curve: Curves.easeOutCubic,
+              transform: Matrix4.translationValues(_dragOffset, 0, 0),
+              child: widget.child,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -72,14 +72,12 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                   tooltip: l10n.notifications,
                   icon: Consumer(
                     builder: (context, ref, _) {
-                      final unreadCount = ref.watch(
-                        unreadNotificationCountProvider,
-                      );
+                      final unread = ref.watch(unreadNotificationCountProvider);
+                      const icon = Icon(Icons.notifications_none_rounded);
+                      if (unread <= 0) return icon;
                       return Badge(
-                        label: Text('$unreadCount'),
-                        isLabelVisible: unreadCount > 0,
-                        backgroundColor: Colors.red,
-                        child: const Icon(Icons.notifications_none_rounded),
+                        label: Text(unread > 99 ? '99+' : '$unread'),
+                        child: icon,
                       );
                     },
                   ),

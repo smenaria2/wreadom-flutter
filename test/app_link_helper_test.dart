@@ -37,6 +37,13 @@ void main() {
       expect(resolved?.chapterIndex, isNull);
     });
 
+    test('resolves backend book path id query URL', () {
+      final resolved = AppLinkHelper.resolve('/book?id=book123');
+
+      expect(resolved?.route, AppRoutes.bookDetail);
+      expect(resolved?.payload, 'book123');
+    });
+
     test('resolves shared chapter query URL with zero based index', () {
       final resolved = AppLinkHelper.resolve(
         'https://wreadom.in/?book=book123&mode=read&chapter=3',

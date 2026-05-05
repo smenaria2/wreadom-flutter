@@ -136,6 +136,59 @@ class FirebaseMessageRepository implements MessageRepository {
   }
 
   @override
+  Future<void> deleteMessage({
+    required String conversationId,
+    required String messageId,
+    required String senderId,
+  }) async {
+    if (conversationId.isEmpty || messageId.isEmpty) return;
+    final conversationRef = _firestore
+        .collection('conversations')
+        .doc(conversationId);
+    final messageRef = conversationRef.collection('messages').doc(messageId);
+    final messageSnap = await messageRef.get();
+    final messageData = messageSnap.data();
+    if (messageData == null ||
+        messageData['senderId']?.toString() != senderId) {
+      return;
+    }
+
+    await messageRef.delete();
+
+    final conversationSnap = await conversationRef.get();
+    final lastMessage = conversationSnap.data()?['lastMessage'];
+    final deletedTimestamp = messageData['timestamp'];
+    if (lastMessage is Map && lastMessage['timestamp'] != deletedTimestamp) {
+      return;
+    }
+
+    final latestSnapshot = await conversationRef
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (latestSnapshot.docs.isEmpty) {
+      await conversationRef.update({
+        'lastMessage': FieldValue.delete(),
+        'updatedAt': now,
+      });
+      return;
+    }
+
+    final latest = latestSnapshot.docs.first.data();
+    await conversationRef.update({
+      'lastMessage': {
+        'text': latest['text'],
+        'senderId': latest['senderId'],
+        'timestamp': latest['timestamp'],
+        'readBy': latest['readBy'] ?? const [],
+      },
+      'updatedAt': latest['timestamp'] ?? now,
+    });
+  }
+
+  @override
   Future<void> deleteConversationForUser({
     required String conversationId,
     required String userId,

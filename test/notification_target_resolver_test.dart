@@ -60,6 +60,22 @@ void main() {
     expect(target?.payload, 'book1');
   });
 
+  test(
+    'new creation notification with backend book link opens book detail',
+    () {
+      final target = NotificationTargetResolver.resolve(
+        notification(
+          type: 'new_creation',
+          link: '/book?id=book1',
+          targetId: 'book1',
+        ),
+      );
+
+      expect(target?.route, AppRoutes.bookDetail);
+      expect(target?.payload, 'book1');
+    },
+  );
+
   test('published notification without link falls back to book targetId', () {
     final target = NotificationTargetResolver.resolve(
       notification(type: 'published', targetId: 'book1'),
