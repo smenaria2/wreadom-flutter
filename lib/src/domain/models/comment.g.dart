@@ -22,6 +22,11 @@ _CommentReply _$CommentReplyFromJson(Map<String, dynamic> json) =>
       mentions: (json['mentions'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
       ),
+      audioUrl: json['audioUrl'] as String?,
+      audioObjectKey: json['audioObjectKey'] as String?,
+      audioDurationMs: (json['audioDurationMs'] as num?)?.toInt(),
+      audioMimeType: json['audioMimeType'] as String?,
+      audioSizeBytes: (json['audioSizeBytes'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$CommentReplyToJson(_CommentReply instance) =>
@@ -36,6 +41,11 @@ Map<String, dynamic> _$CommentReplyToJson(_CommentReply instance) =>
       'userPhotoURL': instance.userPhotoURL,
       'likes': instance.likes,
       'mentions': instance.mentions,
+      'audioUrl': instance.audioUrl,
+      'audioObjectKey': instance.audioObjectKey,
+      'audioDurationMs': instance.audioDurationMs,
+      'audioMimeType': instance.audioMimeType,
+      'audioSizeBytes': instance.audioSizeBytes,
     };
 
 _Comment _$CommentFromJson(Map<String, dynamic> json) => _Comment(

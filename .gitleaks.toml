@@ -1,0 +1,10 @@
+title = "Librebook secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Firebase mobile client config is public app configuration; restrict it in Google Cloud instead of treating it as a private secret."
+paths = [
+  '''android/app/google-services\.json''',
+]

@@ -47,6 +47,12 @@ app.*.map.json
 # Android release signing
 android/key.properties
 android/app/upload-keystore.jks
+**/*.keystore
+**/*.jks
+
+# Local secrets
+.env*.local
+dart_defines.local.json
 
 # Gradle and builds
 .gradle/

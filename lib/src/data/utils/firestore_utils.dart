@@ -88,6 +88,15 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
       reply['likes'] = reply['likes'] is List
           ? (reply['likes'] as List).map((e) => e.toString()).toList()
           : <String>[];
+      reply['audioUrl'] = reply['audioUrl']?.toString();
+      reply['audioObjectKey'] = reply['audioObjectKey']?.toString();
+      reply['audioDurationMs'] = reply['audioDurationMs'] is int
+          ? reply['audioDurationMs']
+          : int.tryParse(reply['audioDurationMs']?.toString() ?? '');
+      reply['audioMimeType'] = reply['audioMimeType']?.toString();
+      reply['audioSizeBytes'] = reply['audioSizeBytes'] is int
+          ? reply['audioSizeBytes']
+          : int.tryParse(reply['audioSizeBytes']?.toString() ?? '');
       return reply;
     }).toList();
   }

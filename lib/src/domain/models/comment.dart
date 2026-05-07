@@ -16,6 +16,11 @@ abstract class CommentReply with _$CommentReply {
     String? userPhotoURL,
     List<String>? likes,
     Map<String, String>? mentions,
+    String? audioUrl,
+    String? audioObjectKey,
+    int? audioDurationMs,
+    String? audioMimeType,
+    int? audioSizeBytes,
   }) = _CommentReply;
 
   factory CommentReply.fromJson(Map<String, dynamic> json) =>

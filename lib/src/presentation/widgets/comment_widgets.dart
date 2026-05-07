@@ -279,6 +279,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         ? Icons.share_outlined
         : Icons.report_problem_outlined;
 
+    final hasCommentAudio =
+        comment.audioUrl?.trim().isNotEmpty == true ||
+        comment.audioObjectKey?.trim().isNotEmpty == true;
     final tile = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -290,213 +293,241 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           onLeftAction: _leftSwipeAction,
           onRightAction: widget.onReply,
           onDoubleTap: _toggleLike,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: _ProfileAvatar(
-              userId: comment.userId,
-              name: name,
-              photoUrl: comment.userPhotoURL,
-              radius: 20,
-            ),
-            trailing: user == null
-                ? null
-                : PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: widget.metadataColor,
-                    ),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'pin':
-                          _toggleHighlight();
-                          break;
-                        case 'edit':
-                          _editComment();
-                          break;
-                        case 'delete':
-                          _confirmDeleteComment(context, ref, comment);
-                          break;
-                        case 'report':
-                          _reportComment(comment);
-                          break;
-                        case 'share':
-                          _shareReview();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      if (canShareReview)
-                        PopupMenuItem(
-                          value: 'share',
-                          child: _MenuRow(
-                            icon: Icons.share_outlined,
-                            label: l10n.sharePost,
-                          ),
-                        ),
-                      if (canHighlight)
-                        PopupMenuItem(
-                          value: 'pin',
-                          child: _MenuRow(
-                            icon: isHighlighted
-                                ? Icons.push_pin
-                                : Icons.push_pin_outlined,
-                            label: isHighlighted ? l10n.unpin : l10n.pin,
-                          ),
-                        ),
-                      if (comment.userId == user.id)
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: _MenuRow(
-                            icon: Icons.edit_outlined,
-                            label: l10n.edit,
-                          ),
-                        ),
-                      if (comment.userId == user.id)
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: _MenuRow(
-                            icon: Icons.delete_outline_rounded,
-                            label: l10n.delete,
-                          ),
-                        )
-                      else if (comment.id != null)
-                        PopupMenuItem(
-                          value: 'report',
-                          child: _MenuRow(
-                            icon: Icons.report_problem_outlined,
-                            label: l10n.report,
-                          ),
-                        ),
-                    ],
-                  ),
-            title: Row(
-              children: [
-                _ProfileName(
-                  userId: comment.userId,
-                  name: name,
-                  color: widget.textColor,
-                ),
-                if (comment.rating != null && comment.rating! > 0) ...[
-                  const SizedBox(width: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      5,
-                      (index) => Icon(
-                        index < comment.rating!
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        size: 14,
-                        color: index < comment.rating!
-                            ? Colors.amber
-                            : Colors.grey[400],
-                      ),
-                    ),
-                  ),
-                ],
-                if (isHighlighted) ...[
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.push_pin_rounded,
-                    size: 16,
-                    color: Colors.amber[700],
-                  ),
-                ],
-              ],
-            ),
-            subtitle: Column(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_editing) ...[
-                  _InlineEditBox(
-                    controller: _editController,
-                    hintText: l10n.writeYourUpdate,
-                    saving: _savingEdit,
-                    textColor: widget.textColor,
-                    onCancel: _cancelCommentEdit,
-                    onSave: _saveCommentEdit,
-                  ),
-                  const SizedBox(height: 6),
-                ] else if (comment.text.trim().isNotEmpty) ...[
-                  Text(comment.text, style: TextStyle(color: widget.textColor)),
-                  const SizedBox(height: 4),
-                ],
-                if (comment.audioUrl?.trim().isNotEmpty == true) ...[
-                  _AudioCommentPlayer(
-                    url: comment.audioUrl!.trim(),
-                    objectKey: comment.audioObjectKey,
-                    durationMs: comment.audioDurationMs,
-                    textColor: widget.textColor,
-                    metadataColor: widget.metadataColor,
-                  ),
-                  const SizedBox(height: 4),
-                ],
-                Row(
-                  children: [
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Text(
-                        _formatTimestamp(context, comment.timestamp),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: widget.metadataColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: _toggleLike,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                _ProfileAvatar(
+                  userId: comment.userId,
+                  name: name,
+                  photoUrl: comment.userPhotoURL,
+                  radius: 20,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(
-                            liked
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            size: 14,
-                            color: liked ? Colors.red : widget.metadataColor,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: _ProfileName(
+                                    userId: comment.userId,
+                                    name: name,
+                                    color: widget.textColor,
+                                  ),
+                                ),
+                                if (comment.rating != null &&
+                                    comment.rating! > 0) ...[
+                                  const SizedBox(width: 8),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: List.generate(
+                                      5,
+                                      (index) => Icon(
+                                        index < comment.rating!
+                                            ? Icons.star_rounded
+                                            : Icons.star_border_rounded,
+                                        size: 14,
+                                        color: index < comment.rating!
+                                            ? Colors.amber
+                                            : Colors.grey[400],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (isHighlighted) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.push_pin_rounded,
+                                    size: 16,
+                                    color: Colors.amber[700],
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$likeCount',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: widget.metadataColor,
+                          if (user != null)
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: widget.metadataColor,
+                              ),
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'pin':
+                                    _toggleHighlight();
+                                    break;
+                                  case 'edit':
+                                    _editComment();
+                                    break;
+                                  case 'delete':
+                                    _confirmDeleteComment(
+                                      context,
+                                      ref,
+                                      comment,
+                                    );
+                                    break;
+                                  case 'report':
+                                    _reportComment(comment);
+                                    break;
+                                  case 'share':
+                                    _shareReview();
+                                    break;
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                if (canShareReview)
+                                  PopupMenuItem(
+                                    value: 'share',
+                                    child: _MenuRow(
+                                      icon: Icons.share_outlined,
+                                      label: l10n.sharePost,
+                                    ),
+                                  ),
+                                if (canHighlight)
+                                  PopupMenuItem(
+                                    value: 'pin',
+                                    child: _MenuRow(
+                                      icon: isHighlighted
+                                          ? Icons.push_pin
+                                          : Icons.push_pin_outlined,
+                                      label: isHighlighted
+                                          ? l10n.unpin
+                                          : l10n.pin,
+                                    ),
+                                  ),
+                                if (comment.userId == user.id)
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: _MenuRow(
+                                      icon: Icons.edit_outlined,
+                                      label: l10n.edit,
+                                    ),
+                                  ),
+                                if (comment.userId == user.id)
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: _MenuRow(
+                                      icon: Icons.delete_outline_rounded,
+                                      label: l10n.delete,
+                                    ),
+                                  )
+                                else if (comment.id != null)
+                                  PopupMenuItem(
+                                    value: 'report',
+                                    child: _MenuRow(
+                                      icon: Icons.report_problem_outlined,
+                                      label: l10n.report,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                        ],
+                      ),
+                      if (_editing) ...[
+                        _InlineEditBox(
+                          controller: _editController,
+                          hintText: l10n.writeYourUpdate,
+                          saving: _savingEdit,
+                          textColor: widget.textColor,
+                          onCancel: _cancelCommentEdit,
+                          onSave: _saveCommentEdit,
+                        ),
+                        const SizedBox(height: 6),
+                      ] else if (comment.text.trim().isNotEmpty) ...[
+                        Text(
+                          comment.text,
+                          style: TextStyle(color: widget.textColor),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      if (hasCommentAudio) ...[
+                        _AudioCommentPlayer(
+                          url: comment.audioUrl?.trim() ?? '',
+                          objectKey: comment.audioObjectKey,
+                          durationMs: comment.audioDurationMs,
+                          textColor: widget.textColor,
+                          metadataColor: widget.metadataColor,
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Row(
+                        children: [
+                          Flexible(
+                            fit: FlexFit.loose,
+                            child: Text(
+                              _formatTimestamp(context, comment.timestamp),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: widget.metadataColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: _toggleLike,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  liked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 14,
+                                  color: liked
+                                      ? Colors.red
+                                      : widget.metadataColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$likeCount',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: widget.metadataColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          if (canShareReview) ...[
+                            GestureDetector(
+                              onTap: _shareReview,
+                              child: Tooltip(
+                                message: l10n.sharePost,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(2),
+                                  child: Icon(
+                                    Icons.share_outlined,
+                                    size: 14,
+                                    color: widget.metadataColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                          ],
+                          GestureDetector(
+                            onTap: widget.onReply,
+                            child: Text(
+                              l10n.reply,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color:
+                                    widget.actionColor ??
+                                    theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    if (canShareReview) ...[
-                      GestureDetector(
-                        onTap: _shareReview,
-                        child: Tooltip(
-                          message: l10n.sharePost,
-                          child: Padding(
-                            padding: const EdgeInsets.all(2),
-                            child: Icon(
-                              Icons.share_outlined,
-                              size: 14,
-                              color: widget.metadataColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
                     ],
-                    GestureDetector(
-                      onTap: widget.onReply,
-                      child: Text(
-                        l10n.reply,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color:
-                              widget.actionColor ?? theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -722,6 +753,9 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
 
     final l10n = AppLocalizations.of(context)!;
     final isOwner = user != null && reply.userId == user.id;
+    final hasReplyAudio =
+        reply.audioUrl?.trim().isNotEmpty == true ||
+        reply.audioObjectKey?.trim().isNotEmpty == true;
     final tile = _SwipeActionShell(
       leftLabel: isOwner ? l10n.edit : l10n.report,
       leftIcon: isOwner ? Icons.edit_outlined : Icons.report_problem_outlined,
@@ -730,130 +764,155 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       onLeftAction: _leftSwipeAction,
       onRightAction: widget.onReply,
       onDoubleTap: _toggleLike,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: _ProfileAvatar(
-          userId: reply.userId,
-          name: name,
-          photoUrl: reply.userPhotoURL,
-          radius: 14,
-        ),
-        trailing: user == null
-            ? null
-            : PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert_rounded,
-                  size: 18,
-                  color: widget.metadataColor,
-                ),
-                onSelected: (value) {
-                  switch (value) {
-                    case 'edit':
-                      _editReply();
-                      break;
-                    case 'delete':
-                      _confirmDeleteReply(
-                        context,
-                        ref,
-                        widget.commentId,
-                        reply,
-                        feedPostId: widget.feedPostId,
-                        bookId: widget.bookId,
-                      );
-                      break;
-                    case 'report':
-                      _reportReply();
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  if (reply.userId == user.id)
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: _MenuRow(
-                        icon: Icons.edit_outlined,
-                        label: l10n.edit,
-                      ),
-                    ),
-                  if (reply.userId == user.id)
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: _MenuRow(
-                        icon: Icons.delete_outline_rounded,
-                        label: l10n.delete,
-                      ),
-                    )
-                  else
-                    PopupMenuItem(
-                      value: 'report',
-                      child: _MenuRow(
-                        icon: Icons.report_problem_outlined,
-                        label: l10n.report,
-                      ),
-                    ),
-                ],
-              ),
-        title: _ProfileName(
-          userId: reply.userId,
-          name: name,
-          color: widget.textColor,
-          fontSize: 13,
-        ),
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_editing) ...[
-              _InlineEditBox(
-                controller: _editController,
-                hintText: l10n.writeYourUpdate,
-                saving: _savingEdit,
-                textColor: widget.textColor,
-                compact: true,
-                onCancel: _cancelReplyEdit,
-                onSave: _saveReplyEdit,
-              ),
-              const SizedBox(height: 4),
-            ] else ...[
-              Text(
-                reply.text,
-                style: TextStyle(fontSize: 13, color: widget.textColor),
-              ),
-              const SizedBox(height: 2),
-            ],
-            Row(
-              children: [
-                Text(
-                  _formatTimestamp(context, reply.timestamp),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    color: widget.metadataColor,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                GestureDetector(
-                  onTap: _toggleLike,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+            _ProfileAvatar(
+              userId: reply.userId,
+              name: name,
+              photoUrl: reply.userPhotoURL,
+              radius: 14,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Icon(
-                        liked
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        size: 13,
-                        color: liked ? Colors.red : widget.metadataColor,
+                      Expanded(
+                        child: _ProfileName(
+                          userId: reply.userId,
+                          name: name,
+                          color: widget.textColor,
+                          fontSize: 13,
+                        ),
                       ),
-                      const SizedBox(width: 3),
+                      if (user != null)
+                        PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert_rounded,
+                            size: 18,
+                            color: widget.metadataColor,
+                          ),
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'edit':
+                                _editReply();
+                                break;
+                              case 'delete':
+                                _confirmDeleteReply(
+                                  context,
+                                  ref,
+                                  widget.commentId,
+                                  reply,
+                                  feedPostId: widget.feedPostId,
+                                  bookId: widget.bookId,
+                                );
+                                break;
+                              case 'report':
+                                _reportReply();
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            if (reply.userId == user.id)
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: _MenuRow(
+                                  icon: Icons.edit_outlined,
+                                  label: l10n.edit,
+                                ),
+                              ),
+                            if (reply.userId == user.id)
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: _MenuRow(
+                                  icon: Icons.delete_outline_rounded,
+                                  label: l10n.delete,
+                                ),
+                              )
+                            else
+                              PopupMenuItem(
+                                value: 'report',
+                                child: _MenuRow(
+                                  icon: Icons.report_problem_outlined,
+                                  label: l10n.report,
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  if (_editing) ...[
+                    _InlineEditBox(
+                      controller: _editController,
+                      hintText: l10n.writeYourUpdate,
+                      saving: _savingEdit,
+                      textColor: widget.textColor,
+                      compact: true,
+                      onCancel: _cancelReplyEdit,
+                      onSave: _saveReplyEdit,
+                    ),
+                    const SizedBox(height: 4),
+                  ] else ...[
+                    if (reply.text.trim().isNotEmpty) ...[
                       Text(
-                        '$likeCount',
+                        reply.text,
+                        style: TextStyle(fontSize: 13, color: widget.textColor),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                    if (hasReplyAudio) ...[
+                      _AudioCommentPlayer(
+                        url: reply.audioUrl?.trim() ?? '',
+                        objectKey: reply.audioObjectKey,
+                        durationMs: reply.audioDurationMs,
+                        textColor: widget.textColor,
+                        metadataColor: widget.metadataColor,
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                  ],
+                  Row(
+                    children: [
+                      Text(
+                        _formatTimestamp(context, reply.timestamp),
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 11,
                           color: widget.metadataColor,
                         ),
                       ),
+                      const SizedBox(width: 14),
+                      GestureDetector(
+                        onTap: _toggleLike,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              liked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 13,
+                              color: liked ? Colors.red : widget.metadataColor,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '$likeCount',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                color: widget.metadataColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -1460,6 +1519,14 @@ Future<void> _confirmDeleteReply(
         ref.invalidate(feedPostCommentsProvider(feedPostId));
       }
       if (bookId != null) ref.invalidate(bookCommentsProvider(bookId));
+      final audioObjectKey = reply.audioObjectKey?.trim();
+      if (audioObjectKey != null && audioObjectKey.isNotEmpty) {
+        unawaited(
+          ref
+              .read(audioReviewUploadServiceProvider)
+              .deleteAudioReviewObject(audioObjectKey),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

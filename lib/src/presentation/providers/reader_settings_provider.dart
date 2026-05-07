@@ -4,7 +4,7 @@ import 'theme_provider.dart';
 
 enum ReaderTheme { light, sepia, dark, system }
 
-enum ReaderFont { sans, serif }
+enum ReaderFont { sans }
 
 class ReaderSettings {
   const ReaderSettings({
@@ -32,7 +32,6 @@ class ReaderSettings {
 
 const _readerFontSizeKey = 'reader_font_size';
 const _readerThemeIndexKey = 'reader_theme_index';
-const _readerFontIndexKey = 'reader_font_index';
 
 final readerSettingsControllerProvider =
     NotifierProvider<ReaderSettingsController, ReaderSettings>(
@@ -44,12 +43,11 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
   ReaderSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final themeIndex = prefs.getInt(_readerThemeIndexKey);
-    final fontIndex = prefs.getInt(_readerFontIndexKey);
 
     return ReaderSettings(
       fontSize: prefs.getDouble(_readerFontSizeKey) ?? 18.0,
       theme: _enumAt(ReaderTheme.values, themeIndex) ?? ReaderTheme.system,
-      font: _enumAt(ReaderFont.values, fontIndex) ?? ReaderFont.serif,
+      font: ReaderFont.sans,
     );
   }
 
@@ -68,10 +66,7 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
   }
 
   Future<void> setFont(ReaderFont value) async {
-    state = state.copyWith(font: value);
-    await ref
-        .read(sharedPreferencesProvider)
-        .setInt(_readerFontIndexKey, value.index);
+    state = state.copyWith(font: ReaderFont.sans);
   }
 
   T? _enumAt<T>(List<T> values, int? index) {

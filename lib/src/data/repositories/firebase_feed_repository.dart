@@ -422,6 +422,7 @@ class FirebaseFeedRepository implements FeedRepository {
     final replyData = reply
         .copyWith(id: replyId, likes: reply.likes ?? const [])
         .toJson();
+    replyData.removeWhere((key, value) => value == null);
 
     return _firestore.runTransaction((transaction) async {
       final snap = await transaction.get(commentRef);

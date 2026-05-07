@@ -13,6 +13,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
@@ -31,10 +32,152 @@ import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
+import '../components/book/comment_reply_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../utils/book_author_utils.dart';
+
+String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
+  if (sourceContent == null || sourceContent.isEmpty) return flat;
+  final selected = flat.trim();
+  if (selected.isEmpty) return flat;
+
+  try {
+    final source = _looksLikeReaderHtml(sourceContent)
+        ? _linePreservingText(html_parser.parse(sourceContent).body!)
+        : sourceContent.replaceAll(RegExp(r'\r\n?'), '\n');
+    return _restoreLineBreaksFromSource(selected, source);
+  } catch (_) {
+    return flat;
+  }
+}
+
+bool _looksLikeReaderHtml(String value) {
+  return RegExp(r'<[a-zA-Z][^>]*>').hasMatch(value);
+}
+
+String _restoreLineBreaksFromSource(String flat, String source) {
+  final collapsed = _indexedNormalizedText(source, removeWhitespace: false);
+  final collapsedFlat = flat.replaceAll(RegExp(r'\s+'), ' ').trim();
+  final collapsedMatch = _mappedSourceMatch(source, collapsed, collapsedFlat);
+  if (collapsedMatch != null) return collapsedMatch;
+
+  final joined = _indexedNormalizedText(source, removeWhitespace: true);
+  final joinedFlat = flat.replaceAll(RegExp(r'\s+'), '');
+  return _mappedSourceMatch(source, joined, joinedFlat) ?? flat;
+}
+
+String? _mappedSourceMatch(String source, _IndexedText indexed, String needle) {
+  if (needle.isEmpty || indexed.text.isEmpty) return null;
+  final matchIndex = indexed.text.indexOf(needle);
+  if (matchIndex < 0) return null;
+  final matchEnd = matchIndex + needle.length - 1;
+  if (matchEnd >= indexed.ends.length) return null;
+  return source
+      .substring(indexed.starts[matchIndex], indexed.ends[matchEnd])
+      .replaceAll(RegExp(r'\r\n?'), '\n')
+      .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+      .replaceAll(RegExp(r'\n[ \t]+'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+}
+
+_IndexedText _indexedNormalizedText(
+  String source, {
+  required bool removeWhitespace,
+}) {
+  final buffer = StringBuffer();
+  final starts = <int>[];
+  final ends = <int>[];
+
+  for (var i = 0; i < source.length; i++) {
+    final ch = source[i];
+    final isWhitespace = RegExp(r'\s').hasMatch(ch);
+    if (isWhitespace) {
+      if (removeWhitespace) continue;
+      if (buffer.isEmpty || buffer.toString().endsWith(' ')) {
+        if (ends.isNotEmpty) ends[ends.length - 1] = i + 1;
+        continue;
+      }
+      buffer.write(' ');
+      starts.add(i);
+      ends.add(i + 1);
+      continue;
+    }
+    buffer.write(ch);
+    starts.add(i);
+    ends.add(i + 1);
+  }
+
+  var text = buffer.toString();
+  var from = 0;
+  var to = text.length;
+  while (from < to && text[from] == ' ') {
+    from++;
+  }
+  while (to > from && text[to - 1] == ' ') {
+    to--;
+  }
+  return _IndexedText(
+    text.substring(from, to),
+    starts.sublist(from, to),
+    ends.sublist(from, to),
+  );
+}
+
+String _linePreservingText(dom.Node node) {
+  final buffer = StringBuffer();
+  void writeNode(dom.Node current) {
+    if (current is dom.Text) {
+      buffer.write(current.text);
+      return;
+    }
+    if (current is! dom.Element) return;
+    final tag = current.localName?.toLowerCase();
+    if (tag == 'br') {
+      buffer.write('\n');
+      return;
+    }
+    final insertsLineBreak =
+        tag == 'p' ||
+        tag == 'div' ||
+        tag == 'li' ||
+        tag == 'h1' ||
+        tag == 'h2' ||
+        tag == 'h3' ||
+        tag == 'h4' ||
+        tag == 'h5' ||
+        tag == 'h6' ||
+        tag == 'blockquote' ||
+        tag == 'pre' ||
+        tag == 'section' ||
+        tag == 'article';
+    final startLength = buffer.length;
+    for (final child in current.nodes) {
+      writeNode(child);
+    }
+    if (insertsLineBreak && buffer.length > startLength) {
+      buffer.write('\n');
+    }
+  }
+
+  writeNode(node);
+  return buffer
+      .toString()
+      .replaceAll(RegExp(r'\r\n?'), '\n')
+      .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+      .replaceAll(RegExp(r'\n[ \t]+'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n');
+}
+
+class _IndexedText {
+  const _IndexedText(this.text, this.starts, this.ends);
+
+  final String text;
+  final List<int> starts;
+  final List<int> ends;
+}
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -52,10 +195,12 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen>
     with RestorationMixin, WidgetsBindingObserver {
+  static const MethodChannel _readerPrivacyChannel = MethodChannel(
+    'in.wreadom.app/reader_privacy',
+  );
   late int _chapterIndex;
   double _fontSize = 18;
   ReaderTheme _readerTheme = ReaderTheme.system;
-  ReaderFont _readerFont = ReaderFont.serif;
   final RestorableTextEditingController _commentController =
       RestorableTextEditingController();
   final RestorableInt _restorableChapterIndex = RestorableInt(0);
@@ -140,6 +285,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _tts = FlutterTts();
     _configureTts();
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
+    unawaited(_setReaderPrivacyEnabled(true));
     _incrementView();
     _saveHistorySilently('initial_history_save');
     unawaited(
@@ -151,6 +297,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       }),
     );
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _setReaderPrivacyEnabled(bool enabled) async {
+    try {
+      await _readerPrivacyChannel.invokeMethod<void>('setSecureReader', {
+        'enabled': enabled,
+      });
+    } catch (_) {
+      // Screenshot protection is best-effort on unsupported platforms.
+    }
   }
 
   @override
@@ -219,13 +375,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (!mounted) {
       _fontSize = settings.fontSize;
       _readerTheme = settings.theme;
-      _readerFont = settings.font;
       return;
     }
     setState(() {
       _fontSize = settings.fontSize;
       _readerTheme = settings.theme;
-      _readerFont = settings.font;
     });
   }
 
@@ -475,6 +629,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     unawaited(_audioRecorder.dispose());
     unawaited(_tts.stop());
     _readerAdService.dispose();
+    unawaited(_setReaderPrivacyEnabled(false));
     super.dispose();
   }
 
@@ -809,7 +964,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                       ? null
                                       : () {
                                           final restoredQuote =
-                                              _restoreLineBreaks(
+                                              restoreReaderQuoteLineBreaks(
                                                 selected,
                                                 ctxChapter?.content,
                                               );
@@ -913,7 +1068,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             color: _getTextColor(),
             fontSize: _fontSize,
             height: 1.8,
-            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
           ),
           customStylesBuilder: (element) {
             if (isPoem) {
@@ -962,7 +1116,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             }
             return null;
           },
-          onTapUrl: (url) async => isAllowedWriterLink(url),
+          onTapUrl: (url) async {
+            if (!isAllowedWriterLink(url)) return false;
+            final uri = Uri.tryParse(url);
+            if (uri == null) return false;
+            return launchUrl(uri, mode: LaunchMode.externalApplication);
+          },
         ),
         SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
@@ -1000,7 +1159,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             mutedColor: _getSecondaryTextColor(),
             accentColor: _getReaderActionColor(),
             fontSize: _fontSize,
-            fontFamily: _readerFont == ReaderFont.serif ? 'Serif' : null,
             isPoem: isPoem,
             isActive: block.ttsIndex == _activeTtsBlockIndex,
             onTap: block.ttsIndex == null || chapter == null
@@ -1558,6 +1716,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   /// Restores line breaks lost during text selection by matching the flat
   /// selected text against the block-level segments extracted from the raw HTML.
+  // ignore: unused_element
   String _restoreLineBreaks(String flat, String? htmlContent) {
     if (htmlContent == null || htmlContent.isEmpty) return flat;
     try {
@@ -1585,24 +1744,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         'article',
       };
       final segments = <String>[];
-      void walk(dynamic node) {
+      void walk(dom.Node node) {
+        if (node is dom.Text) {
+          final text = node.text.trim();
+          if (text.isNotEmpty) segments.add(text);
+          return;
+        }
+        if (node is! dom.Element) return;
         final tag = node.localName?.toLowerCase();
         if (tag == 'br') {
           segments.add('');
           return;
         }
         if (tag != null && blockTags.contains(tag)) {
-          final text = node.text?.trim() ?? '';
+          final text = _linePreservingText(node).trim();
           if (text.isNotEmpty) segments.add(text);
           return;
         }
         // recurse into inline/unknown nodes
-        for (final child in (node.nodes ?? [])) {
+        for (final child in node.nodes) {
           walk(child);
         }
       }
 
-      for (final child in doc.body?.nodes ?? []) {
+      for (final child in doc.body?.nodes ?? const <dom.Node>[]) {
         walk(child);
       }
       if (segments.isEmpty) return flat;
@@ -1647,6 +1812,43 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  String _linePreservingText(dom.Node node) {
+    final buffer = StringBuffer();
+    void writeNode(dom.Node current) {
+      if (current is dom.Text) {
+        buffer.write(current.text);
+        return;
+      }
+      if (current is! dom.Element) return;
+      final tag = current.localName?.toLowerCase();
+      if (tag == 'br') {
+        buffer.write('\n');
+        return;
+      }
+      final insertsLineBreak =
+          tag == 'p' ||
+          tag == 'div' ||
+          tag == 'li' ||
+          tag == 'blockquote' ||
+          tag == 'pre';
+      final startLength = buffer.length;
+      for (final child in current.nodes) {
+        writeNode(child);
+      }
+      if (insertsLineBreak && buffer.length > startLength) {
+        buffer.write('\n');
+      }
+    }
+
+    writeNode(node);
+    return buffer
+        .toString()
+        .replaceAll(RegExp(r'\r\n?'), '\n')
+        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+        .replaceAll(RegExp(r'\n[ \t]+'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  }
+
   String _restoreLineBreaksFromPlainText(String flat, String source) {
     final normalizedFlat = flat.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalizedFlat.isEmpty) return flat;
@@ -1683,7 +1885,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // Restore line breaks that SelectionArea strips out when extracting plainText
     // from HtmlWidget's multi-widget layout.
     final htmlContent = chapter?.content as String?;
-    final quoteWithBreaks = _restoreLineBreaks(selected, htmlContent);
+    final quoteWithBreaks = restoreReaderQuoteLineBreaks(selected, htmlContent);
 
     final authors = widget.book.authors
         .map((a) => a.name)
@@ -1809,10 +2011,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   bool get _hasReviewAudio =>
-      _pendingAudioReviewPath != null || _reviewAudioUrl != null;
+      _pendingAudioReviewPath != null ||
+      _reviewAudioUrl != null ||
+      _reviewAudioObjectKey != null;
+
+  bool get _hasPendingAudio =>
+      _pendingAudioReviewPath != null || _isRecordingAudioReview;
 
   bool get _canSubmitReview =>
       _commentController.value.text.trim().isNotEmpty || _hasReviewAudio;
+
+  bool get _canSubmitReply =>
+      _commentController.value.text.trim().isNotEmpty || _hasPendingAudio;
 
   void _clearAudioReviewState() {
     _audioRecordingTimer?.cancel();
@@ -1851,8 +2061,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _startAudioReviewRecording(VoidCallback? refreshUi) async {
-    if (_isRecordingAudioReview || _replyingTo != null) return;
-    final editable = _existingUserReview == null || _isReviewEditMode;
+    if (_isRecordingAudioReview) return;
+    final editable =
+        _replyingTo != null || _existingUserReview == null || _isReviewEditMode;
     if (!editable) return;
 
     final l10n = AppLocalizations.of(context)!;
@@ -2078,10 +2289,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final text = _commentController.value.text.trim();
     if (_isSubmittingComment) return;
     final wasReply = _replyingTo != null;
-    if (wasReply && text.isEmpty) return;
+    if (wasReply && !_canSubmitReply) return;
 
     setState(() => _isSubmittingComment = true);
     try {
+      if (_isRecordingAudioReview) {
+        await _stopAudioReviewRecording(null);
+      }
       final user = await ref.read(currentUserProvider.future);
       if (user == null) return;
       if (!mounted) return;
@@ -2090,6 +2304,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final now = DateTime.now().millisecondsSinceEpoch;
 
       if (_replyingTo != null) {
+        AudioReviewUploadResult? uploadedAudio;
+        if (_pendingAudioReviewPath != null) {
+          uploadedAudio = await ref
+              .read(audioReviewUploadServiceProvider)
+              .uploadAudioReview(
+                filePath: _pendingAudioReviewPath!,
+                bookId: widget.book.id,
+                userId: user.id,
+                chapterId: 'reply_${_replyingTo!.id ?? _replyingTo!.timestamp}',
+                durationMs: _pendingAudioReviewDurationMs,
+              );
+        }
         await ref
             .read(commentRepositoryProvider)
             .addReply(
@@ -2102,9 +2328,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 text: text,
                 timestamp: now,
                 userPhotoURL: user.photoURL,
+                audioUrl: uploadedAudio?.audioUrl,
+                audioObjectKey: uploadedAudio?.audioObjectKey,
+                audioDurationMs: uploadedAudio?.audioDurationMs,
+                audioMimeType: uploadedAudio?.audioMimeType,
+                audioSizeBytes: uploadedAudio?.audioSizeBytes,
               ),
             );
-        setState(() => _replyingTo = null);
+        setState(() {
+          _replyingTo = null;
+          _clearAudioReviewState();
+        });
       } else {
         if (_isOwnOriginalBook(user.id)) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2404,7 +2638,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         ),
                                         GestureDetector(
                                           onTap: () {
-                                            setState(() => _replyingTo = null);
+                                            setState(() {
+                                              _replyingTo = null;
+                                              _clearAudioReviewState();
+                                            });
                                             setModalState(() {});
                                           },
                                           child: const Icon(
@@ -2517,39 +2754,37 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                   suffixIcon: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      if (_replyingTo == null)
-                                        IconButton(
-                                          tooltip: _isRecordingAudioReview
-                                              ? 'Stop recording'
-                                              : 'Record audio',
-                                          icon: Icon(
-                                            _isRecordingAudioReview
-                                                ? Icons.stop_circle_outlined
-                                                : Icons.mic_none_rounded,
-                                            color: _isRecordingAudioReview
-                                                ? Colors.red
-                                                : _getReaderActionColor(),
-                                          ),
-                                          onPressed:
-                                              _isSubmittingComment ||
-                                                  (_existingUserReview !=
-                                                          null &&
-                                                      !_isReviewEditMode)
-                                              ? null
-                                              : () async {
-                                                  if (_isRecordingAudioReview) {
-                                                    await _stopAudioReviewRecording(
-                                                      () =>
-                                                          setModalState(() {}),
-                                                    );
-                                                  } else {
-                                                    await _startAudioReviewRecording(
-                                                      () =>
-                                                          setModalState(() {}),
-                                                    );
-                                                  }
-                                                },
+                                      IconButton(
+                                        tooltip: _isRecordingAudioReview
+                                            ? 'Stop recording'
+                                            : 'Record audio',
+                                        icon: Icon(
+                                          _isRecordingAudioReview
+                                              ? Icons.stop_circle_outlined
+                                              : Icons.mic_none_rounded,
+                                          color: _isRecordingAudioReview
+                                              ? Colors.red
+                                              : _getReaderActionColor(),
                                         ),
+                                        onPressed:
+                                            _isSubmittingComment ||
+                                                (_replyingTo == null &&
+                                                    _existingUserReview !=
+                                                        null &&
+                                                    !_isReviewEditMode)
+                                            ? null
+                                            : () async {
+                                                if (_isRecordingAudioReview) {
+                                                  await _stopAudioReviewRecording(
+                                                    () => setModalState(() {}),
+                                                  );
+                                                } else {
+                                                  await _startAudioReviewRecording(
+                                                    () => setModalState(() {}),
+                                                  );
+                                                }
+                                              },
+                                      ),
                                       Padding(
                                         padding: const EdgeInsets.only(
                                           right: 8.0,
@@ -2577,11 +2812,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                                     !_canSubmitReview)) ||
                                                             (_replyingTo !=
                                                                     null &&
-                                                                _commentController
-                                                                    .value
-                                                                    .text
-                                                                    .trim()
-                                                                    .isEmpty)
+                                                                !_canSubmitReply)
                                                         ? 0.35
                                                         : 1,
                                                   ),
@@ -2594,11 +2825,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                               !_isReviewEditMode) ||
                                                           !_canSubmitReview)) ||
                                                   (_replyingTo != null &&
-                                                      _commentController
-                                                          .value
-                                                          .text
-                                                          .trim()
-                                                          .isEmpty)
+                                                      !_canSubmitReply)
                                               ? null
                                               : () async {
                                                   await _submitComment(
@@ -2615,9 +2842,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 onChanged: (_) => setModalState(() {}),
                                 style: TextStyle(color: _getTextColor()),
                               ),
-                              if (_replyingTo == null &&
-                                  (_isRecordingAudioReview ||
-                                      _hasReviewAudio)) ...[
+                              if (_isRecordingAudioReview ||
+                                  (_replyingTo == null
+                                      ? _hasReviewAudio
+                                      : _pendingAudioReviewPath != null)) ...[
                                 const SizedBox(height: 8),
                                 _AudioReviewComposerChip(
                                   isRecording: _isRecordingAudioReview,
@@ -2739,10 +2967,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                               actionColor:
                                                   _getReaderActionColor(),
                                               onReply: () {
-                                                setState(
-                                                  () => _replyingTo = comment,
+                                                unawaited(
+                                                  _showChapterReplySheet(
+                                                    comment,
+                                                  ),
                                                 );
-                                                setModalState(() {});
                                               },
                                             ),
                                         ],
@@ -2780,6 +3009,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  Future<void> _showChapterReplySheet(Comment comment) async {
+    if (comment.id == null) return;
+    _commentFocusNode.unfocus();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) =>
+          CommentReplySheet(comment: comment, bookId: widget.book.id),
+    );
+    if (mounted) {
+      ref.invalidate(liveBookCommentsProvider(widget.book.id));
+    }
+  }
+
   void _showSettings() {
     showModalBottomSheet<void>(
       context: context,
@@ -2809,23 +3056,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       .read(readerSettingsControllerProvider.notifier)
                       .setFontSize(value),
                 ),
-                SwitchListTile(
-                  value: _readerFont == ReaderFont.serif,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Serif Font'),
-                  onChanged: (value) {
-                    setState(
-                      () => _readerFont = value
-                          ? ReaderFont.serif
-                          : ReaderFont.sans,
-                    );
-                    ref
-                        .read(readerSettingsControllerProvider.notifier)
-                        .setFont(_readerFont);
-                    setModalState(() {});
-                  },
-                ),
-                const SizedBox(height: 8),
                 const Text(
                   'Theme',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -3013,7 +3243,6 @@ class _ReaderTtsBlockView extends StatelessWidget {
     required this.mutedColor,
     required this.accentColor,
     required this.fontSize,
-    required this.fontFamily,
     required this.isPoem,
     required this.isActive,
     required this.onTap,
@@ -3024,7 +3253,6 @@ class _ReaderTtsBlockView extends StatelessWidget {
   final Color mutedColor;
   final Color accentColor;
   final double fontSize;
-  final String? fontFamily;
   final bool isPoem;
   final bool isActive;
   final VoidCallback? onTap;
@@ -3088,7 +3316,6 @@ class _ReaderTtsBlockView extends StatelessWidget {
                 height: isHeading ? 1.35 : 1.8,
                 fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
                 fontStyle: isQuote || isPoem ? FontStyle.italic : null,
-                fontFamily: fontFamily,
               ),
             ),
           ),
@@ -3290,7 +3517,7 @@ class _QuoteImage extends StatelessWidget {
           children: [
             if (coverUrl != null && coverUrl.isNotEmpty)
               ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                imageFilter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
                 child: Image.network(coverUrl, fit: BoxFit.cover),
               )
             else

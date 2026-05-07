@@ -98,63 +98,93 @@ class ProfileShareCard extends StatelessWidget {
       width: 1050,
       height: 600,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBF4),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1E1B4B), Color(0xFF312E81), Color(0xFF4338CA)],
+            colors: [
+              const Color(0xFFFFFBF4),
+              const Color(0xFFF2E7D3),
+              const Color(0xFFE9F0EE),
+            ],
+          ),
+          border: Border.all(
+            color: const Color(0xFF243447).withValues(alpha: 0.18),
+            width: 2,
           ),
         ),
         child: Stack(
           children: [
             Positioned(
-              left: 40,
-              top: 40,
-              right: 40,
-              bottom: 40,
+              left: 34,
+              top: 34,
+              right: 34,
+              bottom: 34,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(40),
+                  color: Colors.white.withValues(alpha: 0.42),
+                  borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.16),
+                    color: const Color(0xFFB8893A).withValues(alpha: 0.24),
                     width: 1.5,
                   ),
                 ),
               ),
             ),
             Positioned(
-              left: 380,
-              top: 100,
-              bottom: 100,
+              left: 370,
+              top: 74,
+              bottom: 74,
               child: Container(
                 width: 1,
-                color: Colors.white.withValues(alpha: 0.12),
+                color: const Color(0xFFB8893A).withValues(alpha: 0.35),
               ),
             ),
             Positioned(
-              left: 90,
-              top: 160,
+              left: 92,
+              top: 126,
               child: _ProfileCardAvatar(user: user, name: name),
             ),
             Positioned(
-              left: 90,
-              top: 462,
+              left: 80,
+              top: 408,
               width: 240,
-              child: Text(
-                'Wreadom',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.28),
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    l10n.wreadomCreator.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF8E6425),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.8,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 86,
+                    height: 2,
+                    color: const Color(0xFFB8893A).withValues(alpha: 0.55),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'wreadom.in',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF243447),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
             Positioned(
               left: 430,
-              top: 118,
-              right: 80,
+              top: 88,
+              right: 72,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,8 +193,8 @@ class ProfileShareCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 72,
+                      color: Color(0xFF172536),
+                      fontSize: 66,
                       height: 1,
                       fontWeight: FontWeight.w900,
                     ),
@@ -178,8 +208,8 @@ class ProfileShareCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.64),
-                        fontSize: 32,
+                        color: const Color(0xFF48606D).withValues(alpha: 0.9),
+                        fontSize: 30,
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w500,
                       ),
@@ -192,22 +222,24 @@ class ProfileShareCard extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: const Color(0xFF1D6F6A).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: const Color(
+                              0xFF1D6F6A,
+                            ).withValues(alpha: 0.24),
                           ),
                         ),
                         child: const Icon(
                           Icons.auto_awesome_rounded,
-                          color: Color(0xFFA5B4FC),
+                          color: Color(0xFF1D6F6A),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Text(
                         l10n.wreadomCreator.toUpperCase(),
                         style: const TextStyle(
-                          color: Color(0xFFA5B4FC),
+                          color: Color(0xFF1D6F6A),
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                         ),
@@ -221,7 +253,7 @@ class ProfileShareCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.72),
+                        color: const Color(0xFF243447).withValues(alpha: 0.78),
                         fontSize: 24,
                         height: 1.34,
                         fontWeight: FontWeight.w400,
@@ -233,34 +265,28 @@ class ProfileShareCard extends StatelessWidget {
             ),
             Positioned(
               left: 430,
-              right: 80,
-              bottom: 92,
+              right: 72,
+              bottom: 82,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _CardStat(
-                    label: l10n.followers,
-                    value: user.followersCount ?? 0,
+                  Expanded(
+                    child: _CardStat(
+                      label: l10n.followers,
+                      value: user.followersCount ?? 0,
+                    ),
                   ),
-                  _CardStat(label: l10n.works, value: worksCount),
-                  _CardStat(
-                    label: l10n.following,
-                    value: user.followingCount ?? 0,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _CardStat(label: l10n.works, value: worksCount),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _CardStat(
+                      label: l10n.following,
+                      value: user.followingCount ?? 0,
+                    ),
                   ),
                 ],
-              ),
-            ),
-            Positioned(
-              right: 80,
-              bottom: 70,
-              child: Text(
-                l10n.officialLiteraryProfile.toUpperCase(),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.34),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
               ),
             ),
           ],
@@ -280,15 +306,23 @@ class _ProfileCardAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final photoUrl = user.photoURL;
     return Container(
-      width: 240,
-      height: 240,
-      padding: const EdgeInsets.all(8),
+      width: 236,
+      height: 236,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 4),
+        color: const Color(0xFFFFFBF4),
+        border: Border.all(color: const Color(0xFFB8893A), width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: CircleAvatar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFE9F0EE),
         backgroundImage: photoUrl != null && photoUrl.isNotEmpty
             ? CachedNetworkImageProvider(photoUrl)
             : null,
@@ -296,8 +330,8 @@ class _ProfileCardAvatar extends StatelessWidget {
             ? Text(
                 name.characters.first.toUpperCase(),
                 style: const TextStyle(
-                  color: Color(0xFF4F46E5),
-                  fontSize: 100,
+                  color: Color(0xFF1D6F6A),
+                  fontSize: 96,
                   fontWeight: FontWeight.w900,
                 ),
               )
@@ -315,27 +349,40 @@ class _CardStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          FormatUtils.formatNumber(value),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.56),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF243447).withValues(alpha: 0.11),
         ),
-        const SizedBox(height: 8),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.44),
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              FormatUtils.formatNumber(value),
+              style: const TextStyle(
+                color: Color(0xFF172536),
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: const Color(0xFF243447).withValues(alpha: 0.56),
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

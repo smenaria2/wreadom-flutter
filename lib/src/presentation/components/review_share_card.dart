@@ -390,14 +390,16 @@ class ReviewShareCard extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(70, 20, 44, 0),
-                    child: Text(
-                      post.text.trim().isEmpty
-                          ? l10n.feedTypeReview
-                          : post.text.trim(),
-                      maxLines: 7,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.left,
-                      style: serifBody,
+                    child: Center(
+                      child: Text(
+                        post.text.trim().isEmpty
+                            ? l10n.feedTypeReview
+                            : post.text.trim(),
+                        maxLines: 7,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: serifBody,
+                      ),
                     ),
                   ),
                 ],
@@ -456,7 +458,7 @@ class ReviewShareCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              l10n.appTitle,
+                              'wreadom.in',
                               style: GoogleFonts.inter(
                                 color: const Color(0xFFB17A27),
                                 fontSize: 20,

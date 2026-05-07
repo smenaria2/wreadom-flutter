@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/data/utils/firestore_utils.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/comment.dart';
@@ -10,6 +11,7 @@ import 'package:librebook_flutter/src/presentation/components/writer/writer_book
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
+import 'package:librebook_flutter/src/presentation/screens/reader_screen.dart';
 
 void main() {
   Map<String, dynamic> englishL10n() =>
@@ -738,6 +740,8 @@ void main() {
       expect(cardSource, contains('RepaintBoundary'));
       expect(cardSource, contains('ProfileShareCard'));
       expect(cardSource, contains('Share.shareXFiles'));
+      expect(cardSource, isNot(contains('officialLiteraryProfile')));
+      expect(cardSource, isNot(contains('@\${user.username}')));
     },
   );
 
@@ -848,7 +852,9 @@ void main() {
     expect(readerSource, isNot(contains('SharedPreferences.getInstance')));
     expect(readerSettingsSource, contains('reader_font_size'));
     expect(readerSettingsSource, contains('reader_theme_index'));
-    expect(readerSettingsSource, contains('reader_font_index'));
+    expect(readerSettingsSource, isNot(contains('reader_font_index')));
+    expect(readerSource, isNot(contains('Serif Font')));
+    expect(readerSettingsSource, isNot(contains('serif')));
     expect(writerTaxonomySource, contains('WriterTaxonomy'));
     expect(writerTaxonomySource, isNot(contains('Arabic')));
 
@@ -1224,7 +1230,151 @@ void main() {
     expect(comment.audioDurationMs, 45000);
     expect(comment.toJson(), containsPair('audioMimeType', 'audio/mp4'));
     expect(comment.toJson(), containsPair('audioSizeBytes', 123456));
+
+    final reply = CommentReply.fromJson({
+      'id': 'r1',
+      'userId': 'user2',
+      'username': 'listener',
+      'text': '',
+      'timestamp': 456,
+      'audioUrl': 'https://cdn.example.com/reply.m4a',
+      'audioObjectKey': 'audio-reviews/user2/book1/reply-c1/456.m4a',
+      'audioDurationMs': 18000,
+      'audioMimeType': 'audio/mp4',
+      'audioSizeBytes': 54321,
+    });
+
+    expect(reply.text, isEmpty);
+    expect(reply.audioUrl, 'https://cdn.example.com/reply.m4a');
+    expect(reply.audioDurationMs, 18000);
+    expect(reply.toJson(), containsPair('audioMimeType', 'audio/mp4'));
+    expect(reply.toJson(), containsPair('audioSizeBytes', 54321));
   });
+
+  test('embedded reply audio metadata survives Firestore normalization', () {
+    final data = mapFirestoreData({
+      'bookId': 'book1',
+      'userId': 'user1',
+      'username': 'reader',
+      'text': 'Parent',
+      'timestamp': 123,
+      'replies': [
+        {
+          'id': 'r1',
+          'userId': 'user2',
+          'username': 'listener',
+          'text': '',
+          'timestamp': '456',
+          'audioUrl': 'https://cdn.example.com/reply.m4a',
+          'audioObjectKey': 'audio-reviews/user2/book1/reply-c1/456.m4a',
+          'audioDurationMs': '18000',
+          'audioMimeType': 'audio/mp4',
+          'audioSizeBytes': '54321',
+        },
+      ],
+    }, 'c1');
+
+    final comment = Comment.fromJson(data);
+    final reply = comment.replies!.single;
+    expect(reply.audioUrl, 'https://cdn.example.com/reply.m4a');
+    expect(reply.audioObjectKey, 'audio-reviews/user2/book1/reply-c1/456.m4a');
+    expect(reply.audioDurationMs, 18000);
+    expect(reply.audioMimeType, 'audio/mp4');
+    expect(reply.audioSizeBytes, 54321);
+  });
+
+  test('reader sharing and privacy fixes stay wired', () {
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final replySheetSource = File(
+      'lib/src/presentation/components/book/comment_reply_sheet.dart',
+    ).readAsStringSync();
+    final mediaSource = File(
+      'lib/src/presentation/widgets/writer_media_embed.dart',
+    ).readAsStringSync();
+    final commentSource = File(
+      'lib/src/presentation/widgets/comment_widgets.dart',
+    ).readAsStringSync();
+    final reviewShareSource = File(
+      'lib/src/presentation/components/review_share_card.dart',
+    ).readAsStringSync();
+    final androidSource = File(
+      'android/app/src/main/kotlin/in/wreadom/app/MainActivity.kt',
+    ).readAsStringSync();
+
+    expect(commentSource, contains('hasReplyAudio'));
+    expect(commentSource, contains('reply.audioObjectKey'));
+    expect(commentSource, contains("_AudioCommentPlayer("));
+    expect(
+      replySheetSource,
+      contains('liveBookCommentsProvider(widget.bookId)'),
+    );
+    expect(replySheetSource, contains('await _stopRecording()'));
+    expect(readerSource, contains('await _stopAudioReviewRecording(null)'));
+    expect(readerSource, contains('_showChapterReplySheet'));
+    expect(readerSource, contains('CommentReplySheet(comment: comment'));
+    expect(readerSource, contains('MethodChannel'));
+    expect(readerSource, contains('setSecureReader'));
+    expect(androidSource, contains('FLAG_SECURE'));
+    expect(readerSource, contains('LaunchMode.externalApplication'));
+    expect(mediaSource, contains('LaunchMode.externalApplication'));
+    expect(readerSource, contains('sigmaX: 3, sigmaY: 3'));
+    expect(readerSource, contains('_linePreservingText'));
+    expect(readerSource, contains("tag == 'br'"));
+    expect(reviewShareSource, contains('child: Center('));
+    expect(reviewShareSource, contains('textAlign: TextAlign.center'));
+  });
+
+  test('reader quote sharing restores poem line breaks', () {
+    expect(
+      restoreReaderQuoteLineBreaks(
+        'line oneline twoline three',
+        '<p>line one</p><p>line two</p><p>line three</p>',
+      ),
+      'line one\nline two\nline three',
+    );
+    expect(
+      restoreReaderQuoteLineBreaks(
+        'line oneline twoline three',
+        '<p>line one<br>line two<br>line three</p>',
+      ),
+      'line one\nline two\nline three',
+    );
+    expect(
+      restoreReaderQuoteLineBreaks(
+        'line oneline twoline three',
+        'line one\nline two\nline three',
+      ),
+      'line one\nline two\nline three',
+    );
+    expect(
+      restoreReaderQuoteLineBreaks(
+        'line one line two',
+        '<p>before</p><p>line one line two</p><p>after</p>',
+      ),
+      'line one line two',
+    );
+  });
+
+  test(
+    'message soft delete rules preserve participant-only deletedFor writes',
+    () {
+      final rulesSource = File('firestore.rules').readAsStringSync();
+
+      expect(rulesSource, contains("onlyChanges(['deletedFor'])"));
+      expect(
+        rulesSource,
+        contains(
+          "request.resource.data.deletedFor.hasAll(resource.data.get('deletedFor', []))",
+        ),
+      );
+      expect(
+        rulesSource,
+        contains('uid() in request.resource.data.deletedFor'),
+      );
+    },
+  );
 
   test('onboarding is wired as a once-per-user signed-in gate', () {
     final mainSource = File('lib/main.dart').readAsStringSync();

@@ -26,6 +26,11 @@ class CloudinaryUploadService {
         'Cloudinary cloud name is not configured.',
       );
     }
+    if (uploadPreset.trim().isEmpty) {
+      throw const CloudinaryUploadException(
+        'Cloudinary upload preset is not configured.',
+      );
+    }
 
     final bytes = await file.readAsBytes();
     if (bytes.length > maxImageBytes) {

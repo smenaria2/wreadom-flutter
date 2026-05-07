@@ -400,6 +400,7 @@ service cloud.firestore {
             uid() in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
             onlyChanges(['deletedFor']) &&
             request.resource.data.deletedFor is list &&
+            request.resource.data.deletedFor.hasAll(resource.data.get('deletedFor', [])) &&
             uid() in request.resource.data.deletedFor
           );
         allow delete: if isAdmin() ||

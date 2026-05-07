@@ -159,6 +159,22 @@ async function deleteNotificationDoc(docId) {
   await db.collection("notifications").doc(docId).delete().catch(() => undefined);
 }
 
+function shouldSendPushNotification(beforeData, afterData) {
+  if (!afterData) {
+    return false;
+  }
+  if (!beforeData) {
+    return true;
+  }
+  return beforeData.timestamp !== afterData.timestamp &&
+    (
+      beforeData.type !== afterData.type ||
+      beforeData.text !== afterData.text ||
+      beforeData.link !== afterData.link ||
+      beforeData.targetId !== afterData.targetId
+    );
+}
+
 function registryWithoutToken(rawRegistry, token) {
   return Array.isArray(rawRegistry) ?
     rawRegistry.filter((item) => normalizeString(item?.token) !== token) :
@@ -190,6 +206,195 @@ function buildNotification({
     metadata,
   };
 }
+
+async function notifyBookOwnersForBookActivity(commentId, data = {}) {
+  const bookId = normalizeString(`${data.bookId ?? ""}`);
+  const actorId = normalizeString(data.userId);
+  if (!bookId || !actorId) {
+    return;
+  }
+  const bookSnapshot = await db.collection("books").doc(bookId).get();
+  if (!bookSnapshot.exists) {
+    return;
+  }
+  const book = bookSnapshot.data() || {};
+  const rating = Number(data.rating || 0);
+  const isReview = rating > 0;
+  const isAudioReview = isReview &&
+    (normalizeString(data.audioObjectKey) || normalizeString(data.audioUrl));
+  const notificationType = isReview ? "book_review" : "book_comment";
+  for (const ownerId of acceptedBookAuthorIds(book)) {
+    await createNotificationDoc(
+        `book_comment_${commentId}_${ownerId}`,
+        buildNotification({
+          userId: ownerId,
+          actorId,
+          actorName: userDisplayName(data),
+          actorPhotoURL: normalizeString(data.userPhotoURL) || null,
+          type: notificationType,
+          text: isAudioReview ?
+            "submitted an audio review on your content" :
+            isReview ? "left a review on your content" : "commented on your content",
+          link: `/book?id=${bookId}`,
+          targetId: bookId,
+          metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
+        }),
+    );
+    await deleteNotificationDoc(`book_audio_review_${commentId}_${ownerId}`);
+  }
+}
+
+exports.sendPushNotification = functionsV1.firestore.document("notifications/{notificationId}").onWrite(async (change, context) => {
+  const beforeData = change.before.exists ? change.before.data() : undefined;
+  const data = change.after.exists ? change.after.data() : undefined;
+  if (!shouldSendPushNotification(beforeData, data)) {
+    return;
+  }
+  if (!data) {
+    return;
+  }
+
+  const userId = data.userId;
+  const userDocRef = admin.firestore().doc(`users/${userId}`);
+  const userDoc = await userDocRef.get();
+  if (!userDoc.exists) {
+    logger.info(`User document not found for ID: ${userId}`);
+    return;
+  }
+
+  const userData = userDoc.data() || {};
+  const notifSettings = userData.notificationSettings;
+  const typeToSettingKey = {
+    message: "messages",
+    groupMessage: "groupMessages",
+    comment: "comments",
+    reply: "replies",
+    follower: "followers",
+    testimonial: "testimonials",
+    like: "likes",
+    feedPost: "followedAuthorPosts",
+    published: "newCreations",
+    chapter_update: "newCreations",
+    mention: "comments",
+    feed_comment: "comments",
+    book_comment: "comments",
+    book_review: "comments",
+    feed_reply: "replies",
+    book_reply: "replies",
+  };
+  const settingKey = typeToSettingKey[data.type];
+
+  const legacyTokens = Array.isArray(userData.fcmTokens) ?
+    userData.fcmTokens.map((token) => normalizeString(token)).filter(Boolean) :
+    [];
+  const registryEntries = Array.isArray(userData.fcmTokenRegistry) ?
+    userData.fcmTokenRegistry
+        .map((entry) => ({
+          token: normalizeString(entry?.token),
+          platform: normalizeString(entry?.platform).toLowerCase() || "web",
+        }))
+        .filter((entry) => entry.token) :
+    [];
+  const registeredTokens = new Set(registryEntries.map((entry) => entry.token));
+  const candidateEntries = [
+    ...registryEntries,
+    ...legacyTokens
+        .filter((token) => !registeredTokens.has(token))
+        .map((token) => ({token, platform: "web"})),
+  ];
+
+  const allowedTokens = candidateEntries
+      .filter((entry) => {
+        const isNative = ["android", "ios"].includes(entry.platform);
+        const preference = settingKey ? notifSettings?.[settingKey] : null;
+        if (isNative) {
+          return preference?.app !== false;
+        }
+        if (notifSettings?.browserNotifications === false) {
+          return false;
+        }
+        return !settingKey || preference?.browser !== false;
+      })
+      .map((entry) => entry.token);
+  const uniqueTokens = Array.from(new Set(allowedTokens));
+  if (uniqueTokens.length === 0) {
+    logger.info("No FCM tokens found for user:", userId);
+    return;
+  }
+
+  const notificationTitle = `${data.actorName} ${
+    data.type === "message" ? "sent you a message" :
+    data.type === "groupMessage" ? "sent a group message" :
+    data.type === "comment" || data.type === "book_comment" ? "commented on your book" :
+    data.type === "book_review" ? "reviewed your content" :
+    data.type === "feed_comment" ? "commented on your post" :
+    data.type === "reply" || data.type === "feed_reply" ? "replied to your comment" :
+    data.type === "book_reply" ? "replied to your discussion" :
+    data.type === "follower" ? "started following you" :
+    data.type === "like" ? "liked your post" :
+    data.type === "published" ? "published a new book" :
+    "sent a notification"
+  }`;
+
+  const message = {
+    tokens: uniqueTokens,
+    notification: {
+      title: notificationTitle,
+      body: data.text || "",
+    },
+    webpush: {
+      fcmOptions: {
+        link: data.link || "/",
+      },
+      notification: {
+        icon: "https://wreadom.in/logo%20192x192.png",
+        badge: "https://wreadom.in/logo-32x32.png",
+        tag: context.params.notificationId,
+      },
+    },
+    data: {
+      notificationId: context.params.notificationId,
+      url: data.link || "/",
+      type: data.type || "",
+    },
+  };
+
+  try {
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info(
+        `FCM: ${response.successCount} sent, ${response.failureCount} failed out of ${uniqueTokens.length} token(s).`,
+    );
+
+    const staleTokens = [];
+    response.responses.forEach((resp, idx) => {
+      if (
+        !resp.success &&
+        resp.error &&
+        (
+          resp.error.code === "messaging/registration-token-not-registered" ||
+          resp.error.code === "messaging/invalid-registration-token"
+        )
+      ) {
+        staleTokens.push(uniqueTokens[idx]);
+      }
+    });
+
+    if (staleTokens.length > 0) {
+      logger.info("FCM: Removing stale tokens:", staleTokens);
+      const updates = {
+        fcmTokens: FieldValue.arrayRemove(...staleTokens),
+      };
+      if (Array.isArray(userData.fcmTokenRegistry)) {
+        updates.fcmTokenRegistry = userData.fcmTokenRegistry.filter((entry) => {
+          return !staleTokens.includes(normalizeString(entry?.token));
+        });
+      }
+      await userDocRef.update(updates);
+    }
+  } catch (error) {
+    logger.error("Error sending FCM push notification:", error);
+  }
+});
 
 exports.claimFcmToken = functionsV1.https.onCall(async (data, context) => {
   const uid = normalizeString(context.auth?.uid);
@@ -548,40 +753,17 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
 
     const bookId = normalizeString(`${afterData.bookId ?? ""}`);
     if (bookId) {
-      const bookSnapshot = await db.collection("books").doc(bookId).get();
-      if (bookSnapshot.exists) {
-        const book = bookSnapshot.data() || {};
-        const ownerIds = acceptedBookAuthorIds(book);
-        const notificationType = Number(afterData.rating || 0) > 0 ? "book_review" : "book_comment";
-        const isAudioReview = notificationType === "book_review" &&
-          (normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
-        for (const ownerId of ownerIds) {
-          await createNotificationDoc(
-              `book_comment_${commentId}_${ownerId}`,
-              buildNotification({
-                userId: ownerId,
-                actorId,
-                actorName,
-                actorPhotoURL,
-                type: notificationType,
-                text: isAudioReview ?
-                  "submitted an audio review on your content" :
-                  Number(afterData.rating || 0) > 0 ? "left a review on your content" : "commented on your content",
-                link: `/book?id=${bookId}`,
-                targetId: bookId,
-                metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
-              }),
-          );
-        }
-      }
+      await notifyBookOwnersForBookActivity(commentId, afterData);
     }
   }
 
   if (beforeData && afterData) {
     const hadAudio = Boolean(normalizeString(beforeData.audioObjectKey) || normalizeString(beforeData.audioUrl));
     const hasAudio = Boolean(normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
-    if (!hadAudio && hasAudio && Number(afterData.rating || 0) > 0) {
-      await notifyBookOwnerForAudioReview(commentId, afterData);
+    const beforeRating = Number(beforeData.rating || 0);
+    const afterRating = Number(afterData.rating || 0);
+    if ((!hadAudio && hasAudio && afterRating > 0) || (beforeRating <= 0 && afterRating > 0)) {
+      await notifyBookOwnersForBookActivity(commentId, afterData);
     }
 
     const beforeReplies = Array.isArray(beforeData.replies) ? beforeData.replies : [];
@@ -697,36 +879,7 @@ exports.onUserProfileUpdated = functionsV1.firestore.document("users/{userId}").
 });
 
 async function notifyBookOwnerForAudioReview(commentId, data = {}) {
-  const bookId = normalizeString(`${data.bookId ?? ""}`);
-  const actorId = normalizeString(data.userId);
-  if (!bookId || !actorId) {
-    return;
-  }
-  const bookSnapshot = await db.collection("books").doc(bookId).get();
-  if (!bookSnapshot.exists) {
-    return;
-  }
-  const book = bookSnapshot.data() || {};
-  for (const ownerId of acceptedBookAuthorIds(book)) {
-    await createNotificationDoc(
-        `book_audio_review_${commentId}_${ownerId}`,
-        buildNotification({
-          userId: ownerId,
-          actorId,
-          actorName: userDisplayName(data),
-          actorPhotoURL: normalizeString(data.userPhotoURL) || null,
-          type: "book_review",
-          text: "submitted an audio review on your content",
-          link: `/book?id=${bookId}`,
-          targetId: bookId,
-          metadata: {
-            bookId,
-            commentId,
-            hasAudio: true,
-          },
-        }),
-    );
-  }
+  await notifyBookOwnersForBookActivity(commentId, data);
 }
 
 exports.onMessageCreated = functionsV1.firestore.document("conversations/{conversationId}/messages/{messageId}").onCreate(async (snapshot, context) => {

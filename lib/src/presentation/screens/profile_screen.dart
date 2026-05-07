@@ -493,15 +493,18 @@ class _ProfileSideMenu extends ConsumerWidget {
       child: SafeArea(
         child: Column(
           children: [
-            DrawerHeader(
-              margin: EdgeInsets.zero,
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Text(
-                  'Wreadom',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
+            SizedBox(
+              height: 86,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Wreadom',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -552,11 +555,10 @@ class _ProfileSideMenu extends ConsumerWidget {
                     title: l10n.termsOfUse,
                     onTap: () => _go(context, AppRoutes.terms),
                   ),
+                  const _AppVersionTile(),
                 ],
               ),
             ),
-            const Divider(height: 1),
-            const _AppVersionTile(),
             const Divider(height: 1),
             _MenuTile(
               icon: Icons.logout,

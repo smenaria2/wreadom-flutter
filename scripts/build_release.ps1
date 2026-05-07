@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $pubspecPath = Join-Path $repoRoot 'pubspec.yaml'
+$defaultDartDefinesPath = Join-Path $repoRoot 'dart_defines.local.json'
 $pubspecVersionLine = Get-Content -Path $pubspecPath |
   Where-Object { $_ -match '^\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)(?:\+([0-9]+))?\s*$' } |
   Select-Object -First 1
@@ -52,6 +53,15 @@ try {
   if ($Release) {
     $buildArgs += '--release'
   }
+
+  $hasDartDefinesFromFile = $FlutterArgs |
+    Where-Object { $_ -like '--dart-define-from-file*' } |
+    Select-Object -First 1
+  if (-not $hasDartDefinesFromFile -and (Test-Path -LiteralPath $defaultDartDefinesPath)) {
+    Write-Host "Using Dart defines from $defaultDartDefinesPath"
+    $buildArgs += "--dart-define-from-file=$defaultDartDefinesPath"
+  }
+
   $buildArgs += $FlutterArgs
 
   & flutter build @buildArgs

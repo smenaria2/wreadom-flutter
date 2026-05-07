@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CommentReply {
 
- String? get id; String get userId; String get username; String? get displayName; String? get penName; String get text; int get timestamp; String? get userPhotoURL; List<String>? get likes; Map<String, String>? get mentions;
+ String? get id; String get userId; String get username; String? get displayName; String? get penName; String get text; int get timestamp; String? get userPhotoURL; List<String>? get likes; Map<String, String>? get mentions; String? get audioUrl; String? get audioObjectKey; int? get audioDurationMs; String? get audioMimeType; int? get audioSizeBytes;
 /// Create a copy of CommentReply
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CommentReplyCopyWith<CommentReply> get copyWith => _$CommentReplyCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommentReply&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&const DeepCollectionEquality().equals(other.likes, likes)&&const DeepCollectionEquality().equals(other.mentions, mentions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CommentReply&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&const DeepCollectionEquality().equals(other.likes, likes)&&const DeepCollectionEquality().equals(other.mentions, mentions)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,username,displayName,penName,text,timestamp,userPhotoURL,const DeepCollectionEquality().hash(likes),const DeepCollectionEquality().hash(mentions));
+int get hashCode => Object.hash(runtimeType,id,userId,username,displayName,penName,text,timestamp,userPhotoURL,const DeepCollectionEquality().hash(likes),const DeepCollectionEquality().hash(mentions),audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes);
 
 @override
 String toString() {
-  return 'CommentReply(id: $id, userId: $userId, username: $username, displayName: $displayName, penName: $penName, text: $text, timestamp: $timestamp, userPhotoURL: $userPhotoURL, likes: $likes, mentions: $mentions)';
+  return 'CommentReply(id: $id, userId: $userId, username: $username, displayName: $displayName, penName: $penName, text: $text, timestamp: $timestamp, userPhotoURL: $userPhotoURL, likes: $likes, mentions: $mentions, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CommentReplyCopyWith<$Res>  {
   factory $CommentReplyCopyWith(CommentReply value, $Res Function(CommentReply) _then) = _$CommentReplyCopyWithImpl;
 @useResult
 $Res call({
- String? id, String userId, String username, String? displayName, String? penName, String text, int timestamp, String? userPhotoURL, List<String>? likes, Map<String, String>? mentions
+ String? id, String userId, String username, String? displayName, String? penName, String text, int timestamp, String? userPhotoURL, List<String>? likes, Map<String, String>? mentions, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
 });
 
 
@@ -65,7 +65,7 @@ class _$CommentReplyCopyWithImpl<$Res>
 
 /// Create a copy of CommentReply
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? displayName = freezed,Object? penName = freezed,Object? text = null,Object? timestamp = null,Object? userPhotoURL = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? displayName = freezed,Object? penName = freezed,Object? text = null,Object? timestamp = null,Object? userPhotoURL = freezed,Object? likes = freezed,Object? mentions = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,12 @@ as String,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore: 
 as int,userPhotoURL: freezed == userPhotoURL ? _self.userPhotoURL : userPhotoURL // ignore: cast_nullable_to_non_nullable
 as String?,likes: freezed == likes ? _self.likes : likes // ignore: cast_nullable_to_non_nullable
 as List<String>?,mentions: freezed == mentions ? _self.mentions : mentions // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,
+as Map<String, String>?,audioUrl: freezed == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : audioObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
+as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -162,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CommentReply() when $default != null:
-return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   return orElse();
 
 }
@@ -183,10 +188,10 @@ return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.pen
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)  $default,) {final _that = this;
 switch (_that) {
 case _CommentReply():
-return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +208,10 @@ return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.pen
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String userId,  String username,  String? displayName,  String? penName,  String text,  int timestamp,  String? userPhotoURL,  List<String>? likes,  Map<String, String>? mentions,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,) {final _that = this;
 switch (_that) {
 case _CommentReply() when $default != null:
-return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions);case _:
+return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.penName,_that.text,_that.timestamp,_that.userPhotoURL,_that.likes,_that.mentions,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
   return null;
 
 }
@@ -218,7 +223,7 @@ return $default(_that.id,_that.userId,_that.username,_that.displayName,_that.pen
 @JsonSerializable()
 
 class _CommentReply implements CommentReply {
-  const _CommentReply({this.id, required this.userId, required this.username, this.displayName, this.penName, required this.text, required this.timestamp, this.userPhotoURL, final  List<String>? likes, final  Map<String, String>? mentions}): _likes = likes,_mentions = mentions;
+  const _CommentReply({this.id, required this.userId, required this.username, this.displayName, this.penName, required this.text, required this.timestamp, this.userPhotoURL, final  List<String>? likes, final  Map<String, String>? mentions, this.audioUrl, this.audioObjectKey, this.audioDurationMs, this.audioMimeType, this.audioSizeBytes}): _likes = likes,_mentions = mentions;
   factory _CommentReply.fromJson(Map<String, dynamic> json) => _$CommentReplyFromJson(json);
 
 @override final  String? id;
@@ -247,6 +252,11 @@ class _CommentReply implements CommentReply {
   return EqualUnmodifiableMapView(value);
 }
 
+@override final  String? audioUrl;
+@override final  String? audioObjectKey;
+@override final  int? audioDurationMs;
+@override final  String? audioMimeType;
+@override final  int? audioSizeBytes;
 
 /// Create a copy of CommentReply
 /// with the given fields replaced by the non-null parameter values.
@@ -261,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommentReply&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&const DeepCollectionEquality().equals(other._likes, _likes)&&const DeepCollectionEquality().equals(other._mentions, _mentions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CommentReply&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.penName, penName) || other.penName == penName)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.userPhotoURL, userPhotoURL) || other.userPhotoURL == userPhotoURL)&&const DeepCollectionEquality().equals(other._likes, _likes)&&const DeepCollectionEquality().equals(other._mentions, _mentions)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,username,displayName,penName,text,timestamp,userPhotoURL,const DeepCollectionEquality().hash(_likes),const DeepCollectionEquality().hash(_mentions));
+int get hashCode => Object.hash(runtimeType,id,userId,username,displayName,penName,text,timestamp,userPhotoURL,const DeepCollectionEquality().hash(_likes),const DeepCollectionEquality().hash(_mentions),audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes);
 
 @override
 String toString() {
-  return 'CommentReply(id: $id, userId: $userId, username: $username, displayName: $displayName, penName: $penName, text: $text, timestamp: $timestamp, userPhotoURL: $userPhotoURL, likes: $likes, mentions: $mentions)';
+  return 'CommentReply(id: $id, userId: $userId, username: $username, displayName: $displayName, penName: $penName, text: $text, timestamp: $timestamp, userPhotoURL: $userPhotoURL, likes: $likes, mentions: $mentions, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
 }
 
 
@@ -281,7 +291,7 @@ abstract mixin class _$CommentReplyCopyWith<$Res> implements $CommentReplyCopyWi
   factory _$CommentReplyCopyWith(_CommentReply value, $Res Function(_CommentReply) _then) = __$CommentReplyCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, String userId, String username, String? displayName, String? penName, String text, int timestamp, String? userPhotoURL, List<String>? likes, Map<String, String>? mentions
+ String? id, String userId, String username, String? displayName, String? penName, String text, int timestamp, String? userPhotoURL, List<String>? likes, Map<String, String>? mentions, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
 });
 
 
@@ -298,7 +308,7 @@ class __$CommentReplyCopyWithImpl<$Res>
 
 /// Create a copy of CommentReply
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? displayName = freezed,Object? penName = freezed,Object? text = null,Object? timestamp = null,Object? userPhotoURL = freezed,Object? likes = freezed,Object? mentions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = null,Object? username = null,Object? displayName = freezed,Object? penName = freezed,Object? text = null,Object? timestamp = null,Object? userPhotoURL = freezed,Object? likes = freezed,Object? mentions = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
   return _then(_CommentReply(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -310,7 +320,12 @@ as String,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore: 
 as int,userPhotoURL: freezed == userPhotoURL ? _self.userPhotoURL : userPhotoURL // ignore: cast_nullable_to_non_nullable
 as String?,likes: freezed == likes ? _self._likes : likes // ignore: cast_nullable_to_non_nullable
 as List<String>?,mentions: freezed == mentions ? _self._mentions : mentions // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,
+as Map<String, String>?,audioUrl: freezed == audioUrl ? _self.audioUrl : audioUrl // ignore: cast_nullable_to_non_nullable
+as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : audioObjectKey // ignore: cast_nullable_to_non_nullable
+as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
+as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

@@ -1,23 +1,23 @@
 class EnvConfig {
   static const String firebaseWebApiKey = String.fromEnvironment(
     'FIREBASE_WEB_API_KEY',
-    defaultValue: 'AIzaSyCkiPyC3xawvqek2ZUJPhLIupLKwRwW4t0',
+    defaultValue: '',
   );
 
   static const String firebaseAndroidApiKey = String.fromEnvironment(
     'FIREBASE_ANDROID_API_KEY',
-    defaultValue: 'AIzaSyDsm9w_Hkac6sXgBqweqSU_wYjfp4i19dM',
+    defaultValue: '',
   );
 
   static const String firebaseIosApiKey = String.fromEnvironment(
     'FIREBASE_IOS_API_KEY',
-    defaultValue: 'AIzaSyDZ-K5JtaISPaJ2dmcSRLlTwOZDylhM4Kc',
+    defaultValue: '',
   );
 
   static const String firebaseWindowsApiKey = String.fromEnvironment(
     'FIREBASE_WINDOWS_API_KEY',
-    defaultValue: 'AIzaSyDOgMpxNGS3sJ6Rnoh2m1l_kwjQPSOu_aw',
+    defaultValue: '',
   );
 
-  // Add other sensitive values here if needed
+  // Add other sensitive values here only as dart-define keys, not defaults.
 }

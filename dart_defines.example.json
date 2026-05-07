@@ -1,0 +1,8 @@
+{
+  "FIREBASE_WEB_API_KEY": "replace-with-web-api-key",
+  "FIREBASE_ANDROID_API_KEY": "replace-with-android-api-key",
+  "FIREBASE_IOS_API_KEY": "replace-with-ios-api-key",
+  "FIREBASE_WINDOWS_API_KEY": "replace-with-windows-api-key",
+  "CLOUDINARY_CLOUD_NAME": "replace-with-cloudinary-cloud-name",
+  "CLOUDINARY_UPLOAD_PRESET": "replace-with-restricted-upload-preset"
+}
