@@ -139,52 +139,38 @@ class FirebaseMessageRepository implements MessageRepository {
   Future<void> deleteMessage({
     required String conversationId,
     required String messageId,
-    required String senderId,
+    required String userId,
   }) async {
     if (conversationId.isEmpty || messageId.isEmpty) return;
     final conversationRef = _firestore
         .collection('conversations')
         .doc(conversationId);
     final messageRef = conversationRef.collection('messages').doc(messageId);
-    final messageSnap = await messageRef.get();
-    final messageData = messageSnap.data();
-    if (messageData == null ||
-        messageData['senderId']?.toString() != senderId) {
-      return;
-    }
+    await _firestore.runTransaction((transaction) async {
+      final conversationSnap = await transaction.get(conversationRef);
+      final conversationData = conversationSnap.data();
+      if (conversationData == null) return;
+      final participants = List<String>.from(
+        conversationData['participants'] ?? const [],
+      );
+      if (!participants.contains(userId)) return;
 
-    await messageRef.delete();
+      final messageSnap = await transaction.get(messageRef);
+      final messageData = messageSnap.data();
+      if (messageData == null) return;
+      if (_isProtectedFirstDirectMessage(
+        conversationData: conversationData,
+        messageData: messageData,
+        userId: userId,
+      )) {
+        throw const MessageLimitException(
+          'The first message cannot be deleted until the recipient replies.',
+        );
+      }
 
-    final conversationSnap = await conversationRef.get();
-    final lastMessage = conversationSnap.data()?['lastMessage'];
-    final deletedTimestamp = messageData['timestamp'];
-    if (lastMessage is Map && lastMessage['timestamp'] != deletedTimestamp) {
-      return;
-    }
-
-    final latestSnapshot = await conversationRef
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .limit(1)
-        .get();
-    final now = DateTime.now().millisecondsSinceEpoch;
-    if (latestSnapshot.docs.isEmpty) {
-      await conversationRef.update({
-        'lastMessage': FieldValue.delete(),
-        'updatedAt': now,
+      transaction.update(messageRef, {
+        'deletedFor': FieldValue.arrayUnion([userId]),
       });
-      return;
-    }
-
-    final latest = latestSnapshot.docs.first.data();
-    await conversationRef.update({
-      'lastMessage': {
-        'text': latest['text'],
-        'senderId': latest['senderId'],
-        'timestamp': latest['timestamp'],
-        'readBy': latest['readBy'] ?? const [],
-      },
-      'updatedAt': latest['timestamp'] ?? now,
     });
   }
 
@@ -339,6 +325,26 @@ class FirebaseMessageRepository implements MessageRepository {
       hasMore: snapshot.docs.length > limit,
       nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
     );
+  }
+
+  bool _isProtectedFirstDirectMessage({
+    required Map<String, dynamic> conversationData,
+    required Map<String, dynamic> messageData,
+    required String userId,
+  }) {
+    if (conversationData['type'] != 'direct') return false;
+    if (conversationData['createdBy']?.toString() != userId) return false;
+    if (conversationData['recipientHasReplied'] == true) return false;
+    final senderId = messageData['senderId']?.toString();
+    if (senderId != userId) return false;
+    final firstMessageSenderId = conversationData['firstMessageSenderId']
+        ?.toString();
+    if (firstMessageSenderId == userId) return true;
+    final lastMessage = conversationData['lastMessage'];
+    return firstMessageSenderId == null &&
+        lastMessage is Map &&
+        lastMessage['senderId']?.toString() == userId &&
+        lastMessage['timestamp'] == messageData['timestamp'];
   }
 
   Future<void> _sendMessageDocument({

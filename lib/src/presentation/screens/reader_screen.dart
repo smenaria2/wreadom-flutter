@@ -480,11 +480,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
-    final chaptersAsync = ref.watch(bookChaptersProvider(widget.book.id));
+    final chaptersAsync = ref.watch(liveBookChaptersProvider(widget.book.id));
     final offlineChaptersAsync = ref.watch(
       offlineChaptersProvider(widget.book.id),
     );
-    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+    final commentsAsync = ref.watch(liveBookCommentsProvider(widget.book.id));
     final userAsync = ref.watch(currentUserProvider);
     ref.watch(appThemeControllerProvider);
 
@@ -1963,6 +1963,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     bool focusComposer = false,
   }) {
     if (_replyingTo != null) return;
+    final pendingQuote = focusComposer ? _selectedQuote : null;
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null || _isOwnOriginalBook(user.id)) {
       _existingUserReview = null;
@@ -1970,7 +1971,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _chapterRating = 5;
       _shareReviewToFeed = false;
       _commentController.value.clear();
-      _selectedQuote = null;
+      _selectedQuote = pendingQuote;
       _clearAudioReviewState();
       return;
     }
@@ -1978,7 +1979,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final resolvedChapterId = chapter?.id?.toString();
     final resolvedChapterIndex = chapterIndex ?? _chapterIndex;
     final comments = ref
-        .read(bookCommentsProvider(widget.book.id))
+        .read(liveBookCommentsProvider(widget.book.id))
         .asData
         ?.value;
     final existingReview = comments
@@ -1999,7 +2000,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _chapterRating = 5;
       _shareReviewToFeed = false;
       _commentController.value.clear();
-      _selectedQuote = null;
+      _selectedQuote = pendingQuote;
       _clearAudioReviewState();
       return;
     }
@@ -2076,145 +2077,152 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
     final text = _commentController.value.text.trim();
     if (_isSubmittingComment) return;
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-
-    final now = DateTime.now().millisecondsSinceEpoch;
     final wasReply = _replyingTo != null;
+    if (wasReply && text.isEmpty) return;
 
-    if (_replyingTo != null) {
-      if (text.isEmpty) return;
-      await ref
-          .read(commentRepositoryProvider)
-          .addReply(
-            _replyingTo!.id!,
-            CommentReply(
-              userId: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              penName: user.penName,
-              text: text,
-              timestamp: now,
-              userPhotoURL: user.photoURL,
-            ),
-          );
-      setState(() => _replyingTo = null);
-    } else {
-      if (_isOwnOriginalBook(user.id)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.authorsCannotReviewOwnBook)),
-        );
-        return;
-      }
-      if (_chapterRating <= 0) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
-        return;
-      }
-      if (!_canSubmitReview) return;
-      if (_existingUserReview != null && !_isReviewEditMode) return;
-      setState(() => _isSubmittingComment = true);
-      AudioReviewUploadResult? uploadedAudio;
-      final oldAudioObjectKey =
-          _audioObjectKeyPendingDelete ??
-          (_pendingAudioReviewPath != null ? _reviewAudioObjectKey : null);
-      try {
-        if (_pendingAudioReviewPath != null) {
-          uploadedAudio = await ref
-              .read(audioReviewUploadServiceProvider)
-              .uploadAudioReview(
-                filePath: _pendingAudioReviewPath!,
-                bookId: widget.book.id,
-                userId: user.id,
-                chapterId: chapter?.id?.toString(),
-                durationMs: _pendingAudioReviewDurationMs,
-              );
-        }
+    setState(() => _isSubmittingComment = true);
+    try {
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) return;
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
 
-        final comment = Comment(
-          bookId: widget.book.id,
-          bookTitle: widget.book.title,
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          penName: user.penName,
-          text: text,
-          rating: _chapterRating,
-          quote: _selectedQuote,
-          chapterTitle: chapter?.title,
-          chapterIndex: chapterIndex ?? _chapterIndex,
-          chapterId: chapter?.id?.toString(),
-          timestamp: now,
-          userPhotoURL: user.photoURL,
-          audioUrl: uploadedAudio?.audioUrl ?? _reviewAudioUrl,
-          audioObjectKey:
-              uploadedAudio?.audioObjectKey ?? _reviewAudioObjectKey,
-          audioDurationMs:
-              uploadedAudio?.audioDurationMs ?? _reviewAudioDurationMs,
-          audioMimeType: uploadedAudio?.audioMimeType ?? _reviewAudioMimeType,
-          audioSizeBytes:
-              uploadedAudio?.audioSizeBytes ?? _reviewAudioSizeBytes,
-        );
+      final now = DateTime.now().millisecondsSinceEpoch;
 
-        final savedReviewId = await ref
+      if (_replyingTo != null) {
+        await ref
             .read(commentRepositoryProvider)
-            .upsertBookReview(comment);
-
-        if (_shareReviewToFeed) {
-          await _upsertReviewFeedPost(
-            user: user,
-            text: text,
-            now: now,
-            chapter: chapter,
-          );
-          ref.invalidate(feedPostsProvider);
-          ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-          ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-          ref.invalidate(pagedUserFeedPostsProvider(user.id));
-        }
-
-        setState(() {
-          _existingUserReview = comment.copyWith(id: savedReviewId);
-          _commentController.value.text = text;
-          _isReviewEditMode = false;
-          _shareReviewToFeed = false;
-          _selectedQuote = null;
-          _pendingAudioReviewPath = null;
-          _pendingAudioReviewDurationMs = 0;
-          _reviewAudioUrl = comment.audioUrl;
-          _reviewAudioObjectKey = comment.audioObjectKey;
-          _reviewAudioDurationMs = comment.audioDurationMs;
-          _reviewAudioMimeType = comment.audioMimeType;
-          _reviewAudioSizeBytes = comment.audioSizeBytes;
-          _audioObjectKeyPendingDelete = null;
-        });
-        if (oldAudioObjectKey != null &&
-            oldAudioObjectKey != comment.audioObjectKey) {
-          unawaited(
-            ref
-                .read(audioReviewUploadServiceProvider)
-                .deleteAudioReviewObject(oldAudioObjectKey),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
+            .addReply(
+              _replyingTo!.id!,
+              CommentReply(
+                userId: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                penName: user.penName,
+                text: text,
+                timestamp: now,
+                userPhotoURL: user.photoURL,
+              ),
+            );
+        setState(() => _replyingTo = null);
+      } else {
+        if (_isOwnOriginalBook(user.id)) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.saveFailed(e.toString()))),
+            SnackBar(content: Text(l10n.authorsCannotReviewOwnBook)),
           );
+          return;
         }
-        return;
-      } finally {
-        if (mounted) setState(() => _isSubmittingComment = false);
+        if (_chapterRating <= 0) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
+          return;
+        }
+        if (!_canSubmitReview) return;
+        if (_existingUserReview != null && !_isReviewEditMode) return;
+        AudioReviewUploadResult? uploadedAudio;
+        final oldAudioObjectKey =
+            _audioObjectKeyPendingDelete ??
+            (_pendingAudioReviewPath != null ? _reviewAudioObjectKey : null);
+        try {
+          if (_pendingAudioReviewPath != null) {
+            uploadedAudio = await ref
+                .read(audioReviewUploadServiceProvider)
+                .uploadAudioReview(
+                  filePath: _pendingAudioReviewPath!,
+                  bookId: widget.book.id,
+                  userId: user.id,
+                  chapterId: chapter?.id?.toString(),
+                  durationMs: _pendingAudioReviewDurationMs,
+                );
+          }
+
+          final comment = Comment(
+            bookId: widget.book.id,
+            bookTitle: widget.book.title,
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            text: text,
+            rating: _chapterRating,
+            quote: _selectedQuote,
+            chapterTitle: chapter?.title,
+            chapterIndex: chapterIndex ?? _chapterIndex,
+            chapterId: chapter?.id?.toString(),
+            timestamp: now,
+            userPhotoURL: user.photoURL,
+            audioUrl: uploadedAudio?.audioUrl ?? _reviewAudioUrl,
+            audioObjectKey:
+                uploadedAudio?.audioObjectKey ?? _reviewAudioObjectKey,
+            audioDurationMs:
+                uploadedAudio?.audioDurationMs ?? _reviewAudioDurationMs,
+            audioMimeType: uploadedAudio?.audioMimeType ?? _reviewAudioMimeType,
+            audioSizeBytes:
+                uploadedAudio?.audioSizeBytes ?? _reviewAudioSizeBytes,
+          );
+
+          final savedReviewId = await ref
+              .read(commentRepositoryProvider)
+              .upsertBookReview(comment);
+
+          if (_shareReviewToFeed) {
+            await _upsertReviewFeedPost(
+              user: user,
+              text: text,
+              now: now,
+              chapter: chapter,
+            );
+            ref.invalidate(feedPostsProvider);
+            ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+            ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+            ref.invalidate(pagedUserFeedPostsProvider(user.id));
+          }
+
+          setState(() {
+            _existingUserReview = comment.copyWith(id: savedReviewId);
+            _commentController.value.text = text;
+            _isReviewEditMode = false;
+            _shareReviewToFeed = false;
+            _selectedQuote = null;
+            _pendingAudioReviewPath = null;
+            _pendingAudioReviewDurationMs = 0;
+            _reviewAudioUrl = comment.audioUrl;
+            _reviewAudioObjectKey = comment.audioObjectKey;
+            _reviewAudioDurationMs = comment.audioDurationMs;
+            _reviewAudioMimeType = comment.audioMimeType;
+            _reviewAudioSizeBytes = comment.audioSizeBytes;
+            _audioObjectKeyPendingDelete = null;
+          });
+          if (oldAudioObjectKey != null &&
+              oldAudioObjectKey != comment.audioObjectKey) {
+            unawaited(
+              ref
+                  .read(audioReviewUploadServiceProvider)
+                  .deleteAudioReviewObject(oldAudioObjectKey),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.saveFailed(e.toString()))),
+            );
+          }
+          return;
+        } finally {
+          if (mounted) setState(() => _isSubmittingComment = false);
+        }
+      }
+      await HapticFeedback.lightImpact();
+      if (wasReply) {
+        _commentController.value.clear();
+      }
+      ref.invalidate(liveBookCommentsProvider(widget.book.id));
+    } finally {
+      if (mounted && _isSubmittingComment) {
+        setState(() => _isSubmittingComment = false);
       }
     }
-    await HapticFeedback.lightImpact();
-    if (wasReply) {
-      _commentController.value.clear();
-    }
-    ref.invalidate(bookCommentsProvider(widget.book.id));
   }
 
   void _showDiscussion(
@@ -2663,7 +2671,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               Consumer(
                                 builder: (context, ref, _) {
                                   final commentsAsync = ref.watch(
-                                    bookCommentsProvider(widget.book.id),
+                                    liveBookCommentsProvider(widget.book.id),
                                   );
                                   return commentsAsync.when(
                                     data: (items) {
@@ -2719,6 +2727,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                               ),
                                               comment: comment,
                                               bookId: widget.book.id,
+                                              bookTitle: widget.book.title,
+                                              bookAuthorName: bookAuthorName(
+                                                widget.book,
+                                              ),
+                                              bookCover: widget.book.coverUrl,
                                               bookAuthorId: _bookAuthorId,
                                               textColor: _getTextColor(),
                                               metadataColor:
@@ -3133,38 +3146,43 @@ class _ChapterDrawer extends StatelessWidget {
       backgroundColor: surfaceColor,
       child: Column(
         children: [
-          DrawerHeader(
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: IconButton.filledTonal(
+                  onPressed: onBack,
+                  tooltip: AppLocalizations.of(context)!.back,
+                  style: IconButton.styleFrom(
+                    foregroundColor: textColor,
+                    backgroundColor: surfaceColor.withValues(alpha: 0.7),
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
             decoration: BoxDecoration(
               color: headerSurface,
               border: Border(
                 bottom: BorderSide(color: headerColor.withValues(alpha: 0.18)),
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.chaptersTitle,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                AppLocalizations.of(context)!.chaptersTitle,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  label: Text(AppLocalizations.of(context)!.back),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: textColor,
-                    backgroundColor: surfaceColor.withValues(alpha: 0.7),
-                    side: BorderSide(
-                      color: accentColor.withValues(alpha: 0.45),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           Expanded(

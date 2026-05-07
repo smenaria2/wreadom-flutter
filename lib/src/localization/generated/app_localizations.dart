@@ -1700,6 +1700,18 @@ abstract class AppLocalizations {
   /// **'Review: {title}'**
   String reviewTitle(String title);
 
+  /// No description provided for @reviewedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewed by'**
+  String get reviewedBy;
+
+  /// No description provided for @ratingOutOfFive.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating} out of 5'**
+  String ratingOutOfFive(String rating);
+
   /// No description provided for @reviewHint.
   ///
   /// In en, this message translates to:

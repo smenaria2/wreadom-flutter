@@ -22,15 +22,22 @@ class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   bool _isInitialized = false;
   GlobalKey<NavigatorState>? _navigatorKey;
+  Map<String, dynamic>? _pendingNavigationData;
+  String? _pendingNavigationKey;
+  String? _lastNavigationKey;
+  DateTime? _lastNavigationAt;
+
+  static const Duration _duplicateNavigationWindow = Duration(seconds: 5);
 
   void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
+    _drainPendingNavigation();
   }
 
   Future<void> init() async {
@@ -51,6 +58,14 @@ class NotificationService {
       settings: initSettings,
       onDidReceiveNotificationResponse: _onTapNotification,
     );
+
+    final launchDetails = await _localNotifications
+        .getNotificationAppLaunchDetails();
+    final launchResponse = launchDetails?.notificationResponse;
+    if (launchDetails?.didNotificationLaunchApp == true &&
+        launchResponse?.payload != null) {
+      _onTapNotification(launchResponse!);
+    }
 
     // 3. Create High Importance Channel for Android
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -164,7 +179,15 @@ class NotificationService {
     );
     final target = NotificationTargetResolver.resolve(notification);
     final navigator = _navigatorKey?.currentState;
-    if (target == null || navigator == null) return;
+    if (target == null) return;
+    final navigationKey = _navigationKey(target, data);
+    if (navigator == null) {
+      if (_pendingNavigationKey == navigationKey) return;
+      _pendingNavigationData = Map<String, dynamic>.from(data);
+      _pendingNavigationKey = navigationKey;
+      return;
+    }
+    if (_isDuplicateNavigationKey(navigationKey)) return;
 
     switch (target.route) {
       case AppRoutes.publicProfile:
@@ -214,6 +237,93 @@ class NotificationService {
       default:
         navigator.pushNamed(target.route, arguments: target.payload);
     }
+  }
+
+  @visibleForTesting
+  void resetNavigationDedupeForTest() {
+    _pendingNavigationData = null;
+    _pendingNavigationKey = null;
+    _lastNavigationKey = null;
+    _lastNavigationAt = null;
+  }
+
+  @visibleForTesting
+  bool isDuplicateNavigationForTest(
+    NotificationTarget target,
+    Map<String, dynamic> data,
+  ) {
+    return _isDuplicateNavigation(target, data);
+  }
+
+  bool _isDuplicateNavigation(
+    NotificationTarget target,
+    Map<String, dynamic> data,
+  ) {
+    return _isDuplicateNavigationKey(_navigationKey(target, data));
+  }
+
+  bool _isDuplicateNavigationKey(String key) {
+    final now = DateTime.now();
+    final lastAt = _lastNavigationAt;
+    final isDuplicate =
+        _lastNavigationKey == key &&
+        lastAt != null &&
+        now.difference(lastAt) < _duplicateNavigationWindow;
+
+    _lastNavigationKey = key;
+    _lastNavigationAt = now;
+    return isDuplicate;
+  }
+
+  String _navigationKey(NotificationTarget target, Map<String, dynamic> data) {
+    final notificationId =
+        data['notificationId']?.toString().trim().isNotEmpty == true
+        ? data['notificationId'].toString().trim()
+        : data['id']?.toString().trim();
+    return [
+      notificationId?.isNotEmpty == true ? notificationId : null,
+      target.route,
+      target.payload,
+      target.commentId,
+      target.replyId,
+    ].whereType<String>().join('|');
+  }
+
+  void _drainPendingNavigation() {
+    final data = _pendingNavigationData;
+    if (data == null) return;
+    _pendingNavigationData = null;
+    _pendingNavigationKey = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_navigatorKey?.currentState == null) {
+        _pendingNavigationData = data;
+        final notification = AppNotification(
+          id: data['notificationId']?.toString(),
+          userId: data['userId']?.toString() ?? '',
+          actorId: data['actorId']?.toString() ?? '',
+          actorName: data['actorName']?.toString() ?? '',
+          type: data['type']?.toString() ?? '',
+          text: data['text']?.toString() ?? '',
+          link:
+              data['url']?.toString() ??
+              data['link']?.toString() ??
+              data['click_action']?.toString() ??
+              '',
+          targetId:
+              data['targetId']?.toString() ??
+              data['conversationId']?.toString(),
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          isRead: false,
+          metadata: data,
+        );
+        final target = NotificationTargetResolver.resolve(notification);
+        _pendingNavigationKey = target == null
+            ? null
+            : _navigationKey(target, data);
+        return;
+      }
+      _navigateFromData(data);
+    });
   }
 
   Future<void> _markNotificationDataRead(Map<String, dynamic> data) async {

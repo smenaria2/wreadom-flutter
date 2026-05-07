@@ -34,6 +34,11 @@ _Message _$MessageFromJson(Map<String, dynamic> json) => _Message(
       ? null
       : MessageStoryData.fromJson(json['storyData'] as Map<String, dynamic>),
   readBy: (json['readBy'] as List<dynamic>).map((e) => e as String).toList(),
+  deletedFor:
+      (json['deletedFor'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
 );
 
 Map<String, dynamic> _$MessageToJson(_Message instance) => <String, dynamic>{
@@ -46,6 +51,7 @@ Map<String, dynamic> _$MessageToJson(_Message instance) => <String, dynamic>{
   'type': instance.type,
   'storyData': instance.storyData,
   'readBy': instance.readBy,
+  'deletedFor': instance.deletedFor,
 };
 
 _ParticipantDetail _$ParticipantDetailFromJson(Map<String, dynamic> json) =>

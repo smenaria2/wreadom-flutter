@@ -4,6 +4,8 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
+import '../../data/utils/firestore_utils.dart';
+import '../../utils/map_utils.dart';
 import 'auth_providers.dart';
 import '../../data/services/offline_service.dart';
 
@@ -33,6 +35,26 @@ final bookDetailProvider = FutureProvider.family<Book?, String>((
   bookId,
 ) async {
   return ref.watch(bookRepositoryProvider).getBook(bookId);
+});
+
+final liveBookDetailProvider = StreamProvider.family<Book?, String>((
+  ref,
+  bookId,
+) async* {
+  final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
+  yield initial;
+
+  if (!_shouldWatchFirebaseBook(bookId, initial)) return;
+
+  yield* FirebaseFirestore.instance
+      .collection('books')
+      .doc(bookId)
+      .snapshots()
+      .map((doc) {
+        if (!doc.exists || doc.data() == null) return null;
+        final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+        return Book.fromJson(data);
+      });
 });
 
 final booksByBookshelfProvider = FutureProvider.family<List<Book>, String>((
@@ -105,6 +127,58 @@ final bookChaptersProvider = FutureProvider.family<List<Chapter>, String>((
 ) async {
   return ref.watch(bookRepositoryProvider).getChapters(bookId);
 });
+
+final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
+  ref,
+  bookId,
+) async* {
+  final initial = await ref.watch(bookRepositoryProvider).getChapters(bookId);
+  yield initial;
+
+  final book = await ref.read(bookRepositoryProvider).getBook(bookId);
+  if (!_shouldWatchFirebaseBook(bookId, book)) return;
+
+  yield* FirebaseFirestore.instance
+      .collection('books')
+      .doc(bookId)
+      .collection('chapters')
+      .orderBy('order')
+      .snapshots()
+      .asyncMap((snapshot) async {
+        if (snapshot.docs.isEmpty) {
+          final book = await ref.read(bookRepositoryProvider).getBook(bookId);
+          return book?.chapters ?? const <Chapter>[];
+        }
+        return snapshot.docs.map((doc) {
+          final data = asStringMap(doc.data());
+          data['id'] = doc.id;
+          data['title'] = data['title']?.toString() ?? 'Chapter';
+          data['content'] = data['content']?.toString() ?? '';
+          data['index'] = data['index'] is num
+              ? (data['index'] as num).toInt()
+              : data['order'] is num
+              ? (data['order'] as num).toInt()
+              : int.tryParse(data['index']?.toString() ?? '') ??
+                    int.tryParse(data['order']?.toString() ?? '') ??
+                    0;
+          if (data['lastSavedAt'] is Timestamp) {
+            data['lastSavedAt'] =
+                (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
+          }
+          return Chapter.fromJson(data);
+        }).toList();
+      });
+});
+
+bool _isFirebaseBookId(String bookId) {
+  return bookId.length == 20 && RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(bookId);
+}
+
+bool _shouldWatchFirebaseBook(String bookId, Book? book) {
+  if (bookId.startsWith('local-')) return false;
+  if (book?.source == 'archive') return false;
+  return book != null || _isFirebaseBookId(bookId);
+}
 
 final offlineChaptersProvider = FutureProvider.family<List<Chapter>, String>((
   ref,

@@ -334,6 +334,15 @@
       }
     }
   },
+  "reviewedBy": "समीक्षाकर्ता",
+  "ratingOutOfFive": "5 में से {rating}",
+  "@ratingOutOfFive": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
   "reviewHint": "इस रचना के बारे में आपके विचार",
   "continueWithGoogle": "Google से जारी रखें",
   "mustBeLoggedInToReportContent": "सामग्री रिपोर्ट करने के लिए लॉग इन करें",

@@ -158,10 +158,10 @@ class HomeBooksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _AuthorSpotlight(),
+              _HomeBannerStrip(bannersAsync: bannersAsync),
               const SizedBox(height: 16),
 
-              _HomeBannerStrip(bannersAsync: bannersAsync),
+              const _AuthorSpotlight(),
               const SizedBox(height: 16),
 
               const _HeroBanner(),

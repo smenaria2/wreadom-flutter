@@ -42,7 +42,7 @@ abstract class MessageRepository {
   Future<void> deleteMessage({
     required String conversationId,
     required String messageId,
-    required String senderId,
+    required String userId,
   });
   Future<void> deleteConversationForUser({
     required String conversationId,

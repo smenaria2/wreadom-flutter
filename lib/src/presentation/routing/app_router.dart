@@ -151,6 +151,10 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
+          settings: RouteSettings(
+            name: AppRoutes.bookDetail,
+            arguments: arguments ?? settings.arguments,
+          ),
           builder: (_) => BookDetailScreen(
             bookId: bookId,
             preloadedBook: book,
@@ -253,6 +257,10 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
+          settings: RouteSettings(
+            name: AppRoutes.postDetail,
+            arguments: arguments ?? settings.arguments,
+          ),
           builder: (_) => PostDetailScreen(
             postId: postId,
             preloadedPost: post,

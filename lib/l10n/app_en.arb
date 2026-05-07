@@ -530,6 +530,15 @@
       }
     }
   },
+  "reviewedBy": "Reviewed by",
+  "ratingOutOfFive": "{rating} out of 5",
+  "@ratingOutOfFive": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
   "reviewHint": "What did you think of this content?",
   "continueWithGoogle": "Continue with Google",
   "mustBeLoggedInToReportContent": "You must be logged in to report content.",

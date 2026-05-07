@@ -1,9 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/firebase_feed_repository.dart';
+import '../../data/utils/firestore_utils.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../../domain/models/feed_post.dart';
+import '../../utils/map_utils.dart';
 import 'auth_providers.dart';
 import 'follow_providers.dart';
 import 'paged_list_state.dart';
@@ -181,3 +184,21 @@ Future<List<FeedPost>> userFeedPosts(Ref ref, String userId) async {
 Future<FeedPost?> singlePost(Ref ref, String postId) async {
   return ref.watch(feedRepositoryProvider).getFeedPost(postId);
 }
+
+final liveSinglePostProvider = StreamProvider.family<FeedPost?, String>((
+  ref,
+  postId,
+) async* {
+  final initial = await ref.watch(feedRepositoryProvider).getFeedPost(postId);
+  yield initial;
+
+  yield* FirebaseFirestore.instance
+      .collection('feed')
+      .doc(postId)
+      .snapshots()
+      .map((doc) {
+        if (!doc.exists || doc.data() == null) return null;
+        final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+        return FeedPost.fromJson(data);
+      });
+});

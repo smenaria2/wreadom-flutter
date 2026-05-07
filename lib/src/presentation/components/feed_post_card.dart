@@ -159,7 +159,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
       ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
-      ref.invalidate(singlePostProvider(widget.post.id!));
+      ref.invalidate(liveSinglePostProvider(widget.post.id!));
 
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -318,7 +318,21 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
     ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
     ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
-    ref.invalidate(singlePostProvider(postId));
+    ref.invalidate(liveSinglePostProvider(postId));
+  }
+
+  FeedPost _postWithOptimisticLike(FeedPost post, String? userId) {
+    final optimisticLiked = _optimisticLiked;
+    if (userId == null || optimisticLiked == null) return post;
+
+    final likes = List<String>.from(post.likes);
+    final hasLike = likes.contains(userId);
+    if (optimisticLiked && !hasLike) {
+      likes.add(userId);
+    } else if (!optimisticLiked && hasLike) {
+      likes.removeWhere((id) => id == userId);
+    }
+    return post.copyWith(likes: likes);
   }
 
   @override
@@ -336,10 +350,11 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         _optimisticLiked ??
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount = _optimisticLikesCount ?? post.likes.length;
+    final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
     final commentsCount = post.id == null
         ? post.commentCount ?? post.comments?.length ?? 0
         : ref
-              .watch(feedPostCommentsProvider(post.id!))
+              .watch(liveFeedPostCommentsProvider(post.id!))
               .maybeWhen(
                 data: (comments) => comments.length,
                 orElse: () => post.commentCount ?? post.comments?.length ?? 0,
@@ -731,7 +746,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     return InkWell(
       onTap: () => Navigator.of(context).pushNamed(
         AppRoutes.postDetail,
-        arguments: PostDetailArguments(postId: post.id!, post: post),
+        arguments: PostDetailArguments(postId: post.id!, post: navigationPost),
       ),
       child: card,
     );
@@ -869,6 +884,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
   }
 
   Future<void> _submitComment() async {
+    if (_submitting) return;
     final text = _ctrl.value.text.trim();
     if (text.isEmpty || widget.post.id == null) return;
     final user = ref.read(currentUserProvider).asData?.value;
@@ -912,8 +928,8 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
         });
       }
 
-      ref.invalidate(feedPostCommentsProvider(widget.post.id!));
-      ref.invalidate(singlePostProvider(widget.post.id!));
+      ref.invalidate(liveFeedPostCommentsProvider(widget.post.id!));
+      ref.invalidate(liveSinglePostProvider(widget.post.id!));
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
@@ -940,7 +956,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final commentsAsync = ref.watch(feedPostCommentsProvider(widget.post.id!));
+    final commentsAsync = ref.watch(
+      liveFeedPostCommentsProvider(widget.post.id!),
+    );
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(

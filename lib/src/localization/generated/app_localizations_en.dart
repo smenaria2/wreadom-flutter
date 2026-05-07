@@ -889,6 +889,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reviewedBy => 'Reviewed by';
+
+  @override
+  String ratingOutOfFive(String rating) {
+    return '$rating out of 5';
+  }
+
+  @override
   String get reviewHint => 'What did you think of this content?';
 
   @override

@@ -119,6 +119,11 @@ class PagedConversationMessagesController
     }
 
     try {
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) {
+        state = const PagedListState(hasMore: false);
+        return;
+      }
       final page = await ref
           .read(messageRepositoryProvider)
           .getMessagesPage(
@@ -128,8 +133,11 @@ class PagedConversationMessagesController
           );
       if (!ref.mounted) return;
       _olderCursor = page.nextCursor;
+      final visibleItems = page.items
+          .where((message) => !message.deletedFor.contains(user.id))
+          .toList();
       state = PagedListState(
-        items: reset ? page.items : [...page.items, ...state.items],
+        items: reset ? visibleItems : [...visibleItems, ...state.items],
         hasMore: page.hasMore,
       );
     } catch (error) {
@@ -145,7 +153,17 @@ class PagedConversationMessagesController
 
 final conversationMessagesProvider =
     StreamProvider.family<List<Message>, String>((ref, conversationId) {
-      return ref.watch(messageRepositoryProvider).watchMessages(conversationId);
+      final userId = ref.watch(currentUserProvider).asData?.value?.id;
+      return ref
+          .watch(messageRepositoryProvider)
+          .watchMessages(conversationId)
+          .map(
+            (messages) => userId == null
+                ? messages
+                : messages
+                      .where((message) => !message.deletedFor.contains(userId))
+                      .toList(),
+          );
     });
 
 final conversationProvider = StreamProvider.family<Conversation?, String>((

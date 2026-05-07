@@ -556,6 +556,8 @@ class _ProfileSideMenu extends ConsumerWidget {
               ),
             ),
             const Divider(height: 1),
+            const _AppVersionTile(),
+            const Divider(height: 1),
             _MenuTile(
               icon: Icons.logout,
               title: l10n.logout,
@@ -622,6 +624,43 @@ class _ProfileSideMenu extends ConsumerWidget {
           .setThemeMode(selected);
     }
     if (context.mounted) Navigator.of(context).pop();
+  }
+}
+
+class _AppVersionTile extends StatefulWidget {
+  const _AppVersionTile();
+
+  @override
+  State<_AppVersionTile> createState() => _AppVersionTileState();
+}
+
+class _AppVersionTileState extends State<_AppVersionTile> {
+  late final Future<String> _versionLabel = _loadVersionLabel();
+
+  Future<String> _loadVersionLabel() async {
+    final info = await PackageInfo.fromPlatform();
+    return 'Version ${info.version} (${info.buildNumber})';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FutureBuilder<String>(
+      future: _versionLabel,
+      builder: (context, snapshot) {
+        return ListTile(
+          enabled: false,
+          leading: const Icon(Icons.info_outline),
+          title: Text(
+            snapshot.data ?? 'Version',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          dense: true,
+        );
+      },
+    );
   }
 }
 

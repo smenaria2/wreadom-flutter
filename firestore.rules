@@ -308,11 +308,10 @@ service cloud.firestore {
           onlyChanges(['viewCount']) &&
           validCounterDelta('viewCount', 0, 1)
         );
-      allow delete: if isAdmin() ||
-        (
-          isPrimaryBookAuthorData(resource.data) &&
-          !hasAcceptedCollaboration(resource.data)
-        );
+      allow delete: if isPrimaryBookAuthorData(resource.data) &&
+        resource.data.collaborationStatus != 'accepted' &&
+        !hasAcceptedCollaboration(resource.data) ||
+        isAdmin();
 
       // Sub-collection for tracking unique views
       match /views/{viewerKey} {
@@ -395,7 +394,14 @@ service cloud.firestore {
             ownsIncoming('senderId') &&
             uid() in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
           );
-        allow update: if isAdmin();
+        allow update: if isAdmin() ||
+          (
+            signedIn() &&
+            uid() in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+            onlyChanges(['deletedFor']) &&
+            request.resource.data.deletedFor is list &&
+            uid() in request.resource.data.deletedFor
+          );
         allow delete: if isAdmin() ||
           (
             ownsExisting('senderId') &&

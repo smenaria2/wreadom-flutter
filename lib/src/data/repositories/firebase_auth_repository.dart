@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -246,18 +248,25 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     final currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      try {
-        final token = await FirebaseMessaging.instance.getToken();
-        if (token != null && token.isNotEmpty) {
-          await removeFcmToken(currentUser.uid, token);
-        }
-      } catch (e) {
-        debugPrint('Failed to remove FCM token during logout: $e');
-      }
-    }
+    final userId = currentUser?.uid;
+    final tokenFuture = userId == null
+        ? Future<String?>.value()
+        : FirebaseMessaging.instance.getToken();
     await _auth.signOut();
     await _googleSignIn.signOut();
+    if (userId != null) {
+      unawaited(
+        tokenFuture
+            .then((token) {
+              if (token != null && token.isNotEmpty) {
+                return removeFcmToken(userId, token);
+              }
+            })
+            .catchError((e) {
+              debugPrint('Failed to remove FCM token during logout: $e');
+            }),
+      );
+    }
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/data/services/notification_service.dart';
 import 'package:librebook_flutter/src/domain/models/app_notification.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/utils/notification_target_resolver.dart';
@@ -228,5 +229,63 @@ void main() {
 
     expect(target?.route, AppRoutes.postDetail);
     expect(target?.payload, 'post1');
+  });
+
+  test('feed comment notification preserves target comment and reply ids', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'feed_comment',
+        metadata: {
+          'postId': 'post42',
+          'commentId': 'comment7',
+          'replyId': 'reply3',
+        },
+      ),
+    );
+
+    expect(target?.route, AppRoutes.postDetail);
+    expect(target?.payload, 'post42');
+    expect(target?.commentId, 'comment7');
+    expect(target?.replyId, 'reply3');
+  });
+
+  test('book review notification preserves target comment and reply ids', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'book_review',
+        metadata: {
+          'bookId': 'book9',
+          'targetCommentId': 'comment9',
+          'targetReplyId': 'reply9',
+        },
+      ),
+    );
+
+    expect(target?.route, AppRoutes.bookDetail);
+    expect(target?.payload, 'book9');
+    expect(target?.commentId, 'comment9');
+    expect(target?.replyId, 'reply9');
+  });
+
+  test('same post notification navigation is deduped', () {
+    final service = NotificationService.instance;
+    service.resetNavigationDedupeForTest();
+    final target = const NotificationTarget(
+      AppRoutes.postDetail,
+      'post42',
+      commentId: 'comment7',
+      replyId: 'reply3',
+    );
+    final data = {
+      'notificationId': 'notification42',
+      'type': 'feed_comment',
+      'postId': 'post42',
+      'commentId': 'comment7',
+      'replyId': 'reply3',
+    };
+
+    expect(service.isDuplicateNavigationForTest(target, data), isFalse);
+    expect(service.isDuplicateNavigationForTest(target, data), isTrue);
+    service.resetNavigationDedupeForTest();
   });
 }

@@ -41,14 +41,15 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     final text = _controller.value.text.trim();
     if (text.isEmpty) return;
 
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
-
     setState(() => _submitting = true);
     try {
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) return;
+
       await ref
           .read(commentRepositoryProvider)
           .addReply(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,9 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../providers/auth_providers.dart';
-import '../providers/book_providers.dart';
-import '../providers/comment_providers.dart';
-import '../providers/feed_providers.dart';
 import '../providers/notification_providers.dart';
 import '../providers/navigation_providers.dart';
 import '../routing/app_routes.dart';
@@ -235,15 +234,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 ),
                               ],
                             ),
-                            trailing: isOpening
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : displayItem.isRead
+                            trailing: displayItem.isRead
                                 ? null
                                 : const Icon(
                                     Icons.circle,
@@ -257,25 +248,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                       _openingNotificationKey = openKey;
                                     });
                                     try {
-                                      await _markNotificationItemRead(
-                                        ref,
-                                        displayItem,
-                                      );
-                                      if (!context.mounted) return;
-
                                       final target =
                                           NotificationTargetResolver.resolve(
                                             item,
                                           );
+                                      unawaited(
+                                        _markNotificationItemRead(
+                                          ref,
+                                          displayItem,
+                                        ),
+                                      );
+                                      if (!context.mounted) return;
+
                                       if (target != null) {
-                                        await _markMatchingCommentNotificationsRead(
-                                          ref,
-                                          displayItem.notifications,
-                                          target,
-                                        );
-                                        await _refreshTargetBeforeOpen(
-                                          ref,
-                                          target,
+                                        unawaited(
+                                          _markMatchingCommentNotificationsRead(
+                                            ref,
+                                            displayItem.notifications,
+                                            target,
+                                          ),
                                         );
                                         if (!context.mounted) return;
 
@@ -370,36 +361,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       _NotificationFilter.posts => l10n.noPostNotificationsYet,
       _NotificationFilter.messages => l10n.noMessageNotificationsYet,
     };
-  }
-}
-
-Future<void> _refreshTargetBeforeOpen(
-  WidgetRef ref,
-  NotificationTarget target,
-) async {
-  switch (target.route) {
-    case AppRoutes.bookDetail:
-      await Future.wait<Object?>([
-        _ignoreRefresh(ref.refresh(bookDetailProvider(target.payload).future)),
-        _ignoreRefresh(
-          ref.refresh(bookCommentsProvider(target.payload).future),
-        ),
-        _ignoreRefresh(
-          ref.refresh(bookVoteStatsProvider(target.payload).future),
-        ),
-        _ignoreRefresh(
-          ref.refresh(userBookVoteProvider(target.payload).future),
-        ),
-      ]);
-      break;
-    case AppRoutes.postDetail:
-      await Future.wait<Object?>([
-        _ignoreRefresh(ref.refresh(singlePostProvider(target.payload).future)),
-        _ignoreRefresh(
-          ref.refresh(feedPostCommentsProvider(target.payload).future),
-        ),
-      ]);
-      break;
   }
 }
 

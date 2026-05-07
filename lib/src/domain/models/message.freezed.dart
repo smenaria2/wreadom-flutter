@@ -288,7 +288,7 @@ as String,
 mixin _$Message {
 
  String? get id; String get senderId; String get senderName; String? get senderPhotoURL; String? get text; int get timestamp; String get type;// 'text' | 'story' | 'system'
- MessageStoryData? get storyData; List<String> get readBy;
+ MessageStoryData? get storyData; List<String> get readBy; List<String> get deletedFor;
 /// Create a copy of Message
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -301,16 +301,16 @@ $MessageCopyWith<Message> get copyWith => _$MessageCopyWithImpl<Message>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Message&&(identical(other.id, id) || other.id == id)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.senderName, senderName) || other.senderName == senderName)&&(identical(other.senderPhotoURL, senderPhotoURL) || other.senderPhotoURL == senderPhotoURL)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.type, type) || other.type == type)&&(identical(other.storyData, storyData) || other.storyData == storyData)&&const DeepCollectionEquality().equals(other.readBy, readBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Message&&(identical(other.id, id) || other.id == id)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.senderName, senderName) || other.senderName == senderName)&&(identical(other.senderPhotoURL, senderPhotoURL) || other.senderPhotoURL == senderPhotoURL)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.type, type) || other.type == type)&&(identical(other.storyData, storyData) || other.storyData == storyData)&&const DeepCollectionEquality().equals(other.readBy, readBy)&&const DeepCollectionEquality().equals(other.deletedFor, deletedFor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,senderId,senderName,senderPhotoURL,text,timestamp,type,storyData,const DeepCollectionEquality().hash(readBy));
+int get hashCode => Object.hash(runtimeType,id,senderId,senderName,senderPhotoURL,text,timestamp,type,storyData,const DeepCollectionEquality().hash(readBy),const DeepCollectionEquality().hash(deletedFor));
 
 @override
 String toString() {
-  return 'Message(id: $id, senderId: $senderId, senderName: $senderName, senderPhotoURL: $senderPhotoURL, text: $text, timestamp: $timestamp, type: $type, storyData: $storyData, readBy: $readBy)';
+  return 'Message(id: $id, senderId: $senderId, senderName: $senderName, senderPhotoURL: $senderPhotoURL, text: $text, timestamp: $timestamp, type: $type, storyData: $storyData, readBy: $readBy, deletedFor: $deletedFor)';
 }
 
 
@@ -321,7 +321,7 @@ abstract mixin class $MessageCopyWith<$Res>  {
   factory $MessageCopyWith(Message value, $Res Function(Message) _then) = _$MessageCopyWithImpl;
 @useResult
 $Res call({
- String? id, String senderId, String senderName, String? senderPhotoURL, String? text, int timestamp, String type, MessageStoryData? storyData, List<String> readBy
+ String? id, String senderId, String senderName, String? senderPhotoURL, String? text, int timestamp, String type, MessageStoryData? storyData, List<String> readBy, List<String> deletedFor
 });
 
 
@@ -338,7 +338,7 @@ class _$MessageCopyWithImpl<$Res>
 
 /// Create a copy of Message
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? senderId = null,Object? senderName = null,Object? senderPhotoURL = freezed,Object? text = freezed,Object? timestamp = null,Object? type = null,Object? storyData = freezed,Object? readBy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? senderId = null,Object? senderName = null,Object? senderPhotoURL = freezed,Object? text = freezed,Object? timestamp = null,Object? type = null,Object? storyData = freezed,Object? readBy = null,Object? deletedFor = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,senderId: null == senderId ? _self.senderId : senderId // ignore: cast_nullable_to_non_nullable
@@ -349,6 +349,7 @@ as String?,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore:
 as int,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,storyData: freezed == storyData ? _self.storyData : storyData // ignore: cast_nullable_to_non_nullable
 as MessageStoryData?,readBy: null == readBy ? _self.readBy : readBy // ignore: cast_nullable_to_non_nullable
+as List<String>,deletedFor: null == deletedFor ? _self.deletedFor : deletedFor // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }
@@ -446,10 +447,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy,  List<String> deletedFor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Message() when $default != null:
-return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy);case _:
+return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy,_that.deletedFor);case _:
   return orElse();
 
 }
@@ -467,10 +468,10 @@ return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy,  List<String> deletedFor)  $default,) {final _that = this;
 switch (_that) {
 case _Message():
-return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy);case _:
+return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy,_that.deletedFor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -487,10 +488,10 @@ return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String senderId,  String senderName,  String? senderPhotoURL,  String? text,  int timestamp,  String type,  MessageStoryData? storyData,  List<String> readBy,  List<String> deletedFor)?  $default,) {final _that = this;
 switch (_that) {
 case _Message() when $default != null:
-return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy);case _:
+return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_that.text,_that.timestamp,_that.type,_that.storyData,_that.readBy,_that.deletedFor);case _:
   return null;
 
 }
@@ -502,7 +503,7 @@ return $default(_that.id,_that.senderId,_that.senderName,_that.senderPhotoURL,_t
 @JsonSerializable()
 
 class _Message implements Message {
-  const _Message({this.id, required this.senderId, required this.senderName, this.senderPhotoURL, this.text, required this.timestamp, required this.type, this.storyData, required final  List<String> readBy}): _readBy = readBy;
+  const _Message({this.id, required this.senderId, required this.senderName, this.senderPhotoURL, this.text, required this.timestamp, required this.type, this.storyData, required final  List<String> readBy, final  List<String> deletedFor = const <String>[]}): _readBy = readBy,_deletedFor = deletedFor;
   factory _Message.fromJson(Map<String, dynamic> json) => _$MessageFromJson(json);
 
 @override final  String? id;
@@ -521,6 +522,13 @@ class _Message implements Message {
   return EqualUnmodifiableListView(_readBy);
 }
 
+ final  List<String> _deletedFor;
+@override@JsonKey() List<String> get deletedFor {
+  if (_deletedFor is EqualUnmodifiableListView) return _deletedFor;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_deletedFor);
+}
+
 
 /// Create a copy of Message
 /// with the given fields replaced by the non-null parameter values.
@@ -535,16 +543,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Message&&(identical(other.id, id) || other.id == id)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.senderName, senderName) || other.senderName == senderName)&&(identical(other.senderPhotoURL, senderPhotoURL) || other.senderPhotoURL == senderPhotoURL)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.type, type) || other.type == type)&&(identical(other.storyData, storyData) || other.storyData == storyData)&&const DeepCollectionEquality().equals(other._readBy, _readBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Message&&(identical(other.id, id) || other.id == id)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.senderName, senderName) || other.senderName == senderName)&&(identical(other.senderPhotoURL, senderPhotoURL) || other.senderPhotoURL == senderPhotoURL)&&(identical(other.text, text) || other.text == text)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.type, type) || other.type == type)&&(identical(other.storyData, storyData) || other.storyData == storyData)&&const DeepCollectionEquality().equals(other._readBy, _readBy)&&const DeepCollectionEquality().equals(other._deletedFor, _deletedFor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,senderId,senderName,senderPhotoURL,text,timestamp,type,storyData,const DeepCollectionEquality().hash(_readBy));
+int get hashCode => Object.hash(runtimeType,id,senderId,senderName,senderPhotoURL,text,timestamp,type,storyData,const DeepCollectionEquality().hash(_readBy),const DeepCollectionEquality().hash(_deletedFor));
 
 @override
 String toString() {
-  return 'Message(id: $id, senderId: $senderId, senderName: $senderName, senderPhotoURL: $senderPhotoURL, text: $text, timestamp: $timestamp, type: $type, storyData: $storyData, readBy: $readBy)';
+  return 'Message(id: $id, senderId: $senderId, senderName: $senderName, senderPhotoURL: $senderPhotoURL, text: $text, timestamp: $timestamp, type: $type, storyData: $storyData, readBy: $readBy, deletedFor: $deletedFor)';
 }
 
 
@@ -555,7 +563,7 @@ abstract mixin class _$MessageCopyWith<$Res> implements $MessageCopyWith<$Res> {
   factory _$MessageCopyWith(_Message value, $Res Function(_Message) _then) = __$MessageCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, String senderId, String senderName, String? senderPhotoURL, String? text, int timestamp, String type, MessageStoryData? storyData, List<String> readBy
+ String? id, String senderId, String senderName, String? senderPhotoURL, String? text, int timestamp, String type, MessageStoryData? storyData, List<String> readBy, List<String> deletedFor
 });
 
 
@@ -572,7 +580,7 @@ class __$MessageCopyWithImpl<$Res>
 
 /// Create a copy of Message
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? senderId = null,Object? senderName = null,Object? senderPhotoURL = freezed,Object? text = freezed,Object? timestamp = null,Object? type = null,Object? storyData = freezed,Object? readBy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? senderId = null,Object? senderName = null,Object? senderPhotoURL = freezed,Object? text = freezed,Object? timestamp = null,Object? type = null,Object? storyData = freezed,Object? readBy = null,Object? deletedFor = null,}) {
   return _then(_Message(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,senderId: null == senderId ? _self.senderId : senderId // ignore: cast_nullable_to_non_nullable
@@ -583,6 +591,7 @@ as String?,timestamp: null == timestamp ? _self.timestamp : timestamp // ignore:
 as int,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,storyData: freezed == storyData ? _self.storyData : storyData // ignore: cast_nullable_to_non_nullable
 as MessageStoryData?,readBy: null == readBy ? _self._readBy : readBy // ignore: cast_nullable_to_non_nullable
+as List<String>,deletedFor: null == deletedFor ? _self._deletedFor : deletedFor // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }

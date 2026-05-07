@@ -56,6 +56,28 @@ flutter test
 cd functions && npm test
 ```
 
+## App Versioning
+
+Keep the manual app version in [pubspec.yaml](C:\Users\user\librebook_flutter\pubspec.yaml):
+
+```yaml
+version: 1.0.0+1
+```
+
+The part before `+` is the visible app version. The build number is overridden for release builds by [scripts/build_release.ps1](C:\Users\user\librebook_flutter\scripts\build_release.ps1), so the app displays the actual packaged value from `package_info_plus`.
+
+```powershell
+.\scripts\build_release.ps1 -Target appbundle
+.\scripts\build_release.ps1 -Target apk
+.\scripts\build_release.ps1 -Target ipa
+```
+
+To set a specific build number manually:
+
+```powershell
+.\scripts\build_release.ps1 -Target appbundle -BuildNumber 2026050601
+```
+
 ### Deploy functions
 
 ```bash

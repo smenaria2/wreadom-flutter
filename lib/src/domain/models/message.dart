@@ -28,6 +28,7 @@ abstract class Message with _$Message {
     required String type, // 'text' | 'story' | 'system'
     MessageStoryData? storyData,
     required List<String> readBy,
+    @Default(<String>[]) List<String> deletedFor,
   }) = _Message;
 
   factory Message.fromJson(Map<String, dynamic> json) =>

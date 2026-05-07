@@ -14,6 +14,7 @@ import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../components/review_share_card.dart';
 import '../widgets/report_dialog.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
@@ -25,6 +26,9 @@ class CommentTile extends ConsumerStatefulWidget {
     this.metadataColor,
     this.actionColor,
     this.bookId,
+    this.bookTitle,
+    this.bookAuthorName,
+    this.bookCover,
     this.bookAuthorId,
     this.isTargetComment = false,
     this.targetReplyId,
@@ -36,6 +40,9 @@ class CommentTile extends ConsumerStatefulWidget {
   final Color? metadataColor;
   final Color? actionColor;
   final String? bookId;
+  final String? bookTitle;
+  final String? bookAuthorName;
+  final String? bookCover;
   final String? bookAuthorId;
   final bool isTargetComment;
   final String? targetReplyId;
@@ -193,9 +200,17 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       _toggleHighlight();
     } else if (widget.comment.userId == user.id) {
       _editComment();
+    } else if (_canShareReview(widget.comment)) {
+      _shareReview();
     } else if (widget.comment.id != null) {
       _reportComment(widget.comment);
     }
+  }
+
+  bool _canShareReview(Comment comment) {
+    return (comment.rating ?? 0) > 0 &&
+        (widget.bookId?.trim().isNotEmpty == true ||
+            comment.bookId?.toString().trim().isNotEmpty == true);
   }
 
   bool _canHighlight(dynamic user) {
@@ -216,6 +231,20 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     );
   }
 
+  Future<void> _shareReview() async {
+    final comment = widget.comment;
+    final resolvedBookId = widget.bookId ?? comment.bookId?.toString();
+    if (resolvedBookId == null || resolvedBookId.trim().isEmpty) return;
+    await shareReviewCommentCard(
+      context,
+      comment: comment,
+      bookId: resolvedBookId,
+      bookTitle: _resolvedBookTitle(context, comment),
+      bookAuthorName: widget.bookAuthorName?.trim() ?? '',
+      bookCover: widget.bookCover,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -231,17 +260,23 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final isHighlighted = comment.isHighlighted == true;
     final canHighlight = user != null && _canHighlight(user);
     final isOwner = user != null && comment.userId == user.id;
+    final canShareReview = _canShareReview(comment);
+    final showShareSwipeAction = canShareReview && !canHighlight && !isOwner;
     final leftLabel = canHighlight
         ? isHighlighted
               ? l10n.unpin
               : l10n.pin
         : isOwner
         ? l10n.edit
+        : showShareSwipeAction
+        ? l10n.sharePost
         : l10n.report;
     final leftIcon = canHighlight
         ? Icons.push_pin_outlined
         : isOwner
         ? Icons.edit_outlined
+        : showShareSwipeAction
+        ? Icons.share_outlined
         : Icons.report_problem_outlined;
 
     final tile = Column(
@@ -284,9 +319,20 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         case 'report':
                           _reportComment(comment);
                           break;
+                        case 'share':
+                          _shareReview();
+                          break;
                       }
                     },
                     itemBuilder: (context) => [
+                      if (canShareReview)
+                        PopupMenuItem(
+                          value: 'share',
+                          child: _MenuRow(
+                            icon: Icons.share_outlined,
+                            label: l10n.sharePost,
+                          ),
+                        ),
                       if (canHighlight)
                         PopupMenuItem(
                           value: 'pin',
@@ -387,10 +433,15 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                 ],
                 Row(
                   children: [
-                    Text(
-                      _formatTimestamp(context, comment.timestamp),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: widget.metadataColor,
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Text(
+                        _formatTimestamp(context, comment.timestamp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: widget.metadataColor,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -417,6 +468,23 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    if (canShareReview) ...[
+                      GestureDetector(
+                        onTap: _shareReview,
+                        child: Tooltip(
+                          message: l10n.sharePost,
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.share_outlined,
+                              size: 14,
+                              color: widget.metadataColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
                     GestureDetector(
                       onTap: widget.onReply,
                       child: Text(
@@ -479,6 +547,12 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       child: tile,
     );
   }
+}
+
+String _resolvedBookTitle(BuildContext context, Comment comment) {
+  final title = comment.bookTitle?.trim();
+  if (title != null && title.isNotEmpty) return title;
+  return AppLocalizations.of(context)!.appTitle;
 }
 
 class ReplyTile extends ConsumerStatefulWidget {

@@ -390,7 +390,7 @@ void main() {
       expect(source, contains('if (!canEdit)'));
       expect(source, isNot(contains('PopupMenuButton<String>')));
       expect(source, contains('_RatingStat'));
-      expect(source, contains('bookCommentsProvider(book.id)'));
+      expect(source, contains('liveBookCommentsProvider(book.id)'));
       expect(source, contains('comment.rating'));
       expect(source, contains('l10n.noRatings'));
     },
@@ -1393,6 +1393,9 @@ void main() {
     final resolverSource = File(
       'lib/src/utils/notification_target_resolver.dart',
     ).readAsStringSync();
+    final serviceSource = File(
+      'lib/src/data/services/notification_service.dart',
+    ).readAsStringSync();
     final routerSource = File(
       'lib/src/presentation/routing/app_router.dart',
     ).readAsStringSync();
@@ -1406,6 +1409,8 @@ void main() {
     expect(notificationSource, contains('BookDetailArguments'));
     expect(resolverSource, contains('commentId'));
     expect(resolverSource, contains('replyId'));
+    expect(serviceSource, contains('_duplicateNavigationWindow'));
+    expect(serviceSource, contains('_isDuplicateNavigation'));
     expect(routerSource, contains('targetCommentId'));
     expect(routerSource, contains('targetReplyId'));
   });

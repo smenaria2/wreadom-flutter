@@ -95,6 +95,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  String? _lastDeepLinkKey;
+  DateTime? _lastDeepLinkAt;
+
+  static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -129,10 +133,24 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   void _handleUri(Uri uri) {
+    if (_isDuplicateDeepLink(uri)) return;
     debugPrint('Handling deep link: $uri');
     // We pass the full string to pushNamed, as AppRouter will resolve it
     // using AppLinkHelper. This works for both http/https and custom schemes.
     _navigatorKey.currentState?.pushNamed(uri.toString());
+  }
+
+  bool _isDuplicateDeepLink(Uri uri) {
+    final now = DateTime.now();
+    final key = uri.toString();
+    final lastAt = _lastDeepLinkAt;
+    final isDuplicate =
+        _lastDeepLinkKey == key &&
+        lastAt != null &&
+        now.difference(lastAt) < _duplicateDeepLinkWindow;
+    _lastDeepLinkKey = key;
+    _lastDeepLinkAt = now;
+    return isDuplicate;
   }
 
   @override
@@ -202,6 +220,15 @@ class AuthWrapper extends ConsumerWidget {
         ref.invalidate(currentUserProvider);
         ref.invalidate(notificationsProvider);
         ref.invalidate(pagedNotificationsProvider);
+      }
+      if (previousId != null && nextId == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).popUntil((route) => route.isFirst);
+        });
       }
     });
     final authState = ref.watch(authStateProvider);

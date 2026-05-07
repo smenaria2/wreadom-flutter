@@ -31,7 +31,7 @@ class PostDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postAsync = ref.watch(singlePostProvider(postId));
+    final postAsync = ref.watch(liveSinglePostProvider(postId));
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -62,8 +62,8 @@ class PostDetailScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(singlePostProvider(postId));
-              ref.invalidate(feedPostCommentsProvider(postId));
+              ref.invalidate(liveSinglePostProvider(postId));
+              ref.invalidate(liveFeedPostCommentsProvider(postId));
             },
             child: ListView(
               children: [
@@ -88,9 +88,82 @@ class PostDetailScreen extends ConsumerWidget {
                   ),
                 ],
               )
-            : const Center(child: CircularProgressIndicator()),
+            : const _PostDetailSkeleton(),
         error: (err, _) =>
             Center(child: Text(l10n.failedToLoadPost(err.toString()))),
+      ),
+    );
+  }
+}
+
+class _PostDetailSkeleton extends StatelessWidget {
+  const _PostDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          children: [
+            _SkeletonBlock(width: 48, height: 48, radius: 24, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SkeletonBlock(width: 160, height: 16, color: color),
+                  const SizedBox(height: 8),
+                  _SkeletonBlock(width: 96, height: 12, color: color),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _SkeletonBlock(height: 18, color: color),
+        const SizedBox(height: 10),
+        _SkeletonBlock(height: 18, color: color),
+        const SizedBox(height: 10),
+        _SkeletonBlock(width: 220, height: 18, color: color),
+        const SizedBox(height: 28),
+        _SkeletonBlock(height: 1, color: color),
+        const SizedBox(height: 20),
+        _SkeletonBlock(width: 140, height: 18, color: color),
+        const SizedBox(height: 14),
+        _SkeletonBlock(height: 72, radius: 12, color: color),
+        const SizedBox(height: 12),
+        _SkeletonBlock(height: 72, radius: 12, color: color),
+      ],
+    );
+  }
+}
+
+class _SkeletonBlock extends StatelessWidget {
+  const _SkeletonBlock({
+    this.width,
+    required this.height,
+    this.radius = 8,
+    required this.color,
+  });
+
+  final double? width;
+  final double height;
+  final double radius;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: width ?? double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(radius),
+        ),
       ),
     );
   }
@@ -133,6 +206,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     final l10n = AppLocalizations.of(context)!;
     final postId = widget.post.id;
     final text = _controller.value.text.trim();
@@ -177,8 +251,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
       await HapticFeedback.lightImpact();
       _controller.value.clear();
       setState(() => _replyingTo = null);
-      ref.invalidate(feedPostCommentsProvider(postId));
-      ref.invalidate(singlePostProvider(postId));
+      ref.invalidate(liveFeedPostCommentsProvider(postId));
+      ref.invalidate(liveSinglePostProvider(postId));
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
@@ -198,7 +272,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
     if (postId == null) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
-    final commentsAsync = ref.watch(feedPostCommentsProvider(postId));
+    final commentsAsync = ref.watch(liveFeedPostCommentsProvider(postId));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),

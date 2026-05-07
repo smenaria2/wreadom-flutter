@@ -32,6 +32,7 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _sending = false;
 
   @override
   void initState() {
@@ -52,6 +53,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendMessage() async {
+    if (_sending) return;
+    final text = _controller.text.trim();
+    final currentUser = ref.read(currentUserProvider).asData?.value;
+    if (text.isEmpty || currentUser == null) return;
+
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(messageRepositoryProvider)
+          .sendMessage(
+            conversationId: widget.conversationId,
+            sender: currentUser,
+            text: text,
+          );
+      _controller.clear();
+      await ref
+          .read(
+            pagedConversationMessagesProvider(widget.conversationId).notifier,
+          )
+          .refresh();
+    } on MessageLimitException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override
@@ -178,6 +210,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     final messageIndex = index - (hasLoader ? 1 : 0);
                     final message = messages[messageIndex];
                     final isMine = message.senderId == currentUser?.id;
+                    final canDeleteMessage =
+                        currentUser != null &&
+                        message.id?.trim().isNotEmpty == true &&
+                        !_isProtectedFirstMessage(
+                          conversation: conversation,
+                          message: message,
+                          currentUserId: currentUser.id,
+                        );
                     final placement = messageGroupPlacement(
                       messages,
                       messageIndex,
@@ -187,23 +227,31 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: _MessageSwipeShell(
-                        enabled:
-                            isMine &&
-                            currentUser != null &&
-                            message.id?.trim().isNotEmpty == true,
+                        enabled: canDeleteMessage,
                         onDelete: () async {
                           final messageId = message.id;
                           if (currentUser == null || messageId == null) {
                             return;
                           }
-                          await ref
-                              .read(messageRepositoryProvider)
-                              .deleteMessage(
-                                conversationId: widget.conversationId,
-                                messageId: messageId,
-                                senderId: currentUser.id,
-                              );
-                          await messagesController.refresh();
+                          try {
+                            await ref
+                                .read(messageRepositoryProvider)
+                                .deleteMessage(
+                                  conversationId: widget.conversationId,
+                                  messageId: messageId,
+                                  userId: currentUser.id,
+                                );
+                            await messagesController.refresh();
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.failedToLoadWithError(error.toString()),
+                                ),
+                              ),
+                            );
+                          }
                         },
                         child: _MessageBubble(
                           message: message,
@@ -284,27 +332,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.send),
-                          onPressed: () async {
-                            final text = _controller.text.trim();
-                            if (text.isEmpty || currentUser == null) return;
-                            try {
-                              await ref
-                                  .read(messageRepositoryProvider)
-                                  .sendMessage(
-                                    conversationId: widget.conversationId,
-                                    sender: currentUser,
-                                    text: text,
-                                  );
-                              _controller.clear();
-                              await messagesController.refresh();
-                            } on MessageLimitException catch (error) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(error.message)),
-                              );
-                            }
-                          },
+                          icon: _sending
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send),
+                          onPressed: _sending ? null : _sendMessage,
                         ),
                       ],
                     ),
@@ -328,6 +365,31 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
     if (messages.isEmpty) return false;
     return !messages.any((message) => message.senderId != currentUserId);
+  }
+
+  bool _isProtectedFirstMessage({
+    required Conversation? conversation,
+    required Message message,
+    required String currentUserId,
+  }) {
+    if (conversation == null || conversation.type != 'direct') return false;
+    if (conversation.createdBy != currentUserId) return false;
+    if (conversation.lastMessage == null) return false;
+    if (message.senderId != currentUserId) return false;
+    final hasRecipientReply = messagesStateHasRecipientReply(
+      ref.read(pagedConversationMessagesProvider(widget.conversationId)).items,
+      currentUserId,
+    );
+    if (hasRecipientReply) return false;
+    return conversation.lastMessage?.senderId == currentUserId &&
+        conversation.lastMessage?.timestamp == message.timestamp;
+  }
+
+  bool messagesStateHasRecipientReply(
+    List<Message> messages,
+    String currentUserId,
+  ) {
+    return messages.any((message) => message.senderId != currentUserId);
   }
 
   Future<void> _blockOtherUser(
@@ -484,6 +546,36 @@ class _MessageSwipeShellState extends State<_MessageSwipeShell> {
       _hapticArmed = false;
     });
     if (!shouldDelete || _deleting) return;
+    await _delete();
+  }
+
+  Future<void> _confirmDelete() async {
+    if (!widget.enabled || _deleting) return;
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.delete),
+        content: Text(l10n.deleteActionUndone),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _delete();
+    }
+  }
+
+  Future<void> _delete() async {
+    if (_deleting) return;
     HapticFeedback.lightImpact();
     setState(() => _deleting = true);
     try {
@@ -520,6 +612,7 @@ class _MessageSwipeShellState extends State<_MessageSwipeShell> {
               _dragOffset = 0;
               _hapticArmed = false;
             }),
+            onLongPress: _confirmDelete,
             child: AnimatedContainer(
               duration: _dragOffset == 0
                   ? const Duration(milliseconds: 180)

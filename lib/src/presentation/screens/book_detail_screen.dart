@@ -75,13 +75,12 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bookAsync = widget.preloadedBook != null
-        ? AsyncValue.data(widget.preloadedBook)
-        : ref.watch(bookDetailProvider(widget.bookId));
+    final bookAsync = ref.watch(liveBookDetailProvider(widget.bookId));
 
     return Scaffold(
       body: bookAsync.when(
-        data: (book) {
+        data: (liveBook) {
+          final book = liveBook ?? widget.preloadedBook;
           if (book == null) {
             return StaticInfoScreen(
               title: 'Content Not Found',
@@ -108,7 +107,14 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
             targetReplyId: widget.targetReplyId,
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => widget.preloadedBook != null
+            ? _BookDetailBody(
+                book: widget.preloadedBook!,
+                heroTag: widget.heroTag,
+                targetCommentId: widget.targetCommentId,
+                targetReplyId: widget.targetReplyId,
+              )
+            : const _BookDetailSkeleton(),
         error: (err, _) => Center(
           child: Text(
             '${AppLocalizations.of(context)!.somethingWentWrong}: $err',
@@ -125,6 +131,111 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       unawaited(ref.read(bookChaptersProvider(bookId).future));
       unawaited(ref.read(offlineChaptersProvider(bookId).future));
     });
+  }
+}
+
+class _BookDetailSkeleton extends StatelessWidget {
+  const _BookDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 330,
+          pinned: true,
+          flexibleSpace: FlexibleSpaceBar(
+            background: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.18),
+                    Theme.of(context).colorScheme.surface,
+                  ],
+                ),
+              ),
+              child: Center(
+                child: _DetailSkeletonBlock(
+                  width: 150,
+                  height: 220,
+                  radius: 12,
+                  color: color,
+                ),
+              ),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _DetailSkeletonBlock(height: 28, color: color),
+              const SizedBox(height: 10),
+              _DetailSkeletonBlock(width: 180, height: 16, color: color),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  _DetailSkeletonBlock(width: 90, height: 24, color: color),
+                  _DetailSkeletonBlock(width: 110, height: 24, color: color),
+                  _DetailSkeletonBlock(width: 86, height: 24, color: color),
+                ],
+              ),
+              const SizedBox(height: 28),
+              _DetailSkeletonBlock(height: 50, radius: 12, color: color),
+              const SizedBox(height: 30),
+              _DetailSkeletonBlock(width: 150, height: 20, color: color),
+              const SizedBox(height: 12),
+              _DetailSkeletonBlock(height: 16, color: color),
+              const SizedBox(height: 8),
+              _DetailSkeletonBlock(height: 16, color: color),
+              const SizedBox(height: 8),
+              _DetailSkeletonBlock(width: 230, height: 16, color: color),
+              const SizedBox(height: 30),
+              _DetailSkeletonBlock(width: 170, height: 20, color: color),
+              const SizedBox(height: 12),
+              _DetailSkeletonBlock(height: 76, radius: 12, color: color),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailSkeletonBlock extends StatelessWidget {
+  const _DetailSkeletonBlock({
+    this.width,
+    required this.height,
+    this.radius = 8,
+    required this.color,
+  });
+
+  final double? width;
+  final double height;
+  final double radius;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: width ?? double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
   }
 }
 
@@ -236,17 +347,19 @@ class _BookDetailBody extends ConsumerWidget {
         canEditCollaborativeBook(book, currentUser.id);
 
     Future<void> refresh() async {
-      ref.invalidate(bookDetailProvider(book.id));
-      ref.invalidate(bookChaptersProvider(book.id));
-      ref.invalidate(bookCommentsProvider(book.id));
+      ref.invalidate(liveBookDetailProvider(book.id));
+      ref.invalidate(liveBookChaptersProvider(book.id));
+      ref.invalidate(liveBookCommentsProvider(book.id));
       ref.invalidate(currentUserProvider);
       await Future.wait([
-        ref.read(bookDetailProvider(book.id).future).catchError((_) => null),
         ref
-            .read(bookChaptersProvider(book.id).future)
+            .read(liveBookDetailProvider(book.id).future)
+            .catchError((_) => null),
+        ref
+            .read(liveBookChaptersProvider(book.id).future)
             .catchError((_) => <Chapter>[]),
         ref
-            .read(bookCommentsProvider(book.id).future)
+            .read(liveBookCommentsProvider(book.id).future)
             .catchError((_) => <Comment>[]),
       ]);
     }
@@ -833,7 +946,7 @@ class _LatestDiscussionSectionState
 
   @override
   Widget build(BuildContext context) {
-    final commentsAsync = ref.watch(bookCommentsProvider(widget.book.id));
+    final commentsAsync = ref.watch(liveBookCommentsProvider(widget.book.id));
     final theme = Theme.of(context);
 
     return commentsAsync.when(
@@ -868,6 +981,9 @@ class _LatestDiscussionSectionState
                 ),
                 comment: targetComment,
                 bookId: widget.book.id,
+                bookTitle: widget.book.title,
+                bookAuthorName: bookAuthorName(widget.book),
+                bookCover: widget.book.coverUrl,
                 bookAuthorId: widget.book.authorId,
                 onReply: () => _showReplySheet(targetComment),
                 isTargetComment: true,
@@ -882,6 +998,9 @@ class _LatestDiscussionSectionState
                 ),
                 comment: comment,
                 bookId: widget.book.id,
+                bookTitle: widget.book.title,
+                bookAuthorName: bookAuthorName(widget.book),
+                bookCover: widget.book.coverUrl,
                 bookAuthorId: widget.book.authorId,
                 onReply: () => _showReplySheet(comment),
               ),
@@ -1003,7 +1122,7 @@ class _StatsRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textColor = Colors.grey[600];
-    final commentsAsync = ref.watch(bookCommentsProvider(book.id));
+    final commentsAsync = ref.watch(liveBookCommentsProvider(book.id));
     final rating = commentsAsync.maybeWhen(
       data: (comments) => _ratingSummary(book, comments),
       orElse: () => _ratingSummary(book, const <Comment>[]),

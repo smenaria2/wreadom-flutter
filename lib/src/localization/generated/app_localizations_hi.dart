@@ -891,6 +891,14 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get reviewedBy => 'समीक्षाकर्ता';
+
+  @override
+  String ratingOutOfFive(String rating) {
+    return '5 में से $rating';
+  }
+
+  @override
   String get reviewHint => 'इस रचना के बारे में आपके विचार';
 
   @override
