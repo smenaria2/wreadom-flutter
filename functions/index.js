@@ -159,6 +159,94 @@ async function deleteNotificationDoc(docId) {
   await db.collection("notifications").doc(docId).delete().catch(() => undefined);
 }
 
+function notificationValue(...values) {
+  for (const value of values) {
+    const normalized = normalizeString(value);
+    if (normalized) return normalized;
+  }
+  return "";
+}
+
+function textLooksLikeBookComment(text) {
+  const normalized = text.toLowerCase();
+  return normalized === "commented on your content" ||
+    normalized.startsWith("commented on your book:") ||
+    normalized.includes(" has commented on ");
+}
+
+function isSupersededBookCommentNotification(
+    docId,
+    data,
+    ownerId,
+    actorId,
+    bookId,
+    commentId,
+    keepDocId,
+) {
+  if (docId === keepDocId) return false;
+  if (notificationValue(data.userId) !== ownerId) return false;
+  if (notificationValue(data.actorId) !== actorId) return false;
+
+  const type = notificationValue(data.type).toLowerCase();
+  const text = notificationValue(data.text);
+  if (type !== "book_comment" && type !== "comment" && !textLooksLikeBookComment(text)) {
+    return false;
+  }
+
+  const metadata = data.metadata || {};
+  const targetId = notificationValue(data.targetId);
+  const link = notificationValue(data.link);
+  const metadataBookId = notificationValue(metadata.bookId, data.bookId);
+  const metadataCommentId = notificationValue(metadata.commentId, data.commentId);
+
+  const bookMatches = metadataBookId === bookId ||
+    targetId === bookId ||
+    (bookId && link.includes(bookId));
+  const commentMatches = metadataCommentId === commentId ||
+    targetId === commentId ||
+    (commentId && (link.includes(commentId) || docId.includes(commentId)));
+
+  return bookMatches && commentMatches;
+}
+
+async function deleteSupersededBookCommentNotifications(
+    ownerId,
+    actorId,
+    bookId,
+    commentId,
+    keepDocId,
+) {
+  if (!ownerId || !actorId || !bookId || !commentId) return;
+
+  const snapshot = await db.collection("notifications")
+      .where("userId", "==", ownerId)
+      .limit(200)
+      .get()
+      .catch(() => null);
+  if (!snapshot) return;
+
+  const batch = db.batch();
+  let deletes = 0;
+  snapshot.docs.forEach((doc) => {
+    if (isSupersededBookCommentNotification(
+        doc.id,
+        doc.data(),
+        ownerId,
+        actorId,
+        bookId,
+        commentId,
+        keepDocId,
+    )) {
+      batch.delete(doc.ref);
+      deletes += 1;
+    }
+  });
+
+  if (deletes > 0) {
+    await batch.commit();
+  }
+}
+
 function shouldSendPushNotification(beforeData, afterData) {
   if (!afterData) {
     return false;
@@ -365,8 +453,9 @@ async function notifyBookOwnersForBookActivity(commentId, data = {}) {
   const ownerIds = acceptedBookAuthorIds(book);
   const actorName = userDisplayName(data);
   for (const ownerId of ownerIds) {
+    const notificationDocId = `book_comment_${commentId}_${ownerId}`;
     await createNotificationDoc(
-        `book_comment_${commentId}_${ownerId}`,
+        notificationDocId,
         buildNotification({
           userId: ownerId,
           actorId,
@@ -391,6 +480,15 @@ async function notifyBookOwnersForBookActivity(commentId, data = {}) {
         }),
     );
     await deleteNotificationDoc(`book_audio_review_${commentId}_${ownerId}`);
+    if (isReview) {
+      await deleteSupersededBookCommentNotifications(
+          ownerId,
+          actorId,
+          bookId,
+          commentId,
+          notificationDocId,
+      );
+    }
   }
 }
 
@@ -984,6 +1082,54 @@ exports.onFollowDeleted = functionsV1.firestore.document("follows/{followId}").o
   return null;
 });
 
+exports.onRecommendationWrite = functionsV1.firestore.document("recommendations/{recommendationId}").onWrite(async (change, context) => {
+  const beforeData = change.before.exists ? change.before.data() : null;
+  const afterData = change.after.exists ? change.after.data() : null;
+  const bookId = normalizeString(afterData?.bookId || beforeData?.bookId);
+  if (!bookId) {
+    logger.warn("No bookId found in recommendation change:", context.params.recommendationId);
+    return null;
+  }
+
+  let upDelta = 0;
+  let downDelta = 0;
+  const oldType = normalizeString(beforeData?.type).toLowerCase();
+  const newType = normalizeString(afterData?.type).toLowerCase();
+
+  if (oldType === "up") upDelta -= 1;
+  if (oldType === "down") downDelta -= 1;
+  if (newType === "up") upDelta += 1;
+  if (newType === "down") downDelta += 1;
+  if (upDelta === 0 && downDelta === 0) {
+    return null;
+  }
+
+  const updates = {};
+  if (upDelta !== 0) {
+    updates.upvotes = FieldValue.increment(upDelta);
+  }
+  if (downDelta !== 0) {
+    updates.downvotes = FieldValue.increment(downDelta);
+  }
+
+  await db.collection("book_stats").doc(bookId).set(updates, {merge: true});
+  logger.info("Updated book_stats recommendation counters", {bookId, upDelta, downDelta});
+  return null;
+});
+
+exports.onBookViewCreate = functionsV1.firestore.document("books/{bookId}/views/{viewId}").onCreate(async (snapshot, context) => {
+  const bookId = normalizeString(context.params.bookId);
+  if (!bookId) {
+    return null;
+  }
+
+  await db.collection("book_stats").doc(bookId).set({
+    viewCount: FieldValue.increment(1),
+  }, {merge: true});
+  logger.info("Incremented book_stats viewCount", {bookId});
+  return null;
+});
+
 exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}").onWrite(async (change, context) => {
   const beforeData = change.before.exists ? change.before.data() : null;
   const afterData = change.after.exists ? change.after.data() : null;
@@ -1506,5 +1652,6 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     publishedBookNotificationText,
     newChapterNotificationText,
     chapterKey,
+    isSupersededBookCommentNotification,
   };
 }

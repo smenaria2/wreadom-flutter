@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -147,5 +146,19 @@ void main() {
     expect(match, isNotNull);
     expect(match!.group(0), isNot(contains('book_review')));
     expect(match.group(0), isNot(contains('review')));
+  });
+
+  test('content comment duplicates are hidden when a review exists', () {
+    final source = File(
+      'lib/src/presentation/screens/notifications_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_dedupeSupersededContentNotifications'));
+    expect(
+      source,
+      contains("notification.type.toLowerCase() == 'book_review'"),
+    );
+    expect(source, contains("type != 'book_comment' && type != 'comment'"));
+    expect(source, contains('_contentCommentKey'));
   });
 }

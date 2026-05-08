@@ -7,6 +7,8 @@ const exported = require("../index.js");
 test("functions module loads", () => {
   assert.ok(exported);
   assert.ok(typeof exported.onFollowCreated === "function");
+  assert.ok(typeof exported.onRecommendationWrite === "function");
+  assert.ok(typeof exported.onBookViewCreate === "function");
   assert.ok(typeof exported.sendPushNotification === "function");
   assert.ok(typeof exported.onMessageCreated === "function");
   assert.ok(typeof exported.createAudioReviewUploadTarget === "function");
@@ -141,5 +143,47 @@ test("multi-chapter review uses selected chapter title without extra chapter lab
           {chapterId: "chapter-2"},
       ),
       "Asha has left a review on 'Meeting Her' of poem 'New Life'.",
+  );
+});
+
+test("review cleanup detects legacy duplicate book comment notifications", () => {
+  assert.equal(
+      exported.__test.isSupersededBookCommentNotification(
+          "legacy_doc",
+          {
+            userId: "owner",
+            actorId: "actor",
+            type: "book_comment",
+            text: "commented on your book: New Life",
+            targetId: "comment1",
+            link: "/book/book1?comment=comment1",
+            metadata: {bookId: "book1"},
+          },
+          "owner",
+          "actor",
+          "book1",
+          "comment1",
+          "book_comment_comment1_owner",
+      ),
+      true,
+  );
+
+  assert.equal(
+      exported.__test.isSupersededBookCommentNotification(
+          "book_comment_comment1_owner",
+          {
+            userId: "owner",
+            actorId: "actor",
+            type: "book_review",
+            targetId: "book1",
+            metadata: {bookId: "book1", commentId: "comment1"},
+          },
+          "owner",
+          "actor",
+          "book1",
+          "comment1",
+          "book_comment_comment1_owner",
+      ),
+      false,
   );
 });

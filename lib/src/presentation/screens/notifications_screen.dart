@@ -420,8 +420,11 @@ List<_NotificationListItem> _groupNotificationItems(
 ) {
   final result = <_NotificationListItem>[];
   final messageGroups = <String, List<AppNotification>>{};
+  final visibleNotifications = _dedupeSupersededContentNotifications(
+    notifications,
+  );
 
-  for (final notification in notifications) {
+  for (final notification in visibleNotifications) {
     if (!_isMessageNotification(notification)) {
       result.add(_NotificationListItem.single(notification));
       continue;
@@ -444,6 +447,58 @@ List<_NotificationListItem> _groupNotificationItems(
 
   result.sort((a, b) => b.latest.timestamp.compareTo(a.latest.timestamp));
   return result;
+}
+
+List<AppNotification> _dedupeSupersededContentNotifications(
+  List<AppNotification> notifications,
+) {
+  final reviewKeys = notifications
+      .where((notification) => notification.type.toLowerCase() == 'book_review')
+      .map(_contentCommentKey)
+      .whereType<String>()
+      .toSet();
+  if (reviewKeys.isEmpty) return notifications;
+
+  return notifications.where((notification) {
+    final type = notification.type.toLowerCase();
+    if (type != 'book_comment' && type != 'comment') return true;
+    final text = notification.text.toLowerCase();
+    final looksLikeBookComment =
+        text == 'commented on your content' ||
+        text.startsWith('commented on your book:') ||
+        text.contains(' has commented on ');
+    if (!looksLikeBookComment && type != 'book_comment') return true;
+    final key = _contentCommentKey(notification);
+    return key == null || !reviewKeys.contains(key);
+  }).toList();
+}
+
+String? _contentCommentKey(AppNotification notification) {
+  final target = NotificationTargetResolver.resolve(notification);
+  final metadata = notification.metadata ?? const <String, dynamic>{};
+  final bookId = _firstNonEmptyString([
+    metadata['bookId'],
+    metadata['book'],
+    metadata['contentId'],
+    target?.payload,
+    notification.targetId,
+  ]);
+  final commentId = _firstNonEmptyString([
+    metadata['commentId'],
+    metadata['parentCommentId'],
+    metadata['targetCommentId'],
+    target?.commentId,
+  ]);
+  if (bookId == null || commentId == null) return null;
+  return '${notification.userId}|${notification.actorId}|$bookId|$commentId';
+}
+
+String? _firstNonEmptyString(Iterable<Object?> values) {
+  for (final value in values) {
+    final text = value?.toString().trim();
+    if (text != null && text.isNotEmpty) return text;
+  }
+  return null;
 }
 
 bool _isMessageNotification(AppNotification notification) {
