@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/firebase_notification_repository.dart';
+import '../../data/services/notification_service.dart';
 import '../../domain/models/app_notification.dart';
 import '../../domain/repositories/notification_repository.dart';
 import 'auth_providers.dart';
@@ -10,6 +11,10 @@ const int notificationPageSize = 25;
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return FirebaseNotificationRepository();
+});
+
+final notificationEventProvider = StreamProvider<String>((ref) {
+  return NotificationService.instance.notificationEvents;
 });
 
 final notificationsProvider = StreamProvider<List<AppNotification>>((

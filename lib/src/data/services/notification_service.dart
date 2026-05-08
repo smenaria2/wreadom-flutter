@@ -24,6 +24,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  final StreamController<String> _notificationEvents =
+      StreamController<String>.broadcast();
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   bool _isInitialized = false;
@@ -34,6 +36,13 @@ class NotificationService {
   DateTime? _lastNavigationAt;
 
   static const Duration _duplicateNavigationWindow = Duration(seconds: 5);
+
+  Stream<String> get notificationEvents => _notificationEvents.stream;
+
+  @visibleForTesting
+  void debugEmitNotificationEvent(String notificationId) {
+    _emitNotificationEvent({'notificationId': notificationId});
+  }
 
   void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
@@ -87,6 +96,7 @@ class NotificationService {
         debugPrint('Got a message whilst in the foreground!');
       }
 
+      _emitNotificationEvent(message.data);
       if (message.notification != null) {
         _showLocalNotification(message, channel);
       }
@@ -97,6 +107,7 @@ class NotificationService {
       if (kDebugMode) {
         debugPrint('App opened from notification');
       }
+      _emitNotificationEvent(message.data);
       _handleRemoteMessageNavigation(message);
     });
 
@@ -106,6 +117,7 @@ class NotificationService {
       if (kDebugMode) {
         debugPrint('App opened from terminated state');
       }
+      _emitNotificationEvent(initialMessage.data);
       Future<void>.delayed(
         const Duration(milliseconds: 600),
         () => _handleRemoteMessageNavigation(initialMessage),
@@ -113,6 +125,14 @@ class NotificationService {
     }
 
     _isInitialized = true;
+  }
+
+  void _emitNotificationEvent(Map<String, dynamic> data) {
+    final notificationId = data['notificationId']?.toString().trim();
+    if (notificationId == null || notificationId.isEmpty) return;
+    if (!_notificationEvents.isClosed) {
+      _notificationEvents.add(notificationId);
+    }
   }
 
   Future<void> _showLocalNotification(

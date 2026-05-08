@@ -220,6 +220,11 @@ class AuthWrapper extends ConsumerWidget {
         ref.invalidate(currentUserProvider);
         ref.invalidate(notificationsProvider);
         ref.invalidate(pagedNotificationsProvider);
+        if (nextId != null) {
+          unawaited(
+            ref.read(localeControllerProvider.notifier).syncPreferredLanguage(),
+          );
+        }
       }
       if (previousId != null && nextId == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -230,6 +235,11 @@ class AuthWrapper extends ConsumerWidget {
           ).popUntil((route) => route.isFirst);
         });
       }
+    });
+    ref.listen(notificationEventProvider, (previous, next) {
+      if (!next.hasValue) return;
+      ref.invalidate(notificationsProvider);
+      ref.invalidate(pagedNotificationsProvider);
     });
     final authState = ref.watch(authStateProvider);
 

@@ -75,17 +75,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _NotificationFilter _filter = _NotificationFilter.all;
   String? _openingNotificationKey;
   late final PageController _pageController;
+  late final _LifecycleRefreshObserver _lifecycleRefreshObserver;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _lifecycleRefreshObserver = _LifecycleRefreshObserver(_refresh);
+    WidgetsBinding.instance.addObserver(_lifecycleRefreshObserver);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(_lifecycleRefreshObserver);
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refresh() {
+    return ref.read(pagedNotificationsProvider.notifier).refresh();
   }
 
   void _selectFilter(_NotificationFilter filter) {
@@ -478,45 +486,7 @@ class _NotificationListItem {
     AppNotification notification,
     AppLocalizations l10n,
   ) {
-    final type = notification.type.toLowerCase();
-    final text = notification.text.trim().toLowerCase();
-    if (type == 'follow' || text == 'started following you') {
-      return l10n.startedFollowingYou;
-    }
-    if (type == 'post_like' || text == 'liked your post') {
-      return l10n.likedYourPost;
-    }
-    if (type == 'feed_comment' || text == 'commented on your post') {
-      return l10n.commentedOnYourPost;
-    }
-    if (type == 'feed_reply' || text == 'replied to your comment') {
-      return l10n.repliedToYourComment;
-    }
-    if (text == 'replied to your discussion') {
-      return l10n.repliedToYourBookComment;
-    }
-    if (text == 'left a review on your content' ||
-        text == 'submitted an audio review on your content') {
-      return l10n.reviewedYourBook;
-    }
-    if (text == 'commented on your content') {
-      return l10n.commentedOnYourContent;
-    }
-    if (type == 'message') {
-      if (text == 'sent you a book') return l10n.sentYouBook;
-      return l10n.sentYouAMessage;
-    }
-    if (type == 'collaboration_request' ||
-        text.endsWith('wants to collaborate with you.')) {
-      return l10n.wantsToCollaborate;
-    }
-    if (type == 'collaboration_removed') {
-      if (text.contains('removed themselves')) {
-        return l10n.removedThemselfAsCoAuthor;
-      }
-      return l10n.removedYouAsCoAuthor;
-    }
-    return notification.text;
+    return localizedNotificationText(notification, l10n);
   }
 
   String _messagePreview(String text, AppLocalizations l10n) {
@@ -529,6 +499,68 @@ class _NotificationListItem {
     preview = preview.replaceFirst(RegExp(r'^[:\-\s]+'), '').trim();
     return preview;
   }
+}
+
+class _LifecycleRefreshObserver extends WidgetsBindingObserver {
+  _LifecycleRefreshObserver(this.onResume);
+
+  final Future<void> Function() onResume;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(onResume());
+    }
+  }
+}
+
+String localizedNotificationText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final type = notification.type.toLowerCase();
+  final text = notification.text.trim().toLowerCase();
+  final isHindi = l10n.localeName.toLowerCase().startsWith('hi');
+  if (type == 'follow' || text == 'started following you') {
+    return l10n.startedFollowingYou;
+  }
+  if (type == 'post_like' || text == 'liked your post') {
+    return l10n.likedYourPost;
+  }
+  if (type == 'feed_comment' || text == 'commented on your post') {
+    return l10n.commentedOnYourPost;
+  }
+  if (type == 'feed_reply' || text == 'replied to your comment') {
+    return l10n.repliedToYourComment;
+  }
+  if ((isHindi && type == 'book_reply') ||
+      text == 'replied to your discussion') {
+    return l10n.repliedToYourBookComment;
+  }
+  if ((isHindi && type == 'book_review') ||
+      text == 'left a review on your content' ||
+      text == 'submitted an audio review on your content') {
+    return l10n.reviewedYourBook;
+  }
+  if ((isHindi && type == 'book_comment') ||
+      text == 'commented on your content') {
+    return l10n.commentedOnYourContent;
+  }
+  if (type == 'message') {
+    if (text == 'sent you a book') return l10n.sentYouBook;
+    return l10n.sentYouAMessage;
+  }
+  if (type == 'collaboration_request' ||
+      text.endsWith('wants to collaborate with you.')) {
+    return l10n.wantsToCollaborate;
+  }
+  if (type == 'collaboration_removed') {
+    if (text.contains('removed themselves')) {
+      return l10n.removedThemselfAsCoAuthor;
+    }
+    return l10n.removedYouAsCoAuthor;
+  }
+  return notification.text;
 }
 
 class _NotificationFilterBar extends StatelessWidget {

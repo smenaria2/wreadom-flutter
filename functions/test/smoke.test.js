@@ -45,3 +45,15 @@ test("review replies use review terminology", () => {
   assert.match(source, /has replied to your review on/);
   assert.doesNotMatch(source, /text: normalizeString\(afterData\.feedPostId\) \? "replied to your comment" : "replied to your discussion"/);
 });
+
+test("push payload carries navigation ids and localized bodies", () => {
+  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
+  assert.match(source, /function localizedPushBody/);
+  assert.match(source, /preferredLanguage/);
+  assert.match(source, /function pushDataFromNotification/);
+  assert.match(source, /function pushNavigationUrl/);
+  assert.match(source, /"commentId"/);
+  assert.match(source, /"replyId"/);
+  assert.match(source, /"bookId"/);
+  assert.match(source, /data: pushDataFromNotification\(data, context\.params\.notificationId\)/);
+});

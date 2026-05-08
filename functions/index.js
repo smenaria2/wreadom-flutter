@@ -207,6 +207,145 @@ function buildNotification({
   };
 }
 
+function localizedPushBody(data = {}, userData = {}) {
+  const language = normalizeString(userData.preferredLanguage).toLowerCase();
+  if (language !== "hi" && language !== "hindi") {
+    return data.text || "";
+  }
+
+  const type = normalizeString(data.type).toLowerCase();
+  const text = normalizeString(data.text).toLowerCase();
+  if (type === "follow" || text === "started following you") {
+    return "ने आपको फ़ॉलो करना शुरू किया।";
+  }
+  if (type === "post_like" || text === "liked your post") {
+    return "ने आपकी पोस्ट को पसंद किया।";
+  }
+  if (type === "feed_comment" || text === "commented on your post") {
+    return "ने आपकी पोस्ट पर टिप्पणी की।";
+  }
+  if (type === "feed_reply" || text === "replied to your comment") {
+    return "ने आपकी टिप्पणी का जवाब दिया।";
+  }
+  if (type === "book_reply" || text === "replied to your discussion") {
+    return "ने आपकी रचना वाली टिप्पणी का जवाब दिया।";
+  }
+  if (type === "book_comment" || text === "commented on your content") {
+    return "ने आपकी रचना पर टिप्पणी की।";
+  }
+  if (type === "book_review" ||
+      text === "left a review on your content" ||
+      text === "submitted an audio review on your content") {
+    return "ने आपकी रचना की समीक्षा की।";
+  }
+  if (type === "message") {
+    return text === "sent you a book" ?
+      "ने आपको रचना भेजी।" :
+      "ने आपको संदेश भेजा।";
+  }
+  if (type === "collaboration_request") {
+    return "आपके साथ सहलेखन करना चाहते हैं।";
+  }
+  if (type === "collaboration_removed") {
+    return text.includes("removed themselves") ?
+      "ने खुद को सहलेखक से हटाया।" :
+      "ने आपको सहलेखक से हटाया।";
+  }
+  return data.text || "";
+}
+
+function pushDataFromNotification(data = {}, notificationId = "") {
+  const metadata = data.metadata && typeof data.metadata === "object" ?
+    data.metadata :
+    {};
+  const navigationUrl = pushNavigationUrl(data, metadata);
+  const pushData = {
+    notificationId,
+    url: navigationUrl,
+    link: normalizeString(data.link) || "",
+    type: normalizeString(data.type),
+    text: normalizeString(data.text),
+    userId: normalizeString(data.userId),
+    actorId: normalizeString(data.actorId),
+    actorName: normalizeString(data.actorName),
+    targetId: normalizeString(data.targetId),
+  };
+
+  for (const key of [
+    "bookId",
+    "book",
+    "contentId",
+    "postId",
+    "feedPostId",
+    "feedId",
+    "commentId",
+    "parentCommentId",
+    "targetCommentId",
+    "replyId",
+    "targetReplyId",
+    "conversationId",
+    "targetType",
+  ]) {
+    const value = normalizeString(metadata[key]);
+    if (value) {
+      pushData[key] = value;
+    }
+  }
+
+  return Object.fromEntries(
+      Object.entries(pushData).filter(([, value]) => normalizeString(value)),
+  );
+}
+
+function firstPushValue(data = {}, metadata = {}, keys = []) {
+  for (const key of keys) {
+    const value = normalizeString(metadata[key]) || normalizeString(data[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function pushNavigationUrl(data = {}, metadata = {}) {
+  const type = normalizeString(data.type).toLowerCase();
+  const targetId = normalizeString(data.targetId);
+  const bookId = firstPushValue(data, metadata, ["bookId", "book", "contentId"]);
+  const postId = firstPushValue(data, metadata, ["postId", "feedPostId", "feedId"]);
+  const commentId = firstPushValue(data, metadata, ["commentId", "parentCommentId", "targetCommentId"]);
+  const replyId = firstPushValue(data, metadata, ["replyId", "targetReplyId"]);
+  const conversationId = firstPushValue(data, metadata, ["conversationId"]);
+  const query = new URLSearchParams();
+
+  if ((type === "message" || type === "groupmessage") && (conversationId || targetId)) {
+    return `/messages/${encodeURIComponent(conversationId || targetId)}`;
+  }
+  if ((type.includes("feed") || type.includes("post")) && (postId || targetId)) {
+    query.set("page", "feed");
+    query.set("post", postId || targetId);
+    if (commentId) query.set("comment", commentId);
+    if (replyId) query.set("reply", replyId);
+    return `/?${query.toString()}`;
+  }
+  if (
+    (
+      type.includes("book") ||
+      type === "published" ||
+      type === "chapter_update" ||
+      type === "new_creation" ||
+      type === "comment" ||
+      type === "reply" ||
+      type === "mention"
+    ) &&
+    (bookId || targetId)
+  ) {
+    query.set("book", bookId || targetId);
+    if (commentId) query.set("comment", commentId);
+    if (replyId) query.set("reply", replyId);
+    return `/?${query.toString()}`;
+  }
+
+  return normalizeString(data.link) || "/";
+}
+
 async function notifyBookOwnersForBookActivity(commentId, data = {}) {
   const bookId = normalizeString(`${data.bookId ?? ""}`);
   const actorId = normalizeString(data.userId);
@@ -335,12 +474,13 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
   }
 
   const notificationTitle = normalizeString(data.actorName) || "Wreadom";
+  const notificationBody = localizedPushBody(data, userData);
 
   const message = {
     tokens: uniqueTokens,
     notification: {
       title: notificationTitle,
-      body: data.text || "",
+      body: notificationBody,
     },
     webpush: {
       fcmOptions: {
@@ -352,11 +492,7 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
         tag: context.params.notificationId,
       },
     },
-    data: {
-      notificationId: context.params.notificationId,
-      url: data.link || "/",
-      type: data.type || "",
-    },
+    data: pushDataFromNotification(data, context.params.notificationId),
   };
 
   try {
@@ -858,7 +994,7 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
               text: "commented on your post",
               link: `/post?id=${feedPostId}`,
               targetId: feedPostId,
-              metadata: {postId: feedPostId},
+              metadata: {postId: feedPostId, commentId},
             }),
         );
       }
@@ -903,6 +1039,7 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
             targetId: normalizeString(afterData.feedPostId) || targetBookId || null,
             metadata: {
               commentId,
+              replyId: replyIdentifier(reply) || null,
               postId: normalizeString(afterData.feedPostId) || null,
               bookId: afterData.bookId ?? null,
             },
