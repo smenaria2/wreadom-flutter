@@ -317,7 +317,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharedToFeed => 'Shared to feed.';
 
   @override
-  String get latestDiscussion => 'Latest discussion';
+  String get latestDiscussion => 'Latest review';
 
   @override
   String get showMore => 'Show more';
@@ -737,7 +737,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalReads => 'Total reads';
 
   @override
-  String get booksPublished => 'Books published';
+  String get booksPublished => 'Content published';
 
   @override
   String get dateJoined => 'Joined';
@@ -1156,11 +1156,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collabEditWarning =>
-      'The co-author will be able to edit this book, remove chapters, and draft or unpublish the book.';
+      'The co-author will be able to edit this content, remove chapters, and draft or unpublish the content.';
 
   @override
   String get collabBookInfo =>
-      'This book is a collaboration. Both authors can write and edit it.';
+      'This content is a collaboration. Both authors can write and edit it.';
 
   @override
   String get selectCoAuthorBeforeSaving =>
@@ -1223,7 +1223,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sentYouAMessage => 'sent you a message.';
 
   @override
-  String get sentYouBook => 'sent you a book.';
+  String get sentYouBook => 'sent you content.';
 
   @override
   String get targetComment => 'Target comment';
@@ -1670,14 +1670,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqCustomizeReaderA =>
-      'Open any book and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).';
+      'Open any content and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).';
 
   @override
-  String get faqOfflineReadingQ => 'Can I read books offline?';
+  String get faqOfflineReadingQ => 'Can I read content offline?';
 
   @override
   String get faqOfflineReadingA =>
-      'Yes! Tap the download icon on the book details page. Once downloaded, you can access the book from your \'Saved\' tab even without an internet connection.';
+      'Yes! Tap the download icon on the content details page. Once downloaded, you can access it from your \'Saved\' tab even without an internet connection.';
 
   @override
   String get faqBookmarksQ => 'How do bookmarks work?';
@@ -1691,7 +1691,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqQuoteCommentA =>
-      'Highlight any text in a book to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.';
+      'Highlight any text in content to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.';
 
   @override
   String get faqStartStoryQ => 'How do I start a new story?';
@@ -1726,10 +1726,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqCollaborationA =>
-      'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the book page.';
+      'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the content page.';
 
   @override
-  String get faqFindBooksQ => 'How do I find new books?';
+  String get faqFindBooksQ => 'How do I find new content?';
 
   @override
   String get faqFindBooksA =>
@@ -1754,7 +1754,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqDailyTopicA =>
-      'Every day, Wreadom features a new writing or discussion prompt. Tap the banner on the Home feed to participate and see what others are sharing.';
+      'Every day, Wreadom features a new writing or review prompt. Tap the banner on the Home feed to participate and see what others are sharing.';
 
   @override
   String get faqFollowAuthorQ => 'How do I follow an author?';
@@ -1824,14 +1824,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqReportContentA =>
-      'Tap the three-dot menu on any post, comment, or book and select \'Report\'. Our team will review it promptly.';
+      'Tap the three-dot menu on any post, comment, or content and select \'Report\'. Our team will review it promptly.';
 
   @override
   String get faqPinUnpinQ => 'Can I pin my favorite comments?';
 
   @override
   String get faqPinUnpinA =>
-      'Yes! If you are the author of a post, you can pin a comment to the top of the discussion by tapping the \'Pin\' option in its menu.';
+      'Yes! If you are the author of a post, you can pin a comment to the top of the review by tapping the \'Pin\' option in its menu.';
 
   @override
   String get faqMessagingRulesQ => 'Are there rules for messaging?';

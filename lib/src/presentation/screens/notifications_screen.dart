@@ -492,15 +492,14 @@ class _NotificationListItem {
     if (type == 'feed_reply' || text == 'replied to your comment') {
       return l10n.repliedToYourComment;
     }
-    if (type == 'book_reply' || text == 'replied to your discussion') {
+    if (text == 'replied to your discussion') {
       return l10n.repliedToYourBookComment;
     }
-    if (type == 'book_review' ||
-        text == 'left a review on your content' ||
+    if (text == 'left a review on your content' ||
         text == 'submitted an audio review on your content') {
       return l10n.reviewedYourBook;
     }
-    if (type == 'book_comment' || text == 'commented on your content') {
+    if (text == 'commented on your content') {
       return l10n.commentedOnYourContent;
     }
     if (type == 'message') {

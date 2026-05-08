@@ -223,21 +223,32 @@ async function notifyBookOwnersForBookActivity(commentId, data = {}) {
   const isAudioReview = isReview &&
     (normalizeString(data.audioObjectKey) || normalizeString(data.audioUrl));
   const notificationType = isReview ? "book_review" : "book_comment";
-  for (const ownerId of acceptedBookAuthorIds(book)) {
+  const ownerIds = acceptedBookAuthorIds(book);
+  const actorName = userDisplayName(data);
+  for (const ownerId of ownerIds) {
     await createNotificationDoc(
         `book_comment_${commentId}_${ownerId}`,
         buildNotification({
           userId: ownerId,
           actorId,
-          actorName: userDisplayName(data),
+          actorName,
           actorPhotoURL: normalizeString(data.userPhotoURL) || null,
           type: notificationType,
           text: isAudioReview ?
-            "submitted an audio review on your content" :
-            isReview ? "left a review on your content" : "commented on your content",
+            reviewNotificationText(actorName, book, data) :
+            isReview ? reviewNotificationText(actorName, book, data) :
+              `${actorName} has commented on ${contentTypeLabel(book)} "${contentTitle(book)}".`,
           link: `/book?id=${bookId}`,
           targetId: bookId,
-          metadata: {bookId, commentId, hasAudio: Boolean(isAudioReview)},
+          metadata: {
+            bookId,
+            commentId,
+            hasAudio: Boolean(isAudioReview),
+            contentType: contentTypeLabel(book),
+            contentTitle: contentTitle(book),
+            chapterId: normalizeString(data.chapterId) || null,
+            chapterTitle: normalizeString(data.chapterTitle) || null,
+          },
         }),
     );
     await deleteNotificationDoc(`book_audio_review_${commentId}_${ownerId}`);
@@ -273,6 +284,7 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
     testimonial: "testimonials",
     like: "likes",
     feedPost: "followedAuthorPosts",
+    new_creation: "newCreations",
     published: "newCreations",
     chapter_update: "newCreations",
     mention: "comments",
@@ -322,19 +334,7 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
     return;
   }
 
-  const notificationTitle = `${data.actorName} ${
-    data.type === "message" ? "sent you a message" :
-    data.type === "groupMessage" ? "sent a group message" :
-    data.type === "comment" || data.type === "book_comment" ? "commented on your book" :
-    data.type === "book_review" ? "reviewed your content" :
-    data.type === "feed_comment" ? "commented on your post" :
-    data.type === "reply" || data.type === "feed_reply" ? "replied to your comment" :
-    data.type === "book_reply" ? "replied to your discussion" :
-    data.type === "follower" ? "started following you" :
-    data.type === "like" ? "liked your post" :
-    data.type === "published" ? "published a new book" :
-    "sent a notification"
-  }`;
+  const notificationTitle = normalizeString(data.actorName) || "Wreadom";
 
   const message = {
     tokens: uniqueTokens,
@@ -490,6 +490,66 @@ function acceptedBookAuthorIds(book = {}) {
   return Array.from(ids);
 }
 
+function contentTypeLabel(data = {}) {
+  return normalizeString(data.contentType).toLowerCase() || "content";
+}
+
+function contentTitle(data = {}) {
+  return normalizeString(data.title) || normalizeString(data.bookTitle) || "Untitled";
+}
+
+function chapterTitle(chapter = {}, fallbackIndex = 0) {
+  return normalizeString(chapter.title) || `Chapter ${fallbackIndex + 1}`;
+}
+
+function publishedChapters(data = {}) {
+  return Array.isArray(data.chapters) ?
+    data.chapters.filter((chapter) => normalizeString(chapter?.status).toLowerCase() === "published") :
+    [];
+}
+
+function chapterKey(chapter = {}, index = 0) {
+  return normalizeString(chapter.id) ||
+    `${chapterTitle(chapter, index).toLowerCase()}_${index}`;
+}
+
+function diffAddedPublishedChapters(beforeData = {}, afterData = {}) {
+  const before = publishedChapters(beforeData);
+  const after = publishedChapters(afterData);
+  if (after.length <= before.length) {
+    return [];
+  }
+  const beforeKeys = new Set(before.map(chapterKey));
+  return after.filter((chapter, index) => !beforeKeys.has(chapterKey(chapter, index)));
+}
+
+function chapterForComment(book = {}, data = {}) {
+  const chapters = Array.isArray(book.chapters) ? book.chapters : [];
+  const chapterId = normalizeString(data.chapterId);
+  if (chapterId) {
+    const byId = chapters.find((chapter) => normalizeString(chapter?.id) === chapterId);
+    if (byId) return byId;
+  }
+  const chapterIndex = Number.parseInt(`${data.chapterIndex ?? ""}`, 10);
+  if (!Number.isNaN(chapterIndex) && chapters[chapterIndex]) {
+    return chapters[chapterIndex];
+  }
+  if (normalizeString(data.chapterTitle)) {
+    return {title: normalizeString(data.chapterTitle)};
+  }
+  return chapters[0] || {};
+}
+
+function reviewNotificationText(actorName, book, data = {}) {
+  const type = contentTypeLabel(book);
+  const title = contentTitle(book);
+  if (publishedChapters(book).length > 1) {
+    const chapter = chapterForComment(book, data);
+    return `${actorName} has left a review on chapter "${chapterTitle(chapter, Number(data.chapterIndex || 0))}" of ${type} "${title}".`;
+  }
+  return `${actorName} has left a review on ${type} "${title}".`;
+}
+
 async function updateBookReviewAggregates(bookId) {
   const normalizedBookId = normalizeString(bookId);
   if (!normalizedBookId) {
@@ -608,7 +668,8 @@ async function notifyFollowersForPublishedBook(bookId, afterData) {
 
   const actorName = userDisplayName(authorData);
   const actorPhotoURL = normalizeString(authorData.photoURL) || null;
-  const title = normalizeString(afterData.title) || "a new book";
+  const type = contentTypeLabel(afterData);
+  const title = contentTitle(afterData);
 
   const writes = followersSnapshot.docs
       .map((doc) => normalizeString(doc.data().followerId))
@@ -621,10 +682,62 @@ async function notifyFollowersForPublishedBook(bookId, afterData) {
           actorName,
           actorPhotoURL,
           type: "new_creation",
-          text: `${actorName} published ${title}`,
+          text: `${actorName} has published a ${type} "${title}".`,
           link: `/book?id=${bookId}`,
           targetId: bookId,
-          metadata: {bookId},
+          metadata: {bookId, contentType: type},
+        }),
+      }));
+
+  for (let i = 0; i < writes.length; i += MAX_BATCH_WRITES) {
+    const batch = db.batch();
+    for (const write of writes.slice(i, i + MAX_BATCH_WRITES)) {
+      batch.set(write.ref, write.data, {merge: true});
+    }
+    await batch.commit();
+  }
+}
+
+async function notifyFollowersForNewChapter(bookId, beforeData, afterData) {
+  const authorId = normalizeString(afterData.authorId);
+  if (!authorId) {
+    return;
+  }
+  const addedChapters = diffAddedPublishedChapters(beforeData, afterData);
+  if (addedChapters.length === 0) {
+    return;
+  }
+  const authorData = await getUserDoc(authorId);
+  if (!authorData) {
+    return;
+  }
+
+  const followersSnapshot = await db.collection("follows")
+      .where("followingId", "==", authorId)
+      .get();
+
+  const actorName = userDisplayName(authorData);
+  const actorPhotoURL = normalizeString(authorData.photoURL) || null;
+  const type = contentTypeLabel(afterData);
+  const title = contentTitle(afterData);
+  const chapter = addedChapters[addedChapters.length - 1];
+  const chapterName = chapterTitle(chapter, publishedChapters(afterData).indexOf(chapter));
+
+  const writes = followersSnapshot.docs
+      .map((doc) => normalizeString(doc.data().followerId))
+      .filter((userId) => userId && userId !== authorId)
+      .map((userId) => ({
+        ref: db.collection("notifications").doc(`chapter_update_${bookId}_${chapterKey(chapter)}_${userId}`),
+        data: buildNotification({
+          userId,
+          actorId: authorId,
+          actorName,
+          actorPhotoURL,
+          type: "chapter_update",
+          text: `${actorName} has published a new chapter "${chapterName}" in ${type} "${title}".`,
+          link: `/book?id=${bookId}`,
+          targetId: bookId,
+          metadata: {bookId, contentType: type, chapterId: normalizeString(chapter.id) || null, chapterTitle: chapterName},
         }),
       }));
 
@@ -758,11 +871,9 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
   }
 
   if (beforeData && afterData) {
-    const hadAudio = Boolean(normalizeString(beforeData.audioObjectKey) || normalizeString(beforeData.audioUrl));
-    const hasAudio = Boolean(normalizeString(afterData.audioObjectKey) || normalizeString(afterData.audioUrl));
     const beforeRating = Number(beforeData.rating || 0);
     const afterRating = Number(afterData.rating || 0);
-    if ((!hadAudio && hasAudio && afterRating > 0) || (beforeRating <= 0 && afterRating > 0)) {
+    if (beforeRating <= 0 && afterRating > 0) {
       await notifyBookOwnersForBookActivity(commentId, afterData);
     }
 
@@ -770,17 +881,26 @@ exports.onCommentWritten = functionsV1.firestore.document("comments/{commentId}"
     const afterReplies = Array.isArray(afterData.replies) ? afterData.replies : [];
     for (const reply of diffAddedReplies(beforeReplies, afterReplies)) {
       const actorId = normalizeString(reply.userId);
+      const targetBookId = normalizeString(`${afterData.bookId ?? ""}`);
+      let book = null;
+      if (targetBookId) {
+        const bookSnapshot = await db.collection("books").doc(targetBookId).get();
+        book = bookSnapshot.exists ? bookSnapshot.data() || {} : null;
+      }
+      const actorName = userDisplayName(reply);
       await createNotificationDoc(
           `reply_${commentId}_${replyIdentifier(reply)}`,
           buildNotification({
             userId: normalizeString(afterData.userId),
             actorId,
-            actorName: userDisplayName(reply),
+            actorName,
             actorPhotoURL: normalizeString(reply.userPhotoURL) || null,
             type: normalizeString(afterData.feedPostId) ? "feed_reply" : "book_reply",
-            text: normalizeString(afterData.feedPostId) ? "replied to your comment" : "replied to your discussion",
-            link: normalizeString(afterData.feedPostId) ? `/post?id=${normalizeString(afterData.feedPostId)}` : `/book?id=${normalizeString(`${afterData.bookId ?? ""}`)}`,
-            targetId: normalizeString(afterData.feedPostId) || normalizeString(`${afterData.bookId ?? ""}`) || null,
+            text: normalizeString(afterData.feedPostId) ?
+              `${actorName} has replied to your comment.` :
+              `${actorName} has replied to your review on "${contentTitle(book || afterData)}".`,
+            link: normalizeString(afterData.feedPostId) ? `/post?id=${normalizeString(afterData.feedPostId)}` : `/book?id=${targetBookId}`,
+            targetId: normalizeString(afterData.feedPostId) || targetBookId || null,
             metadata: {
               commentId,
               postId: normalizeString(afterData.feedPostId) || null,
@@ -943,6 +1063,9 @@ exports.onBookWritten = functionsV1.firestore.document("books/{bookId}").onWrite
   const isPublished = normalizeString(afterData.status).toLowerCase() === "published";
   if (!wasPublished && isPublished) {
     await notifyFollowersForPublishedBook(context.params.bookId, afterData);
+  }
+  if (wasPublished && isPublished) {
+    await notifyFollowersForNewChapter(context.params.bookId, beforeData || {}, afterData);
   }
   const beforeCollaboratorId = normalizeString(beforeData?.collaboratorId);
   const afterCollaboratorId = normalizeString(afterData.collaboratorId);

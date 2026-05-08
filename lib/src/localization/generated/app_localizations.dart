@@ -689,7 +689,7 @@ abstract class AppLocalizations {
   /// No description provided for @latestDiscussion.
   ///
   /// In en, this message translates to:
-  /// **'Latest discussion'**
+  /// **'Latest review'**
   String get latestDiscussion;
 
   /// No description provided for @showMore.
@@ -1445,7 +1445,7 @@ abstract class AppLocalizations {
   /// No description provided for @booksPublished.
   ///
   /// In en, this message translates to:
-  /// **'Books published'**
+  /// **'Content published'**
   String get booksPublished;
 
   /// No description provided for @dateJoined.
@@ -2171,13 +2171,13 @@ abstract class AppLocalizations {
   /// No description provided for @collabEditWarning.
   ///
   /// In en, this message translates to:
-  /// **'The co-author will be able to edit this book, remove chapters, and draft or unpublish the book.'**
+  /// **'The co-author will be able to edit this content, remove chapters, and draft or unpublish the content.'**
   String get collabEditWarning;
 
   /// No description provided for @collabBookInfo.
   ///
   /// In en, this message translates to:
-  /// **'This book is a collaboration. Both authors can write and edit it.'**
+  /// **'This content is a collaboration. Both authors can write and edit it.'**
   String get collabBookInfo;
 
   /// No description provided for @selectCoAuthorBeforeSaving.
@@ -2279,7 +2279,7 @@ abstract class AppLocalizations {
   /// No description provided for @sentYouBook.
   ///
   /// In en, this message translates to:
-  /// **'sent you a book.'**
+  /// **'sent you content.'**
   String get sentYouBook;
 
   /// No description provided for @targetComment.
@@ -3053,19 +3053,19 @@ abstract class AppLocalizations {
   /// No description provided for @faqCustomizeReaderA.
   ///
   /// In en, this message translates to:
-  /// **'Open any book and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).'**
+  /// **'Open any content and tap the \'Aa\' icon in the top toolbar. You can change the font size, switch between Serif and Sans fonts, and choose a theme (Light, Sepia, or Dark).'**
   String get faqCustomizeReaderA;
 
   /// No description provided for @faqOfflineReadingQ.
   ///
   /// In en, this message translates to:
-  /// **'Can I read books offline?'**
+  /// **'Can I read content offline?'**
   String get faqOfflineReadingQ;
 
   /// No description provided for @faqOfflineReadingA.
   ///
   /// In en, this message translates to:
-  /// **'Yes! Tap the download icon on the book details page. Once downloaded, you can access the book from your \'Saved\' tab even without an internet connection.'**
+  /// **'Yes! Tap the download icon on the content details page. Once downloaded, you can access it from your \'Saved\' tab even without an internet connection.'**
   String get faqOfflineReadingA;
 
   /// No description provided for @faqBookmarksQ.
@@ -3089,7 +3089,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqQuoteCommentA.
   ///
   /// In en, this message translates to:
-  /// **'Highlight any text in a book to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.'**
+  /// **'Highlight any text in content to see the selection menu. You can \'Quote & Comment\' to share your thoughts on a specific passage with the community.'**
   String get faqQuoteCommentA;
 
   /// No description provided for @faqStartStoryQ.
@@ -3149,13 +3149,13 @@ abstract class AppLocalizations {
   /// No description provided for @faqCollaborationA.
   ///
   /// In en, this message translates to:
-  /// **'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the book page.'**
+  /// **'In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the content page.'**
   String get faqCollaborationA;
 
   /// No description provided for @faqFindBooksQ.
   ///
   /// In en, this message translates to:
-  /// **'How do I find new books?'**
+  /// **'How do I find new content?'**
   String get faqFindBooksQ;
 
   /// No description provided for @faqFindBooksA.
@@ -3197,7 +3197,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqDailyTopicA.
   ///
   /// In en, this message translates to:
-  /// **'Every day, Wreadom features a new writing or discussion prompt. Tap the banner on the Home feed to participate and see what others are sharing.'**
+  /// **'Every day, Wreadom features a new writing or review prompt. Tap the banner on the Home feed to participate and see what others are sharing.'**
   String get faqDailyTopicA;
 
   /// No description provided for @faqFollowAuthorQ.
@@ -3317,7 +3317,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqReportContentA.
   ///
   /// In en, this message translates to:
-  /// **'Tap the three-dot menu on any post, comment, or book and select \'Report\'. Our team will review it promptly.'**
+  /// **'Tap the three-dot menu on any post, comment, or content and select \'Report\'. Our team will review it promptly.'**
   String get faqReportContentA;
 
   /// No description provided for @faqPinUnpinQ.
@@ -3329,7 +3329,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqPinUnpinA.
   ///
   /// In en, this message translates to:
-  /// **'Yes! If you are the author of a post, you can pin a comment to the top of the discussion by tapping the \'Pin\' option in its menu.'**
+  /// **'Yes! If you are the author of a post, you can pin a comment to the top of the review by tapping the \'Pin\' option in its menu.'**
   String get faqPinUnpinA;
 
   /// No description provided for @faqMessagingRulesQ.

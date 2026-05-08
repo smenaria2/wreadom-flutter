@@ -20,9 +20,28 @@ test("book comment and review notifications share one canonical document", () =>
   assert.match(source, /exports\.sendPushNotification/);
   assert.match(source, /function shouldSendPushNotification/);
   assert.match(source, /`book_comment_\$\{commentId\}_\$\{ownerId\}`/);
+  assert.match(source, /reviewNotificationText\(actorName, book, data\)/);
+  assert.match(source, /has left a review on chapter/);
+  assert.match(source, /has left a review on \$\{type\}/);
   assert.match(source, /deleteNotificationDoc\(`book_audio_review_/);
   assert.doesNotMatch(
       source,
       /createNotificationDoc\(\s*`book_audio_review_/,
   );
+});
+
+test("publication notifications use canonical content wording", () => {
+  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
+  assert.match(source, /function contentTypeLabel/);
+  assert.match(source, /function diffAddedPublishedChapters/);
+  assert.match(source, /async function notifyFollowersForNewChapter/);
+  assert.match(source, /has published a \$\{type\} "\$\{title\}"/);
+  assert.match(source, /has published a new chapter "\$\{chapterName\}" in \$\{type\} "\$\{title\}"/);
+  assert.match(source, /if \(wasPublished && isPublished\)/);
+});
+
+test("review replies use review terminology", () => {
+  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
+  assert.match(source, /has replied to your review on/);
+  assert.doesNotMatch(source, /text: normalizeString\(afterData\.feedPostId\) \? "replied to your comment" : "replied to your discussion"/);
 });
