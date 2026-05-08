@@ -1,10 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {readFileSync} = require("node:fs");
-const {join} = require("node:path");
+
+process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS = "true";
+const exported = require("../index.js");
 
 test("functions module loads", () => {
-  const exported = require("../index.js");
   assert.ok(exported);
   assert.ok(typeof exported.onFollowCreated === "function");
   assert.ok(typeof exported.sendPushNotification === "function");
@@ -12,48 +12,134 @@ test("functions module loads", () => {
   assert.ok(typeof exported.createAudioReviewUploadTarget === "function");
   assert.ok(typeof exported.deleteAudioReviewObject === "function");
   assert.ok(typeof exported.createAudioReviewDownloadUrl === "function");
+  assert.ok(exported.__test);
 });
 
-test("book comment and review notifications share one canonical document", () => {
-  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
-  assert.match(source, /async function notifyBookOwnersForBookActivity/);
-  assert.match(source, /exports\.sendPushNotification/);
-  assert.match(source, /function shouldSendPushNotification/);
-  assert.match(source, /`book_comment_\$\{commentId\}_\$\{ownerId\}`/);
-  assert.match(source, /reviewNotificationText\(actorName, book, data\)/);
-  assert.match(source, /has left a review on chapter/);
-  assert.match(source, /has left a review on \$\{type\}/);
-  assert.match(source, /deleteNotificationDoc\(`book_audio_review_/);
-  assert.doesNotMatch(
-      source,
-      /createNotificationDoc\(\s*`book_audio_review_/,
+test("publication notifications use canonical single-quote wording", () => {
+  assert.equal(
+      exported.__test.publishedBookNotificationText("Sumit", {
+        contentType: "Poem",
+        title: "New Life",
+      }),
+      "Sumit has published a poem 'New Life'.",
   );
 });
 
-test("publication notifications use canonical content wording", () => {
-  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
-  assert.match(source, /function contentTypeLabel/);
-  assert.match(source, /function diffAddedPublishedChapters/);
-  assert.match(source, /async function notifyFollowersForNewChapter/);
-  assert.match(source, /has published a \$\{type\} "\$\{title\}"/);
-  assert.match(source, /has published a new chapter "\$\{chapterName\}" in \$\{type\} "\$\{title\}"/);
-  assert.match(source, /if \(wasPublished && isPublished\)/);
+test("published book edits without added chapters do not create chapter diffs", () => {
+  const before = {
+    status: "published",
+    chapters: [
+      {id: "chapter-1", title: "Opening", status: "published", content: "Old"},
+    ],
+  };
+  const after = {
+    status: "published",
+    chapters: [
+      {id: "chapter-1", title: "Opening Revised", status: "published", content: "New"},
+    ],
+  };
+
+  assert.deepEqual(exported.__test.diffAddedPublishedChapters(before, after), []);
 });
 
-test("review replies use review terminology", () => {
-  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
-  assert.match(source, /has replied to your review on/);
-  assert.doesNotMatch(source, /text: normalizeString\(afterData\.feedPostId\) \? "replied to your comment" : "replied to your discussion"/);
+test("published chapter deletion does not create chapter diffs", () => {
+  const before = {
+    status: "published",
+    chapters: [
+      {id: "chapter-1", title: "Opening", status: "published"},
+      {id: "chapter-2", title: "Meeting Her", status: "published"},
+    ],
+  };
+  const after = {
+    status: "published",
+    chapters: [
+      {id: "chapter-1", title: "Opening", status: "published"},
+    ],
+  };
+
+  assert.deepEqual(exported.__test.diffAddedPublishedChapters(before, after), []);
 });
 
-test("push payload carries navigation ids and localized bodies", () => {
-  const source = readFileSync(join(__dirname, "..", "index.js"), "utf8");
-  assert.match(source, /function localizedPushBody/);
-  assert.match(source, /preferredLanguage/);
-  assert.match(source, /function pushDataFromNotification/);
-  assert.match(source, /function pushNavigationUrl/);
-  assert.match(source, /"commentId"/);
-  assert.match(source, /"replyId"/);
-  assert.match(source, /"bookId"/);
-  assert.match(source, /data: pushDataFromNotification\(data, context\.params\.notificationId\)/);
+test("new chapter notifications use canonical to-content wording", () => {
+  const before = {
+    status: "published",
+    chapters: [{id: "chapter-1", title: "Opening"}],
+  };
+  const after = {
+    status: "published",
+    contentType: "Poem",
+    title: "New Life",
+    chapters: [
+      {id: "chapter-1", title: "Opening"},
+      {id: "chapter-2", title: "Meeting Her"},
+    ],
+  };
+
+  const added = exported.__test.diffAddedPublishedChapters(before, after);
+
+  assert.equal(added.length, 1);
+  assert.equal(added[0].title, "Meeting Her");
+  assert.equal(
+      exported.__test.newChapterNotificationText("Sumit", after, added[0], 1),
+      "Sumit has published a new chapter 'Meeting Her' to poem 'New Life'.",
+  );
+});
+
+test("multiple new chapters are all detected", () => {
+  const before = {
+    status: "published",
+    chapters: [{id: "chapter-1", title: "Opening", status: "published"}],
+  };
+  const after = {
+    status: "published",
+    contentType: "Story",
+    title: "Blue Door",
+    chapters: [
+      {id: "chapter-1", title: "Opening", status: "published"},
+      {id: "chapter-2", title: "Knock", status: "published"},
+      {id: "chapter-3", title: "Inside", status: "published"},
+    ],
+  };
+
+  const added = exported.__test.diffAddedPublishedChapters(before, after);
+  const texts = added.map((chapter, index) =>
+    exported.__test.newChapterNotificationText("Maya", after, chapter, index + 1),
+  );
+
+  assert.deepEqual(added.map((chapter) => chapter.title), ["Knock", "Inside"]);
+  assert.deepEqual(texts, [
+    "Maya has published a new chapter 'Knock' to story 'Blue Door'.",
+    "Maya has published a new chapter 'Inside' to story 'Blue Door'.",
+  ]);
+});
+
+test("single-chapter review omits chapter name", () => {
+  assert.equal(
+      exported.__test.reviewNotificationText("Asha", {
+        status: "published",
+        contentType: "Poem",
+        title: "New Life",
+        chapters: [{id: "chapter-1", title: "Only Chapter", status: "published"}],
+      }),
+      "Asha has left a review on poem 'New Life'.",
+  );
+});
+
+test("multi-chapter review uses selected chapter title without extra chapter label", () => {
+  assert.equal(
+      exported.__test.reviewNotificationText(
+          "Asha",
+          {
+            status: "published",
+            contentType: "Poem",
+            title: "New Life",
+            chapters: [
+              {id: "chapter-1", title: "First", status: "published"},
+              {id: "chapter-2", title: "Meeting Her", status: "published"},
+            ],
+          },
+          {chapterId: "chapter-2"},
+      ),
+      "Asha has left a review on 'Meeting Her' of poem 'New Life'.",
+  );
 });

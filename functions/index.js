@@ -638,15 +638,35 @@ function chapterTitle(chapter = {}, fallbackIndex = 0) {
   return normalizeString(chapter.title) || `Chapter ${fallbackIndex + 1}`;
 }
 
+function isBookPublished(data = {}) {
+  return normalizeString(data.status).toLowerCase() === "published";
+}
+
+function isChapterPublished(chapter = {}, parentIsPublished = false) {
+  const status = normalizeString(chapter?.status).toLowerCase();
+  if (!status) {
+    return parentIsPublished;
+  }
+  return status === "published";
+}
+
 function publishedChapters(data = {}) {
+  const parentIsPublished = isBookPublished(data);
   return Array.isArray(data.chapters) ?
-    data.chapters.filter((chapter) => normalizeString(chapter?.status).toLowerCase() === "published") :
+    data.chapters.filter((chapter) => isChapterPublished(chapter, parentIsPublished)) :
     [];
 }
 
 function chapterKey(chapter = {}, index = 0) {
   return normalizeString(chapter.id) ||
-    `${chapterTitle(chapter, index).toLowerCase()}_${index}`;
+    `legacy_${chapterTitle(chapter, index).toLowerCase()}_${index}`;
+}
+
+function notificationDocSegment(value) {
+  return normalizeString(value)
+      .replace(/[/.#[\]]+/g, "_")
+      .replace(/\s+/g, "_") ||
+    "chapter";
 }
 
 function diffAddedPublishedChapters(beforeData = {}, afterData = {}) {
@@ -660,7 +680,7 @@ function diffAddedPublishedChapters(beforeData = {}, afterData = {}) {
 }
 
 function chapterForComment(book = {}, data = {}) {
-  const chapters = Array.isArray(book.chapters) ? book.chapters : [];
+  const chapters = publishedChapters(book);
   const chapterId = normalizeString(data.chapterId);
   if (chapterId) {
     const byId = chapters.find((chapter) => normalizeString(chapter?.id) === chapterId);
@@ -681,9 +701,17 @@ function reviewNotificationText(actorName, book, data = {}) {
   const title = contentTitle(book);
   if (publishedChapters(book).length > 1) {
     const chapter = chapterForComment(book, data);
-    return `${actorName} has left a review on chapter "${chapterTitle(chapter, Number(data.chapterIndex || 0))}" of ${type} "${title}".`;
+    return `${actorName} has left a review on '${chapterTitle(chapter, Number(data.chapterIndex || 0))}' of ${type} '${title}'.`;
   }
-  return `${actorName} has left a review on ${type} "${title}".`;
+  return `${actorName} has left a review on ${type} '${title}'.`;
+}
+
+function publishedBookNotificationText(actorName, book = {}) {
+  return `${actorName} has published a ${contentTypeLabel(book)} '${contentTitle(book)}'.`;
+}
+
+function newChapterNotificationText(actorName, book = {}, chapter = {}, fallbackIndex = 0) {
+  return `${actorName} has published a new chapter '${chapterTitle(chapter, fallbackIndex)}' to ${contentTypeLabel(book)} '${contentTitle(book)}'.`;
 }
 
 async function updateBookReviewAggregates(bookId) {
@@ -805,7 +833,6 @@ async function notifyFollowersForPublishedBook(bookId, afterData) {
   const actorName = userDisplayName(authorData);
   const actorPhotoURL = normalizeString(authorData.photoURL) || null;
   const type = contentTypeLabel(afterData);
-  const title = contentTitle(afterData);
 
   const writes = followersSnapshot.docs
       .map((doc) => normalizeString(doc.data().followerId))
@@ -818,7 +845,7 @@ async function notifyFollowersForPublishedBook(bookId, afterData) {
           actorName,
           actorPhotoURL,
           type: "new_creation",
-          text: `${actorName} has published a ${type} "${title}".`,
+          text: publishedBookNotificationText(actorName, afterData),
           link: `/book?id=${bookId}`,
           targetId: bookId,
           metadata: {bookId, contentType: type},
@@ -855,26 +882,30 @@ async function notifyFollowersForNewChapter(bookId, beforeData, afterData) {
   const actorName = userDisplayName(authorData);
   const actorPhotoURL = normalizeString(authorData.photoURL) || null;
   const type = contentTypeLabel(afterData);
-  const title = contentTitle(afterData);
-  const chapter = addedChapters[addedChapters.length - 1];
-  const chapterName = chapterTitle(chapter, publishedChapters(afterData).indexOf(chapter));
+  const afterPublishedChapters = publishedChapters(afterData);
 
   const writes = followersSnapshot.docs
       .map((doc) => normalizeString(doc.data().followerId))
       .filter((userId) => userId && userId !== authorId)
-      .map((userId) => ({
-        ref: db.collection("notifications").doc(`chapter_update_${bookId}_${chapterKey(chapter)}_${userId}`),
-        data: buildNotification({
-          userId,
-          actorId: authorId,
-          actorName,
-          actorPhotoURL,
-          type: "chapter_update",
-          text: `${actorName} has published a new chapter "${chapterName}" in ${type} "${title}".`,
-          link: `/book?id=${bookId}`,
-          targetId: bookId,
-          metadata: {bookId, contentType: type, chapterId: normalizeString(chapter.id) || null, chapterTitle: chapterName},
-        }),
+      .flatMap((userId) => addedChapters.map((chapter) => {
+        const chapterIndex = afterPublishedChapters.indexOf(chapter);
+        const chapterName = chapterTitle(chapter, chapterIndex);
+        return {
+          ref: db.collection("notifications").doc(
+              `chapter_update_${bookId}_${notificationDocSegment(chapterKey(chapter, chapterIndex))}_${userId}`,
+          ),
+          data: buildNotification({
+            userId,
+            actorId: authorId,
+            actorName,
+            actorPhotoURL,
+            type: "chapter_update",
+            text: newChapterNotificationText(actorName, afterData, chapter, chapterIndex),
+            link: `/book?id=${bookId}`,
+            targetId: bookId,
+            metadata: {bookId, contentType: type, chapterId: normalizeString(chapter.id) || null, chapterTitle: chapterName},
+          }),
+        };
       }));
 
   for (let i = 0; i < writes.length; i += MAX_BATCH_WRITES) {
@@ -1464,3 +1495,16 @@ exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) =
   await refreshHomepageMetadataInternal();
   return {success: true, message: "Homepage metadata refreshed successfully."};
 });
+
+if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
+  exports.__test = {
+    contentTypeLabel,
+    contentTitle,
+    publishedChapters,
+    diffAddedPublishedChapters,
+    reviewNotificationText,
+    publishedBookNotificationText,
+    newChapterNotificationText,
+    chapterKey,
+  };
+}
