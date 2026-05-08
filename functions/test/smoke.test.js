@@ -146,6 +146,42 @@ test("multi-chapter review uses selected chapter title without extra chapter lab
   );
 });
 
+test("Hindi push review notifications keep target details", () => {
+  assert.equal(
+      exported.__test.localizedPushBody(
+          {
+            type: "book_review",
+            text: "Asha has left a review on 'Meeting Her' of poem 'New Life'.",
+          },
+          {preferredLanguage: "hi"},
+      ),
+      "ने \"New Life\" के अध्याय \"Meeting Her\" की समीक्षा की।",
+  );
+});
+
+test("Hindi push content notifications keep title details", () => {
+  assert.equal(
+      exported.__test.localizedPushBody(
+          {
+            type: "book_comment",
+            text: "Asha has commented on poem \"New Life\".",
+          },
+          {preferredLanguage: "hi"},
+      ),
+      "ने \"New Life\" पर टिप्पणी की।",
+  );
+  assert.equal(
+      exported.__test.localizedPushBody(
+          {
+            type: "chapter_update",
+            text: "Asha has published a new chapter 'Meeting Her' to poem 'New Life'.",
+          },
+          {preferredLanguage: "hi"},
+      ),
+      "ने \"New Life\" में अध्याय \"Meeting Her\" प्रकाशित किया।",
+  );
+});
+
 test("review cleanup detects legacy duplicate book comment notifications", () => {
   assert.equal(
       exported.__test.isSupersededBookCommentNotification(

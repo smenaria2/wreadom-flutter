@@ -316,15 +316,29 @@ function localizedPushBody(data = {}, userData = {}) {
     return "ने आपकी टिप्पणी का जवाब दिया।";
   }
   if (type === "book_reply" || text === "replied to your discussion") {
+    const detailed = localizedHindiBookReplyPushBody(data);
+    if (detailed) return detailed;
     return "ने आपकी रचना वाली टिप्पणी का जवाब दिया।";
   }
   if (type === "book_comment" || text === "commented on your content") {
+    const detailed = localizedHindiBookCommentPushBody(data);
+    if (detailed) return detailed;
     return "ने आपकी रचना पर टिप्पणी की।";
   }
   if (type === "book_review" ||
       text === "left a review on your content" ||
       text === "submitted an audio review on your content") {
+    const detailed = localizedHindiBookReviewPushBody(data);
+    if (detailed) return detailed;
     return "ने आपकी रचना की समीक्षा की।";
+  }
+  if (type === "new_creation" || type === "published") {
+    const detailed = localizedHindiPublishedPushBody(data);
+    if (detailed) return detailed;
+  }
+  if (type === "chapter_update") {
+    const detailed = localizedHindiChapterUpdatePushBody(data);
+    if (detailed) return detailed;
   }
   if (type === "message") {
     return text === "sent you a book" ?
@@ -340,6 +354,48 @@ function localizedPushBody(data = {}, userData = {}) {
       "ने आपको सहलेखक से हटाया।";
   }
   return data.text || "";
+}
+
+function localizedHindiBookReplyPushBody(data = {}) {
+  const title = firstQuotedValueAfter(data.text, "has replied to your review on");
+  return title ? `ने "${title}" पर आपकी समीक्षा का जवाब दिया।` : null;
+}
+
+function localizedHindiBookCommentPushBody(data = {}) {
+  const title = firstQuotedValueAfter(data.text, "has commented on");
+  return title ? `ने "${title}" पर टिप्पणी की।` : null;
+}
+
+function localizedHindiBookReviewPushBody(data = {}) {
+  const sourceText = normalizeString(data.text);
+  const chapterMatch = sourceText.match(/^.+?\s+has left a review on\s+(?:chapter\s+)?['"]([^'"]+)['"]\s+of\s+[^'"]+['"]([^'"]+)['"]\.?$/i);
+  if (chapterMatch) {
+    return `ने "${chapterMatch[2].trim()}" के अध्याय "${chapterMatch[1].trim()}" की समीक्षा की।`;
+  }
+  const title = firstQuotedValueAfter(sourceText, "has left a review on");
+  return title ? `ने "${title}" की समीक्षा की।` : null;
+}
+
+function localizedHindiPublishedPushBody(data = {}) {
+  const title = firstQuotedValueAfter(data.text, "has published");
+  return title ? `ने "${title}" प्रकाशित की।` : null;
+}
+
+function localizedHindiChapterUpdatePushBody(data = {}) {
+  const match = normalizeString(data.text).match(/^.+?\s+has published a new chapter\s+['"]([^'"]+)['"]\s+to\s+[^'"]+['"]([^'"]+)['"]\.?$/i);
+  if (!match) return null;
+  return `ने "${match[2].trim()}" में अध्याय "${match[1].trim()}" प्रकाशित किया।`;
+}
+
+function firstQuotedValueAfter(text, marker) {
+  const match = normalizeString(text).match(
+      new RegExp(`${escapeRegExp(marker)}[^'"]*['"]([^'"]+)['"]`, "i"),
+  );
+  return match ? match[1].trim() : null;
+}
+
+function escapeRegExp(value) {
+  return `${value}`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function pushDataFromNotification(data = {}, notificationId = "") {
@@ -1651,6 +1707,7 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     reviewNotificationText,
     publishedBookNotificationText,
     newChapterNotificationText,
+    localizedPushBody,
     chapterKey,
     isSupersededBookCommentNotification,
   };

@@ -1586,14 +1586,42 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String publishedChapterNotification(
+    String chapterTitle,
+    String contentTitle,
+  ) {
+    return 'ने \"$contentTitle\" में अध्याय \"$chapterTitle\" प्रकाशित किया।';
+  }
+
+  @override
   String get repliedToYourBookComment =>
       'ने आपकी रचना वाली टिप्पणी का जवाब दिया।';
+
+  @override
+  String repliedToContentReviewNotification(String title) {
+    return 'ने \"$title\" पर आपकी समीक्षा का जवाब दिया।';
+  }
 
   @override
   String get commentedOnYourContent => 'ने आपकी रचना पर टिप्पणी की।';
 
   @override
+  String commentedOnContentNotification(String title) {
+    return 'ने \"$title\" पर टिप्पणी की।';
+  }
+
+  @override
   String get reviewedYourBook => 'ने आपकी रचना की समीक्षा की।';
+
+  @override
+  String reviewedContentNotification(String title) {
+    return 'ने \"$title\" की समीक्षा की।';
+  }
+
+  @override
+  String reviewedChapterNotification(String chapterTitle, String contentTitle) {
+    return 'ने \"$contentTitle\" के अध्याय \"$chapterTitle\" की समीक्षा की।';
+  }
 
   @override
   String get updatedReviewOnYourBook => 'ने आपकी रचना पर समीक्षा अपडेट की।';

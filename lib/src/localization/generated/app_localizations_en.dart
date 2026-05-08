@@ -1587,13 +1587,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String publishedChapterNotification(
+    String chapterTitle,
+    String contentTitle,
+  ) {
+    return 'published chapter \"$chapterTitle\" to \"$contentTitle\".';
+  }
+
+  @override
   String get repliedToYourBookComment => 'replied to your content comment.';
+
+  @override
+  String repliedToContentReviewNotification(String title) {
+    return 'replied to your review on \"$title\".';
+  }
 
   @override
   String get commentedOnYourContent => 'commented on your content.';
 
   @override
+  String commentedOnContentNotification(String title) {
+    return 'commented on \"$title\".';
+  }
+
+  @override
   String get reviewedYourBook => 'reviewed your content.';
+
+  @override
+  String reviewedContentNotification(String title) {
+    return 'reviewed \"$title\".';
+  }
+
+  @override
+  String reviewedChapterNotification(String chapterTitle, String contentTitle) {
+    return 'reviewed \"$chapterTitle\" of \"$contentTitle\".';
+  }
 
   @override
   String get updatedReviewOnYourBook => 'updated a review on your content.';

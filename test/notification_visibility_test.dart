@@ -91,6 +91,24 @@ void main() {
     );
   });
 
+  testWidgets('canonical book review notification keeps Hindi target details', (
+    tester,
+  ) async {
+    final l10n = await loadL10n(tester, locale: const Locale('hi'));
+
+    expect(
+      localizedNotificationText(
+        notification(
+          type: 'book_review',
+          text:
+              "Sumit Menaria has left a review on 'Chapter One' of article 'Book One'.",
+        ),
+        l10n,
+      ),
+      l10n.reviewedChapterNotification('Chapter One', 'Book One'),
+    );
+  });
+
   testWidgets('book notification actions localize in Hindi', (tester) async {
     final l10n = await loadL10n(tester, locale: const Locale('hi'));
 
@@ -102,7 +120,7 @@ void main() {
         ),
         l10n,
       ),
-      l10n.commentedOnYourContent,
+      l10n.commentedOnContentNotification('Title'),
     );
     expect(
       localizedNotificationText(
@@ -112,7 +130,35 @@ void main() {
         ),
         l10n,
       ),
-      l10n.repliedToYourBookComment,
+      l10n.repliedToContentReviewNotification('Title'),
+    );
+  });
+
+  testWidgets('publication notifications localize in Hindi with titles', (
+    tester,
+  ) async {
+    final l10n = await loadL10n(tester, locale: const Locale('hi'));
+
+    expect(
+      localizedNotificationText(
+        notification(
+          type: 'new_creation',
+          text: "Sumit Menaria has published a poem 'New Life'.",
+        ),
+        l10n,
+      ),
+      l10n.publishedBookNotification('New Life'),
+    );
+    expect(
+      localizedNotificationText(
+        notification(
+          type: 'chapter_update',
+          text:
+              "Sumit Menaria has published a new chapter 'Meeting Her' to poem 'New Life'.",
+        ),
+        l10n,
+      ),
+      l10n.publishedChapterNotification('Meeting Her', 'New Life'),
     );
   });
 

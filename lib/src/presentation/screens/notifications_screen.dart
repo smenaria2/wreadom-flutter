@@ -590,16 +590,42 @@ String localizedNotificationText(
   }
   if ((isHindi && type == 'book_reply') ||
       text == 'replied to your discussion') {
+    final detailedReplyText = isHindi
+        ? _localizedHindiBookReplyText(notification, l10n)
+        : null;
+    if (detailedReplyText != null) return detailedReplyText;
     return l10n.repliedToYourBookComment;
   }
   if ((isHindi && type == 'book_review') ||
       text == 'left a review on your content' ||
       text == 'submitted an audio review on your content') {
+    final detailedReviewText = isHindi
+        ? _localizedHindiBookReviewText(notification, l10n)
+        : null;
+    if (detailedReviewText != null) return detailedReviewText;
     return l10n.reviewedYourBook;
   }
   if ((isHindi && type == 'book_comment') ||
       text == 'commented on your content') {
+    final detailedCommentText = isHindi
+        ? _localizedHindiBookCommentText(notification, l10n)
+        : null;
+    if (detailedCommentText != null) return detailedCommentText;
     return l10n.commentedOnYourContent;
+  }
+  if (isHindi && (type == 'new_creation' || type == 'published')) {
+    final detailedPublishedText = _localizedHindiPublishedText(
+      notification,
+      l10n,
+    );
+    if (detailedPublishedText != null) return detailedPublishedText;
+  }
+  if (isHindi && type == 'chapter_update') {
+    final detailedChapterText = _localizedHindiChapterUpdateText(
+      notification,
+      l10n,
+    );
+    if (detailedChapterText != null) return detailedChapterText;
   }
   if (type == 'message') {
     if (text == 'sent you a book') return l10n.sentYouBook;
@@ -616,6 +642,88 @@ String localizedNotificationText(
     return l10n.removedYouAsCoAuthor;
   }
   return notification.text;
+}
+
+String? _localizedHindiBookReplyText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final title = _firstQuotedValueAfter(
+    notification.text,
+    'has replied to your review on',
+  );
+  if (title == null) return null;
+  return l10n.repliedToContentReviewNotification(title);
+}
+
+String? _localizedHindiBookCommentText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final title = _firstQuotedValueAfter(notification.text, 'has commented on');
+  if (title == null) return null;
+  return l10n.commentedOnContentNotification(title);
+}
+
+String? _localizedHindiBookReviewText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final text = notification.text.trim();
+  final chapterReviewMatch = RegExp(
+    r'''^.+?\s+has left a review on\s+(?:chapter\s+)?['"]([^'"]+)['"]\s+of\s+[^'"]+['"]([^'"]+)['"]\.?$''',
+    caseSensitive: false,
+  ).firstMatch(text);
+  if (chapterReviewMatch != null) {
+    return l10n.reviewedChapterNotification(
+      chapterReviewMatch.group(1)!.trim(),
+      chapterReviewMatch.group(2)!.trim(),
+    );
+  }
+
+  final contentReviewMatch = RegExp(
+    r'''^.+?\s+has left a review on\s+[^'"]+['"]([^'"]+)['"]\.?$''',
+    caseSensitive: false,
+  ).firstMatch(text);
+  if (contentReviewMatch != null) {
+    return l10n.reviewedContentNotification(
+      contentReviewMatch.group(1)!.trim(),
+    );
+  }
+
+  return null;
+}
+
+String? _localizedHindiPublishedText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final title = _firstQuotedValueAfter(notification.text, 'has published');
+  if (title == null) return null;
+  return l10n.publishedBookNotification(title);
+}
+
+String? _localizedHindiChapterUpdateText(
+  AppNotification notification,
+  AppLocalizations l10n,
+) {
+  final match = RegExp(
+    r'''^.+?\s+has published a new chapter\s+['"]([^'"]+)['"]\s+to\s+[^'"]+['"]([^'"]+)['"]\.?$''',
+    caseSensitive: false,
+  ).firstMatch(notification.text.trim());
+  if (match == null) return null;
+  return l10n.publishedChapterNotification(
+    match.group(1)!.trim(),
+    match.group(2)!.trim(),
+  );
+}
+
+String? _firstQuotedValueAfter(String text, String marker) {
+  final match = RegExp(
+    '${RegExp.escape(marker)}[^\'"]*[\'"]([^\'"]+)[\'"]',
+    caseSensitive: false,
+  ).firstMatch(text);
+  return match?.group(1)?.trim();
 }
 
 class _NotificationFilterBar extends StatelessWidget {

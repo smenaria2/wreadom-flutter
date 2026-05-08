@@ -918,9 +918,55 @@
       }
     }
   },
+  "publishedChapterNotification": "published chapter \"{chapterTitle}\" to \"{contentTitle}\".",
+  "@publishedChapterNotification": {
+    "placeholders": {
+      "chapterTitle": {
+        "type": "String"
+      },
+      "contentTitle": {
+        "type": "String"
+      }
+    }
+  },
   "repliedToYourBookComment": "replied to your content comment.",
+  "repliedToContentReviewNotification": "replied to your review on \"{title}\".",
+  "@repliedToContentReviewNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "commentedOnYourContent": "commented on your content.",
+  "commentedOnContentNotification": "commented on \"{title}\".",
+  "@commentedOnContentNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "reviewedYourBook": "reviewed your content.",
+  "reviewedContentNotification": "reviewed \"{title}\".",
+  "@reviewedContentNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewedChapterNotification": "reviewed \"{chapterTitle}\" of \"{contentTitle}\".",
+  "@reviewedChapterNotification": {
+    "placeholders": {
+      "chapterTitle": {
+        "type": "String"
+      },
+      "contentTitle": {
+        "type": "String"
+      }
+    }
+  },
   "updatedReviewOnYourBook": "updated a review on your content.",
   "authorsCannotReviewOwnBook": "Authors cannot review their own content.",
   "feedTypePost": "Post",

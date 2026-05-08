@@ -2912,11 +2912,23 @@ abstract class AppLocalizations {
   /// **'published \"{title}\".'**
   String publishedBookNotification(String title);
 
+  /// No description provided for @publishedChapterNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'published chapter \"{chapterTitle}\" to \"{contentTitle}\".'**
+  String publishedChapterNotification(String chapterTitle, String contentTitle);
+
   /// No description provided for @repliedToYourBookComment.
   ///
   /// In en, this message translates to:
   /// **'replied to your content comment.'**
   String get repliedToYourBookComment;
+
+  /// No description provided for @repliedToContentReviewNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'replied to your review on \"{title}\".'**
+  String repliedToContentReviewNotification(String title);
 
   /// No description provided for @commentedOnYourContent.
   ///
@@ -2924,11 +2936,29 @@ abstract class AppLocalizations {
   /// **'commented on your content.'**
   String get commentedOnYourContent;
 
+  /// No description provided for @commentedOnContentNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'commented on \"{title}\".'**
+  String commentedOnContentNotification(String title);
+
   /// No description provided for @reviewedYourBook.
   ///
   /// In en, this message translates to:
   /// **'reviewed your content.'**
   String get reviewedYourBook;
+
+  /// No description provided for @reviewedContentNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'reviewed \"{title}\".'**
+  String reviewedContentNotification(String title);
+
+  /// No description provided for @reviewedChapterNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'reviewed \"{chapterTitle}\" of \"{contentTitle}\".'**
+  String reviewedChapterNotification(String chapterTitle, String contentTitle);
 
   /// No description provided for @updatedReviewOnYourBook.
   ///

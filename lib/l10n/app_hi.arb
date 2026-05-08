@@ -701,9 +701,55 @@
       }
     }
   },
+  "publishedChapterNotification": "ने \"{contentTitle}\" में अध्याय \"{chapterTitle}\" प्रकाशित किया।",
+  "@publishedChapterNotification": {
+    "placeholders": {
+      "chapterTitle": {
+        "type": "String"
+      },
+      "contentTitle": {
+        "type": "String"
+      }
+    }
+  },
   "repliedToYourBookComment": "ने आपकी रचना वाली टिप्पणी का जवाब दिया।",
+  "repliedToContentReviewNotification": "ने \"{title}\" पर आपकी समीक्षा का जवाब दिया।",
+  "@repliedToContentReviewNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "commentedOnYourContent": "ने आपकी रचना पर टिप्पणी की।",
+  "commentedOnContentNotification": "ने \"{title}\" पर टिप्पणी की।",
+  "@commentedOnContentNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "reviewedYourBook": "ने आपकी रचना की समीक्षा की।",
+  "reviewedContentNotification": "ने \"{title}\" की समीक्षा की।",
+  "@reviewedContentNotification": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewedChapterNotification": "ने \"{contentTitle}\" के अध्याय \"{chapterTitle}\" की समीक्षा की।",
+  "@reviewedChapterNotification": {
+    "placeholders": {
+      "chapterTitle": {
+        "type": "String"
+      },
+      "contentTitle": {
+        "type": "String"
+      }
+    }
+  },
   "updatedReviewOnYourBook": "ने आपकी रचना पर समीक्षा अपडेट की।",
   "authorsCannotReviewOwnBook": "लेखक अपनी रचना की समीक्षा नहीं कर सकते।",
   "feedTypePost": "पोस्ट",
