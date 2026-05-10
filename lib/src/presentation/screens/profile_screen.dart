@@ -7,14 +7,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
+import '../providers/app_update_provider.dart';
 import '../providers/book_providers.dart';
+import '../providers/haptics_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/notification_providers.dart';
 import '../providers/profile_providers.dart';
 import '../providers/report_providers.dart';
+import '../providers/shake_report_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
 import '../../utils/format_utils.dart';
@@ -513,11 +517,14 @@ class _ProfileSideMenu extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  _MenuSectionLabel(label: 'Account'),
                   _MenuTile(
                     icon: Icons.manage_accounts_outlined,
                     title: l10n.editProfile,
                     onTap: () => _go(context, AppRoutes.profileSettings),
                   ),
+                  const Divider(),
+                  _MenuSectionLabel(label: 'Preferences'),
                   _MenuTile(
                     icon: Icons.language_outlined,
                     title: l10n.language,
@@ -534,17 +541,41 @@ class _ProfileSideMenu extends ConsumerWidget {
                         : l10n.light,
                     onTap: () => _showThemePicker(context, ref),
                   ),
+                  SwitchListTile.adaptive(
+                    secondary: const Icon(Icons.touch_app_outlined),
+                    title: const Text('Haptic feedback'),
+                    subtitle: const Text(
+                      'Vibrate on likes, shares, and actions',
+                    ),
+                    value: ref.watch(hapticsEnabledProvider),
+                    onChanged: (enabled) => ref
+                        .read(hapticsEnabledProvider.notifier)
+                        .setEnabled(enabled),
+                  ),
                   const Divider(),
+                  _MenuSectionLabel(label: 'Support'),
+                  const _AppUpdateTile(),
                   _MenuTile(
                     icon: Icons.bug_report_outlined,
                     title: l10n.submitError,
                     onTap: () => _showErrorReportDialog(context, ref),
+                  ),
+                  SwitchListTile.adaptive(
+                    secondary: const Icon(Icons.vibration_rounded),
+                    title: Text(l10n.shakeToReport),
+                    subtitle: Text(l10n.shakeToReportSubtitle),
+                    value: ref.watch(shakeToReportEnabledProvider),
+                    onChanged: (enabled) => ref
+                        .read(shakeToReportEnabledProvider.notifier)
+                        .setEnabled(enabled),
                   ),
                   _MenuTile(
                     icon: Icons.help_outline_rounded,
                     title: l10n.help,
                     onTap: () => _go(context, AppRoutes.help),
                   ),
+                  const Divider(),
+                  _MenuSectionLabel(label: 'Legal'),
                   _MenuTile(
                     icon: Icons.privacy_tip_outlined,
                     title: l10n.privacyPolicy,
@@ -629,6 +660,28 @@ class _ProfileSideMenu extends ConsumerWidget {
   }
 }
 
+class _MenuSectionLabel extends StatelessWidget {
+  const _MenuSectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+}
+
 class _AppVersionTile extends StatefulWidget {
   const _AppVersionTile();
 
@@ -663,6 +716,52 @@ class _AppVersionTileState extends State<_AppVersionTile> {
         );
       },
     );
+  }
+}
+
+class _AppUpdateTile extends ConsumerWidget {
+  const _AppUpdateTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updateAsync = ref.watch(appUpdateAvailabilityProvider);
+    return updateAsync.maybeWhen(
+      data: (availability) {
+        if (availability == null) return const SizedBox.shrink();
+        return _MenuTile(
+          icon: Icons.system_update_alt_rounded,
+          title: 'Update App',
+          subtitle: 'Latest build ${availability.config.androidBuildNumber}',
+          onTap: () => _openUpdateLink(context, availability),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+
+  Future<void> _openUpdateLink(
+    BuildContext context,
+    AppUpdateAvailability availability,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri.tryParse(availability.config.androidDownloadUrl);
+    if (uri == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Update link is not valid.')),
+      );
+      return;
+    }
+
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open update link.')),
+      );
+    }
   }
 }
 

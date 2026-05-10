@@ -5,7 +5,9 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../../domain/models/book.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../utils/format_utils.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
+import '../../providers/writer_providers.dart';
 
 class AuthorStatsPanel extends ConsumerWidget {
   const AuthorStatsPanel({super.key, required this.user});
@@ -15,7 +17,10 @@ class AuthorStatsPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final booksAsync = ref.watch(userBooksProvider(user.id));
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final booksAsync = currentUser?.id == user.id
+        ? ref.watch(myBooksProvider)
+        : ref.watch(userBooksProvider(user.id));
     final joinedDate = _formatJoinedDate(user.createdAt);
 
     return booksAsync.when(

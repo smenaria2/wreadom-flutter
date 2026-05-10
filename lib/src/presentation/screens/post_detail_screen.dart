@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
+import '../../utils/app_haptics.dart';
 import '../../utils/app_link_helper.dart';
 import '../components/feed_post_card.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../routing/app_routes.dart';
+import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
 import 'static_info_screen.dart';
+
+const _postCommentsBannerAdUnitId = 'ca-app-pub-7031076798250177/8829012161';
 
 class PostDetailScreen extends ConsumerWidget {
   const PostDetailScreen({
@@ -40,10 +43,13 @@ class PostDetailScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () => Share.share(
-              l10n.checkOutPostOnWreadom(AppLinkHelper.post(postId)),
-              subject: l10n.wreadomPost,
-            ),
+            onPressed: () async {
+              await AppHaptics.selection();
+              await Share.share(
+                l10n.checkOutPostOnWreadom(AppLinkHelper.post(postId)),
+                subject: l10n.wreadomPost,
+              );
+            },
           ),
         ],
       ),
@@ -73,6 +79,13 @@ class PostDetailScreen extends ConsumerWidget {
                   targetCommentId: targetCommentId,
                   targetReplyId: targetReplyId,
                 ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: AdaptiveBannerAd(
+                    adUnitId: _postCommentsBannerAdUnitId,
+                    horizontalInset: 32,
+                  ),
+                ),
               ],
             ),
           );
@@ -85,6 +98,13 @@ class PostDetailScreen extends ConsumerWidget {
                     post: preloadedPost!,
                     targetCommentId: targetCommentId,
                     targetReplyId: targetReplyId,
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: AdaptiveBannerAd(
+                      adUnitId: _postCommentsBannerAdUnitId,
+                      horizontalInset: 32,
+                    ),
                   ),
                 ],
               )
@@ -248,7 +268,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           'text': text,
         });
       }
-      await HapticFeedback.lightImpact();
+      await AppHaptics.light();
       _controller.value.clear();
       setState(() => _replyingTo = null);
       ref.invalidate(liveFeedPostCommentsProvider(postId));

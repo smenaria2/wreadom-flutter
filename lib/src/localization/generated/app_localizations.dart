@@ -206,6 +206,18 @@ abstract class AppLocalizations {
   /// **'Report an issue'**
   String get submitError;
 
+  /// No description provided for @shakeToReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Shake to report'**
+  String get shakeToReport;
+
+  /// No description provided for @shakeToReportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open issue report by shaking your phone'**
+  String get shakeToReportSubtitle;
+
   /// No description provided for @followers.
   ///
   /// In en, this message translates to:
@@ -2120,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'Last update'**
   String get lastUpdate;
 
+  /// No description provided for @publishedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get publishedOn;
+
   /// No description provided for @editStory.
   ///
   /// In en, this message translates to:
@@ -2408,41 +2426,113 @@ abstract class AppLocalizations {
   /// **'Download removed.'**
   String get downloadRemoved;
 
-  /// No description provided for @onboardingDiscoverTitle.
+  /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Discover your next read'**
-  String get onboardingDiscoverTitle;
+  /// **'Welcome to Wreadom'**
+  String get onboardingWelcomeTitle;
 
-  /// No description provided for @onboardingDiscoverBody.
+  /// No description provided for @onboardingWelcomeTagline.
   ///
   /// In en, this message translates to:
-  /// **'Browse originals, classics, trending works, and authors curated for your reading mood.'**
-  String get onboardingDiscoverBody;
+  /// **'Where every voice has a story.'**
+  String get onboardingWelcomeTagline;
 
-  /// No description provided for @onboardingOfflineTitle.
+  /// No description provided for @onboardingWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'Read anywhere'**
-  String get onboardingOfflineTitle;
+  /// **'Read unforgettable books, publish your own work, and connect with a community built for modern bibliophiles and aspiring authors.'**
+  String get onboardingWelcomeBody;
 
-  /// No description provided for @onboardingOfflineBody.
+  /// No description provided for @onboardingWelcomeBulletRead.
   ///
   /// In en, this message translates to:
-  /// **'Download content to your device and keep reading even when the network disappears.'**
-  String get onboardingOfflineBody;
+  /// **'Find new worlds to read and listen to.'**
+  String get onboardingWelcomeBulletRead;
 
-  /// No description provided for @onboardingWriteTitle.
+  /// No description provided for @onboardingWelcomeBulletWrite.
   ///
   /// In en, this message translates to:
-  /// **'Write and publish'**
-  String get onboardingWriteTitle;
+  /// **'Turn drafts into published stories.'**
+  String get onboardingWelcomeBulletWrite;
 
-  /// No description provided for @onboardingWriteBody.
+  /// No description provided for @onboardingWelcomeBulletConnect.
   ///
   /// In en, this message translates to:
-  /// **'Draft chapters, add details, publish your work, and grow your presence as a Wreadom author.'**
-  String get onboardingWriteBody;
+  /// **'Meet readers, writers, and collaborators.'**
+  String get onboardingWelcomeBulletConnect;
+
+  /// No description provided for @onboardingReadersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For readers'**
+  String get onboardingReadersTitle;
+
+  /// No description provided for @onboardingReadersBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover originals, classics, Internet Archive books, and fresh posts from the writers you follow.'**
+  String get onboardingReadersBody;
+
+  /// No description provided for @onboardingReadersBulletDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse books, categories, trending works, and personalized feeds.'**
+  String get onboardingReadersBulletDiscover;
+
+  /// No description provided for @onboardingReadersBulletListen.
+  ///
+  /// In en, this message translates to:
+  /// **'Use text-to-speech to listen when you are on the go.'**
+  String get onboardingReadersBulletListen;
+
+  /// No description provided for @onboardingReadersBulletOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Save books, bookmarks, and reading progress for offline moments.'**
+  String get onboardingReadersBulletOffline;
+
+  /// No description provided for @onboardingReadersBulletVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave audio comments when typing is not enough.'**
+  String get onboardingReadersBulletVoice;
+
+  /// No description provided for @onboardingAuthorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For authors'**
+  String get onboardingAuthorsTitle;
+
+  /// No description provided for @onboardingAuthorsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Move from blank page to published author with tools made for writing, planning, and growing an audience.'**
+  String get onboardingAuthorsBody;
+
+  /// No description provided for @onboardingAuthorsBulletTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft in Writer Pad with rich writing tools.'**
+  String get onboardingAuthorsBulletTools;
+
+  /// No description provided for @onboardingAuthorsBulletCollab.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite co-authors and build stories together.'**
+  String get onboardingAuthorsBulletCollab;
+
+  /// No description provided for @onboardingAuthorsBulletInspiration.
+  ///
+  /// In en, this message translates to:
+  /// **'Use daily topics, prompts, and competitions for fresh momentum.'**
+  String get onboardingAuthorsBulletInspiration;
+
+  /// No description provided for @onboardingAuthorsBulletDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Track published works and reader growth from the writer dashboard.'**
+  String get onboardingAuthorsBulletDashboard;
 
   /// No description provided for @onboardingCommunityTitle.
   ///
@@ -2453,20 +2543,26 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingCommunityBody.
   ///
   /// In en, this message translates to:
-  /// **'Share quotes, reviews, posts, and comments with readers and writers across the community.'**
+  /// **'React to stories, share your thoughts, and build real connections around the books and creators you love.'**
   String get onboardingCommunityBody;
 
-  /// No description provided for @onboardingProfileTitle.
+  /// No description provided for @onboardingCommunityBulletReact.
   ///
   /// In en, this message translates to:
-  /// **'Make Wreadom yours'**
-  String get onboardingProfileTitle;
+  /// **'Like, comment, share, and reply in the community feed.'**
+  String get onboardingCommunityBulletReact;
 
-  /// No description provided for @onboardingProfileBody.
+  /// No description provided for @onboardingCommunityBulletFollow.
   ///
   /// In en, this message translates to:
-  /// **'Follow creators, message connections, manage your shelf, and shape a profile readers remember.'**
-  String get onboardingProfileBody;
+  /// **'Follow favorite authors and get updates when they publish.'**
+  String get onboardingCommunityBulletFollow;
+
+  /// No description provided for @onboardingCommunityBulletMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Send private messages to readers, writers, and collaborators.'**
+  String get onboardingCommunityBulletMessage;
 
   /// No description provided for @noPostsYetStartSharing.
   ///

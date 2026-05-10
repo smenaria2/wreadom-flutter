@@ -28,6 +28,7 @@ abstract class Book with _$Book {
     String? status,
     int? createdAt,
     int? updatedAt,
+    int? publishedAt,
     String? identifier,
     int? recommendationCount,
     double? weightedScore,

@@ -21,10 +21,12 @@ import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
+import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
+import 'src/utils/app_haptics.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
@@ -51,6 +53,7 @@ void main() {
     await Hive.initFlutter();
     await OfflineService().init(); // Open the offline boxes
     final sharedPreferences = await SharedPreferences.getInstance();
+    await AppHaptics.init(sharedPreferences);
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -201,7 +204,10 @@ class _MyAppState extends ConsumerState<MyApp> {
           ),
           themeMode: themeMode,
           onGenerateRoute: AppRouter.onGenerateRoute,
-          home: const AuthWrapper(),
+          home: ShakeToReportListener(
+            navigatorKey: _navigatorKey,
+            child: const AuthWrapper(),
+          ),
         );
       },
     );

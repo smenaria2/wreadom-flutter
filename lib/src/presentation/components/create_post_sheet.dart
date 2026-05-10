@@ -7,6 +7,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/feed_post.dart';
+import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 
@@ -108,6 +109,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
+      await AppHaptics.light();
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));

@@ -63,6 +63,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get submitError => 'Report an issue';
 
   @override
+  String get shakeToReport => 'Shake to report';
+
+  @override
+  String get shakeToReportSubtitle => 'Open issue report by shaking your phone';
+
+  @override
   String get followers => 'Followers';
 
   @override
@@ -1127,6 +1133,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lastUpdate => 'Last update';
 
   @override
+  String get publishedOn => 'Published';
+
+  @override
   String get editStory => 'Edit story';
 
   @override
@@ -1298,39 +1307,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadRemoved => 'Download removed.';
 
   @override
-  String get onboardingDiscoverTitle => 'Discover your next read';
+  String get onboardingWelcomeTitle => 'Welcome to Wreadom';
 
   @override
-  String get onboardingDiscoverBody =>
-      'Browse originals, classics, trending works, and authors curated for your reading mood.';
+  String get onboardingWelcomeTagline => 'Where every voice has a story.';
 
   @override
-  String get onboardingOfflineTitle => 'Read anywhere';
+  String get onboardingWelcomeBody =>
+      'Read unforgettable books, publish your own work, and connect with a community built for modern bibliophiles and aspiring authors.';
 
   @override
-  String get onboardingOfflineBody =>
-      'Download content to your device and keep reading even when the network disappears.';
+  String get onboardingWelcomeBulletRead =>
+      'Find new worlds to read and listen to.';
 
   @override
-  String get onboardingWriteTitle => 'Write and publish';
+  String get onboardingWelcomeBulletWrite =>
+      'Turn drafts into published stories.';
 
   @override
-  String get onboardingWriteBody =>
-      'Draft chapters, add details, publish your work, and grow your presence as a Wreadom author.';
+  String get onboardingWelcomeBulletConnect =>
+      'Meet readers, writers, and collaborators.';
+
+  @override
+  String get onboardingReadersTitle => 'For readers';
+
+  @override
+  String get onboardingReadersBody =>
+      'Discover originals, classics, Internet Archive books, and fresh posts from the writers you follow.';
+
+  @override
+  String get onboardingReadersBulletDiscover =>
+      'Browse books, categories, trending works, and personalized feeds.';
+
+  @override
+  String get onboardingReadersBulletListen =>
+      'Use text-to-speech to listen when you are on the go.';
+
+  @override
+  String get onboardingReadersBulletOffline =>
+      'Save books, bookmarks, and reading progress for offline moments.';
+
+  @override
+  String get onboardingReadersBulletVoice =>
+      'Leave audio comments when typing is not enough.';
+
+  @override
+  String get onboardingAuthorsTitle => 'For authors';
+
+  @override
+  String get onboardingAuthorsBody =>
+      'Move from blank page to published author with tools made for writing, planning, and growing an audience.';
+
+  @override
+  String get onboardingAuthorsBulletTools =>
+      'Draft in Writer Pad with rich writing tools.';
+
+  @override
+  String get onboardingAuthorsBulletCollab =>
+      'Invite co-authors and build stories together.';
+
+  @override
+  String get onboardingAuthorsBulletInspiration =>
+      'Use daily topics, prompts, and competitions for fresh momentum.';
+
+  @override
+  String get onboardingAuthorsBulletDashboard =>
+      'Track published works and reader growth from the writer dashboard.';
 
   @override
   String get onboardingCommunityTitle => 'Join the conversation';
 
   @override
   String get onboardingCommunityBody =>
-      'Share quotes, reviews, posts, and comments with readers and writers across the community.';
+      'React to stories, share your thoughts, and build real connections around the books and creators you love.';
 
   @override
-  String get onboardingProfileTitle => 'Make Wreadom yours';
+  String get onboardingCommunityBulletReact =>
+      'Like, comment, share, and reply in the community feed.';
 
   @override
-  String get onboardingProfileBody =>
-      'Follow creators, message connections, manage your shelf, and shape a profile readers remember.';
+  String get onboardingCommunityBulletFollow =>
+      'Follow favorite authors and get updates when they publish.';
+
+  @override
+  String get onboardingCommunityBulletMessage =>
+      'Send private messages to readers, writers, and collaborators.';
 
   @override
   String get noPostsYetStartSharing =>

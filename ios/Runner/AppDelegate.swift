@@ -14,9 +14,10 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let messenger = engineBridge.pluginRegistry.registrar(forPlugin: "ReaderPrivacy")!.messenger()
     let channel = FlutterMethodChannel(
       name: "in.wreadom.app/reader_privacy",
-      binaryMessenger: engineBridge.pluginRegistry.registrar(forPlugin: "ReaderPrivacy")!.messenger()
+      binaryMessenger: messenger
     )
     channel.setMethodCallHandler { [weak self] call, result in
       guard call.method == "setSecureReader" else {
@@ -27,6 +28,38 @@ import UIKit
       let enabled = args?["enabled"] as? Bool ?? false
       self?.setReaderPrivacyOverlayEnabled(enabled)
       result(nil)
+    }
+
+    let hapticsChannel = FlutterMethodChannel(
+      name: "in.wreadom.app/haptics",
+      binaryMessenger: messenger
+    )
+    hapticsChannel.setMethodCallHandler { call, result in
+      guard call.method == "impact" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let args = call.arguments as? [String: Any]
+      let type = args?["type"] as? String ?? "light"
+      self.performNativeHaptic(type)
+      result(nil)
+    }
+  }
+
+  private func performNativeHaptic(_ type: String) {
+    switch type {
+    case "selection":
+      let generator = UISelectionFeedbackGenerator()
+      generator.prepare()
+      generator.selectionChanged()
+    case "medium":
+      let generator = UIImpactFeedbackGenerator(style: .medium)
+      generator.prepare()
+      generator.impactOccurred()
+    default:
+      let generator = UIImpactFeedbackGenerator(style: .light)
+      generator.prepare()
+      generator.impactOccurred()
     }
   }
 

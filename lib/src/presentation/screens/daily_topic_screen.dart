@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as image_codec;
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
@@ -272,21 +273,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                             padding: const EdgeInsets.only(top: 12),
                             child: SizedBox(
                               width: double.infinity,
-                              child: OutlinedButton.icon(
-                                icon: _isGeneratingCertificate
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.download_rounded),
-                                label: Text(
-                                  _isGeneratingCertificate
-                                      ? 'Preparing certificate...'
-                                      : 'Download Participation Certificate',
-                                ),
+                              child: OutlinedButton(
                                 onPressed: _isGeneratingCertificate
                                     ? null
                                     : () => _downloadCertificate(
@@ -296,6 +283,31 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                                             user.username,
                                         userPhotoUrl: user.photoURL,
                                       ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    if (_isGeneratingCertificate)
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    else
+                                      const Icon(Icons.download_rounded),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _isGeneratingCertificate
+                                            ? 'Preparing certificate...'
+                                            : 'Download Participation Certificate',
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -533,7 +545,7 @@ class _ParticipationCertificate extends StatelessWidget {
               ),
             Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(72, 32, 72, 104),
+                padding: const EdgeInsets.fromLTRB(72, 32, 72, 128),
                 child: Column(
                   children: [
                     Image.asset(
@@ -635,9 +647,9 @@ class _ParticipationCertificate extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 18),
                     const SizedBox(
-                      width: 500,
+                      width: 470,
                       child: Text(
                         '"We appreciate your participation and your contribution to the spirit of literature through your writing."',
                         textAlign: TextAlign.center,
@@ -657,16 +669,13 @@ class _ParticipationCertificate extends StatelessWidget {
             ),
             Positioned(
               left: 104,
-              right: 104,
-              bottom: 58,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _CertificateFooterLabel(label: 'DATE', value: date),
-                  const _CertificateSignature(),
-                ],
-              ),
+              bottom: 38,
+              child: _CertificateFooterLabel(label: 'DATE', value: date),
+            ),
+            const Positioned(
+              right: 34,
+              bottom: 30,
+              child: _CertificateSignature(),
             ),
           ],
         ),
@@ -681,24 +690,23 @@ class _CertificateSignature extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 190,
+      width: 172,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Transform.rotate(
             angle: -0.1,
-            child: const Text(
+            child: Text(
               'Sumit',
-              style: TextStyle(
+              style: GoogleFonts.dancingScript(
                 color: Color(0xCC4338CA),
-                fontSize: 30,
-                fontFamily: 'Serif',
-                fontStyle: FontStyle.italic,
+                fontSize: 34,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
           const SizedBox(
-            width: 150,
+            width: 132,
             child: Divider(color: Color(0xFFE2E8F0), height: 12),
           ),
           const Text(

@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
@@ -14,7 +13,10 @@ import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
+import '../../utils/book_publication_date.dart';
+import '../../utils/format_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -24,8 +26,10 @@ import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/book_share_utils.dart';
 import '../utils/book_author_utils.dart';
 import '../utils/swipe_hint.dart';
+import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
@@ -102,6 +106,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
           _preloadChapters(book.id);
           return _BookDetailBody(
             book: book,
+            detailBookId: widget.bookId,
             heroTag: widget.heroTag,
             targetCommentId: widget.targetCommentId,
             targetReplyId: widget.targetReplyId,
@@ -110,6 +115,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
         loading: () => widget.preloadedBook != null
             ? _BookDetailBody(
                 book: widget.preloadedBook!,
+                detailBookId: widget.bookId,
                 heroTag: widget.heroTag,
                 targetCommentId: widget.targetCommentId,
                 targetReplyId: widget.targetReplyId,
@@ -316,12 +322,14 @@ void _openArchivePdf(BuildContext context, Book book) {
 class _BookDetailBody extends ConsumerWidget {
   const _BookDetailBody({
     required this.book,
+    required this.detailBookId,
     this.heroTag,
     this.targetCommentId,
     this.targetReplyId,
   });
 
   final Book book;
+  final String detailBookId;
   final String? heroTag;
   final String? targetCommentId;
   final String? targetReplyId;
@@ -347,19 +355,26 @@ class _BookDetailBody extends ConsumerWidget {
         canEditCollaborativeBook(book, currentUser.id);
 
     Future<void> refresh() async {
-      ref.invalidate(liveBookDetailProvider(book.id));
+      ref.invalidate(liveBookDetailProvider(detailBookId));
+      ref.invalidate(bookDetailProvider(detailBookId));
+      if (detailBookId != book.id) {
+        ref.invalidate(liveBookDetailProvider(book.id));
+        ref.invalidate(bookDetailProvider(book.id));
+      }
       ref.invalidate(liveBookChaptersProvider(book.id));
+      ref.invalidate(bookChaptersProvider(book.id));
       ref.invalidate(liveBookCommentsProvider(book.id));
+      ref.invalidate(bookCommentsProvider(book.id));
       ref.invalidate(currentUserProvider);
       await Future.wait([
         ref
-            .read(liveBookDetailProvider(book.id).future)
+            .read(bookDetailProvider(detailBookId).future)
             .catchError((_) => null),
         ref
-            .read(liveBookChaptersProvider(book.id).future)
+            .read(bookChaptersProvider(book.id).future)
             .catchError((_) => <Chapter>[]),
         ref
-            .read(liveBookCommentsProvider(book.id).future)
+            .read(bookCommentsProvider(book.id).future)
             .catchError((_) => <Comment>[]),
       ]);
     }
@@ -384,12 +399,18 @@ class _BookDetailBody extends ConsumerWidget {
                 ),
               IconButton(
                 icon: const Icon(Icons.share_outlined),
-                onPressed: () => Share.share(
-                  AppLocalizations.of(
+                onPressed: () async {
+                  final message = AppLocalizations.of(
                     context,
-                  )!.shareBookMessage(book.title, AppLinkHelper.book(book.id)),
-                  subject: book.title,
-                ),
+                  )!.shareBookMessage(book.title, AppLinkHelper.book(book.id));
+                  await AppHaptics.selection();
+                  await shareBookLinkWithCover(
+                    text: message,
+                    subject: book.title,
+                    coverUrl: book.coverUrl,
+                    fileNameBase: book.title,
+                  );
+                },
               ),
               if (!canEdit)
                 IconButton(
@@ -454,6 +475,11 @@ class _BookDetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _StatsRow(book: book),
+                if (book.status == 'published' &&
+                    publicationTimestamp(book) != null) ...[
+                  const SizedBox(height: 10),
+                  _PublicationDateRow(book: book),
+                ],
                 if (book.subjects.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Wrap(
@@ -539,6 +565,11 @@ class _BookDetailBody extends ConsumerWidget {
                   book: book,
                   targetCommentId: targetCommentId,
                   targetReplyId: targetReplyId,
+                ),
+                const SizedBox(height: 20),
+                const AdaptiveBannerAd(
+                  adUnitId: _postCommentsBannerAdUnitId,
+                  horizontalInset: 40,
                 ),
                 const SizedBox(height: 32),
               ]),
@@ -634,6 +665,7 @@ class _BookDetailBody extends ConsumerWidget {
                       privacy: 'public',
                     ),
                   );
+              await AppHaptics.light();
               ref.invalidate(feedPostsProvider);
               ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
               ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
@@ -752,6 +784,7 @@ class _BookDetailBody extends ConsumerWidget {
                             );
                             return;
                           }
+                          await AppHaptics.selection();
                           if (!sheetContext.mounted) return;
                           Navigator.of(sheetContext).pop();
                           if (!rootContext.mounted) return;
@@ -1042,6 +1075,8 @@ class _LatestDiscussionSectionState
   }
 }
 
+const _postCommentsBannerAdUnitId = 'ca-app-pub-7031076798250177/8829012161';
+
 class _BookTargetCommentHeader extends StatelessWidget {
   const _BookTargetCommentHeader({required this.label});
 
@@ -1193,6 +1228,31 @@ class _StatsRow extends ConsumerWidget {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
+  }
+}
+
+class _PublicationDateRow extends StatelessWidget {
+  const _PublicationDateRow({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final timestamp = publicationTimestamp(book);
+    if (timestamp == null) return const SizedBox.shrink();
+    final color = Colors.grey[600];
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.calendar_today_outlined, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          '${AppLocalizations.of(context)!.publishedOn}: '
+          '${FormatUtils.formatTimestamp(timestamp)}',
+          style: TextStyle(color: color, fontSize: 13),
+        ),
+      ],
+    );
   }
 }
 

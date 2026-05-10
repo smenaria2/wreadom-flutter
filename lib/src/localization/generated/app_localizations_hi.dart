@@ -63,6 +63,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get submitError => 'समस्या रिपोर्ट करें';
 
   @override
+  String get shakeToReport => 'शेक करके रिपोर्ट करें';
+
+  @override
+  String get shakeToReportSubtitle => 'फोन हिलाकर समस्या रिपोर्ट खोलें';
+
+  @override
   String get followers => 'फ़ॉलोअर';
 
   @override
@@ -1126,6 +1132,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get lastUpdate => 'आखिरी अपडेट';
 
   @override
+  String get publishedOn => 'प्रकाशित';
+
+  @override
   String get editStory => 'रचना संपादित करें';
 
   @override
@@ -1295,39 +1304,91 @@ class AppLocalizationsHi extends AppLocalizations {
   String get downloadRemoved => 'डाउनलोड हटा दिया गया।';
 
   @override
-  String get onboardingDiscoverTitle => 'अपनी अगली रचना खोजें';
+  String get onboardingWelcomeTitle => 'Wreadom में आपका स्वागत है';
 
   @override
-  String get onboardingDiscoverBody =>
-      'अपने मूड के अनुसार ओरिजिनल, क्लासिक्स, ट्रेंडिंग रचनाएँ और लेखक खोजें।';
+  String get onboardingWelcomeTagline => 'जहाँ हर आवाज़ की अपनी कहानी है।';
 
   @override
-  String get onboardingOfflineTitle => 'कहीं भी पढ़ें';
+  String get onboardingWelcomeBody =>
+      'यादगार रचनाएँ पढ़ें, अपनी रचनाएँ प्रकाशित करें, और आधुनिक पाठकों व उभरते लेखकों के लिए बने समुदाय से जुड़ें।';
 
   @override
-  String get onboardingOfflineBody =>
-      'रचनाएँ डिवाइस पर डाउनलोड करें और नेटवर्क न होने पर भी पढ़ना जारी रखें।';
+  String get onboardingWelcomeBulletRead =>
+      'पढ़ने और सुनने के लिए नई दुनिया खोजें।';
 
   @override
-  String get onboardingWriteTitle => 'लिखें और प्रकाशित करें';
+  String get onboardingWelcomeBulletWrite =>
+      'ड्राफ्ट को प्रकाशित कहानियों में बदलें।';
 
   @override
-  String get onboardingWriteBody =>
-      'अध्याय ड्राफ्ट करें, विवरण जोड़ें, अपनी रचना प्रकाशित करें और Wreadom लेखक के रूप में आगे बढ़ें।';
+  String get onboardingWelcomeBulletConnect =>
+      'पाठकों, लेखकों और सहयोगियों से मिलें।';
+
+  @override
+  String get onboardingReadersTitle => 'पाठकों के लिए';
+
+  @override
+  String get onboardingReadersBody =>
+      'ओरिजिनल, क्लासिक्स, Internet Archive की रचनाएँ, और अपने पसंदीदा लेखकों की नई पोस्ट खोजें।';
+
+  @override
+  String get onboardingReadersBulletDiscover =>
+      'रचनाएँ, श्रेणियाँ, ट्रेंडिंग सामग्री और निजी फ़ीड ब्राउज़ करें।';
+
+  @override
+  String get onboardingReadersBulletListen =>
+      'चलते-फिरते सुनने के लिए टेक्स्ट-टू-स्पीच का उपयोग करें।';
+
+  @override
+  String get onboardingReadersBulletOffline =>
+      'ऑफलाइन समय के लिए रचनाएँ, बुकमार्क और पढ़ने की प्रगति सेव करें।';
+
+  @override
+  String get onboardingReadersBulletVoice =>
+      'जब टाइप करना काफी न लगे, तो ऑडियो टिप्पणियाँ भेजें।';
+
+  @override
+  String get onboardingAuthorsTitle => 'लेखकों के लिए';
+
+  @override
+  String get onboardingAuthorsBody =>
+      'लेखन, योजना और पाठक बढ़ाने के लिए बने टूल्स के साथ खाली पेज से प्रकाशित लेखक तक पहुँचें।';
+
+  @override
+  String get onboardingAuthorsBulletTools =>
+      'रिच लेखन टूल्स के साथ Writer Pad में ड्राफ्ट करें।';
+
+  @override
+  String get onboardingAuthorsBulletCollab =>
+      'सह-लेखकों को आमंत्रित करें और साथ मिलकर कहानियाँ बनाएँ।';
+
+  @override
+  String get onboardingAuthorsBulletInspiration =>
+      'नई गति के लिए दैनिक टॉपिक्स, प्रॉम्प्ट और प्रतियोगिताएँ इस्तेमाल करें।';
+
+  @override
+  String get onboardingAuthorsBulletDashboard =>
+      'राइटर डैशबोर्ड से प्रकाशित रचनाएँ और पाठक वृद्धि ट्रैक करें।';
 
   @override
   String get onboardingCommunityTitle => 'बातचीत में शामिल हों';
 
   @override
   String get onboardingCommunityBody =>
-      'कम्युनिटी के पाठकों और लेखकों के साथ उद्धरण, समीक्षा, पोस्ट और टिप्पणियाँ साझा करें।';
+      'कहानियों पर प्रतिक्रिया दें, अपने विचार साझा करें, और पसंदीदा रचनाओं व रचनाकारों के आसपास सच्चे संबंध बनाएँ।';
 
   @override
-  String get onboardingProfileTitle => 'Wreadom को अपना बनाएँ';
+  String get onboardingCommunityBulletReact =>
+      'कम्युनिटी फ़ीड में लाइक, टिप्पणी, शेयर और रिप्लाई करें।';
 
   @override
-  String get onboardingProfileBody =>
-      'लेखकों को फ़ॉलो करें, संदेश भेजें, अपनी शेल्फ सँभालें और यादगार प्रोफ़ाइल बनाएँ।';
+  String get onboardingCommunityBulletFollow =>
+      'पसंदीदा लेखकों को फ़ॉलो करें और उनके प्रकाशित करते ही अपडेट पाएँ।';
+
+  @override
+  String get onboardingCommunityBulletMessage =>
+      'पाठकों, लेखकों और सहयोगियों को निजी संदेश भेजें।';
 
   @override
   String get noPostsYetStartSharing =>

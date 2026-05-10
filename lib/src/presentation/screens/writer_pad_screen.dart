@@ -1490,6 +1490,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               collaboratorId,
           }.toList()
         : <String>[primaryAuthorId];
+    final existingPublishedAt = existingBook?.publishedAt;
+    final publishedAt = status == 'published'
+        ? existingPublishedAt ?? now
+        : existingPublishedAt;
+
     return Book(
       id: _bookId ?? widget.book?.id ?? '',
       title: _titleController.value.text.trim().isEmpty
@@ -1513,6 +1518,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       status: status,
       createdAt: widget.book?.createdAt ?? now,
       updatedAt: now,
+      publishedAt: publishedAt,
       identifier: widget.book?.identifier,
       recommendationCount: widget.book?.recommendationCount,
       weightedScore: widget.book?.weightedScore,

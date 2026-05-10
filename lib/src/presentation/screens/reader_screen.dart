@@ -26,12 +26,15 @@ import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
+import '../providers/writer_providers.dart';
+import '../utils/book_share_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/app_haptics.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
@@ -348,6 +351,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         widget.book.id,
         await _viewerKeyForViewCount(),
       );
+      ref.invalidate(liveBookDetailProvider(widget.book.id));
+      final authorId = widget.book.authorId?.trim();
+      if (authorId != null && authorId.isNotEmpty) {
+        ref.invalidate(userBooksProvider(authorId));
+      }
+      ref.invalidate(myBooksProvider);
     } catch (e) {
       debugPrint('Error incrementing view count: $e');
     }
@@ -548,7 +557,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
       if (mounted) ref.invalidate(currentUserProvider);
     }
-    await HapticFeedback.selectionClick();
+    await AppHaptics.selection();
     await _showNextChapterAdAndGoTo(currentChapterIndex + 1);
   }
 
@@ -1025,8 +1034,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         theme: _getEffectiveTheme(),
         hasPrevious: _chapterIndex > 0,
         hasNext: _chapterIndex < chapters.length - 1,
-        onPrevious: () => _goToChapter(_chapterIndex - 1),
-        onNext: () => unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1)),
+        onPrevious: () {
+          unawaited(AppHaptics.selection());
+          _goToChapter(_chapterIndex - 1);
+        },
+        onNext: () {
+          unawaited(AppHaptics.selection());
+          unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
+        },
         onClose: () => Navigator.of(context).pop(),
       ),
     );
@@ -1987,9 +2002,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final shareText =
         'Read "${widget.book.title}" - $chapterTitle ${authors.isNotEmpty ? 'by $authors' : ''}\n\n$url';
 
-    await Share.share(
-      shareText,
+    await shareBookLinkWithCover(
+      text: shareText,
       subject: '${widget.book.title} - $chapterTitle',
+      coverUrl: widget.book.coverUrl,
+      fileNameBase: widget.book.title,
     );
   }
 
@@ -2447,7 +2464,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           if (mounted) setState(() => _isSubmittingComment = false);
         }
       }
-      await HapticFeedback.lightImpact();
+      await AppHaptics.light();
       if (wasReply) {
         _commentController.value.clear();
       }

@@ -11,6 +11,7 @@ Use this file as the durable project briefing for future Codex sessions that wor
 - `C:\Users\user\librebook` is the npm web project. It is a Vite React/TypeScript app with Firebase client setup in `services/firebaseConfig.ts`.
 - Web app code is organized around `pages`, `components`, `services`, `hooks`, `utils`, root app files, and serverless API routes under `api`.
 - Web Cloud Functions source lives in `functions/*.ts`, with compiled JavaScript in `functions/lib`. Treat the TypeScript source as the preferred editable source when syncing function behavior.
+-C:\Users\user\libre-admin is admin panel web app for both projects.  is the npm web project. It is a Vite React/TypeScript app with same firebase setup as web project. 
 
 ## Shared Firebase Backend
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
+import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -97,7 +97,7 @@ class FollowButton extends ConsumerWidget {
           followingId: targetUserId,
         );
       }
-      await HapticFeedback.mediumImpact();
+      await AppHaptics.medium();
       // Invalidate both to refresh UI
       ref.invalidate(isFollowingProvider(targetUserId));
       ref.invalidate(followingListProvider);

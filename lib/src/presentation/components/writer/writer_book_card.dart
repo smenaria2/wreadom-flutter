@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/book.dart';
 import '../../../utils/book_collaboration_utils.dart';
+import '../../../utils/book_publication_date.dart';
 import '../../utils/date_formatter.dart';
 
 class WriterBookCard extends StatelessWidget {
@@ -30,8 +31,13 @@ class WriterBookCard extends StatelessWidget {
     final publishedLabel = l10n?.published ?? 'Published';
     final draftLabel = l10n?.draft ?? 'Draft';
     final lastUpdateLabel = l10n?.lastUpdate ?? 'Last update';
+    final publishedOnLabel = l10n?.publishedOn ?? 'Published';
     final editStoryLabel = l10n?.editStory ?? 'Edit story';
     final deleteDraftLabel = l10n?.deleteDraftTitle ?? 'Delete draft';
+    final dateLabel = isPublished ? publishedOnLabel : lastUpdateLabel;
+    final dateValue = isPublished
+        ? formatTimestamp(publicationTimestamp(book))
+        : formatTimestamp(book.updatedAt);
 
     return Semantics(
       button: true,
@@ -91,33 +97,34 @@ class WriterBookCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             const _CollabBadge(),
                           ],
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '$lastUpdateLabel: ${formatTimestamp(book.updatedAt)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _StatItem(
-                            icon: Icons.remove_red_eye_outlined,
-                            value: '${book.viewCount ?? 0}',
-                          ),
-                          const SizedBox(width: 12),
-                          _StatItem(
-                            icon: Icons.star_outline_rounded,
-                            value:
-                                book.averageRating?.toStringAsFixed(1) ?? '0.0',
-                          ),
-                        ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _StatItem(
+                                icon: Icons.remove_red_eye_outlined,
+                                value: '${book.viewCount ?? 0}',
+                              ),
+                              _StatItem(
+                                icon: Icons.star_outline_rounded,
+                                value:
+                                    book.averageRating?.toStringAsFixed(1) ??
+                                    '0.0',
+                              ),
+                              _StatItem(
+                                icon: Icons.calendar_today_outlined,
+                                value: '$dateLabel: $dateValue',
+                                maxWidth: constraints.maxWidth,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -213,19 +220,31 @@ class _StatusBadge extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final IconData icon;
   final String value;
+  final double? maxWidth;
 
-  const _StatItem({required this.icon, required this.value});
+  const _StatItem({required this.icon, required this.value, this.maxWidth});
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Row(
+    final text = Text(
+      value,
+      style: TextStyle(fontSize: 12, color: color),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 4),
-        Text(value, style: TextStyle(fontSize: 12, color: color)),
+        if (maxWidth == null) text else Flexible(child: text),
       ],
+    );
+    if (maxWidth == null) return row;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth!),
+      child: row,
     );
   }
 }

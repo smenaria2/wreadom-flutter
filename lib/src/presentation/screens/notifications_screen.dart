@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
@@ -13,6 +12,7 @@ import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../../utils/notification_target_resolver.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/app_haptics.dart';
 import '../../domain/models/app_notification.dart';
 
 enum _NotificationFilter {
@@ -33,34 +33,61 @@ enum _NotificationFilter {
   bool matches(AppNotification notification) {
     if (this == _NotificationFilter.all) return true;
 
-    final type = notification.type.toLowerCase();
-    final text = notification.text.toLowerCase();
-    final link = notification.link.toLowerCase();
-    final targetType = notification.metadata?['targetType']
-        ?.toString()
-        .toLowerCase();
-    final haystack = '$type $text $link ${targetType ?? ''}';
-
     return switch (this) {
-      _NotificationFilter.content =>
-        haystack.contains('book') ||
-            haystack.contains('story') ||
-            haystack.contains('chapter') ||
-            haystack.contains('review') ||
-            haystack.contains('quote') ||
-            haystack.contains('published'),
-      _NotificationFilter.posts =>
-        haystack.contains('post') ||
-            haystack.contains('comment') ||
-            haystack.contains('like') ||
-            haystack.contains('follow'),
-      _NotificationFilter.messages =>
-        type == 'message' ||
-            haystack.contains('message') ||
-            haystack.contains('chat'),
+      _NotificationFilter.content => _isContentNotification(notification),
+      _NotificationFilter.posts => _isPostNotification(notification),
+      _NotificationFilter.messages => _isMessageNotification(notification),
       _NotificationFilter.all => true,
     };
   }
+}
+
+bool _isContentNotification(AppNotification notification) {
+  final type = notification.type.toLowerCase();
+  const contentTypes = {
+    'book_comment',
+    'book_review',
+    'book_reply',
+    'new_creation',
+    'published',
+    'chapter_update',
+  };
+  if (contentTypes.contains(type)) return true;
+  if (!_isAmbiguousActivityType(type)) return false;
+
+  final targetType = notification.metadata?['targetType']
+      ?.toString()
+      .trim()
+      .toLowerCase();
+  if (targetType == 'book' || targetType == 'content') return true;
+  return NotificationTargetResolver.resolve(notification)?.route ==
+      AppRoutes.bookDetail;
+}
+
+bool _isPostNotification(AppNotification notification) {
+  final type = notification.type.toLowerCase();
+  const postTypes = {'post_like', 'feed_comment', 'feed_reply'};
+  if (postTypes.contains(type)) return true;
+  if (!_isAmbiguousActivityType(type)) return false;
+
+  final targetType = notification.metadata?['targetType']
+      ?.toString()
+      .trim()
+      .toLowerCase();
+  if (targetType == 'post' ||
+      targetType == 'feed' ||
+      targetType == 'feedpost') {
+    return true;
+  }
+  return NotificationTargetResolver.resolve(notification)?.route ==
+      AppRoutes.postDetail;
+}
+
+bool _isAmbiguousActivityType(String type) {
+  return type == 'comment' ||
+      type == 'reply' ||
+      type == 'like' ||
+      type == 'mention';
 }
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -103,7 +130,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
     );
-    HapticFeedback.selectionClick();
+    AppHaptics.selection();
   }
 
   @override
@@ -159,7 +186,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       setState(
                         () => _filter = _NotificationFilter.values[index],
                       );
-                      HapticFeedback.selectionClick();
+                      AppHaptics.selection();
                     },
                     itemBuilder: (context, pageIndex) {
                       final pageFilter = _NotificationFilter.values[pageIndex];

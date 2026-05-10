@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
+import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
@@ -203,7 +203,7 @@ class _ConversationSwipeShellState extends State<_ConversationSwipeShell> {
     );
     final crossed = next.abs() >= _threshold;
     if (crossed && !_hapticArmed) {
-      HapticFeedback.selectionClick();
+      AppHaptics.selection();
       _hapticArmed = true;
     } else if (!crossed) {
       _hapticArmed = false;
@@ -218,7 +218,7 @@ class _ConversationSwipeShellState extends State<_ConversationSwipeShell> {
       _hapticArmed = false;
     });
     if (offset <= -_threshold) {
-      HapticFeedback.lightImpact();
+      AppHaptics.light();
       await widget.onDelete?.call();
     }
   }

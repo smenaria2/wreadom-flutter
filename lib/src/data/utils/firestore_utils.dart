@@ -213,6 +213,9 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   if (m['updatedAt'] is Timestamp) {
     m['updatedAt'] = (m['updatedAt'] as Timestamp).millisecondsSinceEpoch;
   }
+  if (m['publishedAt'] is Timestamp) {
+    m['publishedAt'] = (m['publishedAt'] as Timestamp).millisecondsSinceEpoch;
+  }
   if (m['collaborationRequestedAt'] is Timestamp) {
     m['collaborationRequestedAt'] =
         (m['collaborationRequestedAt'] as Timestamp).millisecondsSinceEpoch;

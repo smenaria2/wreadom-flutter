@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import '../../utils/app_haptics.dart';
 import '../providers/feed_providers.dart';
 import '../providers/notification_providers.dart';
 import '../components/feed_post_card.dart';
@@ -38,7 +38,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
     );
-    HapticFeedback.selectionClick();
+    AppHaptics.selection();
   }
 
   @override
@@ -126,7 +126,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                 itemCount: FeedFilter.values.length,
                 onPageChanged: (index) {
                   setState(() => _selectedFilter = FeedFilter.values[index]);
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selection();
                 },
                 itemBuilder: (context, index) {
                   final filter = FeedFilter.values[index];

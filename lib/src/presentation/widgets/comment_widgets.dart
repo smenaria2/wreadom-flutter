@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
+import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
@@ -96,6 +96,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
             .read(commentRepositoryProvider)
             .toggleCommentLike(widget.comment.id!, user.id);
       }
+      await AppHaptics.light();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -175,7 +176,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       }
       if (mounted) {
         setState(() => _editing = false);
-        HapticFeedback.selectionClick();
+        AppHaptics.selection();
       }
     } catch (e) {
       if (mounted) {
@@ -656,6 +657,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
             .read(commentRepositoryProvider)
             .toggleReplyLike(commentId, replyId, user.id);
       }
+      await AppHaptics.light();
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -702,7 +704,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       }
       if (mounted) {
         setState(() => _editing = false);
-        HapticFeedback.selectionClick();
+        AppHaptics.selection();
       }
     } catch (e) {
       if (mounted) {
@@ -1203,7 +1205,7 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
     );
     final crossed = next.abs() >= _threshold;
     if (crossed && !_hapticArmed) {
-      HapticFeedback.selectionClick();
+      AppHaptics.selection();
       _hapticArmed = true;
     } else if (!crossed) {
       _hapticArmed = false;
@@ -1218,10 +1220,10 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
       _hapticArmed = false;
     });
     if (offset >= _threshold) {
-      HapticFeedback.lightImpact();
+      AppHaptics.light();
       widget.onRightAction();
     } else if (offset <= -_threshold) {
-      HapticFeedback.lightImpact();
+      AppHaptics.light();
       widget.onLeftAction();
     }
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/message.dart';
 import '../../domain/repositories/message_repository.dart';
+import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
 import '../components/generated_book_cover.dart';
 import '../providers/auth_providers.dart';
@@ -531,7 +531,7 @@ class _MessageSwipeShellState extends State<_MessageSwipeShell> {
     );
     final crossed = next.abs() >= _threshold;
     if (crossed && !_hapticArmed) {
-      HapticFeedback.selectionClick();
+      AppHaptics.selection();
       _hapticArmed = true;
     } else if (!crossed) {
       _hapticArmed = false;
@@ -576,7 +576,7 @@ class _MessageSwipeShellState extends State<_MessageSwipeShell> {
 
   Future<void> _delete() async {
     if (_deleting) return;
-    HapticFeedback.lightImpact();
+    AppHaptics.light();
     setState(() => _deleting = true);
     try {
       await widget.onDelete();

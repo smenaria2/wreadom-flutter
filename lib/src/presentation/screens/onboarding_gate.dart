@@ -18,7 +18,7 @@ class _OnboardingGateState extends ConsumerState<OnboardingGate> {
   bool _checked = false;
   bool _showGuide = false;
 
-  String get _prefsKey => 'onboarding_seen_${widget.userId}_v1';
+  String get _prefsKey => 'onboarding_seen_${widget.userId}_v2';
 
   @override
   void initState() {
@@ -113,6 +113,12 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                 child: Row(
                   children: [
+                    Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 34,
+                      height: 34,
+                    ),
+                    const SizedBox(width: 10),
                     Text(
                       l10n.appTitle,
                       style: theme.textTheme.titleLarge?.copyWith(
@@ -216,33 +222,50 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
 
   List<_OnboardingSlide> _slides(AppLocalizations l10n) => [
     _OnboardingSlide(
-      icon: Icons.explore_rounded,
-      title: l10n.onboardingDiscoverTitle,
-      body: l10n.onboardingDiscoverBody,
+      logoAsset: 'assets/images/app_logo.png',
+      title: l10n.onboardingWelcomeTitle,
+      tagline: l10n.onboardingWelcomeTagline,
+      body: l10n.onboardingWelcomeBody,
+      bullets: [
+        l10n.onboardingWelcomeBulletRead,
+        l10n.onboardingWelcomeBulletWrite,
+        l10n.onboardingWelcomeBulletConnect,
+      ],
       accent: const Color(0xFF38BDF8),
     ),
     _OnboardingSlide(
-      icon: Icons.offline_bolt_rounded,
-      title: l10n.onboardingOfflineTitle,
-      body: l10n.onboardingOfflineBody,
+      icon: Icons.auto_stories_rounded,
+      title: l10n.onboardingReadersTitle,
+      body: l10n.onboardingReadersBody,
+      bullets: [
+        l10n.onboardingReadersBulletDiscover,
+        l10n.onboardingReadersBulletListen,
+        l10n.onboardingReadersBulletOffline,
+        l10n.onboardingReadersBulletVoice,
+      ],
       accent: const Color(0xFFFACC15),
     ),
     _OnboardingSlide(
       icon: Icons.edit_note_rounded,
-      title: l10n.onboardingWriteTitle,
-      body: l10n.onboardingWriteBody,
+      title: l10n.onboardingAuthorsTitle,
+      body: l10n.onboardingAuthorsBody,
+      bullets: [
+        l10n.onboardingAuthorsBulletTools,
+        l10n.onboardingAuthorsBulletCollab,
+        l10n.onboardingAuthorsBulletInspiration,
+        l10n.onboardingAuthorsBulletDashboard,
+      ],
       accent: const Color(0xFFF97316),
     ),
     _OnboardingSlide(
       icon: Icons.forum_rounded,
       title: l10n.onboardingCommunityTitle,
       body: l10n.onboardingCommunityBody,
-      accent: const Color(0xFFA78BFA),
-    ),
-    _OnboardingSlide(
-      icon: Icons.person_pin_rounded,
-      title: l10n.onboardingProfileTitle,
-      body: l10n.onboardingProfileBody,
+      bullets: [
+        l10n.onboardingCommunityBulletReact,
+        l10n.onboardingCommunityBulletFollow,
+        l10n.onboardingCommunityBulletMessage,
+      ],
       accent: const Color(0xFF34D399),
     ),
   ];
@@ -276,9 +299,14 @@ class _SlideView extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(slide.icon, color: slide.accent, size: 64),
+            child: slide.logoAsset == null
+                ? Icon(slide.icon, color: slide.accent, size: 64)
+                : Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Image.asset(slide.logoAsset!),
+                  ),
           ),
-          const SizedBox(height: 34),
+          const SizedBox(height: 28),
           Text(
             slide.title,
             textAlign: TextAlign.center,
@@ -288,6 +316,18 @@ class _SlideView extends StatelessWidget {
               height: 1.08,
             ),
           ),
+          if (slide.tagline != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              slide.tagline!,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: slide.accent,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           Text(
             slide.body,
@@ -297,6 +337,40 @@ class _SlideView extends StatelessWidget {
               height: 1.45,
             ),
           ),
+          if (slide.bullets.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  for (final bullet in slide.bullets)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: slide.accent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              bullet,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.86),
+                                height: 1.32,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -305,14 +379,20 @@ class _SlideView extends StatelessWidget {
 
 class _OnboardingSlide {
   const _OnboardingSlide({
-    required this.icon,
+    this.icon,
+    this.logoAsset,
     required this.title,
+    this.tagline,
     required this.body,
+    this.bullets = const [],
     required this.accent,
-  });
+  }) : assert(icon != null || logoAsset != null);
 
-  final IconData icon;
+  final IconData? icon;
+  final String? logoAsset;
   final String title;
+  final String? tagline;
   final String body;
+  final List<String> bullets;
   final Color accent;
 }

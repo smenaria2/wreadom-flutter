@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import '../../../data/services/audio_review_upload_service.dart';
 import '../../../domain/models/comment.dart';
+import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
 
@@ -194,7 +194,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             ),
           );
 
-      await HapticFeedback.lightImpact();
+      await AppHaptics.light();
       _controller.value.clear();
       await _removeRecording();
       ref.invalidate(liveBookCommentsProvider(widget.bookId));

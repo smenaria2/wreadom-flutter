@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
+import '../../utils/app_haptics.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
@@ -438,6 +439,7 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
                     controller: _pageController,
                     itemCount: topics.length,
                     onPageChanged: (index) {
+                      AppHaptics.selection();
                       if (index >= topics.length - 1) {
                         ref.read(dailyTopicsProvider.notifier).fetchMore();
                       }

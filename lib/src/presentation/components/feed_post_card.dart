@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +13,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
 import '../widgets/report_dialog.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -103,7 +103,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
       await ref
           .read(feedRepositoryProvider)
           .toggleLike(widget.post.id!, user.id);
-      await HapticFeedback.lightImpact();
+      await AppHaptics.light();
       // No need to invalidate, optimistic state handles it
     } catch (e) {
       // Revert on error
@@ -723,8 +723,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   icon: const Icon(Icons.share_outlined, size: 18),
                   tooltip: l10n.sharePost,
                   color: colorScheme.onSurfaceVariant,
-                  onPressed: () {
+                  onPressed: () async {
                     if (post.id != null) {
+                      await AppHaptics.selection();
                       Share.share(
                         l10n.checkOutPostOnWreadom(
                           AppLinkHelper.post(post.id!),
@@ -938,7 +939,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
       ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
-      await HapticFeedback.lightImpact();
+      await AppHaptics.light();
       _ctrl.value.clear();
       setState(() => _replyingTo = null);
     } catch (e) {

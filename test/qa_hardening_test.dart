@@ -101,7 +101,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Last update:'), findsOneWidget);
+    expect(find.textContaining('Published:'), findsOneWidget);
   });
 
   testWidgets('writer card uses theme surface color in dark mode', (
@@ -866,12 +866,12 @@ void main() {
     ]) {
       expect(source, contains('RestorationMixin'));
       expect(source, contains('RestorableTextEditingController'));
-      expect(source, contains('HapticFeedback.lightImpact()'));
+      expect(source, contains('AppHaptics.light()'));
     }
 
-    expect(feedPostSource, contains('HapticFeedback.lightImpact()'));
-    expect(readerSource, contains('HapticFeedback.selectionClick()'));
-    expect(followSource, contains('HapticFeedback.mediumImpact()'));
+    expect(feedPostSource, contains('AppHaptics.light()'));
+    expect(readerSource, contains('AppHaptics.selection()'));
+    expect(followSource, contains('AppHaptics.medium()'));
     expect(archiveSource, contains('compute('));
     expect(archiveSource, contains('_parseArchiveTextToChaptersOnIsolate'));
     expect(
@@ -1059,7 +1059,7 @@ void main() {
     expect(bookDetailSource, contains('l10n.sendToChat'));
     expect(commentTileSource, contains('_SwipeActionShell'));
     expect(commentTileSource, contains('_SlideActionChip'));
-    expect(commentTileSource, contains('HapticFeedback.selectionClick'));
+    expect(commentTileSource, contains('AppHaptics.selection'));
     expect(commentTileSource, contains('if (canHighlight)'));
     expect(commentTileSource, contains('color: Colors.black'));
     expect(readerSource, contains('_shareReviewToFeed'));
@@ -1385,14 +1385,15 @@ void main() {
 
     expect(mainSource, contains('OnboardingGate'));
     expect(mainSource, contains('userId: user.uid'));
-    expect(gateSource, contains("onboarding_seen_\${widget.userId}_v1"));
+    expect(gateSource, contains("onboarding_seen_\${widget.userId}_v2"));
     expect(gateSource, contains('setBool(_prefsKey, true)'));
     for (final key in [
-      'onboardingDiscoverTitle',
-      'onboardingOfflineTitle',
-      'onboardingWriteTitle',
+      'onboardingWelcomeTitle',
+      'onboardingWelcomeTagline',
+      'onboardingReadersTitle',
+      'onboardingAuthorsTitle',
       'onboardingCommunityTitle',
-      'onboardingProfileTitle',
+      'onboardingCommunityBulletMessage',
     ]) {
       expect(enArb[key], isA<String>());
     }

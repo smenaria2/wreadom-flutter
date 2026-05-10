@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
+import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
 import '../../utils/book_author_utils.dart';
@@ -87,6 +88,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
+      await AppHaptics.light();
       ref.invalidate(feedPostsProvider);
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
