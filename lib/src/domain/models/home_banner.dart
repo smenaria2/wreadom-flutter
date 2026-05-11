@@ -4,6 +4,7 @@ class HomeBanner {
     required this.title,
     required this.subtitle,
     required this.body,
+    required this.bodyHtml,
     required this.coverImageUrl,
     required this.buttonText,
     required this.buttonLink,
@@ -16,6 +17,7 @@ class HomeBanner {
   final String title;
   final String subtitle;
   final String body;
+  final String bodyHtml;
   final String coverImageUrl;
   final String buttonText;
   final String buttonLink;
@@ -29,6 +31,7 @@ class HomeBanner {
       title: json['title']?.toString() ?? '',
       subtitle: json['subtitle']?.toString() ?? '',
       body: json['body']?.toString() ?? '',
+      bodyHtml: json['bodyHtml']?.toString() ?? '',
       coverImageUrl: json['coverImageUrl']?.toString() ?? '',
       buttonText: json['buttonText']?.toString() ?? '',
       buttonLink: json['buttonLink']?.toString() ?? '',
@@ -43,6 +46,7 @@ class HomeBanner {
     'title': title,
     'subtitle': subtitle,
     'body': body,
+    'bodyHtml': bodyHtml,
     'coverImageUrl': coverImageUrl,
     'buttonText': buttonText,
     'buttonLink': buttonLink,
