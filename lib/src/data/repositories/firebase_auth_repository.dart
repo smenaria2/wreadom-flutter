@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart'
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../services/analytics_service.dart';
 import '../utils/firestore_utils.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
@@ -92,6 +93,7 @@ class FirebaseAuthRepository implements AuthRepository {
           .doc(fbUser.uid)
           .set(userModel.toJson());
 
+      AnalyticsService.logSignUp(method: 'email');
       return userModel;
     } catch (e) {
       throw Exception(e.toString());
@@ -131,6 +133,7 @@ class FirebaseAuthRepository implements AuthRepository {
           ...patch,
           'id': fbUser.uid,
         }, fbUser.uid);
+        AnalyticsService.logLogin(method: 'email');
         return UserModel.fromJson(data);
       } else {
         // Handle legacy or missing doc
@@ -150,6 +153,7 @@ class FirebaseAuthRepository implements AuthRepository {
             .collection('users')
             .doc(fbUser.uid)
             .set(userModel.toJson());
+        AnalyticsService.logLogin(method: 'email');
         return userModel;
       }
     } catch (e) {
@@ -216,6 +220,7 @@ class FirebaseAuthRepository implements AuthRepository {
           ...patch,
           'id': fbUser.uid,
         }, fbUser.uid);
+        AnalyticsService.logLogin(method: 'google');
         return UserModel.fromJson(data);
       } else {
         final userModel = UserModel(
@@ -236,6 +241,7 @@ class FirebaseAuthRepository implements AuthRepository {
             .doc(fbUser.uid)
             .set(userModel.toJson());
 
+        AnalyticsService.logSignUp(method: 'google');
         return userModel;
       }
     } on GoogleSignInException {

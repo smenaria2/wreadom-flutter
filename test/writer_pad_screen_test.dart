@@ -65,4 +65,95 @@ void main() {
     expect(find.textContaining('Hello', findRichText: true), findsWidgets);
     expect(find.textContaining('<strong>'), findsNothing);
   });
+
+  testWidgets(
+    'WriterPad shows version history and restores a rich chapter version',
+    (tester) async {
+      const image =
+          'https://res.cloudinary.com/demo/image/upload/f_auto/sample.jpg';
+      const media = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      final book = Book(
+        id: 'book-1',
+        title: 'Versioned Draft',
+        description: 'A test draft',
+        authors: const [Author(name: 'Author')],
+        subjects: const ['Fantasy'],
+        languages: const ['en'],
+        formats: const {},
+        downloadCount: 0,
+        mediaType: 'text',
+        bookshelves: const [],
+        source: 'firestore',
+        isOriginal: true,
+        contentType: 'story',
+        authorId: 'user-1',
+        chapters: const [
+          Chapter(
+            id: 'chapter-1',
+            title: 'Opening',
+            content: '<p>Current text in the editor</p>',
+            index: 0,
+            versions: [
+              ChapterVersion(
+                content:
+                    '<h2>Older rich text from history</h2>'
+                    '<p><strong>Bold restored text</strong></p>'
+                    '<p><img src="$image"></p>'
+                    '<p><a href="$media">YouTube</a></p>',
+                timestamp: 1234,
+                wordCount: 8,
+              ),
+            ],
+          ),
+        ],
+        status: 'draft',
+        createdAt: 1,
+        updatedAt: 1,
+        topics: const ['magic'],
+        chapterCount: 1,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: const [
+              ...AppLocalizations.localizationsDelegates,
+              GlobalMaterialLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              FlutterQuillLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: WriterPadScreen(book: book),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(find.byTooltip('Version history'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Version history'), findsOneWidget);
+      expect(
+        find.textContaining('Older rich text from history'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Restore'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Restore').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Older rich text from history', findRichText: true),
+        findsWidgets,
+      );
+      expect(
+        find.textContaining('Bold restored text', findRichText: true),
+        findsWidgets,
+      );
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
+    },
+  );
 }

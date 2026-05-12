@@ -1274,6 +1274,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteChapterTitle => 'Delete chapter?';
 
   @override
+  String get versionHistory => 'Version history';
+
+  @override
+  String versionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count versions',
+      one: '1 version',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get currentVersion => 'Current version';
+
+  @override
+  String previousVersion(int number) {
+    return 'Version #$number';
+  }
+
+  @override
+  String get restoreVersion => 'Restore';
+
+  @override
+  String get restoreVersionTitle => 'Restore this version?';
+
+  @override
+  String get restoreVersionConfirm =>
+      'Current content will be saved as a new version before this version is restored.';
+
+  @override
+  String get noChapterVersionsYet => 'No previous versions yet.';
+
+  @override
+  String get versionHistoryHelp =>
+      'Versions are created automatically after significant changes or about every 5 minutes. The last 10 versions are kept.';
+
+  @override
+  String get unknownTime => 'Unknown time';
+
+  @override
   String get unsavedChanges => 'Unsaved changes';
 
   @override

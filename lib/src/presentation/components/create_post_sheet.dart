@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../data/services/analytics_service.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
@@ -109,6 +110,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
+      AnalyticsService.logPostCreate();
       await AppHaptics.light();
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));

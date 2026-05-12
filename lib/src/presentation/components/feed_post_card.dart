@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/comment.dart';
+import '../../data/services/analytics_service.dart';
 import '../providers/feed_providers.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -928,6 +929,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           'text': text,
         });
       }
+      AnalyticsService.logCommentCreate(targetType: 'feed_post');
 
       ref.invalidate(liveFeedPostCommentsProvider(widget.post.id!));
       ref.invalidate(liveSinglePostProvider(widget.post.id!));

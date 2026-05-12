@@ -2372,6 +2372,66 @@ abstract class AppLocalizations {
   /// **'Delete chapter?'**
   String get deleteChapterTitle;
 
+  /// No description provided for @versionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Version history'**
+  String get versionHistory;
+
+  /// No description provided for @versionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 version} other{{count} versions}}'**
+  String versionCount(int count);
+
+  /// No description provided for @currentVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Current version'**
+  String get currentVersion;
+
+  /// No description provided for @previousVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version #{number}'**
+  String previousVersion(int number);
+
+  /// No description provided for @restoreVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreVersion;
+
+  /// No description provided for @restoreVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this version?'**
+  String get restoreVersionTitle;
+
+  /// No description provided for @restoreVersionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Current content will be saved as a new version before this version is restored.'**
+  String get restoreVersionConfirm;
+
+  /// No description provided for @noChapterVersionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No previous versions yet.'**
+  String get noChapterVersionsYet;
+
+  /// No description provided for @versionHistoryHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Versions are created automatically after significant changes or about every 5 minutes. The last 10 versions are kept.'**
+  String get versionHistoryHelp;
+
+  /// No description provided for @unknownTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown time'**
+  String get unknownTime;
+
   /// No description provided for @unsavedChanges.
   ///
   /// In en, this message translates to:

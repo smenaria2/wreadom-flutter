@@ -12,7 +12,8 @@ void main() {
 
     test('round trips core formatting as sanitized html', () {
       final document = documentFromHtml(
-        '<h2>Chapter</h2><p><em>Hello</em> <u>reader</u></p>',
+        '<h2>Chapter</h2><p><em>Hello</em> <u>reader</u></p>'
+        '<blockquote>Remember this</blockquote><ul><li>First</li></ul>',
       );
 
       final html = htmlFromDocument(document);
@@ -20,6 +21,31 @@ void main() {
       expect(html, contains('<h2>Chapter</h2>'));
       expect(html, contains('<em>Hello</em>'));
       expect(html, contains('<u>reader</u>'));
+      expect(html, contains('<blockquote>Remember this</blockquote>'));
+      expect(html, contains('<ul><li>First</li></ul>'));
+    });
+
+    test('round trips trusted image embeds', () {
+      const image =
+          'https://res.cloudinary.com/demo/image/upload/f_auto/sample.jpg';
+
+      final html = htmlFromDocument(
+        documentFromHtml('<p><img src="$image" alt="Sample"></p>'),
+      );
+
+      expect(html, contains('<img src="$image">'));
+      expect(html, isNot(contains('alt=')));
+    });
+
+    test('round trips supported media links as embeds', () {
+      const media = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+      final html = htmlFromDocument(
+        documentFromHtml('<p><a href="$media">video</a></p>'),
+      );
+
+      expect(html, contains('href="$media"'));
+      expect(html, contains('YouTube'));
     });
 
     test('removes unsafe markup', () {

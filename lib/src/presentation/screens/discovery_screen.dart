@@ -7,6 +7,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
+import '../../data/services/analytics_service.dart';
 import '../providers/book_providers.dart';
 import '../providers/discovery_providers.dart';
 import '../components/generated_book_cover.dart';
@@ -105,10 +106,12 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   onChanged: (value) {
                     _debounce?.cancel();
                     _debounce = Timer(const Duration(milliseconds: 500), () {
+                      final nextQuery = value.trim();
                       setState(() {
-                        _query = value.trim();
+                        _query = nextQuery;
                         if (_query.isNotEmpty) _activeGenre = null;
                       });
+                      AnalyticsService.logSearch(nextQuery);
                     });
                   },
                   decoration: InputDecoration(
@@ -152,11 +155,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         selected: _activeGenre == genre,
                         showCheckmark: false,
                         onSelected: (_) {
+                          final nextGenre = _activeGenre == genre
+                              ? null
+                              : genre;
                           setState(() {
-                            _activeGenre = _activeGenre == genre ? null : genre;
+                            _activeGenre = nextGenre;
                             _query = '';
                             _searchController.clear();
                           });
+                          if (nextGenre != null) {
+                            AnalyticsService.logGenreSelect(nextGenre);
+                          }
                         },
                       ),
                   ],
@@ -176,7 +185,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
+                child: Center(
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.errorWithDetails(error.toString()),
+                  ),
+                ),
               ),
             )
           else if (hasGenre)
@@ -184,7 +199,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               data: (books) => _BookListSliver(
                 title: _getLocalizedGenre(context, _activeGenre!),
                 books: books,
-                emptyText: AppLocalizations.of(context)!.noBooksFoundIn(_getLocalizedGenre(context, _activeGenre!)),
+                emptyText: AppLocalizations.of(
+                  context,
+                )!.noBooksFoundIn(_getLocalizedGenre(context, _activeGenre!)),
               ),
               loading: () => const SliverFillRemaining(
                 hasScrollBody: false,
@@ -192,7 +209,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
+                child: Center(
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.errorWithDetails(error.toString()),
+                  ),
+                ),
               ),
             )
           else
@@ -202,7 +225,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   return SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text(AppLocalizations.of(context)!.noResultsFor(effectiveQuery)),
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.noResultsFor(effectiveQuery),
+                      ),
                     ),
                   );
                 }
@@ -230,7 +257,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               error: (error, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: Text(AppLocalizations.of(context)!.errorWithDetails(error.toString()))),
+                child: Center(
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.errorWithDetails(error.toString()),
+                  ),
+                ),
               ),
             ),
         ],

@@ -20,6 +20,7 @@ import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/user_model.dart';
 import '../../data/services/audio_review_upload_service.dart';
+import '../../data/services/analytics_service.dart';
 import '../../data/services/reader_ad_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -289,6 +290,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _configureTts();
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
+    AnalyticsService.logReaderOpen(widget.book);
     _incrementView();
     _saveHistorySilently('initial_history_save');
     unawaited(
@@ -351,6 +353,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         widget.book.id,
         await _viewerKeyForViewCount(),
       );
+      AnalyticsService.logBookView(widget.book);
       ref.invalidate(liveBookDetailProvider(widget.book.id));
       final authorId = widget.book.authorId?.trim();
       if (authorId != null && authorId.isNotEmpty) {
@@ -554,6 +557,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         chapterIndex: currentChapterIndex,
         position: 1.0,
         completedChapterIndex: currentChapterIndex,
+      );
+      AnalyticsService.logChapterComplete(
+        bookId: widget.book.id.toString(),
+        chapterIndex: currentChapterIndex,
       );
       if (mounted) ref.invalidate(currentUserProvider);
     }
@@ -2352,6 +2359,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 audioSizeBytes: uploadedAudio?.audioSizeBytes,
               ),
             );
+        AnalyticsService.logCommentCreate(targetType: 'book_review_reply');
         setState(() {
           _replyingTo = null;
           _clearAudioReviewState();
@@ -2416,6 +2424,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           final savedReviewId = await ref
               .read(commentRepositoryProvider)
               .upsertBookReview(comment);
+          AnalyticsService.logCommentCreate(targetType: 'book_review');
 
           if (_shareReviewToFeed) {
             await _upsertReviewFeedPost(

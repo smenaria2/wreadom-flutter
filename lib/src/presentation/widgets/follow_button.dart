@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/services/analytics_service.dart';
 import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
@@ -91,11 +92,13 @@ class FollowButton extends ConsumerWidget {
           followerId: followerId,
           followingId: targetUserId,
         );
+        AnalyticsService.logFollow(followed: false, targetUserId: targetUserId);
       } else {
         await repo.followUser(
           followerId: followerId,
           followingId: targetUserId,
         );
+        AnalyticsService.logFollow(followed: true, targetUserId: targetUserId);
       }
       await AppHaptics.medium();
       // Invalidate both to refresh UI

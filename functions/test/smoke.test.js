@@ -223,3 +223,51 @@ test("review cleanup detects legacy duplicate book comment notifications", () =>
       false,
   );
 });
+
+test("author read milestones are detected when totals cross thresholds", () => {
+  assert.deepEqual(
+      exported.__test.crossedAuthorReadMilestones(99, 100),
+      [100],
+  );
+  assert.deepEqual(
+      exported.__test.crossedAuthorReadMilestones(100, 101),
+      [],
+  );
+  assert.deepEqual(
+      exported.__test.crossedAuthorReadMilestones(90, 501),
+      [100, 500],
+  );
+  assert.deepEqual(
+      exported.__test.crossedAuthorReadMilestones(999999, 1000000),
+      [1000000],
+  );
+});
+
+test("author read milestone notification text formats large counts", () => {
+  assert.equal(exported.__test.formatMilestoneCount(100000), "100,000");
+  assert.equal(exported.__test.formatMilestoneCount(5000000), "5,000,000");
+  assert.equal(
+      exported.__test.authorReadMilestoneNotificationText(1000000),
+      "Congratulations! Your works reached 1,000,000 reads.",
+  );
+});
+
+test("suppressed milestone notifications do not send push notifications", () => {
+  assert.equal(
+      exported.__test.shouldSendPushNotification(undefined, {
+        type: "author_read_milestone",
+        text: "Congratulations! Your works reached 100 reads.",
+        timestamp: 1,
+        metadata: {suppressPush: true},
+      }),
+      false,
+  );
+  assert.equal(
+      exported.__test.shouldSendPushNotification(undefined, {
+        type: "book_comment",
+        text: "commented on your content",
+        timestamp: 1,
+      }),
+      true,
+  );
+});

@@ -119,7 +119,7 @@ void _appendNode(
     final href = node.attributes['href'];
     if (isAllowedWriterLink(href)) {
       if (!state.endsWithNewline && !state.isEmpty) delta.insert('\n');
-      delta.insert(BlockEmbed.video(href!.trim()));
+      delta.insert(BlockEmbed.video(href!.trim()).toJson());
       delta.insert('\n');
       state.endsWithNewline = true;
       state.lastWasSpace = false;
@@ -132,7 +132,7 @@ void _appendNode(
     final src = node.attributes['src'];
     if (isTrustedCloudinaryImageUrl(src)) {
       if (!state.endsWithNewline && !state.isEmpty) delta.insert('\n');
-      delta.insert(BlockEmbed.image(src!.trim()));
+      delta.insert(BlockEmbed.image(src!.trim()).toJson());
       delta.insert('\n');
       state.endsWithNewline = true;
       state.lastWasSpace = false;

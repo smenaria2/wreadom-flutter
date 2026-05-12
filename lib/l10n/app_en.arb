@@ -701,6 +701,30 @@
   "writeReview": "Write Review",
   "deleteChapter": "Delete chapter",
   "deleteChapterTitle": "Delete chapter?",
+  "versionHistory": "Version history",
+  "versionCount": "{count, plural, =1{1 version} other{{count} versions}}",
+  "@versionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentVersion": "Current version",
+  "previousVersion": "Version #{number}",
+  "@previousVersion": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreVersion": "Restore",
+  "restoreVersionTitle": "Restore this version?",
+  "restoreVersionConfirm": "Current content will be saved as a new version before this version is restored.",
+  "noChapterVersionsYet": "No previous versions yet.",
+  "versionHistoryHelp": "Versions are created automatically after significant changes or about every 5 minutes. The last 10 versions are kept.",
+  "unknownTime": "Unknown time",
   "unsavedChanges": "Unsaved changes",
   "draftSaved": "Draft saved",
   "@saveFailed": {

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/user_model.dart';
+import '../../data/services/analytics_service.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../providers/auth_providers.dart';
@@ -16,6 +18,7 @@ import '../providers/follow_providers.dart';
 import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
+import '../utils/chapter_version_history.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/writer_media_embed.dart';
@@ -740,6 +743,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               onPressed: _showMediaInsertDialog,
               icon: const Icon(Icons.smart_display_outlined),
             ),
+            IconButton(
+              tooltip: l10n.versionHistory,
+              color: onToolbarColor,
+              onPressed: _currentChapter.versions.isEmpty
+                  ? null
+                  : () => _showVersionHistory(_currentChapterIndex),
+              icon: const Icon(Icons.history_rounded),
+            ),
             Expanded(
               child: QuillSimpleToolbar(
                 controller: controller,
@@ -1009,6 +1020,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 : chapter.title.text.trim(),
                             preview: _chapterPreview(chapter),
                             wordCount: chapter.wordCount,
+                            versionCount: chapter.versions.length,
                             isCurrent: isCurrent,
                             canDelete: _chapters.length > 1,
                             textColor: onSheetColor,
@@ -1024,6 +1036,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 modalSetState(() {});
                               }
                             },
+                            onHistory: chapter.versions.isEmpty
+                                ? null
+                                : () {
+                                    setState(() => _setCurrentChapterIndex(i));
+                                    Navigator.of(context).pop();
+                                    _showVersionHistory(i);
+                                  },
                           );
                         },
                       ),
@@ -1136,6 +1155,189 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (text.isEmpty) return AppLocalizations.of(context)!.noContentYet;
     if (text.length <= 96) return text;
     return '${text.substring(0, 96).trim()}...';
+  }
+
+  String _versionPreview(String html) {
+    final text = plainTextFromHtml(html);
+    if (text.isEmpty) return AppLocalizations.of(context)!.noContentYet;
+    if (text.length <= 180) return text;
+    return '${text.substring(0, 180).trim()}...';
+  }
+
+  String _formatVersionTimestamp(int timestamp) {
+    if (timestamp <= 0) return AppLocalizations.of(context)!.unknownTime;
+    return DateFormat.yMMMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).add_jm().format(DateTime.fromMillisecondsSinceEpoch(timestamp));
+  }
+
+  Future<void> _showVersionHistory(int chapterIndex) async {
+    if (chapterIndex < 0 || chapterIndex >= _chapters.length) return;
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, modalSetState) {
+            final chapter = _chapters[chapterIndex];
+            final versions = chapter.versions.reversed.toList();
+            final sheetColor = _writerSurfaceColor(context);
+            final textColor = _onWriterSurfaceColor(context);
+            final currentContent = htmlFromDocument(
+              chapter.controller.document,
+            );
+            return Container(
+              height: MediaQuery.sizeOf(context).height * 0.86,
+              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              decoration: BoxDecoration(
+                color: sheetColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.versionHistory,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                chapter.title.text.trim().isEmpty
+                                    ? l10n.chapterNumber(chapterIndex + 1)
+                                    : chapter.title.text.trim(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.62),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.close,
+                          color: textColor,
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                      children: [
+                        _VersionHistoryTile(
+                          title: l10n.currentVersion,
+                          subtitle: l10n.wordCountLabel(
+                            wordCountFromHtml(currentContent),
+                          ),
+                          preview: _versionPreview(currentContent),
+                          textColor: textColor,
+                        ),
+                        const SizedBox(height: 10),
+                        if (versions.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            child: Text(
+                              l10n.noChapterVersionsYet,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.62),
+                              ),
+                            ),
+                          )
+                        else
+                          for (var i = 0; i < versions.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _VersionHistoryTile(
+                                title: l10n.previousVersion(
+                                  versions.length - i,
+                                ),
+                                subtitle:
+                                    '${_formatVersionTimestamp(versions[i].timestamp)} • ${l10n.wordCountLabel(versions[i].wordCount)}',
+                                preview: _versionPreview(versions[i].content),
+                                textColor: textColor,
+                                action: FilledButton.icon(
+                                  onPressed: () async {
+                                    final confirmed =
+                                        await _confirmRestoreVersion();
+                                    if (confirmed != true) return;
+                                    if (!mounted) return;
+                                    setState(() {
+                                      chapter.restoreVersion(versions[i]);
+                                      _isDirty = true;
+                                      _isLocalDirty = true;
+                                      _saveStatus = l10n.unsavedChanges;
+                                    });
+                                    modalSetState(() {});
+                                    if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop();
+                                    }
+                                  },
+                                  icon: const Icon(Icons.restore_rounded),
+                                  label: Text(l10n.restoreVersion),
+                                ),
+                              ),
+                            ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.versionHistoryHelp,
+                          style: TextStyle(
+                            color: textColor.withValues(alpha: 0.56),
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool?> _confirmRestoreVersion() {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.restoreVersionTitle),
+        content: Text(l10n.restoreVersionConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.restoreVersion),
+          ),
+        ],
+      ),
+    );
   }
 
   void _populateSynopsisFromFirstLines() {
@@ -1346,6 +1548,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       }
       if (shouldNotifyFollowers && _bookId != null) {
         // Cloud Functions generate follower notifications for new publications.
+        AnalyticsService.logBookPublish(bookId: _bookId!);
       }
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
@@ -1417,6 +1620,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           !hasMeaningfulWriterHtml(content)) {
         continue;
       }
+      draft.lastSavedAt = now;
       chapters.add(
         Chapter(
           id: draft.id ?? 'chapter_${now}_$i',
@@ -1427,7 +1631,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           index: i,
           status: status == 'published' ? 'published' : 'draft',
           lastSavedAt: now,
-          versions: draft.original?.versions,
+          versions: draft.versions,
           isTitleLocked: draft.original?.isTitleLocked,
           originalBookId: draft.original?.originalBookId,
         ),
@@ -1968,6 +2172,77 @@ class _CollabWarningCard extends StatelessWidget {
   }
 }
 
+class _VersionHistoryTile extends StatelessWidget {
+  const _VersionHistoryTile({
+    required this.title,
+    required this.subtitle,
+    required this.preview,
+    required this.textColor,
+    this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final String preview;
+  final Color textColor;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: textColor.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: textColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.58),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (action != null) ...[const SizedBox(width: 10), action!],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            preview,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.72),
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ChapterOverviewCard extends StatelessWidget {
   const _ChapterOverviewCard({
     super.key,
@@ -1975,22 +2250,26 @@ class _ChapterOverviewCard extends StatelessWidget {
     required this.title,
     required this.preview,
     required this.wordCount,
+    required this.versionCount,
     required this.isCurrent,
     required this.canDelete,
     required this.textColor,
     required this.onTap,
     required this.onDelete,
+    required this.onHistory,
   });
 
   final int index;
   final String title;
   final String preview;
   final int wordCount;
+  final int versionCount;
   final bool isCurrent;
   final bool canDelete;
   final Color textColor;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -2076,10 +2355,28 @@ class _ChapterOverviewCard extends StatelessWidget {
                         fontSize: 12,
                       ),
                     ),
+                    if (versionCount > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.versionCount(versionCount),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 8),
+              if (onHistory != null)
+                IconButton(
+                  tooltip: l10n.versionHistory,
+                  onPressed: onHistory,
+                  color: textColor.withValues(alpha: 0.74),
+                  icon: const Icon(Icons.history_rounded),
+                ),
               IconButton(
                 tooltip: l10n.deleteChapter,
                 onPressed: canDelete ? onDelete : null,
@@ -2100,8 +2397,13 @@ class _ChapterDraft {
     required this.controller,
     required this.original,
     required this.id,
+    required List<ChapterVersion> versions,
+    required this.lastSavedAt,
     required VoidCallback onChanged,
-  }) : _onChanged = onChanged {
+  }) : versions = List<ChapterVersion>.from(versions),
+       _lastVersionContent = original?.content ?? '',
+       _lastVersionSavedAt = lastSavedAt ?? 0,
+       _onChanged = onChanged {
     _attachListeners();
   }
 
@@ -2114,6 +2416,8 @@ class _ChapterDraft {
         selection: const TextSelection.collapsed(offset: 0),
       ),
       original: chapter,
+      versions: chapter.versions ?? const <ChapterVersion>[],
+      lastSavedAt: chapter.lastSavedAt,
       onChanged: onChanged,
     );
   }
@@ -2124,6 +2428,8 @@ class _ChapterDraft {
       title: TextEditingController(),
       controller: QuillController.basic(),
       original: null,
+      versions: const <ChapterVersion>[],
+      lastSavedAt: null,
       onChanged: onChanged,
     );
   }
@@ -2133,12 +2439,18 @@ class _ChapterDraft {
   final TextEditingController title;
   final QuillController controller;
   final Chapter? original;
+  final List<ChapterVersion> versions;
+  int? lastSavedAt;
   final VoidCallback _onChanged;
-  late final StreamSubscription<dynamic> _documentChanges;
+  late StreamSubscription<dynamic> _documentChanges;
   late int wordCount;
+  String _lastVersionContent;
+  int _lastVersionSavedAt;
+  bool _replacingContent = false;
 
   void _handleDocumentChanged() {
     _refreshWordCount();
+    if (!_replacingContent) _maybeCreateVersionSnapshot();
     _onChanged();
   }
 
@@ -2146,9 +2458,79 @@ class _ChapterDraft {
     wordCount = wordCountFromHtml(htmlFromDocument(controller.document));
   }
 
+  void _maybeCreateVersionSnapshot() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final currentContent = htmlFromDocument(controller.document);
+    if (!hasMeaningfulWriterHtml(_lastVersionContent) &&
+        plainTextFromHtml(_lastVersionContent).isEmpty) {
+      if (hasMeaningfulWriterHtml(currentContent) ||
+          plainTextFromHtml(currentContent).isNotEmpty) {
+        _lastVersionContent = currentContent;
+        _lastVersionSavedAt = now;
+      }
+      return;
+    }
+
+    if (!shouldCreateChapterVersion(
+      previousContent: _lastVersionContent,
+      currentContent: currentContent,
+      lastSavedAt: _lastVersionSavedAt,
+      now: now,
+    )) {
+      return;
+    }
+
+    final next = addChapterVersionSnapshot(
+      versions: versions,
+      content: _lastVersionContent,
+      timestamp: _lastVersionSavedAt == 0 ? now : _lastVersionSavedAt,
+      wordCount: wordCountFromHtml(_lastVersionContent),
+    );
+    versions
+      ..clear()
+      ..addAll(next);
+    _lastVersionContent = currentContent;
+    _lastVersionSavedAt = now;
+  }
+
+  void restoreVersion(ChapterVersion version) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final currentContent = htmlFromDocument(controller.document);
+    final next = restoreChapterVersionHistory(
+      versions: versions,
+      currentContent: currentContent,
+      now: now,
+    );
+    versions
+      ..clear()
+      ..addAll(next);
+    _replaceDocument(documentFromHtml(version.content));
+    _lastVersionContent = version.content;
+    _lastVersionSavedAt = now;
+    lastSavedAt = now;
+    _refreshWordCount();
+    _onChanged();
+  }
+
+  void _replaceDocument(Document document) {
+    _replacingContent = true;
+    _documentChanges.cancel();
+    controller.document = document;
+    controller.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
+    _attachDocumentListener();
+    _replacingContent = false;
+  }
+
   void _attachListeners() {
     title.addListener(_onChanged);
     _refreshWordCount();
+    _attachDocumentListener();
+  }
+
+  void _attachDocumentListener() {
     _documentChanges = controller.document.changes.listen(
       (_) => _handleDocumentChanged(),
     );

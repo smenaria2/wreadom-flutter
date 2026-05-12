@@ -22,6 +22,7 @@ import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
+import 'src/data/services/analytics_service.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
@@ -203,6 +204,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
           ),
           themeMode: themeMode,
+          navigatorObservers: [AnalyticsService.observer],
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: ShakeToReportListener(
             navigatorKey: _navigatorKey,
@@ -233,6 +235,7 @@ class AuthWrapper extends ConsumerWidget {
         }
       }
       if (previousId != null && nextId == null) {
+        AnalyticsService.identifyUser(null);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
           Navigator.of(
@@ -241,6 +244,11 @@ class AuthWrapper extends ConsumerWidget {
           ).popUntil((route) => route.isFirst);
         });
       }
+    });
+    ref.listen(currentUserProvider, (previous, next) {
+      final user = next.asData?.value;
+      if (user == null) return;
+      AnalyticsService.identifyUser(user.displayName ?? user.username);
     });
     ref.listen(notificationEventProvider, (previous, next) {
       if (!next.hasValue) return;

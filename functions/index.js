@@ -12,6 +12,22 @@ const MAX_BATCH_WRITES = 450;
 const MAX_AUDIO_REVIEW_DURATION_MS = 120000;
 const MAX_AUDIO_REVIEW_BYTES = 2 * 1024 * 1024;
 const AUDIO_REVIEW_MIME_TYPES = new Set(["audio/mp4", "audio/m4a", "audio/aac"]);
+const AUTHOR_READ_MILESTONES = [
+  100,
+  500,
+  1000,
+  5000,
+  10000,
+  25000,
+  50000,
+  100000,
+  500000,
+  1000000,
+  5000000,
+  10000000,
+];
+const SYSTEM_ACTOR_ID = "wreadom";
+const SYSTEM_ACTOR_NAME = "Wreadom";
 const B2_SECRET_NAMES = [
   "B2_KEY_ID",
   "B2_APPLICATION_KEY",
@@ -251,6 +267,9 @@ function shouldSendPushNotification(beforeData, afterData) {
   if (!afterData) {
     return false;
   }
+  if (afterData.metadata?.suppressPush === true) {
+    return false;
+  }
   if (!beforeData) {
     return true;
   }
@@ -293,6 +312,35 @@ function buildNotification({
     isRead: false,
     metadata,
   };
+}
+
+function integerValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.trunc(number) : 0;
+}
+
+function bookReadCount(data = {}) {
+  return Math.max(
+      0,
+      integerValue(data.viewCount ?? data.readCount ?? data.reads ?? data.views),
+  );
+}
+
+function formatMilestoneCount(value) {
+  const text = `${Math.max(0, integerValue(value))}`;
+  return text.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function authorReadMilestoneNotificationText(milestone) {
+  return `Congratulations! Your works reached ${formatMilestoneCount(milestone)} reads.`;
+}
+
+function crossedAuthorReadMilestones(previousTotal, nextTotal) {
+  const previous = Math.max(0, integerValue(previousTotal));
+  const next = Math.max(previous, integerValue(nextTotal));
+  return AUTHOR_READ_MILESTONES.filter((milestone) =>
+    milestone > previous && milestone <= next,
+  );
 }
 
 function localizedPushBody(data = {}, userData = {}) {
@@ -780,6 +828,101 @@ function acceptedBookAuthorIds(book = {}) {
   return Array.from(ids);
 }
 
+async function authorReadTotal(authorId) {
+  const normalizedAuthorId = normalizeString(authorId);
+  if (!normalizedAuthorId) {
+    return 0;
+  }
+
+  const books = new Map();
+  const [primarySnapshot, collaborativeSnapshot] = await Promise.all([
+    db.collection("books").where("authorId", "==", normalizedAuthorId).get(),
+    db.collection("books").where("authorIds", "array-contains", normalizedAuthorId).get(),
+  ]);
+
+  for (const doc of primarySnapshot.docs) {
+    books.set(doc.id, doc.data());
+  }
+  for (const doc of collaborativeSnapshot.docs) {
+    books.set(doc.id, doc.data());
+  }
+
+  let total = 0;
+  for (const data of books.values()) {
+    total += bookReadCount(data);
+  }
+  return total;
+}
+
+async function createAuthorReadMilestones(authorId, totalAfterRead) {
+  const normalizedAuthorId = normalizeString(authorId);
+  if (!normalizedAuthorId) {
+    return [];
+  }
+
+  const statsRef = db.collection("author_read_stats").doc(normalizedAuthorId);
+  const createdMilestones = [];
+  await db.runTransaction(async (transaction) => {
+    const statsSnapshot = await transaction.get(statsRef);
+    const existingTotal = statsSnapshot.exists ?
+      bookReadCount({viewCount: statsSnapshot.data()?.totalReads}) :
+      null;
+    const nextTotal = Math.max(existingTotal ?? 0, integerValue(totalAfterRead));
+    const previousTotal = existingTotal ?? Math.max(0, nextTotal - 1);
+    const milestones = crossedAuthorReadMilestones(previousTotal, nextTotal);
+
+    transaction.set(statsRef, {
+      totalReads: nextTotal,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    for (const milestone of milestones) {
+      const notificationRef = db
+          .collection("notifications")
+          .doc(`author_read_milestone_${normalizedAuthorId}_${milestone}`);
+      transaction.set(notificationRef, buildNotification({
+        userId: normalizedAuthorId,
+        actorId: SYSTEM_ACTOR_ID,
+        actorName: SYSTEM_ACTOR_NAME,
+        type: "author_read_milestone",
+        text: authorReadMilestoneNotificationText(milestone),
+        targetId: normalizedAuthorId,
+        metadata: {
+          milestone,
+          totalReads: nextTotal,
+          targetType: "author_read_milestone",
+          suppressPush: true,
+        },
+      }), {merge: true});
+      createdMilestones.push(milestone);
+    }
+  });
+  return createdMilestones;
+}
+
+async function createAuthorReadMilestonesForBookView(bookId) {
+  const normalizedBookId = normalizeString(bookId);
+  if (!normalizedBookId) {
+    return [];
+  }
+
+  const bookSnapshot = await db.collection("books").doc(normalizedBookId).get();
+  if (!bookSnapshot.exists) {
+    return [];
+  }
+
+  const authorIds = acceptedBookAuthorIds(bookSnapshot.data());
+  const results = [];
+  for (const authorId of authorIds) {
+    const totalAfterRead = await authorReadTotal(authorId);
+    const milestones = await createAuthorReadMilestones(authorId, totalAfterRead);
+    if (milestones.length > 0) {
+      results.push({authorId, milestones});
+    }
+  }
+  return results;
+}
+
 function contentTypeLabel(data = {}) {
   return normalizeString(data.contentType).toLowerCase() || "content";
 }
@@ -1183,6 +1326,13 @@ exports.onBookViewCreate = functionsV1.firestore.document("books/{bookId}/views/
     viewCount: FieldValue.increment(1),
   }, {merge: true});
   logger.info("Incremented book_stats viewCount", {bookId});
+  const milestoneResults = await createAuthorReadMilestonesForBookView(bookId);
+  if (milestoneResults.length > 0) {
+    logger.info("Created author read milestone notifications", {
+      bookId,
+      milestoneResults,
+    });
+  }
   return null;
 });
 
@@ -1710,5 +1860,9 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     localizedPushBody,
     chapterKey,
     isSupersededBookCommentNotification,
+    shouldSendPushNotification,
+    formatMilestoneCount,
+    authorReadMilestoneNotificationText,
+    crossedAuthorReadMilestones,
   };
 }

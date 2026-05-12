@@ -121,14 +121,22 @@ class AppRouter {
             )
           : resolvedIncoming.payload;
     }
+    final routeSettings = RouteSettings(
+      name: name,
+      arguments: arguments ?? settings.arguments,
+    );
 
     switch (name) {
       case AppRoutes.login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const LoginScreen(),
+        );
       case AppRoutes.main:
       case AppRoutes.root:
         final initialIndex = (arguments ?? settings.arguments) as int? ?? 0;
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => MainNavigationShell(initialIndex: initialIndex),
         );
       case AppRoutes.bookDetail:
@@ -151,10 +159,7 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
-          settings: RouteSettings(
-            name: AppRoutes.bookDetail,
-            arguments: arguments ?? settings.arguments,
-          ),
+          settings: routeSettings,
           builder: (_) => BookDetailScreen(
             bookId: bookId,
             preloadedBook: book,
@@ -176,6 +181,7 @@ class AppRouter {
         }
         final args = argsValue;
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => ReaderScreen(
             book: args.book,
             initialChapterIndex: args.initialChapterIndex,
@@ -187,10 +193,14 @@ class AppRouter {
             ? argsValue
             : PublicProfileArguments(userId: argsValue.toString());
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => PublicProfileScreen(userId: args.userId),
         );
       case AppRoutes.notifications:
-        return MaterialPageRoute(builder: (_) => const NotificationsScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const NotificationsScreen(),
+        );
       case AppRoutes.conversation:
         final argsValue = arguments ?? settings.arguments;
         if (argsValue is! ConversationArguments) {
@@ -198,6 +208,7 @@ class AppRouter {
         }
         final args = argsValue;
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => ConversationScreen(
             conversationId: args.conversationId,
             title: args.title,
@@ -213,16 +224,17 @@ class AppRouter {
           return _notFound('Collaboration request details are missing.');
         }
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => CollaborationRequestScreen(bookId: bookId),
         );
       case AppRoutes.writerDashboard:
-        return MaterialPageRoute(builder: (_) => const WriterDashboardScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const WriterDashboardScreen(),
+        );
       case AppRoutes.discovery:
         return MaterialPageRoute(
-          settings: RouteSettings(
-            name: name,
-            arguments: arguments ?? settings.arguments,
-          ),
+          settings: routeSettings,
           builder: (_) => const DiscoveryScreen(),
         );
       case AppRoutes.writerPad:
@@ -232,6 +244,7 @@ class AppRouter {
         }
         final args = argsValue as WriterPadArguments?;
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => WriterPadScreen(
             book: args?.book,
             initialTopic: args?.initialTopic,
@@ -257,10 +270,7 @@ class AppRouter {
         }
 
         return MaterialPageRoute(
-          settings: RouteSettings(
-            name: AppRoutes.postDetail,
-            arguments: arguments ?? settings.arguments,
-          ),
+          settings: routeSettings,
           builder: (_) => PostDetailScreen(
             postId: postId,
             preloadedPost: post,
@@ -278,10 +288,14 @@ class AppRouter {
             ? args.category
             : args.toString();
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => CategoryBooksScreen(category: category),
         );
       case AppRoutes.savedBooks:
-        return MaterialPageRoute(builder: (_) => const SavedBooksScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const SavedBooksScreen(),
+        );
       case AppRoutes.followList:
         final argsValue = arguments ?? settings.arguments;
         if (argsValue is! FollowListArguments) {
@@ -289,6 +303,7 @@ class AppRouter {
         }
         final args = argsValue;
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => FollowListScreen(
             userId: args.userId,
             mode: args.mode,
@@ -296,15 +311,23 @@ class AppRouter {
           ),
         );
       case AppRoutes.profileSettings:
-        return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const ProfileSettingsScreen(),
+        );
       case AppRoutes.help:
-        return MaterialPageRoute(builder: (_) => const HelpScreen());
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const HelpScreen(),
+        );
       case AppRoutes.languageSettings:
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => const LanguageSettingsScreen(),
         );
       case AppRoutes.privacy:
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => const StaticInfoScreen(
             title: 'Privacy Policy',
             body: _privacyPolicyBody,
@@ -312,6 +335,7 @@ class AppRouter {
         );
       case AppRoutes.terms:
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => const StaticInfoScreen(
             title: 'Terms of Use',
             body: _termsOfUseBody,
@@ -319,6 +343,7 @@ class AppRouter {
         );
       case AppRoutes.certificate:
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => const StaticInfoScreen(
             title: 'Certificate',
             body:
@@ -336,6 +361,7 @@ class AppRouter {
           topicId = args.toString();
         }
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => DailyTopicScreen(
             topicId: topicId,
             preloadedTopic: topicArgs?.topic,
@@ -347,10 +373,12 @@ class AppRouter {
           return _notFound('Banner details are missing.');
         }
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => HomeBannerScreen(banner: args.banner),
         );
       case AppRoutes.competition:
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => const StaticInfoScreen(
             title: 'Competition',
             body:
@@ -363,6 +391,7 @@ class AppRouter {
           return _notFound('Book details are missing for Archive Reader.');
         }
         return MaterialPageRoute(
+          settings: routeSettings,
           builder: (_) => ArchiveReaderScreen(book: args),
         );
       default:
@@ -434,6 +463,7 @@ We collect the following personal information when you register and use our Serv
 - IP address and general location data
 - Reading preferences and settings
 - Usage patterns and analytics
+- App profile name/display name used to identify signed-in analytics activity
 
 3. How We Use Your Information
 
@@ -459,6 +489,7 @@ Your published works, public profile information, comments, and feed posts are v
 We use third-party service providers including:
 
 - Google Firebase (for authentication and database hosting)
+- Google Analytics for Firebase (for app usage analytics)
 - Vercel (for hosting)
 - Internet Archive (for accessing public domain books)
 

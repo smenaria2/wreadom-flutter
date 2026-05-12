@@ -5,6 +5,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
+import '../../data/services/analytics_service.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/app_link_helper.dart';
 import '../components/feed_post_card.dart';
@@ -268,6 +269,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           'text': text,
         });
       }
+      AnalyticsService.logCommentCreate(targetType: 'feed_post');
       await AppHaptics.light();
       _controller.value.clear();
       setState(() => _replyingTo = null);

@@ -1271,6 +1271,48 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteChapterTitle => 'अध्याय हटाएं?';
 
   @override
+  String get versionHistory => 'संस्करण इतिहास';
+
+  @override
+  String versionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count संस्करण',
+      one: '1 संस्करण',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get currentVersion => 'वर्तमान संस्करण';
+
+  @override
+  String previousVersion(int number) {
+    return 'संस्करण #$number';
+  }
+
+  @override
+  String get restoreVersion => 'पुनर्स्थापित करें';
+
+  @override
+  String get restoreVersionTitle => 'यह संस्करण पुनर्स्थापित करें?';
+
+  @override
+  String get restoreVersionConfirm =>
+      'इस संस्करण को पुनर्स्थापित करने से पहले वर्तमान सामग्री नए संस्करण के रूप में सेव होगी।';
+
+  @override
+  String get noChapterVersionsYet => 'अभी कोई पुराना संस्करण नहीं है।';
+
+  @override
+  String get versionHistoryHelp =>
+      'महत्वपूर्ण बदलावों के बाद या लगभग हर 5 मिनट में संस्करण अपने-आप बनते हैं। अंतिम 10 संस्करण रखे जाते हैं।';
+
+  @override
+  String get unknownTime => 'अज्ञात समय';
+
+  @override
   String get unsavedChanges => 'बदलाव सेव नहीं हुए';
 
   @override

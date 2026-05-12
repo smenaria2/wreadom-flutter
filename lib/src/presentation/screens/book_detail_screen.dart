@@ -12,6 +12,7 @@ import '../../domain/models/feed_post.dart';
 import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
+import '../../data/services/analytics_service.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
@@ -1516,6 +1517,7 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
         await ref
             .read(authRepositoryProvider)
             .updateUserSavedBooks(user.id, savedBooks);
+        AnalyticsService.logBookmark(added: false, bookId: idStr);
         if (_isDownloaded && mounted) {
           final removeDownload = await showDialog<bool>(
             context: context,
@@ -1553,6 +1555,7 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
       await ref
           .read(authRepositoryProvider)
           .updateUserSavedBooks(user.id, savedBooks);
+      AnalyticsService.logBookmark(added: true, bookId: idStr);
       ref.invalidate(currentUserProvider);
       ref.invalidate(savedBooksProvider);
       if (!mounted) return;

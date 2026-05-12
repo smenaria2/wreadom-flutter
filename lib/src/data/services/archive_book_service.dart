@@ -62,7 +62,7 @@ class ArchiveBookService {
     final q = queryParts.join(' AND ');
     final url = Uri.parse(
       '$searchUrl?q=${Uri.encodeComponent(q)}'
-      '&fl[]=identifier,title,creator,year,language,downloads,subject,collection'
+      '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
       '&rows=$rows&page=$page&sort[]=${Uri.encodeComponent(sort)}&output=json',
     );
 
@@ -271,7 +271,7 @@ class ArchiveBookService {
       source: 'archive',
       coverUrl: 'https://archive.org/services/img/$identifier',
       year: doc['year'],
-      description: '',
+      description: _stringValue(doc['description']),
     );
   }
 
@@ -301,7 +301,9 @@ class ArchiveBookService {
       final name = rawName.toLowerCase();
       final format = (file['format']?.toString() ?? '').toLowerCase();
 
-      if ((format.contains('html') || name.endsWith('.html') || name.endsWith('.htm')) &&
+      if ((format.contains('html') ||
+              name.endsWith('.html') ||
+              name.endsWith('.htm')) &&
           !name.contains('_djvu')) {
         htmlFile ??= rawName;
       } else if (format.contains('epub') || name.endsWith('.epub')) {
@@ -320,7 +322,8 @@ class ArchiveBookService {
       formats['text/html'] = '$baseUrl/${Uri.encodeComponent(htmlFile)}';
     }
     if (epubFile != null) {
-      formats['application/epub+zip'] = '$baseUrl/${Uri.encodeComponent(epubFile)}';
+      formats['application/epub+zip'] =
+          '$baseUrl/${Uri.encodeComponent(epubFile)}';
     }
     if (textFile != null) {
       formats['text/plain; charset=utf-8'] =
@@ -328,7 +331,8 @@ class ArchiveBookService {
       formats['text/plain'] = '$baseUrl/${Uri.encodeComponent(textFile)}';
     }
     if (djvuTextFile != null) {
-      formats['text/plain; ocr'] = '$baseUrl/${Uri.encodeComponent(djvuTextFile)}';
+      formats['text/plain; ocr'] =
+          '$baseUrl/${Uri.encodeComponent(djvuTextFile)}';
     }
     if (pdfFile != null) {
       formats['application/pdf'] = '$baseUrl/${Uri.encodeComponent(pdfFile)}';
@@ -376,7 +380,9 @@ class ArchiveBookService {
       final name = rawName.toLowerCase();
       final format = (file['format']?.toString() ?? '').toLowerCase();
 
-      if ((format.contains('html') || name.endsWith('.html') || name.endsWith('.htm')) &&
+      if ((format.contains('html') ||
+              name.endsWith('.html') ||
+              name.endsWith('.htm')) &&
           !name.contains('_djvu')) {
         htmlFile ??= rawName;
         continue;
@@ -404,7 +410,10 @@ class ArchiveBookService {
       return _ArchiveReadableSource(_ArchiveReadableKind.text, textFile);
     }
     if (djvuTextFile != null) {
-      return _ArchiveReadableSource(_ArchiveReadableKind.djvuText, djvuTextFile);
+      return _ArchiveReadableSource(
+        _ArchiveReadableKind.djvuText,
+        djvuTextFile,
+      );
     }
     return null;
   }
@@ -414,7 +423,8 @@ class ArchiveBookService {
     document.querySelectorAll('script, style, noscript').forEach((node) {
       node.remove();
     });
-    final bodyText = document.body?.text ?? document.documentElement?.text ?? '';
+    final bodyText =
+        document.body?.text ?? document.documentElement?.text ?? '';
     return bodyText
         .replaceAll(RegExp(r'\r\n?'), '\n')
         .replaceAll(RegExp(r'[ \t]+\n'), '\n')
@@ -425,8 +435,9 @@ class ArchiveBookService {
   List<Chapter> _parseEpubToChapters(Uint8List bytes) {
     final archive = ZipDecoder().decodeBytes(bytes, verify: false);
     final packagePath = _findEpubPackagePath(archive);
-    final packageEntry =
-        packagePath == null ? null : archive.findFile(packagePath);
+    final packageEntry = packagePath == null
+        ? null
+        : archive.findFile(packagePath);
     final packageText = packageEntry == null
         ? null
         : utf8.decode(packageEntry.content as List<int>, allowMalformed: true);
@@ -462,12 +473,11 @@ class ArchiveBookService {
       contentFiles.addAll(
         archive.files
             .where(
-              (file) =>
-                  !file.isFile
-                      ? false
-                      : file.name.toLowerCase().endsWith('.xhtml') ||
-                            file.name.toLowerCase().endsWith('.html') ||
-                            file.name.toLowerCase().endsWith('.htm'),
+              (file) => !file.isFile
+                  ? false
+                  : file.name.toLowerCase().endsWith('.xhtml') ||
+                        file.name.toLowerCase().endsWith('.html') ||
+                        file.name.toLowerCase().endsWith('.htm'),
             )
             .map((file) => file.name),
       );
@@ -477,10 +487,14 @@ class ArchiveBookService {
     for (final path in contentFiles) {
       final entry = archive.findFile(path);
       if (entry == null || !entry.isFile) continue;
-      final html = utf8.decode(entry.content as List<int>, allowMalformed: true);
+      final html = utf8.decode(
+        entry.content as List<int>,
+        allowMalformed: true,
+      );
       final text = _extractReadableTextFromHtml(html);
       if (text.trim().isEmpty) continue;
-      final title = _epubTitleFromHtml(html) ?? 'Chapter ${chapters.length + 1}';
+      final title =
+          _epubTitleFromHtml(html) ?? 'Chapter ${chapters.length + 1}';
       chapters.add(
         Chapter(
           id: '${chapters.length + 1}',
@@ -500,9 +514,14 @@ class ArchiveBookService {
   String? _findEpubPackagePath(Archive archive) {
     final container = archive.findFile('META-INF/container.xml');
     if (container != null) {
-      final text = utf8.decode(container.content as List<int>, allowMalformed: true);
-      final match = RegExp(r'full-path="([^"]+\.opf)"', caseSensitive: false)
-          .firstMatch(text);
+      final text = utf8.decode(
+        container.content as List<int>,
+        allowMalformed: true,
+      );
+      final match = RegExp(
+        r'full-path="([^"]+\.opf)"',
+        caseSensitive: false,
+      ).firstMatch(text);
       if (match != null) {
         return match.group(1);
       }
