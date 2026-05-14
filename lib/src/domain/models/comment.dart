@@ -48,6 +48,8 @@ abstract class Comment with _$Comment {
     String? penName,
     List<CommentReply>? replies,
     List<String>? likes,
+    int? likesCount,
+    int? repliesCount,
     Map<String, String>? mentions,
     bool? isHighlighted,
     int? highlightedAt,

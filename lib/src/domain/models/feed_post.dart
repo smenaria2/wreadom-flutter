@@ -36,6 +36,7 @@ abstract class FeedPost with _$FeedPost {
     String? chapterId,
     required int timestamp,
     required List<String> likes,
+    int? likesCount,
     String? userPhotoURL,
     String? displayName,
     String? penName,

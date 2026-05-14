@@ -10,6 +10,7 @@ import '../../utils/map_utils.dart';
 class FirebaseBookRepository implements BookRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collection = 'books';
+  static const int _maxUserBooks = 120;
 
   @override
   Future<List<Book>> getBooks({int limit = 10, dynamic lastDoc}) async {
@@ -186,14 +187,16 @@ class FirebaseBookRepository implements BookRepository {
               .collection(_collection)
               .where('authorId', isEqualTo: userId)
               .where('status', isEqualTo: 'published')
-              .orderBy('updatedAt', descending: true),
+              .orderBy('updatedAt', descending: true)
+              .limit(_maxUserBooks),
         ),
         addBooksFrom(
           _firestore
               .collection(_collection)
               .where('authorIds', arrayContains: userId)
               .where('status', isEqualTo: 'published')
-              .orderBy('updatedAt', descending: true),
+              .orderBy('updatedAt', descending: true)
+              .limit(_maxUserBooks),
         ),
       ]);
 

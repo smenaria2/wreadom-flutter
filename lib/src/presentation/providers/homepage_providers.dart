@@ -45,6 +45,7 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ]);
   ref.read(homepageRefreshCounterProvider.notifier).bump();
   ref.invalidate(homepageMetadataProvider);
+  ref.invalidate(homepageRecommendedBooksProvider);
   ref.invalidate(homepageBooksProvider);
   ref.invalidate(homepageAuthorWorksProvider);
   ref.invalidate(homepageIABooksProvider);
@@ -331,6 +332,15 @@ bool _isArchiveBook(Book book) {
               RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(book.id)));
 }
 
+final homepageRecommendedBooksProvider = FutureProvider<List<Book>>((
+  ref,
+) async {
+  final metadata = await ref.watch(homepageMetadataProvider.future);
+  final communityIds = _positiveRecommendationIds(metadata, limit: 80);
+  if (communityIds.isEmpty) return <Book>[];
+  return ref.watch(bookRepositoryProvider).getBooksByIds(communityIds);
+});
+
 final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
@@ -353,9 +363,7 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
 
     final results = await Future.wait([
       _safeBookList(repo.getOriginalBooks(limit: 120)),
-      communityIds.isNotEmpty
-          ? _safeBookList(repo.getBooksByIds(communityIds))
-          : Future.value(<Book>[]),
+      _safeBookList(ref.watch(homepageRecommendedBooksProvider.future)),
       _safeBookList(repo.getPopularBooks(limit: 80)),
     ]);
     final downloaded = ref.watch(offlineServiceProvider).getDownloadedBooks();
@@ -626,12 +634,7 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
   }
 
   try {
-    final metadata = await ref.watch(homepageMetadataProvider.future);
-    final repo = ref.watch(bookRepositoryProvider);
-    final communityIds = _positiveRecommendationIds(metadata, limit: 80);
-    final books = communityIds.isNotEmpty
-        ? await repo.getBooksByIds(communityIds)
-        : <Book>[];
+    final books = await ref.watch(homepageRecommendedBooksProvider.future);
     final result = books.where(_isArchiveBook).take(20).toList();
     await _writeCachedValue(
       prefs,

@@ -156,6 +156,35 @@ void main() {
     expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
   });
 
+  test('app startup configures bounded Firestore persistence', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    expect(mainSource, contains('FirebaseFirestore.instance.settings'));
+    expect(mainSource, contains('persistenceEnabled: true'));
+    expect(mainSource, contains('cacheSizeBytes: 80 * 1024 * 1024'));
+  });
+
+  test('live comment listeners are ordered and capped', () {
+    final source = File(
+      'lib/src/presentation/providers/comment_providers.dart',
+    ).readAsStringSync();
+    expect(source, contains('const int liveCommentLimit = 80'));
+    expect(source, contains(".orderBy('timestamp', descending: true)"));
+    expect(source, contains('.limit(liveCommentLimit)'));
+  });
+
+  test('feed cards use stored comment counts instead of per-card listeners', () {
+    final source = File(
+      'lib/src/presentation/components/feed_post_card.dart',
+    ).readAsStringSync();
+    expect(
+      source,
+      contains(
+        'final commentsCount = post.commentCount ?? post.comments?.length ?? 0;',
+      ),
+    );
+    expect(source, isNot(contains('liveFeedPostCommentsProvider(post.id!')));
+  });
+
   testWidgets('writer book row handles long Hindi titles without overflow', (
     tester,
   ) async {
@@ -690,6 +719,8 @@ void main() {
         rulesSource,
         contains("allowsLegacyEmbeddedFeedCommentMutation()"),
       );
+      expect(rulesSource, contains("onlyChanges(['likes', 'likesCount'])"));
+      expect(rulesSource, contains("onlyChanges(['replies', 'repliesCount'])"));
       expect(
         rulesSource,
         contains("request.resource.data.highlightedByUserId == uid()"),
@@ -742,6 +773,20 @@ void main() {
     expect(repositorySource, contains('runTransaction'));
     expect(repositorySource, contains('FieldValue.increment(1)'));
     expect(repositorySource, contains('existingView.exists'));
+    expect(readerSource, contains('_shouldPersistProgress'));
+    expect(readerSource, contains('const Duration(seconds: 30)'));
+    expect(readerSource, contains('(position - lastPosition).abs() >= 0.025'));
+  });
+
+  test('firebase index config is deployed with firestore resources', () {
+    final firebaseConfig = File('firebase.json').readAsStringSync();
+    final indexes = File('firestore.indexes.json').readAsStringSync();
+
+    expect(firebaseConfig, contains('"indexes": "firestore.indexes.json"'));
+    expect(indexes, contains('"collectionGroup": "comments"'));
+    expect(indexes, contains('"fieldPath": "timestamp"'));
+    expect(indexes, contains('"collectionGroup": "books"'));
+    expect(indexes, contains('"collectionGroup": "feed"'));
   });
 
   test('archive search scope and home ia recommendations stay wired', () {
@@ -764,7 +809,8 @@ void main() {
     expect(archiveRepositorySource, isNot(contains('filterSafeArchiveBooks')));
     expect(homepageSource, contains('homepage_ia_books_cache_v3'));
     expect(homepageSource, contains('_positiveRecommendationIds'));
-    expect(homepageSource, contains('repo.getBooksByIds(communityIds)'));
+    expect(homepageSource, contains('homepageRecommendedBooksProvider'));
+    expect(homepageSource, contains('getBooksByIds(communityIds)'));
     final iaProviderStart = homepageSource.indexOf(
       'final homepageIABooksProvider',
     );

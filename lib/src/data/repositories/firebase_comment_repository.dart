@@ -16,6 +16,8 @@ class FirebaseCommentRepository implements CommentRepository {
   Future<String> addComment(Comment comment) async {
     final docRef = _firestore.collection('comments').doc();
     final data = comment.toJson()..remove('id');
+    data['likesCount'] = comment.likesCount ?? comment.likes?.length ?? 0;
+    data['repliesCount'] = comment.repliesCount ?? comment.replies?.length ?? 0;
     data.removeWhere((key, value) => value == null);
 
     await docRef.set(data);
@@ -32,6 +34,7 @@ class FirebaseCommentRepository implements CommentRepository {
     data.removeWhere((key, value) => value == null);
     await _firestore.collection('comments').doc(commentId).update({
       'replies': FieldValue.arrayUnion([data]),
+      'repliesCount': FieldValue.increment(1),
     });
   }
 
@@ -74,7 +77,10 @@ class FirebaseCommentRepository implements CommentRepository {
       }).toList();
 
       if (updated.length != replies.length) {
-        transaction.update(ref, {'replies': updated});
+        transaction.update(ref, {
+          'replies': updated,
+          'repliesCount': FieldValue.increment(updated.length - replies.length),
+        });
       }
     });
   }
@@ -172,6 +178,9 @@ class FirebaseCommentRepository implements CommentRepository {
             )
             .toJson()
           ..remove('id');
+    data['likesCount'] = existing.likesCount ?? existing.likes?.length ?? 0;
+    data['repliesCount'] =
+        existing.repliesCount ?? existing.replies?.length ?? 0;
     for (final key in const [
       'audioUrl',
       'audioObjectKey',
@@ -209,20 +218,20 @@ class FirebaseCommentRepository implements CommentRepository {
   @override
   Future<void> toggleCommentLike(String commentId, String userId) async {
     final ref = _firestore.collection('comments').doc(commentId);
-    final doc = await ref.get();
-    if (!doc.exists) return;
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(ref);
+      if (!doc.exists) return;
 
-    final data = doc.data() ?? {};
-    final likes = List<dynamic>.from(data['likes'] ?? const []);
-    if (likes.contains(userId)) {
-      await ref.update({
-        'likes': FieldValue.arrayRemove([userId]),
+      final data = doc.data() ?? {};
+      final likes = List<dynamic>.from(data['likes'] ?? const []);
+      final liked = likes.contains(userId);
+      transaction.update(ref, {
+        'likes': liked
+            ? FieldValue.arrayRemove([userId])
+            : FieldValue.arrayUnion([userId]),
+        'likesCount': FieldValue.increment(liked ? -1 : 1),
       });
-    } else {
-      await ref.update({
-        'likes': FieldValue.arrayUnion([userId]),
-      });
-    }
+    });
   }
 
   @override

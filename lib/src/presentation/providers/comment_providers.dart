@@ -17,6 +17,8 @@ final audioReviewUploadServiceProvider = Provider<AudioReviewUploadService>((
   return AudioReviewUploadService();
 });
 
+const int liveCommentLimit = 80;
+
 final bookCommentsProvider = FutureProvider.family<List<Comment>, String>((
   ref,
   bookId,
@@ -33,6 +35,8 @@ final liveBookCommentsProvider = StreamProvider.family<List<Comment>, String>((
   return FirebaseFirestore.instance
       .collection('comments')
       .where('bookId', whereIn: ids)
+      .orderBy('timestamp', descending: true)
+      .limit(liveCommentLimit)
       .snapshots()
       .map((snapshot) {
         final items = snapshot.docs.map((doc) {
@@ -58,6 +62,8 @@ final liveFeedPostCommentsProvider =
       return FirebaseFirestore.instance
           .collection('comments')
           .where('feedPostId', whereIn: ids)
+          .orderBy('timestamp', descending: true)
+          .limit(liveCommentLimit)
           .snapshots()
           .map((snapshot) {
             final items = snapshot.docs.map((doc) {

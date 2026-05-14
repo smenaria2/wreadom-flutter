@@ -261,6 +261,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _progressSaveDebounce;
   bool _initialScrollRestored = false;
   double? _pendingSavedScrollProgress;
+  int? _lastSavedProgressChapterIndex;
+  double? _lastSavedProgressPosition;
+  DateTime? _lastProgressSaveAt;
 
   @override
   String? get restorationId => 'reader_comment_${widget.book.id}';
@@ -506,9 +509,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     String userId, {
     required int chapterIndex,
     double? position,
+    bool force = false,
   }) async {
     _currentUserId = userId;
     final resolvedPosition = position ?? _currentProgressPosition();
+    if (!force &&
+        !_shouldPersistProgress(
+          chapterIndex: chapterIndex,
+          position: resolvedPosition,
+        )) {
+      return;
+    }
 
     await _bookRepository.updateReadingProgress(
       userId,
@@ -516,9 +527,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       chapterIndex: chapterIndex,
       position: resolvedPosition,
     );
+    _lastSavedProgressChapterIndex = chapterIndex;
+    _lastSavedProgressPosition = resolvedPosition;
+    _lastProgressSaveAt = DateTime.now();
   }
 
-  void _saveProgressSilently(String operationName, {String? userId}) {
+  bool _shouldPersistProgress({
+    required int chapterIndex,
+    required double position,
+  }) {
+    if (_lastSavedProgressChapterIndex != chapterIndex) return true;
+    final lastPosition = _lastSavedProgressPosition;
+    if (lastPosition == null) return true;
+    if ((position - lastPosition).abs() >= 0.025) return true;
+    final lastSavedAt = _lastProgressSaveAt;
+    return lastSavedAt == null ||
+        DateTime.now().difference(lastSavedAt) >= const Duration(seconds: 30);
+  }
+
+  void _saveProgressSilently(
+    String operationName, {
+    String? userId,
+    bool force = false,
+  }) {
     final targetUserId =
         userId ?? ref.read(currentUserProvider).value?.id ?? _currentUserId;
     if (targetUserId == null) return;
@@ -530,6 +561,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         targetUserId,
         chapterIndex: chapterIndex,
         position: position,
+        force: force,
       ).catchError((Object error, StackTrace stackTrace) {
         _logBackgroundSaveError(
           operationName,
@@ -606,9 +638,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _progressSaveDebounce?.cancel();
     _progressSaveDebounce = null;
     if (userId != null) {
-      _saveProgressSilently(operationName, userId: userId);
+      _saveProgressSilently(operationName, userId: userId, force: true);
     } else if (readCurrentUser) {
-      _saveProgressSilently(operationName);
+      _saveProgressSilently(operationName, force: true);
     }
   }
 

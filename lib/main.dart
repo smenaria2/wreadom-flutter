@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -105,6 +106,9 @@ class _MyAppState extends ConsumerState<MyApp> {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     });
+    if (firebaseReady) {
+      await _guardedStartupStep('Firestore cache', _configureFirestoreCache);
+    }
     if (firebaseReady && mounted) {
       setState(() => _firebaseReady = true);
     }
@@ -180,6 +184,13 @@ class _MyAppState extends ConsumerState<MyApp> {
       onError: (err) {
         debugPrint('Error handling deep link: $err');
       },
+    );
+  }
+
+  Future<void> _configureFirestoreCache() async {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: 80 * 1024 * 1024,
     );
   }
 

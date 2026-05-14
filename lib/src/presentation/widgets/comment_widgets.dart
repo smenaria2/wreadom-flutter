@@ -74,7 +74,8 @@ class _CommentTileState extends ConsumerState<CommentTile> {
 
     final likes = widget.comment.likes ?? const <String>[];
     final wasLiked = _liked ?? likes.contains(user.id);
-    final previousCount = _likeCount ?? likes.length;
+    final previousCount =
+        _likeCount ?? widget.comment.likesCount ?? likes.length;
 
     setState(() {
       _liking = true;
@@ -260,7 +261,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final liked =
         _liked ??
         (user != null && (comment.likes ?? const <String>[]).contains(user.id));
-    final likeCount = _likeCount ?? (comment.likes ?? const <String>[]).length;
+    final likeCount =
+        _likeCount ??
+        comment.likesCount ??
+        (comment.likes ?? const <String>[]).length;
     final isHighlighted = comment.isHighlighted == true;
     final canHighlight = user != null && _canHighlight(user);
     final isOwner = user != null && comment.userId == user.id;

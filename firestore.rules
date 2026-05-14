@@ -246,6 +246,11 @@ service cloud.firestore {
           request.resource.data.likes is list
         ) ||
         (
+          onlyChanges(['likes', 'likesCount']) &&
+          request.resource.data.likes is list &&
+          validCounterDelta('likesCount', -1, 1)
+        ) ||
+        (
           onlyChanges(['commentCount']) &&
           validCounterDelta('commentCount', -1, 1)
         ) ||
@@ -276,8 +281,18 @@ service cloud.firestore {
           request.resource.data.likes is list
         ) ||
         (
+          onlyChanges(['likes', 'likesCount']) &&
+          request.resource.data.likes is list &&
+          validCounterDelta('likesCount', -1, 1)
+        ) ||
+        (
           onlyChanges(['replies']) &&
           request.resource.data.replies is list
+        ) ||
+        (
+          onlyChanges(['replies', 'repliesCount']) &&
+          request.resource.data.replies is list &&
+          validCounterDelta('repliesCount', -1, 1)
         ) ||
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([

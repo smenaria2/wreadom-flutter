@@ -92,7 +92,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     }
 
     final wasLiked = _optimisticLiked ?? widget.post.likes.contains(user.id);
-    final prevCount = _optimisticLikesCount ?? widget.post.likes.length;
+    final prevCount =
+        _optimisticLikesCount ??
+        widget.post.likesCount ??
+        widget.post.likes.length;
 
     setState(() {
       _optimisticLiked = !wasLiked;
@@ -350,16 +353,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final liked =
         _optimisticLiked ??
         (currentUser != null && post.likes.contains(currentUser.id));
-    final likesCount = _optimisticLikesCount ?? post.likes.length;
+    final likesCount =
+        _optimisticLikesCount ?? post.likesCount ?? post.likes.length;
     final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
-    final commentsCount = post.id == null
-        ? post.commentCount ?? post.comments?.length ?? 0
-        : ref
-              .watch(liveFeedPostCommentsProvider(post.id!))
-              .maybeWhen(
-                data: (comments) => comments.length,
-                orElse: () => post.commentCount ?? post.comments?.length ?? 0,
-              );
+    final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
     final bookIdText = post.bookId?.toString();
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';
