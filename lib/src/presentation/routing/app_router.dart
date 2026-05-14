@@ -435,7 +435,7 @@ class AppRouter {
   }
 }
 
-const _privacyPolicyBody = r'''Last Updated: February 20, 2026
+const _privacyPolicyBody = r'''Last Updated: May 14, 2026
 
 1. Introduction
 
@@ -457,16 +457,17 @@ We collect the following personal information when you register and use our Serv
 
 2.2 Content Information
 
-- Books, stories, poems, and articles you create or upload
-- Comments, reviews, and testimonies you post
+- Books, stories, poems, articles, drafts, chapters, and chapter version history you create or upload
+- Comments, replies, text reviews, audio reviews, and testimonies you post
 - Bookmarks and reading history
-- Feed posts and social interactions
+- Feed posts, messages, chats, collaboration activity, and social interactions
 
 2.3 Usage Information
 
 - Device information (browser type, operating system)
 - IP address and general location data
 - Reading preferences and settings
+- Text-to-speech playback state and notification preferences where supported
 - Usage patterns and analytics
 - App profile name/display name used to identify signed-in analytics activity
 
@@ -476,9 +477,11 @@ We use your information for the following purposes:
 
 - To provide, maintain, and improve our Service
 - To create and manage your account
-- To enable you to read, write, and publish content
-- To facilitate social features (following, testimonies, feed)
+- To enable you to read, listen to text-to-speech, write, save drafts, manage chapters, restore chapter versions, and publish content
+- To facilitate social features (following, testimonies, feed, reviews, replies, messages, chats, and collaboration)
+- To host and play audio reviews and support replies to reviews or comments
 - To personalize your reading experience
+- To send in-app, push, browser, and media playback notifications where enabled
 - To communicate with you about updates and features
 - To ensure security and prevent fraud
 - To comply with legal obligations
@@ -487,7 +490,7 @@ We use your information for the following purposes:
 
 4.1 Public Information
 
-Your published works, public profile information, comments, and feed posts are visible to other users based on your privacy settings.
+Your published works, public profile information, comments, replies, reviews, audio reviews, feed posts, and public collaboration details are visible to other users based on your privacy settings and the feature you use. Drafts and chapter version history are intended to remain private to authorized authors and collaborators unless published or shared by you.
 
 4.2 Service Providers
 
@@ -496,6 +499,8 @@ We use third-party service providers including:
 - Google Firebase (for authentication and database hosting)
 - Google Analytics for Firebase (for app usage analytics)
 - Vercel (for hosting)
+- Cloudinary (for image and media uploads)
+- Backblaze B2 / compatible storage providers (for audio review upload and playback storage)
 - Internet Archive (for accessing public domain books)
 
 4.3 Legal Requirements
@@ -531,6 +536,7 @@ We use browser storage (sessionStorage and localStorage) to enhance your experie
 - Remembering your login session
 - Saving your reader preferences
 - Maintaining your reading position
+- Supporting text-to-speech playback controls and notification state where available
 - Persisting your application state
 
 8. Children's Privacy
@@ -563,7 +569,7 @@ If you have any questions about this Privacy Policy or our data practices, pleas
 
 Email: contact@wreadom.in''';
 
-const _termsOfUseBody = r'''Last Updated: February 20, 2026
+const _termsOfUseBody = r'''Last Updated: May 14, 2026
 
 1. Acceptance of Terms
 
@@ -573,9 +579,9 @@ These Terms constitute a legally binding agreement under the Indian Contract Act
 
 2. Definitions
 
-- "Service" refers to the Wreadom web application and all associated features
+- "Service" refers to the Wreadom web application, mobile application, and all associated features
 - "User," "you," "your" refers to the individual accessing or using the Service
-- "Content" refers to text, images, comments, reviews, and other materials
+- "Content" refers to text, images, audio reviews, comments, replies, reviews, messages, drafts, chapters, and other materials
 - "Original Works" refers to stories, poems, articles created by users
 - "We," "us," "our" refers to Wreadom and its operators
 
@@ -616,6 +622,8 @@ You retain all ownership rights to the Original Works and other content you crea
 
 You represent and warrant that you own or have the necessary rights to all content you publish and that your content does not infringe upon the intellectual property rights of any third party.
 
+Drafts, unpublished chapters, and chapter version history remain under your ownership and are provided as authoring tools. You are responsible for reviewing content before publishing, moving chapters to drafts, importing drafts into a book, restoring previous versions, or inviting collaborators who may edit your work.
+
 5.2 Our Content
 
 The Service itself, including its design, functionality, text, graphics, logos, and software, is owned by Wreadom and protected under the Copyright Act, 1957, and other applicable intellectual property laws. You may not copy, modify, distribute, or reverse engineer any part of our Service without our written permission.
@@ -632,6 +640,7 @@ You agree NOT to:
 - Infringe upon the intellectual property rights of others
 - Impersonate any person or entity or misrepresent your affiliation
 - Harass, bully, or harm other users
+- Misuse messages, chats, replies, audio reviews, or collaboration tools to spam, harass, impersonate, or pressure others
 - Distribute spam, viruses, or malicious code
 - Attempt to gain unauthorized access to our systems
 - Use automated tools (bots, scrapers) without our permission
@@ -648,9 +657,13 @@ We reserve the right, but are not obligated, to:
 
 In compliance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, we will make reasonable efforts to remove unlawful content upon receiving actual knowledge or notification.
 
+Content moderation may apply to published works, feed posts, comments, replies, reviews, audio reviews, messages reported to us, and collaboration activity that affects other users.
+
 8. Privacy and Data Protection
 
 Your use of the Service is also governed by our Privacy Policy, which explains how we collect, use, and protect your personal information in compliance with the Digital Personal Data Protection Act, 2023, and the Information Technology Act, 2000. By using the Service, you consent to our data practices as described in the Privacy Policy.
+
+Some features, including text-to-speech controls, media notifications, audio reviews, replies, direct chats, group chats, and collaboration requests, may process additional content or device-level notification preferences needed to provide those features.
 
 9. Copyright Infringement
 

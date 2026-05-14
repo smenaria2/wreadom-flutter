@@ -1673,6 +1673,58 @@ class AppLocalizationsHi extends AppLocalizations {
   String get addNewChapter => 'नया अध्याय जोड़ें';
 
   @override
+  String get importFromDrafts => 'ड्राफ़्ट से इम्पोर्ट करें';
+
+  @override
+  String importSelectedDrafts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ड्राफ़्ट इम्पोर्ट करें',
+      one: '1 ड्राफ़्ट इम्पोर्ट करें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noSingleChapterDraftsToImport =>
+      'इम्पोर्ट करने के लिए कोई सिंगल-अध्याय ड्राफ़्ट नहीं है।';
+
+  @override
+  String draftsImportedAsChapters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ड्राफ़्ट अध्याय के रूप में इम्पोर्ट हुए।',
+      one: 'ड्राफ़्ट अध्याय के रूप में इम्पोर्ट हुआ।',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String couldNotImportDrafts(String error) {
+    return 'ड्राफ़्ट इम्पोर्ट नहीं हो सके: $error';
+  }
+
+  @override
+  String get moveChapterToDraftsTitle => 'अध्याय को ड्राफ़्ट में भेजें?';
+
+  @override
+  String get moveChapterToDraftsBody =>
+      'यह अध्याय इस रचना से हटकर सिंगल-अध्याय ड्राफ़्ट के रूप में सेव हो जाएगा। इस अध्याय की टिप्पणियाँ भी साथ जाएँगी।';
+
+  @override
+  String get moveToDrafts => 'ड्राफ़्ट में भेजें';
+
+  @override
+  String get chapterMovedToDrafts => 'अध्याय ड्राफ़्ट में भेज दिया गया।';
+
+  @override
+  String couldNotMoveChapterToDrafts(String error) {
+    return 'अध्याय को ड्राफ़्ट में नहीं भेज सके: $error';
+  }
+
+  @override
   String get noContentYet => 'अभी कोई सामग्री नहीं';
 
   @override
@@ -1848,7 +1900,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqAutoSaveA =>
-      'हाँ, राइटर पैड हर 10 सेकंड में आपके ड्राफ़्ट को अपने आप सहेजता है। आप एडिटर के टॉप पर \'अंतिम बार सहेजा गया\' स्टेटस देख सकते हैं।';
+      'हाँ, राइटर पैड हर 10 सेकंड में आपके ड्राफ़्ट को अपने आप सहेजता है। आप एडिटर के टॉप पर \'अंतिम बार सहेजा गया\' स्टेटस देख सकते हैं। अध्याय संस्करण इतिहास भी महत्वपूर्ण पुराने संस्करण रखता है ताकि आप उन्हें देख या restore कर सकें।';
 
   @override
   String get faqPublishWorkQ => 'मैं अपना काम कैसे प्रकाशित करूँ?';
@@ -1863,7 +1915,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqOrganizeChaptersA =>
-      'बिल्कुल! नए अध्याय जोड़ने, उनके बीच स्विच करने या अपनी कहानी की संरचना को बदलने के लिए एडिटर में अध्याय मेनू (लिस्ट आइकन) का उपयोग करें।';
+      'बिल्कुल! नए अध्याय जोड़ने, उनके बीच स्विच करने, कहानी की संरचना बदलने, किसी अध्याय को अलग single-chapter draft में ले जाने, या योग्य drafts को वापस पुस्तक में जोड़ने के लिए एडिटर में अध्याय मेनू (लिस्ट आइकन) का उपयोग करें।';
 
   @override
   String get faqCollaborationQ => 'सहलेखन कैसे काम करता है?';
@@ -1912,7 +1964,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqMessagingA =>
-      'हाँ, आप अन्य यूज़र्स के साथ सीधी बातचीत शुरू कर सकते हैं। उनकी प्रोफ़ाइल पर जाएँ या अपनी बातचीत प्रबंधित करने के लिए \'संदेश\' आइकन का उपयोग करें।';
+      'हाँ, आप अन्य यूज़र्स के साथ सीधी बातचीत शुरू कर सकते हैं। उनकी प्रोफ़ाइल पर जाएँ या chats प्रबंधित करने, रचनाएँ साझा करने और message requests का जवाब देने के लिए \'संदेश\' आइकन का उपयोग करें।';
 
   @override
   String get faqChangeThemeQ => 'मैं ऐप थीम कैसे बदलूँ?';
@@ -1933,7 +1985,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqNotificationsA =>
-      'लाइक, कमेंट और नए फ़ॉलोअर्स के बारे में अपडेट देखने के लिए होम स्क्रीन या प्रोफ़ाइल पर घंटी वाले आइकन पर टैप करें।';
+      'लाइक, कमेंट, replies, audio reviews, नए फ़ॉलोअर्स, messages और प्रकाशित रचनाओं के अपडेट देखने के लिए होम स्क्रीन या प्रोफ़ाइल पर घंटी वाले आइकन पर टैप करें।';
 
   @override
   String get faqChangeLanguageQ => 'मैं ऐप की भाषा कैसे बदलूँ?';
@@ -1954,7 +2006,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqTapToSeekA =>
-      'जब \'रीड अलाउड\' सक्रिय हो, तो आवाज़ को सीधे उस हिस्से पर ले जाने के लिए किसी भी पैराग्राफ पर टैप करें।';
+      'जब \'रीड अलाउड\' सक्रिय हो, तो आवाज़ को सीधे उस हिस्से पर ले जाने के लिए किसी भी पैराग्राफ पर टैप करें। समर्थित डिवाइसों पर TTS player notification bar से भी उपलब्ध रह सकता है, ताकि आप reader के बाहर भी pause, resume या stop कर सकें।';
 
   @override
   String get faqShareQuoteImageQ =>
@@ -1999,7 +2051,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqFeedUpdatesA =>
-      'आपकी फीड उन लेखकों के अपडेट का एक व्यक्तिगत स्ट्रीम है जिन्हें आप फ़ॉलो करते हैं, जिसमें नई पोस्ट, समीक्षाएं और अध्याय शामिल हैं।';
+      'आपकी फीड उन लेखकों के अपडेट का एक व्यक्तिगत स्ट्रीम है जिन्हें आप फ़ॉलो करते हैं, जिसमें नई पोस्ट, text और audio reviews, replies और अध्याय शामिल हैं।';
 
   @override
   String get faqMultiChapterWriterQ =>

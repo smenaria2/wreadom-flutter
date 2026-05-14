@@ -25,10 +25,18 @@ import '../widgets/auth_required_view.dart';
 import '../widgets/writer_media_embed.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
-  const WriterPadScreen({super.key, this.book, this.initialTopic});
+  const WriterPadScreen({
+    super.key,
+    this.book,
+    this.initialTopic,
+    this.restoreLocalDrafts = true,
+    this.showToolbar = true,
+  });
 
   final Book? book;
   final String? initialTopic;
+  final bool restoreLocalDrafts;
+  final bool showToolbar;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -188,7 +196,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       (_) => _autosaveDraft(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_restoreLocalDraft());
+      if (widget.restoreLocalDrafts) {
+        unawaited(_restoreLocalDraft());
+      }
     });
   }
 
@@ -392,7 +402,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
         ),
       ),
-      bottomNavigationBar: _step == 0 ? _buildToolbar(controller) : null,
+      bottomNavigationBar: _step == 0 && widget.showToolbar
+          ? _buildToolbar(controller)
+          : null,
     );
   }
 
@@ -1015,6 +1027,22 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         ],
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            final imported = await _showImportDraftsPicker();
+                            if (imported && context.mounted) {
+                              modalSetState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.file_download_outlined),
+                          label: Text(l10n.importFromDrafts),
+                        ),
+                      ),
+                    ),
                     Expanded(
                       child: ReorderableListView.builder(
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
@@ -1057,9 +1085,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               Navigator.of(context).pop();
                             },
                             onDelete: () async {
-                              final deleted = await _confirmDeleteChapter(i);
-                              if (deleted && context.mounted) {
-                                unawaited(_syncDraftCheckpoint());
+                              final moved = await _confirmDeleteChapter(i);
+                              if (moved && context.mounted) {
                                 modalSetState(() {});
                               }
                             },
@@ -1147,8 +1174,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.deleteChapterTitle),
-        content: Text(l10n.deleteChapterBody),
+        title: Text(l10n.moveChapterToDraftsTitle),
+        content: Text(l10n.moveChapterToDraftsBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -1156,23 +1183,245 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.delete),
+            child: Text(l10n.moveToDrafts),
           ),
         ],
       ),
     );
     if (confirmed != true) return false;
+    final user = await _currentUserOrNull();
+    if (user == null) return false;
+    final sourceStatus = _statusForChapterMove();
+    final saved = await _save(
+      status: sourceStatus,
+      allowUntitled: true,
+      showSnack: false,
+    );
+    if (!saved || !mounted) return false;
+    final sourceBook = _buildBookForSave(user, status: sourceStatus);
+    if (index < 0 ||
+        index >= (sourceBook.chapters ?? const <Chapter>[]).length) {
+      return false;
+    }
+    final chapters = List<Chapter>.from(sourceBook.chapters ?? const []);
+    final chapter = chapters[index];
+    final remaining = <Chapter>[
+      for (var i = 0; i < chapters.length; i++)
+        if (i != index) chapters[i].copyWith(index: i > index ? i - 1 : i),
+    ];
+    try {
+      await ref
+          .read(writerRepositoryProvider)
+          .moveChapterToStandaloneDraft(
+            sourceBook: sourceBook,
+            chapter: chapter,
+            remainingChapters: remaining,
+            ownerUserId: user.id,
+          );
+      ref.invalidate(myBooksProvider);
+      ref.invalidate(filteredMyBooksProvider);
+    } catch (error) {
+      if (mounted) _showSnack(l10n.couldNotMoveChapterToDrafts('$error'));
+      return false;
+    }
     setState(() {
       final removed = _chapters.removeAt(index);
       removed.dispose();
       _setCurrentChapterIndex(
         _currentChapterIndex.clamp(0, _chapters.length - 1),
       );
-      _isDirty = true;
-      _isLocalDirty = true;
-      _saveStatus = l10n.unsavedChanges;
+      _isDirty = false;
+      _isLocalDirty = false;
+      _saveStatus = sourceStatus == 'published'
+          ? l10n.writerPublishedStatus
+          : l10n.writerDraft;
     });
+    _showSnack(l10n.chapterMovedToDrafts);
     return true;
+  }
+
+  String _statusForChapterMove() {
+    return widget.book?.status == 'published' ? 'published' : 'draft';
+  }
+
+  Future<bool> _showImportDraftsPicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    final user = await _currentUserOrNull();
+    if (user == null) return false;
+    final excludeBookId = _bookId ?? widget.book?.id;
+    final drafts = await ref
+        .read(writerRepositoryProvider)
+        .getImportableSingleChapterDrafts(
+          user.id,
+          excludeBookId: excludeBookId,
+        );
+    if (!mounted) return false;
+    if (drafts.isEmpty) {
+      _showSnack(l10n.noSingleChapterDraftsToImport);
+      return false;
+    }
+
+    final selected = <String>{};
+    final chosen = await showModalBottomSheet<List<Book>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final sheetColor = _writerSurfaceColor(sheetContext);
+        final textColor = _onWriterSurfaceColor(sheetContext);
+        return StatefulBuilder(
+          builder: (context, modalSetState) {
+            final selectedDrafts = drafts
+                .where((draft) => selected.contains(draft.id))
+                .toList();
+            return Container(
+              height: MediaQuery.sizeOf(context).height * 0.75,
+              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              decoration: BoxDecoration(
+                color: sheetColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.importFromDrafts,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.close,
+                          color: textColor,
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                      itemCount: drafts.length,
+                      itemBuilder: (context, i) {
+                        final draft = drafts[i];
+                        final chapter = draft.chapters!.first;
+                        final checked = selected.contains(draft.id);
+                        final preview = plainTextFromHtml(chapter.content);
+                        return CheckboxListTile(
+                          value: checked,
+                          onChanged: (value) {
+                            modalSetState(() {
+                              if (value == true) {
+                                selected.add(draft.id);
+                              } else {
+                                selected.remove(draft.id);
+                              }
+                            });
+                          },
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          checkColor: Theme.of(context).colorScheme.onPrimary,
+                          title: Text(
+                            draft.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          subtitle: Text(
+                            preview.isEmpty
+                                ? l10n.noContentYet
+                                : preview.length > 96
+                                ? '${preview.substring(0, 96).trim()}...'
+                                : preview,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.66),
+                            ),
+                          ),
+                          secondary: Icon(
+                            Icons.description_outlined,
+                            color: textColor.withValues(alpha: 0.7),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: selectedDrafts.isEmpty
+                            ? null
+                            : () => Navigator.of(context).pop(selectedDrafts),
+                        icon: const Icon(Icons.download_done_rounded),
+                        label: Text(
+                          l10n.importSelectedDrafts(selectedDrafts.length),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return false;
+
+    final targetStatus = _statusForChapterMove();
+    final saved = await _save(
+      status: targetStatus,
+      allowUntitled: true,
+      showSnack: false,
+    );
+    if (!saved || !mounted) return false;
+    final targetBook = _buildBookForSave(user, status: targetStatus);
+    try {
+      final imported = await ref
+          .read(writerRepositoryProvider)
+          .importSingleDraftsToBook(
+            targetBook: targetBook,
+            sourceDrafts: chosen,
+          );
+      if (imported.isEmpty || !mounted) return false;
+      setState(() {
+        _chapters.addAll(
+          imported.map(
+            (chapter) => _ChapterDraft.fromChapter(chapter, _markDirty),
+          ),
+        );
+        _setCurrentChapterIndex(_chapters.length - 1);
+        _isDirty = false;
+        _isLocalDirty = false;
+        _saveStatus = targetStatus == 'published'
+            ? l10n.writerPublishedStatus
+            : l10n.writerDraft;
+      });
+      ref.invalidate(myBooksProvider);
+      ref.invalidate(filteredMyBooksProvider);
+      _showSnack(l10n.draftsImportedAsChapters(imported.length));
+      return true;
+    } catch (error) {
+      if (mounted) _showSnack(l10n.couldNotImportDrafts('$error'));
+      return false;
+    }
   }
 
   String _chapterPreview(_ChapterDraft chapter) {
@@ -1528,31 +1777,31 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     await _saveLocalDraft();
   }
 
-  Future<void> _save({
+  Future<bool> _save({
     required String status,
     bool closeAfterSave = false,
     bool allowUntitled = false,
     bool showSnack = true,
   }) async {
-    if (_isSaving) return;
+    if (_isSaving) return false;
     final l10n = AppLocalizations.of(context)!;
 
     final title = _titleController.value.text.trim();
     if (title.isEmpty && !allowUntitled) {
       _showSnack(l10n.addTitleBeforeSaving);
       setState(() => _setStep(1));
-      return;
+      return false;
     }
 
     final user = await _currentUserOrNull();
-    if (user == null) return;
+    if (user == null) return false;
     if (_collabEnabled &&
         !isAcceptedCollaboration(widget.book ?? _emptyBookForCollabCheck()) &&
         (_selectedCollaboratorId == null ||
             _selectedCollaboratorId!.trim().isEmpty)) {
       _showSnack(l10n.selectCoAuthorBeforeSaving);
       setState(() => _setStep(1));
-      return;
+      return false;
     }
 
     setState(() {
@@ -1580,7 +1829,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
-      if (!mounted) return;
+      if (!mounted) return true;
       setState(() {
         _isDirty = false;
         _isLocalDirty = false;
@@ -1595,8 +1844,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         );
       }
       if (closeAfterSave && mounted) Navigator.of(context).pop();
+      return true;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         _isSaving = false;
         _saveStatus = l10n.writerSaveFailed;
@@ -1604,6 +1854,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       if (showSnack) {
         _showSnack(l10n.couldNotSave('$error'));
       }
+      return false;
     }
   }
 
@@ -2405,10 +2656,10 @@ class _ChapterOverviewCard extends StatelessWidget {
                   icon: const Icon(Icons.history_rounded),
                 ),
               IconButton(
-                tooltip: l10n.deleteChapter,
+                tooltip: l10n.moveToDrafts,
                 onPressed: canDelete ? onDelete : null,
                 color: textColor.withValues(alpha: 0.74),
-                icon: const Icon(Icons.delete_outline_rounded),
+                icon: const Icon(Icons.file_upload_outlined),
               ),
             ],
           ),

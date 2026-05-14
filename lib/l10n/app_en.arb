@@ -942,6 +942,44 @@
     }
   },
   "addNewChapter": "Add new chapter",
+  "importFromDrafts": "Import from drafts",
+  "importSelectedDrafts": "{count, plural, =1{Import 1 draft} other{Import {count} drafts}}",
+  "@importSelectedDrafts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noSingleChapterDraftsToImport": "No single-chapter drafts to import.",
+  "draftsImportedAsChapters": "{count, plural, =1{Draft imported as a chapter.} other{{count} drafts imported as chapters.}}",
+  "@draftsImportedAsChapters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotImportDrafts": "Could not import drafts: {error}",
+  "@couldNotImportDrafts": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "moveChapterToDraftsTitle": "Move chapter to drafts?",
+  "moveChapterToDraftsBody": "This removes the chapter from this content and saves it as a single-chapter draft. Comments on this chapter will move with it.",
+  "moveToDrafts": "Move to drafts",
+  "chapterMovedToDrafts": "Chapter moved to drafts.",
+  "couldNotMoveChapterToDrafts": "Could not move chapter to drafts: {error}",
+  "@couldNotMoveChapterToDrafts": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "noContentYet": "No content yet",
   "editing": "Editing",
   "wordCountLabel": "{count, plural, =1{1 word} other{{count} words}}",
@@ -1062,11 +1100,11 @@
   "faqStartStoryQ": "How do I start a new story?",
   "faqStartStoryA": "Go to the 'Writer Dashboard' from your profile menu and tap the 'Add' icon. This will open the Writer Pad where you can start drafting your first chapter.",
   "faqAutoSaveQ": "Is there an auto-save feature?",
-  "faqAutoSaveA": "Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the 'Last Saved' status at the top of the editor.",
+  "faqAutoSaveA": "Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the 'Last Saved' status at the top of the editor. Chapter version history also keeps meaningful previous versions so you can review or restore earlier writing.",
   "faqPublishWorkQ": "How do I publish my work?",
   "faqPublishWorkA": "Once your story is ready, tap 'Publish' in the Writer Pad. You'll be asked to provide a title, synopsis, and relevant topics before it goes live for the community.",
   "faqOrganizeChaptersQ": "Can I organize chapters?",
-  "faqOrganizeChaptersA": "Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.",
+  "faqOrganizeChaptersA": "Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, reorder your story structure, move a chapter out as a single-chapter draft, or import eligible drafts back into a book.",
   "faqCollaborationQ": "How do collaborations work?",
   "faqCollaborationA": "In the Writer Pad, enable Collaboration and choose a user you follow as a co-author. They receive a request, and once accepted, both authors can edit the content and appear together on the content page.",
   "faqFindBooksQ": "How do I find new content?",
@@ -1080,19 +1118,19 @@
   "faqFollowAuthorQ": "How do I follow an author?",
   "faqFollowAuthorA": "Tap on an author's name or avatar to visit their public profile, then tap 'Follow' to see their latest posts and story updates in your feed.",
   "faqMessagingQ": "Can I message other users?",
-  "faqMessagingA": "Yes, you can start direct conversations with other users. Visit their profile or use the 'Messages' icon on your navigation bar to manage your chats.",
+  "faqMessagingA": "Yes, you can start direct conversations with other users. Visit their profile or use the 'Messages' icon on your navigation bar to manage chats, share content, and reply to message requests.",
   "faqChangeThemeQ": "How do I change the app theme?",
   "faqChangeThemeA": "Go to Profile -> Menu (top-right) -> Theme. You can choose between Light, Dark, or System default modes.",
   "faqUpdateProfileQ": "How do I update my profile?",
   "faqUpdateProfileA": "In the 'Edit Profile' section of your settings, you can update your display name, pen name, and bio.",
   "faqNotificationsQ": "Where are my notifications?",
-  "faqNotificationsA": "Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.",
+  "faqNotificationsA": "Tap the bell icon on the home screen or profile to see updates about likes, comments, replies, audio reviews, new followers, messages, and published content.",
   "faqChangeLanguageQ": "How do I change the app language?",
   "faqChangeLanguageA": "Go to Settings -> Language to switch between English and Hindi.",
   "faqWhatAreReadsQ": "What are 'Reads'?",
   "faqWhatAreReadsA": "Reads indicate how many times a story has been viewed. It updates automatically as the community explores your work.",
   "faqTapToSeekQ": "How does tap-to-seek work in Read Aloud?",
-  "faqTapToSeekA": "While 'Read Aloud' is active, simply tap on any paragraph to jump the voice directly to that section.",
+  "faqTapToSeekA": "While 'Read Aloud' is active, tap any paragraph to jump the voice directly to that section. On supported devices, the TTS player can also stay available from the notification bar so you can pause, resume, or stop listening outside the reader.",
   "faqShareQuoteImageQ": "Can I share quotes as images?",
   "faqShareQuoteImageA": "Yes! Highlight any text and choose 'Share Quote' to create a beautiful, shareable image of that passage.",
   "faqReportContentQ": "How do I report inappropriate content?",
@@ -1104,7 +1142,7 @@
   "faqDailyTopicsParticipationQ": "How do I participate in Daily Topics?",
   "faqDailyTopicsParticipationA": "Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.",
   "faqFeedUpdatesQ": "What shows up in my Feed?",
-  "faqFeedUpdatesA": "Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.",
+  "faqFeedUpdatesA": "Your Feed is a personalized stream of updates from authors you follow, including new posts, text and audio reviews, replies, and story chapters.",
   "faqMultiChapterWriterQ": "Can I write multiple chapters at once?",
   "faqMultiChapterWriterA": "Yes! In the Writer Pad, use the chapters list to create multiple segments of your story. You can save them all as a single draft before publishing.",
   "faqProfilePicturesQ": "How do I update my profile and cover images?",

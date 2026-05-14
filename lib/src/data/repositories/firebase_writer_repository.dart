@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/book.dart';
+import '../../domain/models/chapter.dart';
 import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
@@ -13,6 +14,8 @@ class FirebaseWriterRepository implements WriterRepository {
 
   final FirebaseFirestore _firestore;
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
+
+  static const int _batchChunkSize = 450;
 
   @override
   Future<String> createBook(Book book) async {
@@ -27,11 +30,160 @@ class FirebaseWriterRepository implements WriterRepository {
   }
 
   @override
+  Future<List<Book>> getImportableSingleChapterDrafts(
+    String userId, {
+    String? excludeBookId,
+  }) async {
+    final books = await getUserBooks(userId, status: 'draft');
+    return books.where((book) {
+      if (book.id == excludeBookId) return false;
+      if (book.status == 'deleted') return false;
+      if (book.authorId?.trim() != userId) return false;
+      if (isAcceptedCollaboration(book)) return false;
+      return (book.chapters ?? const <Chapter>[]).length == 1;
+    }).toList();
+  }
+
+  @override
   Future<void> deleteBook(String bookId) async {
     await _firestore.collection('books').doc(bookId).update({
       'status': 'deleted',
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
+  }
+
+  @override
+  Future<String> moveChapterToStandaloneDraft({
+    required Book sourceBook,
+    required Chapter chapter,
+    required List<Chapter> remainingChapters,
+    required String ownerUserId,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final sourceBookId = sourceBook.id.trim();
+    final draftOwnerId = ownerUserId.trim();
+    if (sourceBookId.isEmpty) {
+      throw StateError('Source book must be saved before moving a chapter.');
+    }
+    if (draftOwnerId.isEmpty) {
+      throw StateError('Draft owner is required.');
+    }
+
+    final movedTitle = chapter.title.trim().isEmpty
+        ? sourceBook.title
+        : chapter.title.trim();
+    final standalone = sourceBook.copyWith(
+      id: '',
+      title: movedTitle,
+      description: sourceBook.title.trim().isEmpty
+          ? 'Draft exported from content'
+          : 'Draft exported from ${sourceBook.title}',
+      status: 'draft',
+      source: 'firestore',
+      isOriginal: true,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: null,
+      authorId: draftOwnerId,
+      authorIds: [draftOwnerId],
+      collaborationStatus: null,
+      collaboratorId: null,
+      collaboratorName: null,
+      collaboratorPhotoURL: null,
+      collaborationRequestedBy: null,
+      collaborationRequestedAt: null,
+      collaborationRespondedAt: null,
+      recommendationCount: null,
+      weightedScore: null,
+      averageRating: null,
+      viewCount: null,
+      ratingsCount: null,
+      chapterCount: 1,
+      chapters: [chapter.copyWith(index: 0, status: 'draft', lastSavedAt: now)],
+    );
+
+    final newBookId = await createBook(standalone);
+    await _restoreEngagementDataToStandalone(
+      sourceBookId: sourceBookId,
+      newBookId: newBookId,
+      newBookTitle: movedTitle,
+      chapterId: chapter.id,
+    );
+    await _firestore.collection('books').doc(sourceBookId).set({
+      'chapters': remainingChapters.map((item) {
+        final data = item.toJson();
+        data['versions'] = item.versions
+            ?.map((version) => version.toJson())
+            .toList();
+        return data;
+      }).toList(),
+      'chapterCount': remainingChapters.length,
+      'updatedAt': now,
+    }, SetOptions(merge: true));
+    return newBookId;
+  }
+
+  @override
+  Future<List<Chapter>> importSingleDraftsToBook({
+    required Book targetBook,
+    required List<Book> sourceDrafts,
+  }) async {
+    final targetBookId = targetBook.id.trim();
+    if (targetBookId.isEmpty) {
+      throw StateError('Target book must be saved before importing drafts.');
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final currentChapters = List<Chapter>.from(
+      targetBook.chapters ?? const <Chapter>[],
+    );
+    final imported = <Chapter>[];
+    var nextIndex = currentChapters.length;
+
+    for (final sourceDraft in sourceDrafts) {
+      final sourceBookId = sourceDraft.id.trim();
+      final sourceChapter = sourceDraft.chapters?.firstOrNull;
+      if (sourceBookId.isEmpty || sourceChapter == null) continue;
+
+      final importedChapter = sourceChapter.copyWith(
+        id: sourceBookId,
+        title: sourceDraft.title.trim().isEmpty
+            ? sourceChapter.title
+            : sourceDraft.title.trim(),
+        index: nextIndex++,
+        status: 'draft',
+        lastSavedAt: now,
+        originalBookId: sourceBookId,
+      );
+      currentChapters.add(importedChapter);
+      imported.add(importedChapter);
+
+      await _migrateEngagementDataToChapter(
+        sourceBookId: sourceBookId,
+        targetBookId: targetBookId,
+        targetBookTitle: targetBook.title,
+        newChapterId: importedChapter.id,
+        newChapterTitle: importedChapter.title,
+        newChapterIndex: importedChapter.index,
+      );
+      await deleteBook(sourceBookId);
+    }
+
+    if (imported.isNotEmpty) {
+      await _firestore.collection('books').doc(targetBookId).set({
+        'chapters': currentChapters.map((item) {
+          final data = item.toJson();
+          data['versions'] = item.versions
+              ?.map((version) => version.toJson())
+              .toList();
+          return data;
+        }).toList(),
+        'chapterCount': currentChapters.length,
+        'updatedAt': now,
+      }, SetOptions(merge: true));
+    }
+
+    return imported;
   }
 
   @override
@@ -157,5 +309,98 @@ class FirebaseWriterRepository implements WriterRepository {
       return chapterData;
     }).toList();
     return data;
+  }
+
+  Future<void> _migrateEngagementDataToChapter({
+    required String sourceBookId,
+    required String targetBookId,
+    required String targetBookTitle,
+    required String newChapterId,
+    required String newChapterTitle,
+    required int newChapterIndex,
+  }) async {
+    final comments = await _firestore
+        .collection('comments')
+        .where('bookId', isEqualTo: sourceBookId)
+        .get();
+    final feedPosts = await _firestore
+        .collection('feed')
+        .where('bookId', isEqualTo: sourceBookId)
+        .get();
+
+    await _commitQueryDocUpdates(
+      docs: comments.docs,
+      dataFor: (_) => {
+        'bookId': targetBookId,
+        'bookTitle': targetBookTitle,
+        'chapterId': newChapterId,
+        'chapterTitle': newChapterTitle,
+        'chapterIndex': newChapterIndex,
+      },
+    );
+    await _commitQueryDocUpdates(
+      docs: feedPosts.docs,
+      dataFor: (_) => {
+        'bookId': targetBookId,
+        'bookTitle': targetBookTitle,
+        'chapterId': newChapterId,
+        'chapterTitle': newChapterTitle,
+      },
+    );
+  }
+
+  Future<void> _restoreEngagementDataToStandalone({
+    required String sourceBookId,
+    required String newBookId,
+    required String newBookTitle,
+    required String chapterId,
+  }) async {
+    final comments = await _firestore
+        .collection('comments')
+        .where('bookId', isEqualTo: sourceBookId)
+        .where('chapterId', isEqualTo: chapterId)
+        .get();
+    final feedPosts = await _firestore
+        .collection('feed')
+        .where('bookId', isEqualTo: sourceBookId)
+        .where('chapterId', isEqualTo: chapterId)
+        .get();
+
+    await _commitQueryDocUpdates(
+      docs: comments.docs,
+      dataFor: (_) => {
+        'bookId': newBookId,
+        'bookTitle': newBookTitle,
+        'chapterId': null,
+        'chapterTitle': null,
+        'chapterIndex': 0,
+      },
+    );
+    await _commitQueryDocUpdates(
+      docs: feedPosts.docs,
+      dataFor: (_) => {
+        'bookId': newBookId,
+        'bookTitle': newBookTitle,
+        'chapterId': null,
+        'chapterTitle': null,
+      },
+    );
+  }
+
+  Future<void> _commitQueryDocUpdates({
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    required Map<String, dynamic> Function(
+      QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    )
+    dataFor,
+  }) async {
+    for (var i = 0; i < docs.length; i += _batchChunkSize) {
+      final batch = _firestore.batch();
+      final chunk = docs.skip(i).take(_batchChunkSize);
+      for (final doc in chunk) {
+        batch.update(doc.reference, dataFor(doc));
+      }
+      await batch.commit();
+    }
   }
 }

@@ -100,6 +100,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       await OfflineService().init();
     });
     final firebaseReady = await _guardedStartupStep('Firebase', () {
+      if (Firebase.apps.isNotEmpty) return Future<void>.value();
       return Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
@@ -250,9 +251,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
           ),
           themeMode: themeMode,
-          navigatorObservers: [
-            if (_firebaseReady) AnalyticsService.observer,
-          ],
+          navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: ShakeToReportListener(
             navigatorKey: _navigatorKey,

@@ -1674,6 +1674,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addNewChapter => 'Add new chapter';
 
   @override
+  String get importFromDrafts => 'Import from drafts';
+
+  @override
+  String importSelectedDrafts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Import $count drafts',
+      one: 'Import 1 draft',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noSingleChapterDraftsToImport =>
+      'No single-chapter drafts to import.';
+
+  @override
+  String draftsImportedAsChapters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drafts imported as chapters.',
+      one: 'Draft imported as a chapter.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String couldNotImportDrafts(String error) {
+    return 'Could not import drafts: $error';
+  }
+
+  @override
+  String get moveChapterToDraftsTitle => 'Move chapter to drafts?';
+
+  @override
+  String get moveChapterToDraftsBody =>
+      'This removes the chapter from this content and saves it as a single-chapter draft. Comments on this chapter will move with it.';
+
+  @override
+  String get moveToDrafts => 'Move to drafts';
+
+  @override
+  String get chapterMovedToDrafts => 'Chapter moved to drafts.';
+
+  @override
+  String couldNotMoveChapterToDrafts(String error) {
+    return 'Could not move chapter to drafts: $error';
+  }
+
+  @override
   String get noContentYet => 'No content yet';
 
   @override
@@ -1848,7 +1900,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqAutoSaveA =>
-      'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor.';
+      'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor. Chapter version history also keeps meaningful previous versions so you can review or restore earlier writing.';
 
   @override
   String get faqPublishWorkQ => 'How do I publish my work?';
@@ -1862,7 +1914,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqOrganizeChaptersA =>
-      'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.';
+      'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, reorder your story structure, move a chapter out as a single-chapter draft, or import eligible drafts back into a book.';
 
   @override
   String get faqCollaborationQ => 'How do collaborations work?';
@@ -1911,7 +1963,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqMessagingA =>
-      'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage your chats.';
+      'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage chats, share content, and reply to message requests.';
 
   @override
   String get faqChangeThemeQ => 'How do I change the app theme?';
@@ -1932,7 +1984,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqNotificationsA =>
-      'Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.';
+      'Tap the bell icon on the home screen or profile to see updates about likes, comments, replies, audio reviews, new followers, messages, and published content.';
 
   @override
   String get faqChangeLanguageQ => 'How do I change the app language?';
@@ -1953,7 +2005,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqTapToSeekA =>
-      'While \'Read Aloud\' is active, simply tap on any paragraph to jump the voice directly to that section.';
+      'While \'Read Aloud\' is active, tap any paragraph to jump the voice directly to that section. On supported devices, the TTS player can also stay available from the notification bar so you can pause, resume, or stop listening outside the reader.';
 
   @override
   String get faqShareQuoteImageQ => 'Can I share quotes as images?';
@@ -1996,7 +2048,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqFeedUpdatesA =>
-      'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.';
+      'Your Feed is a personalized stream of updates from authors you follow, including new posts, text and audio reviews, replies, and story chapters.';
 
   @override
   String get faqMultiChapterWriterQ => 'Can I write multiple chapters at once?';

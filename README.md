@@ -114,18 +114,10 @@ Keep the manual app version in [pubspec.yaml](C:\Users\user\librebook_flutter\pu
 version: 1.0.0+1
 ```
 
-The part before `+` is the visible app version. The build number is overridden for release builds by [scripts/build_release.ps1](C:\Users\user\librebook_flutter\scripts\build_release.ps1), so the app displays the actual packaged value from `package_info_plus`.
+The part before `+` is the visible app version. Use the root release script to keep that version name and update the build number to seconds since `2024-01-01T00:00:00Z`.
 
 ```powershell
-.\scripts\build_release.ps1 -Target appbundle
-.\scripts\build_release.ps1 -Target apk
-.\scripts\build_release.ps1 -Target ipa
-```
-
-To set a specific build number manually:
-
-```powershell
-.\scripts\build_release.ps1 -Target appbundle -BuildNumber 2026050601
+.\build_ver_apk.ps1
 ```
 
 ### Deploy functions

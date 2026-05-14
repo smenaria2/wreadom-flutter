@@ -7,9 +7,42 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
+import 'package:librebook_flutter/src/domain/models/user_model.dart';
+import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
 
 void main() {
+  const testUser = UserModel(
+    id: 'user-1',
+    username: 'writer',
+    email: 'writer@example.com',
+    displayName: 'Writer',
+    readingHistory: [],
+    savedBooks: [],
+    bookmarks: [],
+  );
+
+  Widget writerPadTestApp(Book book) {
+    return ProviderScope(
+      overrides: [currentUserProvider.overrideWith((ref) async => testUser)],
+      child: MaterialApp(
+        localizationsDelegates: const [
+          ...AppLocalizations.localizationsDelegates,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: WriterPadScreen(
+          book: book,
+          restoreLocalDrafts: false,
+          showToolbar: false,
+        ),
+      ),
+    );
+  }
+
   testWidgets('WriterPad renders rich html content without literal tags', (
     tester,
   ) async {
@@ -43,27 +76,16 @@ void main() {
       chapterCount: 1,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          localizationsDelegates: const [
-            ...AppLocalizations.localizationsDelegates,
-            GlobalMaterialLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            FlutterQuillLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: WriterPadScreen(book: book),
-        ),
-      ),
-    );
+    await tester.pumpWidget(writerPadTestApp(book));
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Writing Editor'), findsOneWidget);
     expect(find.text('Opening'), findsOneWidget);
     expect(find.textContaining('Hello', findRichText: true), findsWidgets);
     expect(find.textContaining('<strong>'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets(
@@ -113,23 +135,11 @@ void main() {
         chapterCount: 1,
       );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            localizationsDelegates: const [
-              ...AppLocalizations.localizationsDelegates,
-              GlobalMaterialLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              FlutterQuillLocalizations.delegate,
-            ],
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: WriterPadScreen(book: book),
-          ),
-        ),
-      );
+      await tester.pumpWidget(writerPadTestApp(book));
       await tester.pump(const Duration(milliseconds: 300));
 
+      await tester.tap(find.byTooltip('Chapters'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Version history'));
       await tester.pumpAndSettle();
 
@@ -154,6 +164,9 @@ void main() {
       );
       expect(find.byType(Image), findsOneWidget);
       expect(find.text('YouTube'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     },
   );
 }

@@ -1,5 +1,6 @@
 # build_ver_apk.ps1
-# This script automatically increments the build number in pubspec.yaml and builds the release APK.
+# This script keeps the app version name the same, updates the build number
+# to seconds since the app build epoch, and builds the release APK.
 
 $pubspecPath = "pubspec.yaml"
 
@@ -13,11 +14,14 @@ $newContent = @()
 $foundVersion = $false
 $version = ""
 $buildNumber = 0
+$buildEpoch = [DateTimeOffset]::Parse('2024-01-01T00:00:00Z')
+$now = [DateTimeOffset]::UtcNow
+$epochBuildNumber = [int64][Math]::Floor(($now - $buildEpoch).TotalSeconds)
 
 foreach ($line in $content) {
     if ($line -match '^version: ([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)') {
         $version = $Matches[1]
-        $buildNumber = [int]$Matches[2] + 1
+        $buildNumber = $epochBuildNumber
         $newVersionLine = "version: $version+$buildNumber"
         $newContent += $newVersionLine
         $foundVersion = $true

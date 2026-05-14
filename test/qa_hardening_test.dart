@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/utils/firestore_utils.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
+import 'package:librebook_flutter/src/domain/models/chapter.dart';
 import 'package:librebook_flutter/src/domain/models/comment.dart';
 import 'package:librebook_flutter/src/presentation/components/writer/writer_book_card.dart';
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
@@ -72,6 +73,87 @@ void main() {
       ),
       isFalse,
     );
+  });
+
+  test(
+    'single-chapter moved drafts remain visible and imported drafts hide',
+    () {
+      final movedChapterDraft =
+          book(
+            id: 'single-draft',
+            title: 'Moved Chapter',
+            status: 'draft',
+          ).copyWith(
+            chapters: const [
+              Chapter(
+                id: 'chapter-1',
+                title: 'Moved Chapter',
+                content: 'Text',
+                index: 0,
+              ),
+            ],
+            chapterCount: 1,
+          );
+      final importedSourceDraft = movedChapterDraft.copyWith(status: 'deleted');
+
+      expect(writerBookMatchesTab(movedChapterDraft, 'draft'), isTrue);
+      expect(writerBookMatchesTab(importedSourceDraft, 'draft'), isFalse);
+    },
+  );
+
+  test('writer chapter draft moves migrate comments and feed metadata', () {
+    final source = File(
+      'lib/src/data/repositories/firebase_writer_repository.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_restoreEngagementDataToStandalone'));
+    expect(source, contains('_migrateEngagementDataToChapter'));
+    expect(source, contains(".collection('comments')"));
+    expect(source, contains(".collection('feed')"));
+    expect(source, contains("'chapterIndex': 0"));
+    expect(source, contains("'chapterId': null"));
+    expect(source, contains("'chapterId': newChapterId"));
+    expect(source, contains("'chapterIndex': newChapterIndex"));
+    expect(source, contains('static const int _batchChunkSize = 450'));
+  });
+
+  test('writer chapter sheet exposes move and import draft actions', () {
+    final source = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+    final english = englishL10n();
+
+    expect(source, contains('l10n.importFromDrafts'));
+    expect(source, contains('l10n.moveChapterToDraftsTitle'));
+    expect(source, contains('final sourceStatus = _statusForChapterMove();'));
+    expect(source, contains('final targetStatus = _statusForChapterMove();'));
+    expect(source, contains('status: sourceStatus'));
+    expect(source, contains('status: targetStatus'));
+    expect(source, contains('moveChapterToStandaloneDraft'));
+    expect(source, contains('importSingleDraftsToBook'));
+    expect(source, contains('Icons.file_upload_outlined'));
+    expect(source, contains('Icons.file_download_outlined'));
+    expect(english['importFromDrafts'], 'Import from drafts');
+    expect(english['moveToDrafts'], 'Move to drafts');
+  });
+
+  test('collab chapter draft moves create user-owned standalone drafts', () {
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_writer_repository.dart',
+    ).readAsStringSync();
+    final writerSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
+
+    expect(repositorySource, contains('required String ownerUserId'));
+    expect(repositorySource, contains('authorId: draftOwnerId'));
+    expect(repositorySource, contains('authorIds: [draftOwnerId]'));
+    expect(repositorySource, contains('collaborationStatus: null'));
+    expect(repositorySource, contains('if (book.authorId?.trim() != userId)'));
+    expect(repositorySource, contains('if (isAcceptedCollaboration(book))'));
+    expect(writerSource, contains('ownerUserId: user.id'));
+    expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
   });
 
   testWidgets('writer book row handles long Hindi titles without overflow', (
@@ -207,7 +289,7 @@ void main() {
       'lib/src/presentation/routing/app_router.dart',
     ).readAsStringSync();
 
-    expect(source, contains('Last Updated: February 20, 2026'));
+    expect(source, contains('Last Updated: May 14, 2026'));
     expect(source, contains('Digital Personal Data Protection Act, 2023'));
     expect(source, contains('Indian Contract Act, 1872'));
     expect(source, contains('Terms of Use'));

@@ -3056,6 +3056,66 @@ abstract class AppLocalizations {
   /// **'Add new chapter'**
   String get addNewChapter;
 
+  /// No description provided for @importFromDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from drafts'**
+  String get importFromDrafts;
+
+  /// No description provided for @importSelectedDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Import 1 draft} other{Import {count} drafts}}'**
+  String importSelectedDrafts(int count);
+
+  /// No description provided for @noSingleChapterDraftsToImport.
+  ///
+  /// In en, this message translates to:
+  /// **'No single-chapter drafts to import.'**
+  String get noSingleChapterDraftsToImport;
+
+  /// No description provided for @draftsImportedAsChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Draft imported as a chapter.} other{{count} drafts imported as chapters.}}'**
+  String draftsImportedAsChapters(int count);
+
+  /// No description provided for @couldNotImportDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import drafts: {error}'**
+  String couldNotImportDrafts(String error);
+
+  /// No description provided for @moveChapterToDraftsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move chapter to drafts?'**
+  String get moveChapterToDraftsTitle;
+
+  /// No description provided for @moveChapterToDraftsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the chapter from this content and saves it as a single-chapter draft. Comments on this chapter will move with it.'**
+  String get moveChapterToDraftsBody;
+
+  /// No description provided for @moveToDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to drafts'**
+  String get moveToDrafts;
+
+  /// No description provided for @chapterMovedToDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter moved to drafts.'**
+  String get chapterMovedToDrafts;
+
+  /// No description provided for @couldNotMoveChapterToDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not move chapter to drafts: {error}'**
+  String couldNotMoveChapterToDrafts(String error);
+
   /// No description provided for @noContentYet.
   ///
   /// In en, this message translates to:
@@ -3323,7 +3383,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqAutoSaveA.
   ///
   /// In en, this message translates to:
-  /// **'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor.'**
+  /// **'Yes, the Writer Pad automatically saves your drafts every 10 seconds. You can see the \'Last Saved\' status at the top of the editor. Chapter version history also keeps meaningful previous versions so you can review or restore earlier writing.'**
   String get faqAutoSaveA;
 
   /// No description provided for @faqPublishWorkQ.
@@ -3347,7 +3407,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqOrganizeChaptersA.
   ///
   /// In en, this message translates to:
-  /// **'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, or reorder your story structure.'**
+  /// **'Absolutely! Use the chapter menu (list icon) in the editor to add new chapters, switch between them, reorder your story structure, move a chapter out as a single-chapter draft, or import eligible drafts back into a book.'**
   String get faqOrganizeChaptersA;
 
   /// No description provided for @faqCollaborationQ.
@@ -3431,7 +3491,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqMessagingA.
   ///
   /// In en, this message translates to:
-  /// **'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage your chats.'**
+  /// **'Yes, you can start direct conversations with other users. Visit their profile or use the \'Messages\' icon on your navigation bar to manage chats, share content, and reply to message requests.'**
   String get faqMessagingA;
 
   /// No description provided for @faqChangeThemeQ.
@@ -3467,7 +3527,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqNotificationsA.
   ///
   /// In en, this message translates to:
-  /// **'Tap the bell icon on the home screen or profile to see updates about likes, comments, and new followers.'**
+  /// **'Tap the bell icon on the home screen or profile to see updates about likes, comments, replies, audio reviews, new followers, messages, and published content.'**
   String get faqNotificationsA;
 
   /// No description provided for @faqChangeLanguageQ.
@@ -3503,7 +3563,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqTapToSeekA.
   ///
   /// In en, this message translates to:
-  /// **'While \'Read Aloud\' is active, simply tap on any paragraph to jump the voice directly to that section.'**
+  /// **'While \'Read Aloud\' is active, tap any paragraph to jump the voice directly to that section. On supported devices, the TTS player can also stay available from the notification bar so you can pause, resume, or stop listening outside the reader.'**
   String get faqTapToSeekA;
 
   /// No description provided for @faqShareQuoteImageQ.
@@ -3575,7 +3635,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqFeedUpdatesA.
   ///
   /// In en, this message translates to:
-  /// **'Your Feed is a personalized stream of updates from authors you follow, including new posts, reviews, and story chapters.'**
+  /// **'Your Feed is a personalized stream of updates from authors you follow, including new posts, text and audio reviews, replies, and story chapters.'**
   String get faqFeedUpdatesA;
 
   /// No description provided for @faqMultiChapterWriterQ.
