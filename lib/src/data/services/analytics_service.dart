@@ -8,9 +8,9 @@ import '../../domain/models/book.dart';
 class AnalyticsService {
   AnalyticsService._();
 
-  static final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static FirebaseAnalytics get analytics => FirebaseAnalytics.instance;
   static final FirebaseAnalyticsObserver observer = FirebaseAnalyticsObserver(
-    analytics: analytics,
+    analytics: FirebaseAnalytics.instance,
   );
 
   static Future<void> setUserDisplayName(String? displayName) async {

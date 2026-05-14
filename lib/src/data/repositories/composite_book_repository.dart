@@ -3,7 +3,6 @@ import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'firebase_book_repository.dart';
 import 'archive_book_repository.dart';
-import '../utils/archive_content_safety_filter.dart';
 
 class CompositeBookRepository implements BookRepository {
   CompositeBookRepository({
@@ -33,9 +32,7 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> _filterArchiveBooks(List<Book> books) async {
     final upvotedIds = await _getUpvotedIds();
     final idSet = upvotedIds.toSet();
-    return filterSafeArchiveBooks(
-      books.where((b) => idSet.contains(b.id)).toList(),
-    );
+    return books.where((b) => idSet.contains(b.id)).toList();
   }
 
   bool _isFirebaseId(String id) {
@@ -148,8 +145,7 @@ class CompositeBookRepository implements BookRepository {
         limit: limit * 2,
       );
 
-      final safeArchiveResults = filterSafeArchiveBooks(archiveResults);
-      final combined = [...firebaseResults, ...safeArchiveResults];
+      final combined = [...firebaseResults, ...archiveResults];
       return combined.length > limit ? combined.sublist(0, limit) : combined;
     }
 
@@ -165,7 +161,7 @@ class CompositeBookRepository implements BookRepository {
     ]);
 
     final firebaseResults = results[0];
-    final archiveResults = filterSafeArchiveBooks(results[1]);
+    final archiveResults = results[1];
 
     // Combine and limit - Return all Archive results for searches (no upvote filter)
     final combined = [...firebaseResults, ...archiveResults];
@@ -183,10 +179,9 @@ class CompositeBookRepository implements BookRepository {
       query,
       limit: limit * 2,
     );
-    final safeArchiveResults = filterSafeArchiveBooks(archiveResults);
-    return safeArchiveResults.length > limit
-        ? safeArchiveResults.sublist(0, limit)
-        : safeArchiveResults;
+    return archiveResults.length > limit
+        ? archiveResults.sublist(0, limit)
+        : archiveResults;
   }
 
   @override
@@ -209,9 +204,7 @@ class CompositeBookRepository implements BookRepository {
       results.addAll(await _firebaseRepo.getBooksByIds(firebaseIds));
     }
     if (archiveIds.isNotEmpty) {
-      results.addAll(
-        filterSafeArchiveBooks(await _archiveRepo.getBooksByIds(archiveIds)),
-      );
+      results.addAll(await _archiveRepo.getBooksByIds(archiveIds));
     }
 
     // Sort to original order
@@ -244,7 +237,7 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> getUpvotedIABooks({int limit = 20}) async {
     final ids = (await _getUpvotedIds()).take(limit).toList();
     if (ids.isEmpty) return [];
-    return filterSafeArchiveBooks(await _archiveRepo.getBooksByIds(ids));
+    return await _archiveRepo.getBooksByIds(ids);
   }
 
   @override

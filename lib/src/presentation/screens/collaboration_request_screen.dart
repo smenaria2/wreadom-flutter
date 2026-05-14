@@ -10,6 +10,8 @@ import '../providers/book_providers.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/error_message_utils.dart';
+import '../widgets/section_error.dart';
 
 class CollaborationRequestScreen extends ConsumerStatefulWidget {
   const CollaborationRequestScreen({super.key, required this.bookId});
@@ -32,16 +34,16 @@ class _CollaborationRequestScreenState
     final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Collaboration request')),
+      appBar: AppBar(title: Text(l10n.collaborationRequestTitle)),
       body: bookAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text('${l10n.somethingWentWrong}: $error')),
+        error: (error, stackTrace) {
+          logUiError('Collaboration request load failed', error, stackTrace);
+          return SectionError(title: l10n.collaborationRequestTitle);
+        },
         data: (book) {
           if (book == null) {
-            return const Center(
-              child: Text('This request is no longer available.'),
-            );
+            return Center(child: Text(l10n.collaborationRequestUnavailable));
           }
           final isRecipient = user != null && book.collaboratorId == user.id;
           final canRespond = isRecipient && isPendingCollaboration(book);
@@ -77,7 +79,9 @@ class _CollaborationRequestScreenState
               ),
               const SizedBox(height: 8),
               Text(
-                '${book.authors.firstOrNull?.name ?? 'Author'} wants to collaborate with you.',
+                l10n.collaborationRequestMessage(
+                  book.authors.firstOrNull?.name ?? l10n.unknownAuthor,
+                ),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
@@ -88,7 +92,7 @@ class _CollaborationRequestScreenState
               if ((book.chapters ?? const []).isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Text(
-                  'Draft preview',
+                  l10n.draftPreview,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -114,7 +118,7 @@ class _CollaborationRequestScreenState
                         onPressed: _isResponding
                             ? null
                             : () => _respond(accept: false),
-                        child: const Text('Decline'),
+                        child: Text(l10n.decline),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -130,7 +134,7 @@ class _CollaborationRequestScreenState
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Accept'),
+                            : Text(l10n.accept),
                       ),
                     ),
                   ],
@@ -141,7 +145,7 @@ class _CollaborationRequestScreenState
                     AppRoutes.bookDetail,
                     arguments: BookDetailArguments(bookId: book.id, book: book),
                   ),
-                  child: const Text('Open book'),
+                  child: Text(l10n.openBook),
                 ),
             ],
           );
@@ -166,18 +170,21 @@ class _CollaborationRequestScreenState
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            accept ? 'Collaboration accepted.' : 'Collaboration declined.',
+            accept ? l10n.collaborationAccepted : l10n.collaborationDeclined,
           ),
         ),
       );
       Navigator.of(context).pop();
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      logUiError('Collaboration response failed', error, stackTrace);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not update request: $error')),
+        SnackBar(content: Text(l10n.couldNotUpdateCollaborationRequest)),
       );
       setState(() => _isResponding = false);
     }

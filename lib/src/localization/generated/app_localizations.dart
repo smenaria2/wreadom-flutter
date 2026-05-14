@@ -122,6 +122,30 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferences;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get support;
+
+  /// No description provided for @legal.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal'**
+  String get legal;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:
@@ -3607,6 +3631,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No help topics found for \"{query}\"'**
   String noHelpTopicsFound(String query);
+
+  /// No description provided for @authInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email and password, then try again.'**
+  String get authInvalidCredentials;
+
+  /// No description provided for @authActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not complete the sign-in action. Please try again.'**
+  String get authActionFailed;
+
+  /// No description provided for @networkRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network connection failed. Please check your connection and try again.'**
+  String get networkRequestFailed;
+
+  /// No description provided for @tooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please wait a moment and try again.'**
+  String get tooManyRequests;
+
+  /// No description provided for @permissionDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to do that.'**
+  String get permissionDeniedMessage;
+
+  /// No description provided for @failedToLoadProfileSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load profile settings.'**
+  String get failedToLoadProfileSettings;
+
+  /// No description provided for @collaborationRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration request'**
+  String get collaborationRequestTitle;
+
+  /// No description provided for @collaborationRequestUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is no longer available.'**
+  String get collaborationRequestUnavailable;
+
+  /// No description provided for @collaborationRequestMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{authorName} wants to collaborate with you.'**
+  String collaborationRequestMessage(String authorName);
+
+  /// No description provided for @draftPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft preview'**
+  String get draftPreview;
+
+  /// No description provided for @decline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get decline;
+
+  /// No description provided for @accept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get accept;
+
+  /// No description provided for @openBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Open content'**
+  String get openBook;
+
+  /// No description provided for @collaborationAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration accepted.'**
+  String get collaborationAccepted;
+
+  /// No description provided for @collaborationDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration declined.'**
+  String get collaborationDeclined;
+
+  /// No description provided for @couldNotUpdateCollaborationRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update the request. Please try again.'**
+  String get couldNotUpdateCollaborationRequest;
+
+  /// No description provided for @certificateUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate unavailable'**
+  String get certificateUnavailableTitle;
+
+  /// No description provided for @certificateUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificates are not available in this app version yet.'**
+  String get certificateUnavailableBody;
+
+  /// No description provided for @competitionUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Competition unavailable'**
+  String get competitionUnavailableTitle;
+
+  /// No description provided for @competitionUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Competitions are not available in this app version yet.'**
+  String get competitionUnavailableBody;
+
+  /// No description provided for @readAloudFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud failed. Please try again.'**
+  String get readAloudFailed;
+
+  /// No description provided for @noReadableTextSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No readable text selected.'**
+  String get noReadableTextSelected;
+
+  /// No description provided for @noReadableTextInChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'No readable text in this chapter.'**
+  String get noReadableTextInChapter;
+
+  /// No description provided for @stopReadingBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop (block {current}/{total})'**
+  String stopReadingBlock(int current, int total);
+
+  /// No description provided for @fontSizeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Font size: {size}'**
+  String fontSizeValue(String size);
+
+  /// No description provided for @systemDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemDefault;
+
+  /// No description provided for @sepia.
+  ///
+  /// In en, this message translates to:
+  /// **'Sepia'**
+  String get sepia;
+
+  /// No description provided for @hapticFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Haptic feedback'**
+  String get hapticFeedback;
+
+  /// No description provided for @hapticFeedbackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibrate on likes, shares, and actions'**
+  String get hapticFeedbackSubtitle;
 }
 
 class _AppLocalizationsDelegate

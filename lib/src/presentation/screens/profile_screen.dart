@@ -21,6 +21,7 @@ import '../providers/report_providers.dart';
 import '../providers/shake_report_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
+import '../widgets/auth_required_view.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_log_collector.dart';
 import '../routing/app_routes.dart';
@@ -46,34 +47,7 @@ class ProfileScreen extends ConsumerWidget {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: Text(l10n.profile)),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.account_circle_outlined,
-                      size: 72,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.signInToContinueAction,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.login),
-                      icon: const Icon(Icons.login),
-                      label: Text(l10n.login),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            body: const AuthRequiredView(icon: Icons.account_circle_outlined),
           );
         }
         final worksCount = ref
@@ -517,14 +491,14 @@ class _ProfileSideMenu extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  _MenuSectionLabel(label: 'Account'),
+                  _MenuSectionLabel(label: l10n.account),
                   _MenuTile(
                     icon: Icons.manage_accounts_outlined,
                     title: l10n.editProfile,
                     onTap: () => _go(context, AppRoutes.profileSettings),
                   ),
                   const Divider(),
-                  _MenuSectionLabel(label: 'Preferences'),
+                  _MenuSectionLabel(label: l10n.preferences),
                   _MenuTile(
                     icon: Icons.language_outlined,
                     title: l10n.language,
@@ -543,17 +517,15 @@ class _ProfileSideMenu extends ConsumerWidget {
                   ),
                   SwitchListTile.adaptive(
                     secondary: const Icon(Icons.touch_app_outlined),
-                    title: const Text('Haptic feedback'),
-                    subtitle: const Text(
-                      'Vibrate on likes, shares, and actions',
-                    ),
+                    title: Text(l10n.hapticFeedback),
+                    subtitle: Text(l10n.hapticFeedbackSubtitle),
                     value: ref.watch(hapticsEnabledProvider),
                     onChanged: (enabled) => ref
                         .read(hapticsEnabledProvider.notifier)
                         .setEnabled(enabled),
                   ),
                   const Divider(),
-                  _MenuSectionLabel(label: 'Support'),
+                  _MenuSectionLabel(label: l10n.support),
                   const _AppUpdateTile(),
                   _MenuTile(
                     icon: Icons.bug_report_outlined,
@@ -575,7 +547,7 @@ class _ProfileSideMenu extends ConsumerWidget {
                     onTap: () => _go(context, AppRoutes.help),
                   ),
                   const Divider(),
-                  _MenuSectionLabel(label: 'Legal'),
+                  _MenuSectionLabel(label: l10n.legal),
                   _MenuTile(
                     icon: Icons.privacy_tip_outlined,
                     title: l10n.privacyPolicy,

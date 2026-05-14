@@ -15,6 +15,7 @@ import '../providers/feed_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../components/review_share_card.dart';
+import '../utils/error_message_utils.dart';
 import '../widgets/report_dialog.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
@@ -131,11 +132,13 @@ class _CommentTileState extends ConsumerState<CommentTile> {
             authorId: user.id,
           );
       ref.invalidate(bookCommentsProvider(bookId));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logUiError('Comment highlight failed', e, stackTrace);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('$e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
       }
     } finally {
       if (mounted) setState(() => _highlighting = false);

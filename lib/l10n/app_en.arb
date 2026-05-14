@@ -6,6 +6,10 @@
   "login": "Login",
   "home": "Home",
   "settings": "Settings",
+  "account": "Account",
+  "preferences": "Preferences",
+  "support": "Support",
+  "legal": "Legal",
   "language": "Language",
   "english": "English",
   "hindi": "Hindi",
@@ -1116,5 +1120,58 @@
         "type": "String"
       }
     }
-  }
+  },
+  "authInvalidCredentials": "Check your email and password, then try again.",
+  "authActionFailed": "We could not complete the sign-in action. Please try again.",
+  "networkRequestFailed": "Network connection failed. Please check your connection and try again.",
+  "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+  "permissionDeniedMessage": "You do not have permission to do that.",
+  "failedToLoadProfileSettings": "Could not load profile settings.",
+  "collaborationRequestTitle": "Collaboration request",
+  "collaborationRequestUnavailable": "This request is no longer available.",
+  "collaborationRequestMessage": "{authorName} wants to collaborate with you.",
+  "@collaborationRequestMessage": {
+    "placeholders": {
+      "authorName": {
+        "type": "String"
+      }
+    }
+  },
+  "draftPreview": "Draft preview",
+  "decline": "Decline",
+  "accept": "Accept",
+  "openBook": "Open content",
+  "collaborationAccepted": "Collaboration accepted.",
+  "collaborationDeclined": "Collaboration declined.",
+  "couldNotUpdateCollaborationRequest": "Could not update the request. Please try again.",
+  "certificateUnavailableTitle": "Certificate unavailable",
+  "certificateUnavailableBody": "Certificates are not available in this app version yet.",
+  "competitionUnavailableTitle": "Competition unavailable",
+  "competitionUnavailableBody": "Competitions are not available in this app version yet.",
+  "readAloudFailed": "Read aloud failed. Please try again.",
+  "noReadableTextSelected": "No readable text selected.",
+  "noReadableTextInChapter": "No readable text in this chapter.",
+  "stopReadingBlock": "Stop (block {current}/{total})",
+  "@stopReadingBlock": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "fontSizeValue": "Font size: {size}",
+  "@fontSizeValue": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "systemDefault": "System",
+  "sepia": "Sepia",
+  "hapticFeedback": "Haptic feedback",
+  "hapticFeedbackSubtitle": "Vibrate on likes, shares, and actions"
 }

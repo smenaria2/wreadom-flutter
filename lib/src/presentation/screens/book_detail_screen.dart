@@ -29,11 +29,13 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/book_author_utils.dart';
+import '../utils/error_message_utils.dart';
 import '../utils/swipe_hint.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/generated_book_cover.dart';
 import 'static_info_screen.dart';
@@ -122,11 +124,12 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
                 targetReplyId: widget.targetReplyId,
               )
             : const _BookDetailSkeleton(),
-        error: (err, _) => Center(
-          child: Text(
-            '${AppLocalizations.of(context)!.somethingWentWrong}: $err',
-          ),
-        ),
+        error: (err, stackTrace) {
+          logUiError('Book detail load failed', err, stackTrace);
+          return SectionError(
+            title: AppLocalizations.of(context)!.bookNotFound,
+          );
+        },
       ),
     );
   }

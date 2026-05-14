@@ -21,6 +21,7 @@ import '../providers/writer_providers.dart';
 import '../utils/chapter_version_history.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
+import '../widgets/auth_required_view.dart';
 import '../widgets/writer_media_embed.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
@@ -300,9 +301,35 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = currentUserAsync.asData?.value;
     final controller = _currentChapter.controller;
     final chromeColor = _writerChromeColor(context);
     final onChromeColor = _onWriterChromeColor(context);
+
+    if (currentUserAsync.isLoading) {
+      return Scaffold(
+        backgroundColor: chromeColor,
+        appBar: AppBar(
+          backgroundColor: chromeColor,
+          foregroundColor: onChromeColor,
+          title: Text(l10n.writerWritingEditor),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: chromeColor,
+        appBar: AppBar(
+          backgroundColor: chromeColor,
+          foregroundColor: onChromeColor,
+          title: Text(l10n.writerWritingEditor),
+        ),
+        body: const AuthRequiredView(icon: Icons.edit_note_outlined),
+      );
+    }
 
     return Scaffold(
       backgroundColor: chromeColor,

@@ -26,6 +26,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final StreamController<String> _notificationEvents =
       StreamController<String>.broadcast();
+  final StreamController<String> _ttsActionEvents =
+      StreamController<String>.broadcast();
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   bool _isInitialized = false;
@@ -36,8 +38,13 @@ class NotificationService {
   DateTime? _lastNavigationAt;
 
   static const Duration _duplicateNavigationWindow = Duration(seconds: 5);
+  static const int _ttsNotificationId = 4101;
+  static const String ttsActionPause = 'reader_tts_pause';
+  static const String ttsActionResume = 'reader_tts_resume';
+  static const String ttsActionStop = 'reader_tts_stop';
 
   Stream<String> get notificationEvents => _notificationEvents.stream;
+  Stream<String> get ttsActionEvents => _ttsActionEvents.stream;
 
   @visibleForTesting
   void debugEmitNotificationEvent(String notificationId) {
@@ -162,13 +169,87 @@ class NotificationService {
     }
   }
 
+  Future<void> showTtsMiniPlayer({
+    required String title,
+    required String body,
+    required bool isPaused,
+  }) async {
+    if (kIsWeb) return;
+
+    final playbackAction = isPaused
+        ? const AndroidNotificationAction(
+            ttsActionResume,
+            'Resume',
+            cancelNotification: false,
+            showsUserInterface: true,
+          )
+        : const AndroidNotificationAction(
+            ttsActionPause,
+            'Pause',
+            cancelNotification: false,
+            showsUserInterface: true,
+          );
+
+    await _localNotifications.show(
+      id: _ttsNotificationId,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'reader_tts_channel',
+          'Read aloud',
+          channelDescription: 'Controls for active read-aloud playback.',
+          importance: Importance.low,
+          priority: Priority.low,
+          category: AndroidNotificationCategory.transport,
+          ongoing: true,
+          autoCancel: false,
+          onlyAlertOnce: true,
+          showWhen: false,
+          actions: <AndroidNotificationAction>[
+            playbackAction,
+            const AndroidNotificationAction(
+              ttsActionStop,
+              'Stop',
+              cancelNotification: false,
+              showsUserInterface: true,
+            ),
+          ],
+        ),
+      ),
+      payload: 'reader_tts',
+    );
+  }
+
+  Future<void> cancelTtsMiniPlayer() async {
+    if (kIsWeb) return;
+    await _localNotifications.cancel(id: _ttsNotificationId);
+  }
+
   void _onTapNotification(NotificationResponse response) {
+    if (_isTtsAction(response.actionId)) {
+      _emitTtsAction(response.actionId!);
+      return;
+    }
+    if (response.payload == 'reader_tts') return;
     if (response.payload != null) {
       final data = jsonDecode(response.payload!) as Map<String, dynamic>;
       if (kDebugMode) {
         debugPrint('Tapped local notification');
       }
       _navigateFromData(data);
+    }
+  }
+
+  bool _isTtsAction(String? actionId) {
+    return actionId == ttsActionPause ||
+        actionId == ttsActionResume ||
+        actionId == ttsActionStop;
+  }
+
+  void _emitTtsAction(String actionId) {
+    if (!_ttsActionEvents.isClosed) {
+      _ttsActionEvents.add(actionId);
     }
   }
 

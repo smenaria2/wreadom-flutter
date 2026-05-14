@@ -11,6 +11,7 @@ import '../../domain/models/feed_post.dart';
 import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
+import '../widgets/auth_required_view.dart';
 
 void showCreatePostSheet(BuildContext context) {
   showModalBottomSheet(
@@ -149,11 +150,62 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
-    final user = ref.watch(currentUserProvider).asData?.value;
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final user = currentUserAsync.asData?.value;
     final photoUrl = user?.photoURL;
     final name =
         user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
     final username = user?.username ?? 'reader';
+
+    if (currentUserAsync.isLoading) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (user == null) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text(
+                  l10n.shareAnUpdate,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: l10n.close,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const AuthRequiredView(
+              icon: Icons.edit_rounded,
+              padding: EdgeInsets.fromLTRB(16, 28, 16, 36),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),

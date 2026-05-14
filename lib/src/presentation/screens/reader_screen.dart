@@ -21,6 +21,7 @@ import '../../domain/models/feed_post.dart';
 import '../../domain/models/user_model.dart';
 import '../../data/services/audio_review_upload_service.dart';
 import '../../data/services/analytics_service.dart';
+import '../../data/services/notification_service.dart';
 import '../../data/services/reader_ad_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -29,8 +30,10 @@ import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
 import '../utils/book_share_utils.dart';
+import '../utils/error_message_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
@@ -237,16 +240,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   String? _audioObjectKeyPendingDelete;
   bool _isTtsPlaying = false;
   bool _isTtsPreparing = false;
+  bool _isTtsPaused = false;
   bool _isTtsSequencing = false;
   bool _stopTtsRequested = false;
   bool _isSelectionTtsPlaying = false;
+  bool _pausedSelectionTts = false;
   int _ttsSession = 0;
   late final FlutterTts _tts;
   final AudioRecorder _audioRecorder = AudioRecorder();
+  late final StreamSubscription<String> _ttsActionSubscription;
   Timer? _audioRecordingTimer;
   List<String> _ttsChunkList = const [];
   int _ttsChunkIndex = 0;
   int _activeTtsBlockIndex = -1;
+  String? _ttsNotificationChapterTitle;
   final GlobalKey _quoteImageKey = GlobalKey();
   late final ReaderAdService _readerAdService;
   _QuoteSharePayload? _quoteSharePayload;
@@ -288,6 +295,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
     _tts = FlutterTts();
     _configureTts();
+    _ttsActionSubscription = NotificationService.instance.ttsActionEvents
+        .listen(_handleTtsNotificationAction);
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
     AnalyticsService.logReaderOpen(widget.book);
@@ -618,6 +627,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkIndex = 0;
       _activeTtsBlockIndex = -1;
       _ttsChunkList = const [];
+      _isTtsPaused = false;
+      _pausedSelectionTts = false;
+      _ttsNotificationChapterTitle = null;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -642,8 +654,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _scrollController.dispose();
     _commentFocusNode.dispose();
     _audioRecordingTimer?.cancel();
+    unawaited(_ttsActionSubscription.cancel());
     unawaited(_audioRecorder.dispose());
     unawaited(_tts.stop());
+    unawaited(NotificationService.instance.cancelTtsMiniPlayer());
     _readerAdService.dispose();
     unawaited(_setReaderPrivacyEnabled(false));
     super.dispose();
@@ -694,10 +708,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             appBar: AppBar(title: Text(widget.book.title)),
             body: _buildLoadingBody(),
           ),
-          error: (err, stack) => Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(child: Text('Failed to load book content: $err')),
-          ),
+          error: (err, stack) {
+            logUiError('Reader content load failed', err, stack);
+            return Scaffold(
+              appBar: AppBar(title: Text(widget.book.title)),
+              body: SectionError(title: widget.book.title),
+            );
+          },
         );
       },
       loading: () => chaptersAsync.when(
@@ -712,10 +729,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           appBar: AppBar(title: Text(widget.book.title)),
           body: _buildLoadingBody(),
         ),
-        error: (err, stack) => Scaffold(
-          appBar: AppBar(title: const Text('Error')),
-          body: Center(child: Text('Failed to load book content: $err')),
-        ),
+        error: (err, stack) {
+          logUiError('Reader content load failed', err, stack);
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.book.title)),
+            body: SectionError(title: widget.book.title),
+          );
+        },
       ),
       error: (_, _) => chaptersAsync.when(
         data: (chapters) => _buildReader(
@@ -729,10 +749,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           appBar: AppBar(title: Text(widget.book.title)),
           body: _buildLoadingBody(),
         ),
-        error: (err, stack) => Scaffold(
-          appBar: AppBar(title: const Text('Error')),
-          body: Center(child: Text('Failed to load book content: $err')),
-        ),
+        error: (err, stack) {
+          logUiError('Reader content load failed', err, stack);
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.book.title)),
+            body: SectionError(title: widget.book.title),
+          );
+        },
       ),
     );
   }
@@ -842,7 +865,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 if (isArchiveBook)
                   IconButton(
                     icon: const Icon(Icons.picture_as_pdf_outlined),
-                    tooltip: 'View PDF',
+                    tooltip: AppLocalizations.of(context)!.viewPdf,
                     onPressed: _openArchivePdfViewer,
                   ),
                 IconButton(
@@ -855,13 +878,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       : Icon(
                           _isTtsPlaying
                               ? Icons.stop_circle_outlined
+                              : _isTtsPaused
+                              ? Icons.play_circle_outline_rounded
                               : Icons.volume_up_outlined,
                         ),
                   tooltip: _isTtsPlaying
                       ? (_ttsChunkList.isNotEmpty
-                            ? 'Stop (block ${_ttsChunkIndex + 1}/${_ttsChunkList.length})'
-                            : 'Stop reading aloud')
-                      : 'Read aloud',
+                            ? AppLocalizations.of(context)!.stopReadingBlock(
+                                _ttsChunkIndex + 1,
+                                _ttsChunkList.length,
+                              )
+                            : AppLocalizations.of(context)!.stopReadingAloud)
+                      : AppLocalizations.of(context)!.readAloud,
                   onPressed: chapter == null || _isTtsPreparing
                       ? null
                       : () => _toggleTts(chapter),
@@ -869,7 +897,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 IconButton(
                   icon: const Icon(Icons.format_size_rounded),
                   onPressed: _showSettings,
-                  tooltip: 'Reader Settings',
+                  tooltip: AppLocalizations.of(context)!.readerSettings,
                 ),
               ],
             ),
@@ -923,7 +951,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onTapUp:
                         _useLegacyTtsTapSeeking &&
-                            (_isTtsPlaying || _isTtsPreparing) &&
+                            (_isTtsPlaying ||
+                                _isTtsPreparing ||
+                                _isTtsPaused) &&
                             !_isSelectionTtsPlaying
                         ? (details) {
                             // TTS is active — seek to the tapped position.
@@ -943,7 +973,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           }
                         : null,
                     child:
-                        (_isTtsPlaying || _isTtsPreparing) &&
+                        (_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
                             !_isSelectionTtsPlaying
                         // When TTS is active, disable text selection so
                         // taps are handled cleanly for seeking.
@@ -1210,7 +1240,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = true;
+        _isTtsPaused = false;
       });
+      _syncTtsMiniPlayer();
     });
     _tts.setCompletionHandler(() {
       if (!mounted) return;
@@ -1218,16 +1250,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isTtsPaused = false;
         _isSelectionTtsPlaying = false;
       });
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
     });
     _tts.setCancelHandler(() {
       if (!mounted) return;
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isTtsPaused = false;
         _isSelectionTtsPlaying = false;
       });
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
     });
     _tts.setErrorHandler((message) {
       if (!mounted) return;
@@ -1246,11 +1282,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isTtsPaused = false;
         _isSelectionTtsPlaying = false;
       });
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Read aloud failed: $message')));
+      ).showSnackBar(SnackBar(content: Text(l10n.readAloudFailed)));
     });
   }
 
@@ -1259,11 +1298,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       await _stopTts();
       return;
     }
+    if (_isTtsPaused) {
+      await _resumeTtsFromNotification();
+      return;
+    }
 
     final blocks = _ttsBlocksForChapter(chapter);
     if (blocks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No readable text in this chapter.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.noReadableTextInChapter),
+        ),
       );
       return;
     }
@@ -1279,6 +1324,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkIndex = startIndex;
       _activeTtsBlockIndex = startIndex;
       _isTtsPreparing = true;
+      _isTtsPaused = false;
+      _pausedSelectionTts = false;
+      _ttsNotificationChapterTitle = chapter.title.trim().isNotEmpty
+          ? chapter.title.trim()
+          : widget.book.title;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
@@ -1307,6 +1357,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _activeTtsBlockIndex = blockIndex;
       _isTtsPlaying = false;
       _isTtsPreparing = true;
+      _isTtsPaused = false;
+      _pausedSelectionTts = false;
+      _ttsNotificationChapterTitle = chapter.title.trim().isNotEmpty
+          ? chapter.title.trim()
+          : widget.book.title;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
@@ -1326,7 +1381,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final chunks = _ttsChunks(selected);
     if (chunks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No readable text selected.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.noReadableTextSelected),
+        ),
       );
       return;
     }
@@ -1346,6 +1403,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _activeTtsBlockIndex = -1;
       _isTtsPlaying = false;
       _isTtsPreparing = true;
+      _isTtsPaused = false;
+      _pausedSelectionTts = false;
+      _ttsNotificationChapterTitle = AppLocalizations.of(context)!.readAloud;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
     await _runTtsFromIndex(
@@ -1395,6 +1455,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _activeTtsBlockIndex = targetIndex;
       _isTtsPlaying = false;
       _isTtsPreparing = true;
+      _isTtsPaused = false;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
@@ -1431,6 +1492,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           _ttsChunkIndex = i;
           _activeTtsBlockIndex = i;
         });
+        _syncTtsMiniPlayer();
         await _tts.speak(chunks[i]);
       }
 
@@ -1438,22 +1500,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isTtsPaused = false;
         // Reset chunk index so next play starts from beginning
         _ttsChunkIndex = 0;
         _activeTtsBlockIndex = -1;
         _isSelectionTtsPlaying = false;
       });
-    } catch (error) {
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      logUiError('Read aloud failed', error, stackTrace);
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;
+        _isTtsPaused = false;
         _activeTtsBlockIndex = -1;
         _isSelectionTtsPlaying = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Read aloud failed: $error')));
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.readAloudFailed)),
+      );
     } finally {
       _isTtsSequencing = false;
     }
@@ -1467,9 +1534,90 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() {
       _isTtsPreparing = false;
       _isTtsPlaying = false;
+      _isTtsPaused = false;
       _activeTtsBlockIndex = -1;
       _isSelectionTtsPlaying = false;
+      _pausedSelectionTts = false;
+      _ttsNotificationChapterTitle = null;
     });
+    await NotificationService.instance.cancelTtsMiniPlayer();
+  }
+
+  void _handleTtsNotificationAction(String actionId) {
+    if (actionId == NotificationService.ttsActionPause) {
+      unawaited(_pauseTtsFromNotification());
+    } else if (actionId == NotificationService.ttsActionResume) {
+      unawaited(_resumeTtsFromNotification());
+    } else if (actionId == NotificationService.ttsActionStop) {
+      unawaited(_stopTts());
+    }
+  }
+
+  Future<void> _pauseTtsFromNotification() async {
+    if (!_isTtsPlaying && !_isTtsPreparing) return;
+    _stopTtsRequested = true;
+    _ttsSession++;
+    await _tts.stop();
+    if (!mounted) return;
+    setState(() {
+      _isTtsPreparing = false;
+      _isTtsPlaying = false;
+      _isTtsPaused = true;
+      _pausedSelectionTts = _isSelectionTtsPlaying;
+      _isSelectionTtsPlaying = false;
+    });
+    _syncTtsMiniPlayer();
+  }
+
+  Future<void> _resumeTtsFromNotification() async {
+    if (!_isTtsPaused || _ttsChunkList.isEmpty) return;
+    if (!mounted) return;
+    final startIndex = _ttsChunkIndex.clamp(0, _ttsChunkList.length - 1);
+    setState(() {
+      _isTtsPaused = false;
+      _isTtsPreparing = true;
+      _isTtsPlaying = false;
+      _isSelectionTtsPlaying = _pausedSelectionTts;
+      _pausedSelectionTts = false;
+      if (!_isSelectionTtsPlaying) {
+        _activeTtsBlockIndex = startIndex;
+      }
+    });
+    _syncTtsMiniPlayer();
+    await _runTtsFromIndex(
+      Chapter(
+        id: 'tts-resume',
+        title: _ttsNotificationChapterTitle ?? widget.book.title,
+        content: _ttsChunkList.join('\n\n'),
+        index: _chapterIndex,
+      ),
+      startIndex,
+    );
+  }
+
+  void _syncTtsMiniPlayer() {
+    if (!_isTtsPlaying && !_isTtsPreparing && !_isTtsPaused) {
+      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+      return;
+    }
+
+    final chapterTitle = _ttsNotificationChapterTitle?.trim();
+    final blockLabel = _ttsChunkList.isNotEmpty
+        ? 'Block ${_ttsChunkIndex + 1}/${_ttsChunkList.length}'
+        : 'Read aloud';
+    final prefix = _isTtsPaused ? 'Paused' : 'Reading';
+    final body = [
+      if (chapterTitle != null && chapterTitle.isNotEmpty) chapterTitle,
+      '$prefix: $blockLabel',
+    ].join(' - ');
+
+    unawaited(
+      NotificationService.instance.showTtsMiniPlayer(
+        title: widget.book.title,
+        body: body,
+        isPaused: _isTtsPaused,
+      ),
+    );
   }
 
   String _plainTextForTts(Chapter chapter) {
@@ -3006,7 +3154,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     loading: () => const Center(
                                       child: LinearProgressIndicator(),
                                     ),
-                                    error: (error, _) => Text('Error: $error'),
+                                    error: (error, stackTrace) {
+                                      logUiError(
+                                        'Reader comments load failed',
+                                        error,
+                                        stackTrace,
+                                      );
+                                      return Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.somethingWentWrong,
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -3054,6 +3213,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _showSettings() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -3064,12 +3224,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Reader Settings',
+                Text(
+                  l10n.readerSettings,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
-                Text('Font Size: ${_fontSize.toStringAsFixed(0)}'),
+                Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
                 Slider(
                   value: _fontSize,
                   min: 14,
@@ -3082,16 +3242,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       .read(readerSettingsControllerProvider.notifier)
                       .setFontSize(value),
                 ),
-                const Text(
-                  'Theme',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                Text(l10n.theme, style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _ThemeOption(
-                      label: 'Auto',
+                      label: l10n.systemDefault,
                       color: Theme.of(context).colorScheme.surface,
                       icon: Icons.brightness_auto_rounded,
                       selected: _readerTheme == ReaderTheme.system,
@@ -3104,7 +3261,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       },
                     ),
                     _ThemeOption(
-                      label: 'Light',
+                      label: l10n.light,
                       color: Colors.white,
                       selected: _readerTheme == ReaderTheme.light,
                       onTap: () {
@@ -3116,7 +3273,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       },
                     ),
                     _ThemeOption(
-                      label: 'Sepia',
+                      label: l10n.sepia,
                       color: const Color(0xFFF4ECD8),
                       selected: _readerTheme == ReaderTheme.sepia,
                       onTap: () {
@@ -3128,7 +3285,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       },
                     ),
                     _ThemeOption(
-                      label: 'Dark',
+                      label: l10n.dark,
                       color: const Color(0xFF1A1A1A),
                       textColor: Colors.white,
                       selected: _readerTheme == ReaderTheme.dark,

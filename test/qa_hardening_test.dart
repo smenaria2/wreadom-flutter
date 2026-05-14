@@ -179,9 +179,13 @@ void main() {
 
     for (final key in [
       'editProfile',
+      'account',
+      'preferences',
       'theme',
+      'support',
       'submitError',
       'help',
+      'legal',
       'privacyPolicy',
       'termsOfUse',
       'logout',
@@ -642,6 +646,13 @@ void main() {
     expect(readerSource, contains('_startTtsFromBlock'));
     expect(readerSource, contains('_ReaderTtsBlockView'));
     expect(readerSource, contains('_activeTtsBlockIndex'));
+    expect(
+      readerSource,
+      contains('NotificationService.instance.ttsActionEvents'),
+    );
+    expect(readerSource, contains('_syncTtsMiniPlayer'));
+    expect(readerSource, contains('_pauseTtsFromNotification'));
+    expect(readerSource, contains('_resumeTtsFromNotification'));
     expect(readerSource, contains('SelectionArea'));
     expect(readerSource, contains('_isTtsPlaying || _isTtsPreparing'));
     expect(readerSource, contains('AppLinkHelper.chapter'));
@@ -649,6 +660,34 @@ void main() {
     expect(repositorySource, contains('runTransaction'));
     expect(repositorySource, contains('FieldValue.increment(1)'));
     expect(repositorySource, contains('existingView.exists'));
+  });
+
+  test('archive search scope and home ia recommendations stay wired', () {
+    final archiveServiceSource = File(
+      'lib/src/data/services/archive_book_service.dart',
+    ).readAsStringSync();
+    final homepageSource = File(
+      'lib/src/presentation/providers/homepage_providers.dart',
+    ).readAsStringSync();
+    final archiveRepositorySource = File(
+      'lib/src/data/repositories/archive_book_repository.dart',
+    ).readAsStringSync();
+
+    expect(archiveServiceSource, contains('allowedSearchCollections'));
+    expect(archiveServiceSource, contains('JaiGyan'));
+    expect(archiveServiceSource, contains('digitallibraryindia'));
+    expect(archiveServiceSource, contains('booksbylanguage_hindi'));
+    expect(archiveServiceSource, contains('mediatype:texts'));
+    expect(archiveRepositorySource, isNot(contains('isUnsafeSearchQuery')));
+    expect(archiveRepositorySource, isNot(contains('filterSafeArchiveBooks')));
+    expect(homepageSource, contains('homepage_ia_books_cache_v3'));
+    expect(homepageSource, contains('_positiveRecommendationIds'));
+    expect(homepageSource, contains('repo.getBooksByIds(communityIds)'));
+    final iaProviderStart = homepageSource.indexOf(
+      'final homepageIABooksProvider',
+    );
+    final iaProviderSource = homepageSource.substring(iaProviderStart);
+    expect(iaProviderSource, isNot(contains('repo.getUpvotedIABooks')));
   });
 
   test(
@@ -908,7 +947,7 @@ void main() {
 
     expect(source, contains('_HomeShelfDestination'));
     expect(source, contains('_openShelfDestination'));
-    expect(source, contains('_SectionError'));
+    expect(source, contains('SectionError'));
     expect(source, contains('onRetry'));
     expect(source, contains('_initialForName'));
     expect(source, isNot(contains('name.characters.first')));
@@ -1136,6 +1175,56 @@ void main() {
     expect(hiL10n['collaboration'], 'सहलेखन');
     expect(hiL10n['collab'], 'सहलेखन');
     expect(hiL10n['helpCategoryCollaboration'], 'सहलेखन');
+  });
+
+  test('bug UI hardening avoids blank startup and raw placeholder strings', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final collaborationSource = File(
+      'lib/src/presentation/screens/collaboration_request_screen.dart',
+    ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final routerSource = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+    final homeSource = File(
+      'lib/src/presentation/screens/home_books_screen.dart',
+    ).readAsStringSync();
+    final enL10n = englishL10n();
+
+    expect(
+      mainSource.indexOf('runApp('),
+      lessThan(mainSource.indexOf('Firebase.initializeApp')),
+    );
+    expect(mainSource, contains('_guardedStartupStep'));
+    expect(collaborationSource, contains('l10n.collaborationRequestTitle'));
+    expect(collaborationSource, contains('l10n.collaborationRequestMessage'));
+    expect(
+      collaborationSource,
+      isNot(contains(r'Could not update request: $')),
+    );
+    expect(readerSource, contains('l10n.readerSettings'));
+    expect(readerSource, contains('l10n.fontSizeValue'));
+    expect(readerSource, isNot(contains(r'Read aloud failed: $')));
+    expect(routerSource, contains('certificateUnavailableBody'));
+    expect(routerSource, contains('competitionUnavailableBody'));
+    expect(routerSource, isNot(contains('can be expanded')));
+    expect(routerSource, isNot(contains('can be surfaced')));
+    expect(homeSource, contains('Expanded('));
+    expect(homeSource, contains('memCacheWidth'));
+
+    for (final key in [
+      'collaborationRequestTitle',
+      'collaborationRequestMessage',
+      'readAloudFailed',
+      'fontSizeValue',
+      'certificateUnavailableBody',
+      'competitionUnavailableBody',
+      'hapticFeedback',
+    ]) {
+      expect(enL10n[key], isA<String>());
+    }
   });
 
   test('points are removed and home rankings replace leaderboard behavior', () {

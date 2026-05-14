@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
+import '../../localization/generated/app_localizations.dart';
 import '../../utils/app_link_helper.dart';
 import '../screens/book_detail_screen.dart';
 import '../screens/category_books_screen.dart';
@@ -344,11 +345,13 @@ class AppRouter {
       case AppRoutes.certificate:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const StaticInfoScreen(
-            title: 'Certificate',
-            body:
-                'Participation certificates are supported in the main Wreadom experience. This Flutter build exposes the route and can be expanded to render generated certificates from backend data.',
-          ),
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return StaticInfoScreen(
+              title: l10n.certificateUnavailableTitle,
+              body: l10n.certificateUnavailableBody,
+            );
+          },
         );
       case AppRoutes.dailyTopic:
         final args = arguments ?? settings.arguments;
@@ -379,11 +382,13 @@ class AppRouter {
       case AppRoutes.competition:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const StaticInfoScreen(
-            title: 'Competition',
-            body:
-                'Competitions and winners can be surfaced from the shared Wreadom backend. This route provides the mobile entry point for that experience.',
-          ),
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return StaticInfoScreen(
+              title: l10n.competitionUnavailableTitle,
+              body: l10n.competitionUnavailableBody,
+            );
+          },
         );
       case AppRoutes.archiveReader:
         final args = arguments ?? settings.arguments;

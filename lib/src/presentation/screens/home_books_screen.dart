@@ -20,6 +20,7 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
+import '../widgets/section_error.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -171,11 +172,11 @@ class HomeBooksScreen extends ConsumerWidget {
               const _ContinueReadingSection(),
               const SizedBox(height: 28),
 
-              // ─── Saved Books (Local & Remote) ─────────────────────────
+              // Saved Books (Local & Remote)
               const _SavedBooksSection(),
               const SizedBox(height: 28),
 
-              // ─── Wreadom Originals ────────────────────────────────────
+              // Wreadom Originals
               _BookshelfSection(
                 title: _HomeShelfDestination.originals.getLocalizedCategory(
                   l10n,
@@ -206,7 +207,7 @@ class HomeBooksScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 28),
 
-              // ─── Popular Books ────────────────────────────────────────
+              // Popular Books
               _BookshelfSection(
                 title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
                 booksAsync: popularAsync,
@@ -220,7 +221,7 @@ class HomeBooksScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 28),
 
-              // ─── Recently Added ───────────────────────────────────────
+              // Recently Added
               _BookshelfSection(
                 title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
                 booksAsync: recentAsync,
@@ -234,7 +235,7 @@ class HomeBooksScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 28),
 
-              // ─── Genre Sections (Filtered) ─────────────────────────────
+              // Genre Sections (Filtered)
               const _AuthorsSection(),
               const SizedBox(height: 28),
               _BookshelfSection(
@@ -304,7 +305,7 @@ class HomeBooksScreen extends ConsumerWidget {
   }
 }
 
-// ─── Hero Banner ─────────────────────────────────────────────────────────────
+// Hero Banner
 class _HomeBannerStrip extends StatelessWidget {
   const _HomeBannerStrip({required this.bannersAsync});
 
@@ -729,12 +730,12 @@ class _LazyGenreSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) =>
-          _SectionError(title: title, onRetry: () => refreshHomepage(ref)),
+          SectionError(title: title, onRetry: () => refreshHomepage(ref)),
     );
   }
 }
 
-// ─── Saved Books Section (Top Shelf) ──────────────────────────────────────────
+// Saved Books Section (Top Shelf)
 class _ContinueReadingSection extends ConsumerWidget {
   const _ContinueReadingSection();
 
@@ -784,7 +785,7 @@ class _ContinueReadingSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => _SectionError(
+      error: (_, _) => SectionError(
         title: l10n.continueReading,
         onRetry: () => ref.invalidate(readingHistoryBooksProvider),
       ),
@@ -857,6 +858,8 @@ class _ContinueReadingCard extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: book.coverUrl!,
                           fit: BoxFit.cover,
+                          memCacheWidth: 164,
+                          memCacheHeight: 248,
                           errorWidget: (_, _, _) =>
                               _CoverPlaceholder(book: book),
                         )
@@ -949,7 +952,7 @@ class _SavedBooksSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => _SectionError(
+      error: (_, _) => SectionError(
         title: l10n.yourShelf,
         onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
       ),
@@ -957,7 +960,7 @@ class _SavedBooksSection extends ConsumerWidget {
   }
 }
 
-// ─── Bookshelf Row ────────────────────────────────────────────────────────────
+// Bookshelf Row
 class _AuthorsSection extends ConsumerStatefulWidget {
   const _AuthorsSection();
 
@@ -1146,7 +1149,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => _SectionError(
+      error: (_, _) => SectionError(
         title: l10n.authorsToFollow,
         onRetry: () => refreshHomepage(ref),
       ),
@@ -1188,12 +1191,16 @@ class _BookshelfSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -1252,57 +1259,12 @@ class _BookshelfSection extends StatelessWidget {
           ),
         ],
       ),
-      error: (_, _) => _SectionError(title: title, onRetry: onRetry),
+      error: (_, _) => SectionError(title: title, onRetry: onRetry),
     );
   }
 }
 
-class _SectionError extends StatelessWidget {
-  const _SectionError({required this.title, this.onRetry});
-
-  final String title;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colorScheme.errorContainer.withValues(alpha: 0.38),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.error_outline_rounded,
-              color: colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                AppLocalizations.of(context)!.couldNotLoad(title),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: colorScheme.onErrorContainer),
-              ),
-            ),
-            TextButton(
-              onPressed: onRetry,
-              child: Text(AppLocalizations.of(context)!.tryAgain),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Book Card ────────────────────────────────────────────────────────────────
+// Book Card
 class _BookCard extends StatelessWidget {
   final Book book;
   final String heroTag;
@@ -1345,6 +1307,8 @@ class _BookCard extends StatelessWidget {
                             imageUrl: book.coverUrl!,
                             fit: BoxFit.cover,
                             width: double.infinity,
+                            memCacheWidth: 240,
+                            memCacheHeight: 360,
                             placeholder: (context, url) => Container(
                               color: Theme.of(
                                 context,
@@ -1415,7 +1379,7 @@ class _CoverPlaceholder extends StatelessWidget {
   }
 }
 
-// ─── Skeleton placeholder ─────────────────────────────────────────────────────
+// Skeleton placeholder
 class _BookCardSkeleton extends StatelessWidget {
   const _BookCardSkeleton();
 
@@ -1452,7 +1416,7 @@ class _BookCardSkeleton extends StatelessWidget {
   }
 }
 
-// ─── Author Spotlight ────────────────────────────────────────────────────────
+// Author Spotlight
 class _AuthorSpotlight extends ConsumerStatefulWidget {
   const _AuthorSpotlight();
 
@@ -1693,6 +1657,8 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                                   imageUrl: book.coverUrl!,
                                                   fit: BoxFit.cover,
                                                   width: double.infinity,
+                                                  memCacheWidth: 220,
+                                                  memCacheHeight: 330,
                                                   errorWidget: (_, _, _) =>
                                                       _CoverPlaceholder(
                                                         book: book,
@@ -1729,7 +1695,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                           child: CircularProgressIndicator(color: Colors.white),
                         ),
                       ),
-                      error: (_, _) => _SectionError(
+                      error: (_, _) => SectionError(
                         title: l10n.authorBooks(authorName),
                         onRetry: () => ref.invalidate(
                           homepageAuthorBooksProvider(author.id),
@@ -1744,7 +1710,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => _SectionError(
+      error: (_, _) => SectionError(
         title: l10n.authorSpotlight,
         onRetry: () => ref.invalidate(
           homepageRankedAuthorsProvider(HomeAuthorRanking.topRated),

@@ -21,6 +21,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settings => 'सेटिंग्स';
 
   @override
+  String get account => 'खाता';
+
+  @override
+  String get preferences => 'प्राथमिकताएं';
+
+  @override
+  String get support => 'सहायता';
+
+  @override
+  String get legal => 'कानूनी';
+
+  @override
   String get language => 'भाषा';
 
   @override
@@ -2022,4 +2034,106 @@ class AppLocalizationsHi extends AppLocalizations {
   String noHelpTopicsFound(String query) {
     return '\"$query\" के लिए कोई सहायता विषय नहीं मिला';
   }
+
+  @override
+  String get authInvalidCredentials =>
+      'अपना ईमेल और पासवर्ड जांचें, फिर दोबारा कोशिश करें।';
+
+  @override
+  String get authActionFailed =>
+      'साइन-इन कार्रवाई पूरी नहीं हो सकी। कृपया फिर कोशिश करें।';
+
+  @override
+  String get networkRequestFailed =>
+      'नेटवर्क कनेक्शन विफल रहा। कृपया अपना कनेक्शन जांचें और फिर कोशिश करें।';
+
+  @override
+  String get tooManyRequests =>
+      'बहुत अधिक प्रयास हुए। कृपया थोड़ी देर बाद फिर कोशिश करें।';
+
+  @override
+  String get permissionDeniedMessage => 'आपको यह करने की अनुमति नहीं है।';
+
+  @override
+  String get failedToLoadProfileSettings =>
+      'प्रोफाइल सेटिंग्स लोड नहीं हो सकीं।';
+
+  @override
+  String get collaborationRequestTitle => 'सहलेखन अनुरोध';
+
+  @override
+  String get collaborationRequestUnavailable => 'यह अनुरोध अब उपलब्ध नहीं है।';
+
+  @override
+  String collaborationRequestMessage(String authorName) {
+    return '$authorName आपके साथ सहलेखन करना चाहते हैं।';
+  }
+
+  @override
+  String get draftPreview => 'ड्राफ्ट पूर्वावलोकन';
+
+  @override
+  String get decline => 'अस्वीकार करें';
+
+  @override
+  String get accept => 'स्वीकार करें';
+
+  @override
+  String get openBook => 'रचना खोलें';
+
+  @override
+  String get collaborationAccepted => 'सहलेखन स्वीकार किया गया।';
+
+  @override
+  String get collaborationDeclined => 'सहलेखन अस्वीकार किया गया।';
+
+  @override
+  String get couldNotUpdateCollaborationRequest =>
+      'अनुरोध अपडेट नहीं हो सका। कृपया फिर कोशिश करें।';
+
+  @override
+  String get certificateUnavailableTitle => 'प्रमाणपत्र उपलब्ध नहीं';
+
+  @override
+  String get certificateUnavailableBody =>
+      'इस ऐप संस्करण में प्रमाणपत्र अभी उपलब्ध नहीं हैं।';
+
+  @override
+  String get competitionUnavailableTitle => 'प्रतियोगिता उपलब्ध नहीं';
+
+  @override
+  String get competitionUnavailableBody =>
+      'इस ऐप संस्करण में प्रतियोगिताएं अभी उपलब्ध नहीं हैं।';
+
+  @override
+  String get readAloudFailed => 'रीड अलाउड विफल रहा। कृपया फिर कोशिश करें।';
+
+  @override
+  String get noReadableTextSelected => 'कोई पढ़ने योग्य टेक्स्ट चयनित नहीं है।';
+
+  @override
+  String get noReadableTextInChapter =>
+      'इस अध्याय में पढ़ने योग्य टेक्स्ट नहीं है।';
+
+  @override
+  String stopReadingBlock(int current, int total) {
+    return 'रोकें (ब्लॉक $current/$total)';
+  }
+
+  @override
+  String fontSizeValue(String size) {
+    return 'फॉन्ट आकार: $size';
+  }
+
+  @override
+  String get systemDefault => 'सिस्टम';
+
+  @override
+  String get sepia => 'सेपिया';
+
+  @override
+  String get hapticFeedback => 'हैप्टिक फीडबैक';
+
+  @override
+  String get hapticFeedbackSubtitle => 'लाइक, शेयर और कार्रवाइयों पर कंपन करें';
 }

@@ -9,6 +9,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
 import '../utils/swipe_hint.dart';
+import '../widgets/auth_required_view.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -23,6 +24,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (ref.read(currentUserProvider).asData?.value == null) return;
       final l10n = AppLocalizations.of(context)!;
       showSwipeHintOnce(
         context: context,
@@ -39,85 +41,90 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     final conversationsController = ref.read(
       pagedConversationsProvider.notifier,
     );
-    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = currentUserAsync.asData?.value;
+    final isSignedIn = currentUser != null;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.messages)),
-      body: RefreshIndicator(
-        onRefresh: conversationsController.refresh,
-        child: Builder(
-          builder: (context) {
-            if (conversationsState.isInitialLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (conversationsState.error != null) {
-              return Center(
-                child: Text(
-                  l10n.failedToLoadWithError(
-                    conversationsState.error.toString(),
-                  ),
-                ),
-              );
-            }
-            final conversations = visibleConversations(
-              conversationsState.items,
-            );
-            if (conversations.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: MediaQuery.sizeOf(context).height * 0.6,
-                    child: Center(child: Text(l10n.noConversationsYet)),
-                  ),
-                ],
-              );
-            }
-            return ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount:
-                  conversations.length + (conversationsState.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                if (index == conversations.length &&
-                    conversationsState.hasMore) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: TextButton.icon(
-                        onPressed: conversationsState.isLoadingMore
-                            ? null
-                            : conversationsController.loadMore,
-                        icon: conversationsState.isLoadingMore
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_rounded),
-                        label: Text(l10n.loadMore),
+      body: currentUserAsync.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : !isSignedIn
+          ? const AuthRequiredView(icon: Icons.chat_bubble_outline_rounded)
+          : RefreshIndicator(
+              onRefresh: conversationsController.refresh,
+              child: Builder(
+                builder: (context) {
+                  if (conversationsState.isInitialLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (conversationsState.error != null) {
+                    return Center(
+                      child: Text(
+                        l10n.failedToLoadWithError(
+                          conversationsState.error.toString(),
+                        ),
                       ),
-                    ),
+                    );
+                  }
+                  final conversations = visibleConversations(
+                    conversationsState.items,
                   );
-                }
-                final conversation = conversations[index];
-                final otherId = conversation.participants.firstWhere(
-                  (id) => id != currentUser?.id,
-                  orElse: () => conversation.participants.first,
-                );
-                final other = conversation.participantDetails[otherId];
-                final title =
-                    conversation.name ??
-                    other?.displayName ??
-                    other?.username ??
-                    l10n.conversation;
-                return _ConversationSwipeShell(
-                  onDelete: currentUser == null
-                      ? null
-                      : () async {
+                  if (conversations.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.sizeOf(context).height * 0.6,
+                          child: Center(child: Text(l10n.noConversationsYet)),
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount:
+                        conversations.length +
+                        (conversationsState.hasMore ? 1 : 0),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      if (index == conversations.length &&
+                          conversationsState.hasMore) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: TextButton.icon(
+                              onPressed: conversationsState.isLoadingMore
+                                  ? null
+                                  : conversationsController.loadMore,
+                              icon: conversationsState.isLoadingMore
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.add_rounded),
+                              label: Text(l10n.loadMore),
+                            ),
+                          ),
+                        );
+                      }
+                      final conversation = conversations[index];
+                      final otherId = conversation.participants.firstWhere(
+                        (id) => id != currentUser.id,
+                        orElse: () => conversation.participants.first,
+                      );
+                      final other = conversation.participantDetails[otherId];
+                      final title =
+                          conversation.name ??
+                          other?.displayName ??
+                          other?.username ??
+                          l10n.conversation;
+                      return _ConversationSwipeShell(
+                        onDelete: () async {
                           final confirmed = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -146,33 +153,34 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               );
                           await conversationsController.refresh();
                         },
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(title.characters.first.toUpperCase()),
-                    ),
-                    title: Text(title),
-                    subtitle: Text(
-                      conversation.lastMessage?.text ?? l10n.noMessagesYet,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () {
-                      Navigator.of(context).pushNamed(
-                        AppRoutes.conversation,
-                        arguments: ConversationArguments(
-                          conversationId: conversation.id,
-                          title: title,
-                          subtitle: other?.username,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            child: Text(title.characters.first.toUpperCase()),
+                          ),
+                          title: Text(title),
+                          subtitle: Text(
+                            conversation.lastMessage?.text ??
+                                l10n.noMessagesYet,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              AppRoutes.conversation,
+                              arguments: ConversationArguments(
+                                conversationId: conversation.id,
+                                title: title,
+                                subtitle: other?.username,
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

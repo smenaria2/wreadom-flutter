@@ -1303,16 +1303,48 @@ exports.onRecommendationWrite = functionsV1.firestore.document("recommendations/
     return null;
   }
 
-  const updates = {};
-  if (upDelta !== 0) {
-    updates.upvotes = FieldValue.increment(upDelta);
-  }
-  if (downDelta !== 0) {
-    updates.downvotes = FieldValue.increment(downDelta);
-  }
+  const recommendationDelta = upDelta - downDelta;
+  const statsRef = db.collection("book_stats").doc(bookId);
+  const metadataRef = db.collection("settings").doc("homepage_metadata");
 
-  await db.collection("book_stats").doc(bookId).set(updates, {merge: true});
-  logger.info("Updated book_stats recommendation counters", {bookId, upDelta, downDelta});
+  await db.runTransaction(async (transaction) => {
+    const [statsSnapshot, metadataSnapshot] = await Promise.all([
+      transaction.get(statsRef),
+      transaction.get(metadataRef),
+    ]);
+    const currentStats = statsSnapshot.exists ? statsSnapshot.data() || {} : {};
+    const upvotes = Math.max(0, Number(currentStats.upvotes || 0) + upDelta);
+    const downvotes = Math.max(0, Number(currentStats.downvotes || 0) + downDelta);
+    const recommendationCount = upvotes - downvotes;
+    const viewCount = Number(currentStats.viewCount || 0);
+    const nextStats = {
+      upvotes,
+      downvotes,
+      recommendationCount,
+      viewCount,
+    };
+
+    transaction.set(statsRef, nextStats, {merge: true});
+    if (upvotes > 0) {
+      transaction.set(metadataRef, {
+        recommendationStats: {
+          [bookId]: nextStats,
+        },
+      }, {merge: true});
+    } else if (metadataSnapshot.exists) {
+      transaction.update(
+          metadataRef,
+          new admin.firestore.FieldPath("recommendationStats", bookId),
+          FieldValue.delete(),
+      );
+    }
+  });
+  logger.info("Updated book_stats recommendation counters", {
+    bookId,
+    upDelta,
+    downDelta,
+    recommendationDelta,
+  });
   return null;
 });
 
@@ -1747,7 +1779,7 @@ exports.createAudioReviewDownloadUrl = functionsV1
     });
 
 async function refreshHomepageMetadataInternal() {
-  const [booksSnapshot, authorsSnapshot, topicsSnapshot, bannersSnapshot] = await Promise.all([
+  const [booksSnapshot, authorsSnapshot, topicsSnapshot, bannersSnapshot, statsSnapshot] = await Promise.all([
     db.collection("books")
         .where("status", "==", "published")
         .where("isOriginal", "==", true)
@@ -1772,6 +1804,11 @@ async function refreshHomepageMetadataInternal() {
         .limit(10)
         .get()
         .catch(() => null),
+    db.collection("book_stats")
+        .orderBy("upvotes", "desc")
+        .limit(200)
+        .get()
+        .catch(() => null),
   ]);
 
   const authors = (authorsSnapshot?.docs || []).map((doc) => {
@@ -1787,12 +1824,21 @@ async function refreshHomepageMetadataInternal() {
   });
 
   const recommendationStats = {};
-  for (const doc of booksSnapshot?.docs || []) {
+  for (const doc of statsSnapshot?.docs || []) {
     const data = doc.data() || {};
+    const upvotes = Number(data.upvotes || 0);
+    const downvotes = Number(data.downvotes || 0);
+    const recommendationCount = Number(
+        data.recommendationCount ?? (upvotes - downvotes),
+    );
+    if (upvotes <= 0 && recommendationCount <= 0) {
+      continue;
+    }
     recommendationStats[doc.id] = {
-      recommendationCount: 0,
-      upvotes: Number(data.viewCount || 0),
-      downvotes: 0,
+      recommendationCount,
+      upvotes,
+      downvotes,
+      viewCount: Number(data.viewCount || 0),
     };
   }
 

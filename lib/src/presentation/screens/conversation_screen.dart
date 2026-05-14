@@ -182,6 +182,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 }
                 final hasLoader = messagesState.hasMore;
                 return ListView.builder(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length + (hasLoader ? 1 : 0),
                   itemBuilder: (context, index) {

@@ -11,19 +11,25 @@ import '../../domain/models/chapter.dart';
 class ArchiveBookService {
   static const String searchUrl = 'https://archive.org/advancedsearch.php';
   static const String metadataUrl = 'https://archive.org/metadata';
+  static const List<String> allowedSearchCollections = [
+    'JaiGyan',
+    'digitallibraryindia',
+    'booksbylanguage_hindi',
+  ];
 
-  Future<Map<String, dynamic>> searchBooks({
+  @visibleForTesting
+  static String buildSearchQuery({
     String? query,
     String? title,
     String? creator,
     String? identifier,
     String? language,
     String? subject,
-    int page = 1,
-    int rows = 20,
-    String sort = 'downloads desc',
-  }) async {
-    final queryParts = ['mediatype:texts'];
+  }) {
+    final collectionQuery = allowedSearchCollections
+        .map((collection) => 'collection:$collection')
+        .join(' OR ');
+    final queryParts = ['($collectionQuery)', 'mediatype:texts'];
 
     if (title != null) queryParts.add('title:("$title")');
     if (creator != null) queryParts.add('creator:("$creator")');
@@ -59,7 +65,34 @@ class ArchiveBookService {
       queryParts.add('subject:${Uri.encodeComponent(subject)}');
     }
 
-    final q = queryParts.join(' AND ');
+    return queryParts.join(' AND ');
+  }
+
+  @visibleForTesting
+  static String buildIdentifierLookupQuery(List<String> ids) {
+    final identifiersQuery = ids.map((id) => '"$id"').join(' OR ');
+    return 'identifier:($identifiersQuery)';
+  }
+
+  Future<Map<String, dynamic>> searchBooks({
+    String? query,
+    String? title,
+    String? creator,
+    String? identifier,
+    String? language,
+    String? subject,
+    int page = 1,
+    int rows = 20,
+    String sort = 'downloads desc',
+  }) async {
+    final q = buildSearchQuery(
+      query: query,
+      title: title,
+      creator: creator,
+      identifier: identifier,
+      language: language,
+      subject: subject,
+    );
     final url = Uri.parse(
       '$searchUrl?q=${Uri.encodeComponent(q)}'
       '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
@@ -92,16 +125,20 @@ class ArchiveBookService {
   Future<List<Book>> getBooksByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
 
-    // Construct a query for multiple identifiers: identifier:(id1 OR id2 OR ...)
-    final identifiersQuery = ids.map((id) => '"$id"').join(' OR ');
-
-    // We use searchBooks logic but specifically for these IDs
-    final result = await searchBooks(
-      identifier: identifiersQuery,
-      rows: ids.length,
+    final q = buildIdentifierLookupQuery(ids);
+    final url = Uri.parse(
+      '$searchUrl?q=${Uri.encodeComponent(q)}'
+      '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
+      '&rows=${ids.length}&page=1&sort[]=${Uri.encodeComponent('downloads desc')}&output=json',
     );
+    final response = await http.get(url);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch Archive books');
+    }
 
-    return result['results'] as List<Book>;
+    final data = jsonDecode(response.body);
+    final docs = (data['response']['docs'] as List? ?? []);
+    return docs.map((doc) => _archiveDocToBook(doc)).toList();
   }
 
   Future<List<Chapter>> fetchBookChapters(String identifier) async {

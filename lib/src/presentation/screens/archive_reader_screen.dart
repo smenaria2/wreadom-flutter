@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -90,7 +91,8 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
             final uri = Uri.parse(request.url);
             if (uri.host == 'archive.org' ||
                 uri.host.endsWith('.archive.org') ||
-                uri.host == 'googleads.g.doubleclick.net' || // Allow ads if necessary
+                uri.host ==
+                    'googleads.g.doubleclick.net' || // Allow ads if necessary
                 uri.host == 'www.googleadservices.com') {
               return NavigationDecision.navigate;
             }
@@ -150,7 +152,7 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
           if (widget.book.formats.containsKey('application/pdf'))
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined, size: 20),
-              tooltip: 'View PDF',
+              tooltip: AppLocalizations.of(context)!.viewPdf,
               onPressed: _launchPdf,
             ),
         ],

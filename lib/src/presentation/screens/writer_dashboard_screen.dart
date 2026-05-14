@@ -9,6 +9,7 @@ import '../providers/auth_providers.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../widgets/auth_required_view.dart';
 
 class WriterDashboardScreen extends ConsumerWidget {
   const WriterDashboardScreen({super.key});
@@ -19,7 +20,30 @@ class WriterDashboardScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final activeTab = ref.watch(writerDashboardTabProvider);
     final booksAsync = ref.watch(filteredMyBooksProvider);
-    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = currentUserAsync.asData?.value;
+
+    if (currentUserAsync.isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.primaryColor,
+          foregroundColor: Colors.white,
+          title: Text(l10n.writerDashboard),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.primaryColor,
+          foregroundColor: Colors.white,
+          title: Text(l10n.writerDashboard),
+        ),
+        body: const AuthRequiredView(icon: Icons.edit_note_outlined),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -125,7 +149,6 @@ class WriterDashboardScreen extends ConsumerWidget {
                         onEditStory: isPublished ? openEditor : null,
                         onDeleteDraft:
                             isPublished ||
-                                currentUser == null ||
                                 !canDeleteCollaborativeBook(
                                   book,
                                   currentUser.id,
@@ -134,7 +157,6 @@ class WriterDashboardScreen extends ConsumerWidget {
                             : () => _confirmDeleteDraft(context, ref, book.id),
                         onDeleteBlocked:
                             !isPublished &&
-                                currentUser != null &&
                                 isAcceptedCollaboration(book) &&
                                 book.authorId?.trim() == currentUser.id
                             ? () => ScaffoldMessenger.of(context).showSnackBar(

@@ -18,6 +18,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _penNameController = TextEditingController();
   final _displayNameController = TextEditingController();
   String _privacy = 'public';
+  String? _populatedUserId;
 
   @override
   void dispose() {
@@ -39,16 +40,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           if (user == null) {
             return Center(child: Text(l10n.pleaseSignIn));
           }
-          _bioController.text = _bioController.text.isEmpty
-              ? user.bio ?? ''
-              : _bioController.text;
-          _penNameController.text = _penNameController.text.isEmpty
-              ? user.penName ?? ''
-              : _penNameController.text;
-          _displayNameController.text = _displayNameController.text.isEmpty
-              ? user.displayName ?? ''
-              : _displayNameController.text;
-          _privacy = user.privacyLevel ?? _privacy;
+          if (_populatedUserId != user.id) {
+            _bioController.text = user.bio ?? '';
+            _penNameController.text = user.penName ?? '';
+            _displayNameController.text = user.displayName ?? '';
+            _privacy = user.privacyLevel ?? 'public';
+            _populatedUserId = user.id;
+          }
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -107,7 +105,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
+        error: (error, stackTrace) {
+          return Center(child: Text(l10n.failedToLoadProfileSettings));
+        },
       ),
     );
   }

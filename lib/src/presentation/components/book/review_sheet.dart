@@ -7,6 +7,7 @@ import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
 import '../../utils/book_author_utils.dart';
+import '../../utils/error_message_utils.dart';
 
 /// Shows a sheet for writing a book review.
 void showReviewSheet(BuildContext context, Book book) {
@@ -103,11 +104,15 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logUiError('Review submit failed', e, stackTrace);
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.somethingWentWrong),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

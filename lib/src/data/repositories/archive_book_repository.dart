@@ -2,7 +2,6 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../services/archive_book_service.dart';
-import '../utils/archive_content_safety_filter.dart';
 
 class ArchiveBookRepository implements BookRepository {
   ArchiveBookRepository({ArchiveBookService? service})
@@ -13,8 +12,7 @@ class ArchiveBookRepository implements BookRepository {
   @override
   Future<Book?> getBook(String bookId) async {
     try {
-      final book = await _service.getBookMetadata(bookId);
-      return isUnsafeArchiveBook(book) ? null : book;
+      return await _service.getBookMetadata(bookId);
     } catch (_) {
       return null;
     }
@@ -23,7 +21,7 @@ class ArchiveBookRepository implements BookRepository {
   @override
   Future<List<Book>> getBooks({int limit = 10, dynamic lastDoc}) async {
     final result = await _service.searchBooks(rows: limit);
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override
@@ -33,7 +31,7 @@ class ArchiveBookRepository implements BookRepository {
     dynamic lastDoc,
   }) async {
     final result = await _service.searchBooks(subject: bookshelf, rows: limit);
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override
@@ -62,7 +60,7 @@ class ArchiveBookRepository implements BookRepository {
       rows: limit,
       sort: 'downloads desc',
     );
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override
@@ -71,14 +69,13 @@ class ArchiveBookRepository implements BookRepository {
       rows: limit,
       sort: 'publicdate desc',
     );
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override
   Future<List<Book>> searchBooks(String query, {int limit = 20}) async {
-    if (isUnsafeSearchQuery(query)) return [];
     final result = await _service.searchBooks(query: query, rows: limit);
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override
@@ -94,7 +91,7 @@ class ArchiveBookRepository implements BookRepository {
   @override
   Future<List<Book>> getBooksByIds(List<String> ids) async {
     try {
-      return filterSafeArchiveBooks(await _service.getBooksByIds(ids));
+      return await _service.getBooksByIds(ids);
     } catch (_) {
       return [];
     }
@@ -129,7 +126,7 @@ class ArchiveBookRepository implements BookRepository {
   }) async {
     // Map genre to archive subjects
     final result = await _service.searchBooks(subject: genre, rows: limit);
-    return filterSafeArchiveBooks(result['results'] as List<Book>);
+    return result['results'] as List<Book>;
   }
 
   @override

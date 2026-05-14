@@ -14,12 +14,12 @@ import 'theme_provider.dart';
 
 import 'dart:math' as math;
 
-const _homepageMetadataCacheKey = 'homepage_metadata_cache_v1';
+const _homepageMetadataCacheKey = 'homepage_metadata_cache_v3';
 const _homepageMetadataCacheUpdatedAtKey =
-    'homepage_metadata_cache_updated_at_v1';
-const _homepageBooksCacheKey = 'homepage_books_cache_v1';
+    'homepage_metadata_cache_updated_at_v3';
+const _homepageBooksCacheKey = 'homepage_books_cache_v3';
 const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
-const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v1';
+const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageMetadataCacheTtl = Duration(minutes: 30);
 
@@ -89,12 +89,50 @@ Future<List<Book>> _safeBookList(Future<List<Book>> request) async {
   }
 }
 
-Future<List<String>> _safeStringList(Future<List<String>> request) async {
+Future<Map<String, BookRecommendationStats>> _fetchLiveRecommendationStats({
+  int limit = 200,
+}) async {
   try {
-    return await request;
+    final snapshot = await FirebaseFirestore.instance
+        .collection('book_stats')
+        .orderBy('upvotes', descending: true)
+        .limit(limit)
+        .get();
+    return {
+      for (final doc in snapshot.docs)
+        if (_hasPositiveRecommendationStats(doc.data()))
+          doc.id: _statsFromMap(doc.data()),
+    };
   } catch (_) {
-    return <String>[];
+    return const <String, BookRecommendationStats>{};
   }
+}
+
+bool _hasPositiveRecommendationStats(Map<String, dynamic> data) {
+  final upvotes = (data['upvotes'] as num?)?.toInt() ?? 0;
+  final recommendationCount =
+      (data['recommendationCount'] as num?)?.toInt() ?? upvotes;
+  return upvotes > 0 || recommendationCount > 0;
+}
+
+BookRecommendationStats _statsFromMap(Map<String, dynamic> data) {
+  final upvotes = (data['upvotes'] as num?)?.toInt() ?? 0;
+  final downvotes = (data['downvotes'] as num?)?.toInt() ?? 0;
+  return BookRecommendationStats(
+    upvotes: upvotes,
+    downvotes: downvotes,
+    recommendationCount:
+        (data['recommendationCount'] as num?)?.toInt() ?? upvotes - downvotes,
+    viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
+  );
+}
+
+Map<String, BookRecommendationStats> _mergeRecommendationStats(
+  Map<String, BookRecommendationStats> cached,
+  Map<String, BookRecommendationStats> live,
+) {
+  if (live.isEmpty) return cached;
+  return {...cached, ...live};
 }
 
 List<Book> _uniqueBooks(Iterable<Book> books) {
@@ -125,12 +163,17 @@ List<Book> _withoutIds(List<Book> books, Set<String> ids, {int limit = 20}) {
 
 List<Book> _homepageAllowedBooks(
   Iterable<Book> books,
-  Set<String> upvotedIaIds,
+  Set<String> recommendedBookIds,
 ) {
   return books.where((book) {
     if (!_isArchiveBook(book)) return true;
-    return upvotedIaIds.contains(book.id);
+    return recommendedBookIds.contains(book.id);
   }).toList();
+}
+
+int _recommendationRankScore(BookRecommendationStats stats) {
+  if (stats.upvotes > 0) return stats.upvotes;
+  return stats.recommendationCount;
 }
 
 double _bookPopularityScore(
@@ -143,6 +186,7 @@ double _bookPopularityScore(
   final reads = math.log((book.viewCount ?? 0) + 1) / math.ln10;
   return reads +
       avgRating * math.log(ratingsCount + 1) / math.ln10 +
+      (stats?.upvotes ?? 0) * 0.6 +
       (stats?.recommendationCount ?? 0) * 0.2 +
       ((stats?.upvotes ?? 0) - (stats?.downvotes ?? 0)) * 0.05;
 }
@@ -181,13 +225,20 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     }
 
     final metadata = HomepageMetadata.fromJson(data);
+    final liveStats = await _fetchLiveRecommendationStats();
+    final mergedMetadata = metadata.copyWith(
+      recommendationStats: _mergeRecommendationStats(
+        metadata.recommendationStats,
+        liveStats,
+      ),
+    );
     await _writeCachedValue(
       prefs,
       _homepageMetadataCacheKey,
-      metadata.toJson(),
+      mergedMetadata.toJson(),
     );
     await prefs.setInt(_homepageMetadataCacheUpdatedAtKey, now);
-    return metadata;
+    return mergedMetadata;
   } catch (_) {
     if (cached != null) return cached;
     rethrow;
@@ -254,19 +305,19 @@ List<String> _positiveRecommendationIds(
 }) {
   final entries = metadata.recommendationStats.entries.toList()
     ..sort((a, b) {
-      final aScore = a.value.recommendationCount != 0
-          ? a.value.recommendationCount
-          : a.value.upvotes - a.value.downvotes;
-      final bScore = b.value.recommendationCount != 0
-          ? b.value.recommendationCount
-          : b.value.upvotes - b.value.downvotes;
-      return bScore.compareTo(aScore);
+      final scoreCompare = _recommendationRankScore(
+        b.value,
+      ).compareTo(_recommendationRankScore(a.value));
+      if (scoreCompare != 0) return scoreCompare;
+      final netA = a.value.upvotes - a.value.downvotes;
+      final netB = b.value.upvotes - b.value.downvotes;
+      return netB.compareTo(netA);
     });
 
   return entries
       .where((entry) {
         final stats = entry.value;
-        return stats.recommendationCount > 0 || stats.upvotes > stats.downvotes;
+        return stats.upvotes > 0 || stats.recommendationCount > 0;
       })
       .map((entry) => entry.key)
       .take(limit)
@@ -298,9 +349,7 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     final statsData = metadata.recommendationStats;
     final repo = ref.watch(bookRepositoryProvider);
     final communityIds = _positiveRecommendationIds(metadata, limit: 60);
-    final upvotedIaIds = (await _safeStringList(
-      repo.getUpvotedIABookIds(),
-    )).toSet();
+    final recommendedBookIds = communityIds.toSet();
 
     final results = await Future.wait([
       _safeBookList(repo.getOriginalBooks(limit: 120)),
@@ -308,7 +357,6 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
           ? _safeBookList(repo.getBooksByIds(communityIds))
           : Future.value(<Book>[]),
       _safeBookList(repo.getPopularBooks(limit: 80)),
-      _safeBookList(repo.getUpvotedIABooks(limit: 40)),
     ]);
     final downloaded = ref.watch(offlineServiceProvider).getDownloadedBooks();
 
@@ -323,12 +371,11 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     addBooks(results[0]);
     addBooks(results[1]);
     addBooks(results[2]);
-    addBooks(results[3]);
     addBooks(downloaded);
 
     final combinedBooks = _homepageAllowedBooks(
       uniqueBooks.values,
-      upvotedIaIds,
+      recommendedBookIds,
     );
 
     combinedBooks.sort((a, b) {
@@ -339,6 +386,7 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
 
         final popularityScore =
             avgRating * math.log(ratingsCount + 1) / math.ln10 +
+            (stats?.upvotes ?? 0) * 0.6 +
             (stats?.recommendationCount ?? 0) * 0.1;
 
         final weekInMs = 7 * 24 * 60 * 60 * 1000;
@@ -580,16 +628,11 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
   try {
     final metadata = await ref.watch(homepageMetadataProvider.future);
     final repo = ref.watch(bookRepositoryProvider);
-    final ids = _positiveRecommendationIds(metadata, limit: 80);
-
-    var books = <Book>[];
-    if (ids.isNotEmpty) {
-      books = (await repo.getBooksByIds(ids)).where(_isArchiveBook).toList();
-    }
-    if (books.isEmpty) {
-      books = await repo.getUpvotedIABooks(limit: 20);
-    }
-    final result = books.take(20).toList();
+    final communityIds = _positiveRecommendationIds(metadata, limit: 80);
+    final books = communityIds.isNotEmpty
+        ? await repo.getBooksByIds(communityIds)
+        : <Book>[];
+    final result = books.where(_isArchiveBook).take(20).toList();
     await _writeCachedValue(
       prefs,
       _homepageIABooksCacheKey,
@@ -658,9 +701,11 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
   final repo = ref.watch(bookRepositoryProvider);
   final normalized = genre.trim();
   if (normalized.isEmpty) return <Book>[];
-  final upvotedIaIds = (await _safeStringList(
-    repo.getUpvotedIABookIds(),
-  )).toSet();
+  final metadata = await ref.watch(homepageMetadataProvider.future);
+  final recommendedBookIds = _positiveRecommendationIds(
+    metadata,
+    limit: 120,
+  ).toSet();
 
   final books = await ref.watch(homepageBooksProvider.future);
   final localMatches = books.where((book) {
@@ -679,13 +724,13 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
     _homepageAllowedBooks([
       ...localMatches,
       ...remoteMatches.expand((books) => books),
-    ], upvotedIaIds),
+    ], recommendedBookIds),
   );
   combined.sort(
-    (a, b) => _bookPopularityScore(b, const <String, BookRecommendationStats>{})
-        .compareTo(
-          _bookPopularityScore(a, const <String, BookRecommendationStats>{}),
-        ),
+    (a, b) => _bookPopularityScore(
+      b,
+      metadata.recommendationStats,
+    ).compareTo(_bookPopularityScore(a, metadata.recommendationStats)),
   );
   return combined.take(36).toList();
 });

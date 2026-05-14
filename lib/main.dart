@@ -40,9 +40,6 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     AppLogCollector.init();
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      await MobileAds.instance.initialize();
-    }
     FlutterError.onError = (details) {
       AppLogCollector.recordFlutterError(details);
       FlutterError.presentError(details);
@@ -51,32 +48,7 @@ void main() {
       AppLogCollector.recordZoneError(error, stack);
       return false;
     };
-    await Hive.initFlutter();
-    await OfflineService().init(); // Open the offline boxes
     final sharedPreferences = await SharedPreferences.getInstance();
-    await AppHaptics.init(sharedPreferences);
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: kDebugMode
-          ? const AndroidDebugProvider()
-          : const AndroidPlayIntegrityProvider(),
-      providerApple: kDebugMode
-          ? const AppleDebugProvider()
-          : const AppleDeviceCheckProvider(),
-      providerWeb: ReCaptchaV3Provider(
-        '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
-      ),
-    );
-    await NotificationService.instance.init();
-    if (kIsWeb) {
-      await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      await GoogleSignIn.instance.initialize(
-        serverClientId: _googleServerClientId,
-      );
-    }
     runApp(
       ProviderScope(
         overrides: [
@@ -101,14 +73,88 @@ class _MyAppState extends ConsumerState<MyApp> {
   StreamSubscription<Uri>? _linkSubscription;
   String? _lastDeepLinkKey;
   DateTime? _lastDeepLinkAt;
+  bool _firebaseReady = false;
 
   static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
+  static const Duration _startupTimeout = Duration(seconds: 8);
 
   @override
   void initState() {
     super.initState();
-    NotificationService.instance.attachNavigator(_navigatorKey);
-    _initDeepLinks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initializeAfterFirstFrame());
+    });
+  }
+
+  Future<void> _initializeAfterFirstFrame() async {
+    await _guardedStartupStep('Haptics', () {
+      return AppHaptics.init(ref.read(sharedPreferencesProvider));
+    });
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await _guardedStartupStep('Mobile ads', () async {
+        await MobileAds.instance.initialize();
+      });
+    }
+    await _guardedStartupStep('Hive and offline storage', () async {
+      await Hive.initFlutter();
+      await OfflineService().init();
+    });
+    final firebaseReady = await _guardedStartupStep('Firebase', () {
+      return Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    });
+    if (firebaseReady && mounted) {
+      setState(() => _firebaseReady = true);
+    }
+    if (firebaseReady) {
+      await _guardedStartupStep('Firebase App Check', () {
+        return FirebaseAppCheck.instance.activate(
+          providerAndroid: kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? const AppleDebugProvider()
+              : const AppleDeviceCheckProvider(),
+          providerWeb: ReCaptchaV3Provider(
+            '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
+          ),
+        );
+      });
+      NotificationService.instance.attachNavigator(_navigatorKey);
+      await _guardedStartupStep(
+        'Notifications',
+        NotificationService.instance.init,
+      );
+    }
+    await _guardedStartupStep('Google Sign-In', () {
+      if (kIsWeb) {
+        return GoogleSignIn.instance.initialize(
+          clientId: _googleServerClientId,
+        );
+      }
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return GoogleSignIn.instance.initialize(
+          serverClientId: _googleServerClientId,
+        );
+      }
+      return Future<void>.value();
+    });
+    unawaited(_initDeepLinks());
+  }
+
+  Future<bool> _guardedStartupStep(
+    String name,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action().timeout(_startupTimeout);
+      return true;
+    } catch (error, stackTrace) {
+      AppLogCollector.add('error', '$name initialization failed: $error');
+      AppLogCollector.recordZoneError(error, stackTrace);
+      return false;
+    }
   }
 
   Future<void> _initDeepLinks() async {
@@ -204,11 +250,13 @@ class _MyAppState extends ConsumerState<MyApp> {
             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
           ),
           themeMode: themeMode,
-          navigatorObservers: [AnalyticsService.observer],
+          navigatorObservers: [
+            if (_firebaseReady) AnalyticsService.observer,
+          ],
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: ShakeToReportListener(
             navigatorKey: _navigatorKey,
-            child: const AuthWrapper(),
+            child: AuthWrapper(firebaseReady: _firebaseReady),
           ),
         );
       },
@@ -217,10 +265,14 @@ class _MyAppState extends ConsumerState<MyApp> {
 }
 
 class AuthWrapper extends ConsumerWidget {
-  const AuthWrapper({super.key});
+  const AuthWrapper({super.key, required this.firebaseReady});
+
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!firebaseReady) return const LoginScreen();
+
     ref.listen(authStateProvider, (previous, next) {
       final previousId = previous?.asData?.value?.uid;
       final nextId = next.asData?.value?.uid;
@@ -269,7 +321,14 @@ class AuthWrapper extends ConsumerWidget {
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
+      error: (e, st) {
+        AppLogCollector.recordZoneError(e, st);
+        return Scaffold(
+          body: Center(
+            child: Text(AppLocalizations.of(context)!.somethingWentWrong),
+          ),
+        );
+      },
     );
   }
 }

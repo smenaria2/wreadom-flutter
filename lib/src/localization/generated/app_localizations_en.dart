@@ -21,6 +21,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get account => 'Account';
+
+  @override
+  String get preferences => 'Preferences';
+
+  @override
+  String get support => 'Support';
+
+  @override
+  String get legal => 'Legal';
+
+  @override
   String get language => 'Language';
 
   @override
@@ -2017,4 +2029,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String noHelpTopicsFound(String query) {
     return 'No help topics found for \"$query\"';
   }
+
+  @override
+  String get authInvalidCredentials =>
+      'Check your email and password, then try again.';
+
+  @override
+  String get authActionFailed =>
+      'We could not complete the sign-in action. Please try again.';
+
+  @override
+  String get networkRequestFailed =>
+      'Network connection failed. Please check your connection and try again.';
+
+  @override
+  String get tooManyRequests =>
+      'Too many attempts. Please wait a moment and try again.';
+
+  @override
+  String get permissionDeniedMessage =>
+      'You do not have permission to do that.';
+
+  @override
+  String get failedToLoadProfileSettings => 'Could not load profile settings.';
+
+  @override
+  String get collaborationRequestTitle => 'Collaboration request';
+
+  @override
+  String get collaborationRequestUnavailable =>
+      'This request is no longer available.';
+
+  @override
+  String collaborationRequestMessage(String authorName) {
+    return '$authorName wants to collaborate with you.';
+  }
+
+  @override
+  String get draftPreview => 'Draft preview';
+
+  @override
+  String get decline => 'Decline';
+
+  @override
+  String get accept => 'Accept';
+
+  @override
+  String get openBook => 'Open content';
+
+  @override
+  String get collaborationAccepted => 'Collaboration accepted.';
+
+  @override
+  String get collaborationDeclined => 'Collaboration declined.';
+
+  @override
+  String get couldNotUpdateCollaborationRequest =>
+      'Could not update the request. Please try again.';
+
+  @override
+  String get certificateUnavailableTitle => 'Certificate unavailable';
+
+  @override
+  String get certificateUnavailableBody =>
+      'Certificates are not available in this app version yet.';
+
+  @override
+  String get competitionUnavailableTitle => 'Competition unavailable';
+
+  @override
+  String get competitionUnavailableBody =>
+      'Competitions are not available in this app version yet.';
+
+  @override
+  String get readAloudFailed => 'Read aloud failed. Please try again.';
+
+  @override
+  String get noReadableTextSelected => 'No readable text selected.';
+
+  @override
+  String get noReadableTextInChapter => 'No readable text in this chapter.';
+
+  @override
+  String stopReadingBlock(int current, int total) {
+    return 'Stop (block $current/$total)';
+  }
+
+  @override
+  String fontSizeValue(String size) {
+    return 'Font size: $size';
+  }
+
+  @override
+  String get systemDefault => 'System';
+
+  @override
+  String get sepia => 'Sepia';
+
+  @override
+  String get hapticFeedback => 'Haptic feedback';
+
+  @override
+  String get hapticFeedbackSubtitle => 'Vibrate on likes, shares, and actions';
 }
