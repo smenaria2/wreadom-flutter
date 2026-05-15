@@ -4,5 +4,7 @@
   "FIREBASE_IOS_API_KEY": "replace-with-ios-api-key",
   "FIREBASE_WINDOWS_API_KEY": "replace-with-windows-api-key",
   "CLOUDINARY_CLOUD_NAME": "replace-with-cloudinary-cloud-name",
-  "CLOUDINARY_UPLOAD_PRESET": "replace-with-restricted-upload-preset"
+  "CLOUDINARY_UPLOAD_PRESET": "replace-with-restricted-upload-preset",
+  "USE_FIREBASE_EMULATORS": false,
+  "FIREBASE_EMULATOR_HOST": "127.0.0.1"
 }

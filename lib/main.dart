@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
@@ -30,6 +32,7 @@ import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
 import 'src/presentation/providers/locale_provider.dart';
+import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
@@ -100,19 +103,18 @@ class _MyAppState extends ConsumerState<MyApp> {
       await Hive.initFlutter();
       await OfflineService().init();
     });
-    final firebaseReady = await _guardedStartupStep('Firebase', () {
-      if (Firebase.apps.isNotEmpty) return Future<void>.value();
-      return Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    });
+    final firebaseReady = await _guardedStartupStep(
+      'Firebase',
+      _initializeFirebaseIfNeeded,
+    );
     if (firebaseReady) {
+      await _guardedStartupStep('Firebase emulators', _configureFirebaseEmulators);
       await _guardedStartupStep('Firestore cache', _configureFirestoreCache);
     }
     if (firebaseReady && mounted) {
       setState(() => _firebaseReady = true);
     }
-    if (firebaseReady) {
+    if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
       await _guardedStartupStep('Firebase App Check', () {
         return FirebaseAppCheck.instance.activate(
           providerAndroid: kDebugMode
@@ -162,6 +164,18 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
   }
 
+  Future<void> _initializeFirebaseIfNeeded() async {
+    if (Firebase.apps.isNotEmpty) return;
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } on FirebaseException catch (error) {
+      if (error.code == 'duplicate-app') return;
+      rethrow;
+    }
+  }
+
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
 
@@ -192,6 +206,16 @@ class _MyAppState extends ConsumerState<MyApp> {
       persistenceEnabled: true,
       cacheSizeBytes: 80 * 1024 * 1024,
     );
+  }
+
+  Future<void> _configureFirebaseEmulators() async {
+    if (!EnvConfig.useFirebaseEmulators) return;
+    final host = EnvConfig.firebaseEmulatorHost.trim().isEmpty
+        ? '127.0.0.1'
+        : EnvConfig.firebaseEmulatorHost.trim();
+    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+    FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
   }
 
   void _handleUri(Uri uri) {
@@ -281,7 +305,9 @@ class AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!firebaseReady) return const LoginScreen();
+    if (!firebaseReady) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     ref.listen(authStateProvider, (previous, next) {
       final previousId = previous?.asData?.value?.uid;

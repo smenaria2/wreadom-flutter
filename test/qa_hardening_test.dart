@@ -154,6 +154,11 @@ void main() {
     expect(repositorySource, contains('if (isAcceptedCollaboration(book))'));
     expect(writerSource, contains('ownerUserId: user.id'));
     expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
+    expect(mainSource, contains("error.code == 'duplicate-app'"));
+    expect(
+      mainSource,
+      contains('if (!firebaseReady) {\n      return const Scaffold'),
+    );
   });
 
   test('app startup configures bounded Firestore persistence', () {
@@ -709,6 +714,24 @@ void main() {
         rulesSource,
         contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
       );
+      expect(
+        rulesSource,
+        contains("'admin' in request.auth.token && request.auth.token.admin == true"),
+      );
+      expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
+      expect(rulesSource, isNot(contains("'fcmTokenRegistry'")));
+      expect(
+        rulesSource,
+        contains("request.resource.data.get('totalPoints', null) == resource.data.get('totalPoints', null)"),
+      );
+      expect(
+        rulesSource,
+        contains("request.resource.data.get('isDeactivated', null) == resource.data.get('isDeactivated', null)"),
+      );
+      expect(
+        rulesSource,
+        isNot(contains('userId == uid() ||\n        isAdmin()')),
+      );
 
       expect(
         rulesSource,
@@ -1255,8 +1278,9 @@ void main() {
     expect(authRepositorySource, contains("httpsCallable('removeFcmToken')"));
     expect(
       authRepositorySource,
-      contains("where('fcmTokens', arrayContains: token)"),
+      isNot(contains("where('fcmTokens', arrayContains: token)")),
     );
+    expect(authRepositorySource, isNot(contains('using client fallback')));
     expect(
       authRepositorySource,
       contains('FirebaseMessaging.instance.getToken()'),

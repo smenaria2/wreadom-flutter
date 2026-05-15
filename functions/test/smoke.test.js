@@ -17,6 +17,19 @@ test("functions module loads", () => {
   assert.ok(exported.__test);
 });
 
+test("admin authorization supports custom claims and legacy admin email", () => {
+  assert.equal(exported.__test.isAdminContext({auth: {token: {admin: true}}}), true);
+  assert.equal(
+      exported.__test.isAdminContext({auth: {token: {email: "smenaria2@gmail.com"}}}),
+      true,
+  );
+  assert.equal(
+      exported.__test.isAdminContext({auth: {token: {email: "reader@example.com"}}}),
+      false,
+  );
+  assert.equal(exported.__test.isAdminContext({auth: null}), false);
+});
+
 test("publication notifications use canonical single-quote wording", () => {
   assert.equal(
       exported.__test.publishedBookNotificationText("Sumit", {

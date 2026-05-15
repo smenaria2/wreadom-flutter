@@ -1,0 +1,12 @@
+{
+  "name": "librebook-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase --config ../firebase.json emulators:exec --project librebook-rules-test --only firestore \"node --test test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.9.0"
+  }
+}

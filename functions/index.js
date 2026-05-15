@@ -41,6 +41,20 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function isAdminContext(context) {
+  const token = context.auth?.token || {};
+  return token.admin === true || normalizeString(token.email) === "smenaria2@gmail.com";
+}
+
+function requireAdminContext(context) {
+  if (!context.auth?.uid) {
+    throw new functionsV1.https.HttpsError("unauthenticated", "User must be logged in.");
+  }
+  if (!isAdminContext(context)) {
+    throw new functionsV1.https.HttpsError("permission-denied", "Administrator privileges required.");
+  }
+}
+
 function configValue(envName, configName = envName.toLowerCase()) {
   const envValue = normalizeString(process.env[envName]);
   if (envValue) return envValue;
@@ -1887,9 +1901,7 @@ exports.onHomeBannerWrite = functionsV1.firestore
     });
 
 exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functionsV1.https.HttpsError("unauthenticated", "User must be logged in.");
-  }
+  requireAdminContext(context);
   await refreshHomepageMetadataInternal();
   return {success: true, message: "Homepage metadata refreshed successfully."};
 });
@@ -1907,6 +1919,7 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     chapterKey,
     isSupersededBookCommentNotification,
     shouldSendPushNotification,
+    isAdminContext,
     formatMilestoneCount,
     authorReadMilestoneNotificationText,
     crossedAuthorReadMilestones,

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../providers/app_update_provider.dart';
 import '../providers/navigation_providers.dart';
+import '../providers/theme_provider.dart';
 import 'messages_screen.dart';
 import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
@@ -22,6 +25,9 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   StreamSubscription<String>? _tokenRefreshSubscription;
+  final Set<int> _checkedUpdateNoticeBuilds = <int>{};
+
+  static const String _updateNoticePrefix = 'wreadom_update_notice_shown_';
 
   @override
   void initState() {
@@ -87,6 +93,13 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final selectedIndex = ref.watch(selectedTabProvider);
+    final updateAvailability = ref
+        .watch(appUpdateAvailabilityProvider)
+        .maybeWhen(data: (availability) => availability, orElse: () => null);
+    final hasUpdate = updateAvailability != null;
+    if (updateAvailability != null) {
+      _queueUpdateNotice(updateAvailability);
+    }
 
     return Scaffold(
       body: IndexedStack(index: selectedIndex, children: _screens),
@@ -116,12 +129,104 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: l10n.messages,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.person_outline),
-            selectedIcon: const Icon(Icons.person),
+            icon: _UpdateBadgeIcon(
+              icon: Icons.person_outline,
+              showBadge: hasUpdate,
+            ),
+            selectedIcon: _UpdateBadgeIcon(
+              icon: Icons.person,
+              showBadge: hasUpdate,
+            ),
             label: l10n.profile,
           ),
         ],
       ),
+    );
+  }
+
+  void _queueUpdateNotice(AppUpdateAvailability availability) {
+    final buildNumber = availability.config.androidBuildNumber;
+    if (!_checkedUpdateNoticeBuilds.add(buildNumber)) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final prefs = ref.read(sharedPreferencesProvider);
+      final key = '$_updateNoticePrefix$buildNumber';
+      if (prefs.getBool(key) ?? false) return;
+      await prefs.setBool(key, true);
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: const Text('A new Wreadom update is available.'),
+            action: SnackBarAction(
+              label: 'Update',
+              onPressed: () => unawaited(_openUpdateLink(availability)),
+            ),
+          ),
+        );
+    });
+  }
+
+  Future<void> _openUpdateLink(AppUpdateAvailability availability) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri.tryParse(availability.config.androidDownloadUrl);
+    if (uri == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Update link is not valid.')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open update link.')),
+      );
+    }
+  }
+}
+
+class _UpdateBadgeIcon extends StatelessWidget {
+  const _UpdateBadgeIcon({required this.icon, required this.showBadge});
+
+  final IconData icon;
+  final bool showBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!showBadge) return Icon(icon);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        const Positioned(top: -2, right: -4, child: _UpdateRedDot(size: 9)),
+      ],
+    );
+  }
+}
+
+class _UpdateRedDot extends StatelessWidget {
+  const _UpdateRedDot({this.size = 8});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.redAccent,
+        shape: BoxShape.circle,
+        border: Border.fromBorderSide(
+          BorderSide(color: Theme.of(context).colorScheme.surface, width: 1.5),
+        ),
+      ),
+      child: SizedBox.square(dimension: size),
     );
   }
 }

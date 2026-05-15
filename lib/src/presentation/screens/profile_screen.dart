@@ -704,6 +704,7 @@ class _AppUpdateTile extends ConsumerWidget {
           icon: Icons.system_update_alt_rounded,
           title: 'Update App',
           subtitle: 'Latest build ${availability.config.androidBuildNumber}',
+          showBadge: true,
           onTap: () => _openUpdateLink(context, availability),
         );
       },
@@ -956,20 +957,60 @@ class _MenuTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
+    this.showBadge = false,
   });
 
   final IconData icon;
   final String title;
   final VoidCallback onTap;
   final String? subtitle;
+  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
+      leading: _MenuTileIcon(icon: icon, showBadge: showBadge),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
       onTap: onTap,
+    );
+  }
+}
+
+class _MenuTileIcon extends StatelessWidget {
+  const _MenuTileIcon({required this.icon, required this.showBadge});
+
+  final IconData icon;
+  final bool showBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!showBadge) return Icon(icon);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        const Positioned(top: -1, right: -3, child: _UpdateMenuRedDot()),
+      ],
+    );
+  }
+}
+
+class _UpdateMenuRedDot extends StatelessWidget {
+  const _UpdateMenuRedDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.redAccent,
+        shape: BoxShape.circle,
+        border: Border.fromBorderSide(
+          BorderSide(color: Theme.of(context).colorScheme.surface, width: 1.5),
+        ),
+      ),
+      child: const SizedBox.square(dimension: 9),
     );
   }
 }
