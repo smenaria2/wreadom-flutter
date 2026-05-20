@@ -1649,8 +1649,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       final uploaded = await ref
           .read(cloudinaryUploadServiceProvider)
           .uploadImage(file: file, folder: 'books', userId: user.id);
-      final url = optimizeCloudinaryImageUrl(uploaded);
-      _insertEmbed(BlockEmbed.image(url));
+      _insertEmbed(BlockEmbed.image(uploaded));
       _showSnack(l10n.imageInserted);
     } catch (error) {
       _showSnack(l10n.couldNotUploadImage('$error'));
@@ -1673,12 +1672,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     try {
       final uploaded = await ref
           .read(cloudinaryUploadServiceProvider)
-          .uploadImage(file: file, folder: 'covers', userId: user.id);
-      final url = optimizeCloudinaryImageUrl(
-        uploaded,
-        transform: 'f_auto,q_auto,w_600,h_900,c_fill',
-      );
-      setState(() => _coverUrl = url);
+          .uploadImage(
+            file: file,
+            folder: 'covers',
+            userId: user.id,
+            deliveryTransform: 'f_auto,q_auto,w_600,h_900,c_fill',
+          );
+      setState(() => _coverUrl = uploaded);
       _markDirty();
       _showSnack(l10n.coverUploaded);
     } catch (error) {

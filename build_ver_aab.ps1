@@ -1,6 +1,6 @@
-# build_ver_apk.ps1
+# build_ver_aab.ps1
 # This script keeps the app version name the same, updates the build number
-# to seconds since the app build epoch, and builds the release APK.
+# to seconds since the app build epoch, and builds the release App Bundle (AAB).
 
 $pubspecPath = "pubspec.yaml"
 
@@ -37,19 +37,19 @@ if ($foundVersion) {
     
     Write-Host "--------------------------------------------------"
     Write-Host "Updated pubspec.yaml to version: $version+$buildNumber"
-    Write-Host "Starting Flutter Build (APK Release)..."
+    Write-Host "Starting Flutter Build (App Bundle Release)..."
     Write-Host "--------------------------------------------------"
     
     if (Test-Path "dart_defines.local.json") {
         Write-Host "Using dart_defines.local.json for release Dart defines."
-        flutter build apk --release --dart-define-from-file=dart_defines.local.json
+        flutter build appbundle --release --dart-define-from-file=dart_defines.local.json
     } else {
         Write-Warning "dart_defines.local.json not found. Building without local Dart defines."
-        flutter build apk --release
+        flutter build appbundle --release
     }
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "`nSuccess! APK is ready at: build\app\outputs\flutter-apk\app-release.apk"
+        Write-Host "`nSuccess! App Bundle is ready at: build\app\outputs\bundle\release\app-release.aab"
     } else {
         Write-Error "`nBuild failed with exit code $LASTEXITCODE"
     }

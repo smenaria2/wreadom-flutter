@@ -291,6 +291,9 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
             file: file,
             folder: isCover ? 'profile_covers' : 'profile_photos',
             userId: widget.user.id,
+            deliveryTransform: isCover
+                ? 'f_auto,q_auto,w_1600,h_600,c_fill'
+                : 'f_auto,q_auto,w_600,h_600,c_fill',
           );
       if (isCover) {
         await ref

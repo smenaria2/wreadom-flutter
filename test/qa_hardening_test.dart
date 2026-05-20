@@ -323,7 +323,7 @@ void main() {
       'lib/src/presentation/routing/app_router.dart',
     ).readAsStringSync();
 
-    expect(source, contains('Last Updated: May 14, 2026'));
+    expect(source, contains('Last Updated: May 19, 2026'));
     expect(source, contains('Digital Personal Data Protection Act, 2023'));
     expect(source, contains('Indian Contract Act, 1872'));
     expect(source, contains('Terms of Use'));
@@ -696,70 +696,70 @@ void main() {
     },
   );
 
-  test(
-    'shared firestore rules preserve android and web compatibility paths',
-    () {
-      final rulesSource = File('firestore.rules').readAsStringSync();
+  test('shared firestore rules preserve android and web compatibility paths', () {
+    final rulesSource = File('firestore.rules').readAsStringSync();
 
-      expect(
-        rulesSource,
-        contains("function ownsIncomingAny(primary, fallback)"),
-      );
-      expect(
-        rulesSource,
-        isNot(contains("function ownsExistingAny(primary, fallback)")),
-      );
-      expect(rulesSource, contains("function isBookAuthor(bookId)"));
-      expect(
-        rulesSource,
-        contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
-      );
-      expect(
-        rulesSource,
-        contains("'admin' in request.auth.token && request.auth.token.admin == true"),
-      );
-      expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
-      expect(rulesSource, isNot(contains("'fcmTokenRegistry'")));
-      expect(
-        rulesSource,
-        contains("request.resource.data.get('totalPoints', null) == resource.data.get('totalPoints', null)"),
-      );
-      expect(
-        rulesSource,
-        contains("request.resource.data.get('isDeactivated', null) == resource.data.get('isDeactivated', null)"),
-      );
-      expect(
-        rulesSource,
-        isNot(contains('userId == uid() ||\n        isAdmin()')),
-      );
+    expect(
+      rulesSource,
+      contains("function ownsIncomingAny(primary, fallback)"),
+    );
+    expect(
+      rulesSource,
+      isNot(contains("function ownsExistingAny(primary, fallback)")),
+    );
+    expect(rulesSource, contains("function isBookAuthor(bookId)"));
+    expect(
+      rulesSource,
+      contains("function allowsLegacyEmbeddedFeedCommentMutation()"),
+    );
+    expect(
+      rulesSource,
+      contains(
+        "'admin' in request.auth.token && request.auth.token.admin == true",
+      ),
+    );
+    expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
+    expect(rulesSource, isNot(contains("'fcmTokenRegistry'")));
+    expect(
+      rulesSource,
+      contains(
+        "request.resource.data.get('totalPoints', null) == resource.data.get('totalPoints', null)",
+      ),
+    );
+    expect(
+      rulesSource,
+      contains(
+        "request.resource.data.get('isDeactivated', null) == resource.data.get('isDeactivated', null)",
+      ),
+    );
+    expect(
+      rulesSource,
+      isNot(contains('userId == uid() ||\n        isAdmin()')),
+    );
 
-      expect(
-        rulesSource,
-        contains("allow create: if ownsIncoming('followerId')"),
-      );
-      expect(rulesSource, contains("onlyChanges(['commentCount'])"));
-      expect(
-        rulesSource,
-        contains("allowsLegacyEmbeddedFeedCommentMutation()"),
-      );
-      expect(rulesSource, contains("onlyChanges(['likes', 'likesCount'])"));
-      expect(rulesSource, contains("onlyChanges(['replies', 'repliesCount'])"));
-      expect(
-        rulesSource,
-        contains("request.resource.data.highlightedByUserId == uid()"),
-      );
-      expect(
-        rulesSource,
-        contains("allow create: if ownsIncomingAny('authorId', 'userId') &&"),
-      );
-      expect(rulesSource, contains("function canEditBookData(data)"));
-      expect(
-        rulesSource,
-        contains("request.resource.data.reporterId == uid() ||"),
-      );
-      expect(rulesSource, contains("request.resource.data.userId == uid()"));
-    },
-  );
+    expect(
+      rulesSource,
+      contains("allow create: if ownsIncoming('followerId')"),
+    );
+    expect(rulesSource, contains("onlyChanges(['commentCount'])"));
+    expect(rulesSource, contains("allowsLegacyEmbeddedFeedCommentMutation()"));
+    expect(rulesSource, contains("onlyChanges(['likes', 'likesCount'])"));
+    expect(rulesSource, contains("onlyChanges(['replies', 'repliesCount'])"));
+    expect(
+      rulesSource,
+      contains("request.resource.data.highlightedByUserId == uid()"),
+    );
+    expect(
+      rulesSource,
+      contains("allow create: if ownsIncomingAny('authorId', 'userId') &&"),
+    );
+    expect(rulesSource, contains("function canEditBookData(data)"));
+    expect(
+      rulesSource,
+      contains("request.resource.data.reporterId == uid() ||"),
+    );
+    expect(rulesSource, contains("request.resource.data.userId == uid()"));
+  });
 
   test('reader sharing, chrome, tts, and unique views stay wired', () {
     final readerSource = File(
@@ -1295,6 +1295,22 @@ void main() {
     expect(functionsSource, contains('exports.claimFcmToken'));
     expect(functionsSource, contains('exports.removeFcmToken'));
     expect(functionsSource, contains('registryWithoutToken'));
+  });
+
+  test('feed image uploads use Cloudinary instead of Firebase Storage', () {
+    final feedRepositorySource = File(
+      'lib/src/data/repositories/firebase_feed_repository.dart',
+    ).readAsStringSync();
+    final cloudinaryUploadSource = File(
+      'lib/src/data/services/cloudinary_upload_service.dart',
+    ).readAsStringSync();
+
+    expect(feedRepositorySource, contains('CloudinaryUploadService'));
+    expect(feedRepositorySource, contains("folder: 'feed_posts'"));
+    expect(feedRepositorySource, isNot(contains('FirebaseStorage.instance')));
+    expect(feedRepositorySource, isNot(contains('feed_images')));
+    expect(cloudinaryUploadSource, contains('f_auto,q_auto,w_1200,c_limit'));
+    expect(cloudinaryUploadSource, contains('_withDeliveryTransform'));
   });
 
   test('profile privacy and collab localization hardening stays wired', () {

@@ -435,7 +435,7 @@ class AppRouter {
   }
 }
 
-const _privacyPolicyBody = r'''Last Updated: May 14, 2026
+const _privacyPolicyBody = r'''Last Updated: May 19, 2026
 
 1. Introduction
 
@@ -524,7 +524,7 @@ Under the DPDPA 2023 and IT Act 2000, you have the following rights:
 
 - Right to Access: You can access your personal data through your account settings
 - Right to Correction: You can update or correct your information at any time
-- Right to Erasure: You can request deletion of your account and data
+- Right to Erasure: You can request deletion of your account and data (see Section 14 for detailed steps)
 - Right to Data Portability: You can request a copy of your data in a portable format
 - Right to Withdraw Consent: You can withdraw consent for data processing
 - Right to Grievance Redressal: You can file complaints regarding data handling
@@ -545,7 +545,7 @@ Our Service is not directed to individuals under the age of 13. We do not knowin
 
 9. Data Retention
 
-We retain your personal information for as long as your account is active or as needed to provide you services. You may request deletion of your account at any time, after which we will delete or anonymize your data within 30 days, except where we are required to retain it for legal purposes.
+We retain your personal information for as long as your account is active or as needed to provide you services. You may request deletion of your account at any time (see Section 14 for detailed steps), after which we will delete or anonymize your data within 30 days, except where we are required to retain it for legal purposes.
 
 10. International Data Transfers
 
@@ -567,7 +567,23 @@ Response Time: Within 30 days of receiving a complaint
 
 If you have any questions about this Privacy Policy or our data practices, please contact us at:
 
-Email: contact@wreadom.in''';
+Email: contact@wreadom.in
+
+14. Account and Data Deletion Request
+
+At Wreadom (developed by S. Menaria), we value your privacy and give you full control over your personal data. If you no longer wish to use our Service, you can request the deletion of your account and all associated personal and content data at any time.
+
+To request account and data deletion, please follow these steps:
+
+1. Send an Email Request: Send an email from your registered email address to our support team at contact@wreadom.in.
+2. Subject Line: Use the subject line "Account Deletion Request - [Your Username]".
+3. Specify Data to Delete: By default, we will delete your entire account including your profile information, reading history, bookmarks, saved books, and all uploaded content (books, comments, and reviews). If you wish to retain any published works under an anonymous pen name instead of complete deletion, please specify this in your email.
+
+What happens after you submit a request?
+
+- Upon receiving your request, we will verify your identity to protect your account security.
+- Once verified, your account and all associated data will be permanently deleted from our active databases and servers within 30 days.
+- Please note that some backups or legally required transactional logs may persist for a limited period to comply with local financial or legal obligations, after which they will also be permanently purged.''';
 
 const _termsOfUseBody = r'''Last Updated: May 14, 2026
 

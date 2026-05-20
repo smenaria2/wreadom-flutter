@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
+import '../services/cloudinary_upload_service.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 
@@ -386,17 +387,19 @@ class FirebaseFeedRepository implements FeedRepository {
 
   @override
   Future<String> uploadPostImage(Uint8List bytes, String fileName) async {
-    final storageRef = FirebaseStorage.instance
-        .ref()
-        .child('feed_images')
-        .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || userId.trim().isEmpty) {
+      throw const CloudinaryUploadException(
+        'Login is required to upload images.',
+      );
+    }
 
-    final uploadTask = await storageRef.putData(
-      bytes,
-      SettableMetadata(contentType: 'image/jpeg'),
+    return CloudinaryUploadService().uploadImageBytes(
+      bytes: bytes,
+      fileName: fileName,
+      folder: 'feed_posts',
+      userId: userId,
     );
-
-    return await uploadTask.ref.getDownloadURL();
   }
 
   @override

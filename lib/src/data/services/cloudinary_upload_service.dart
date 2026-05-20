@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +21,26 @@ class CloudinaryUploadService {
     required XFile file,
     required String folder,
     required String userId,
+    String deliveryTransform = 'f_auto,q_auto,w_1200,c_limit',
+  }) async {
+    final bytes = await file.readAsBytes();
+    return uploadImageBytes(
+      bytes: bytes,
+      fileName: file.name.isEmpty ? 'upload.jpg' : file.name,
+      folder: folder,
+      userId: userId,
+      mimeType: file.mimeType,
+      deliveryTransform: deliveryTransform,
+    );
+  }
+
+  Future<String> uploadImageBytes({
+    required Uint8List bytes,
+    required String fileName,
+    required String folder,
+    required String userId,
+    String? mimeType,
+    String deliveryTransform = 'f_auto,q_auto,w_1200,c_limit',
   }) async {
     if (_cloudName.trim().isEmpty) {
       throw const CloudinaryUploadException(
@@ -32,11 +53,10 @@ class CloudinaryUploadService {
       );
     }
 
-    final bytes = await file.readAsBytes();
     if (bytes.length > maxImageBytes) {
       throw const CloudinaryUploadException('Image must be 10MB or smaller.');
     }
-    if (!_isSupportedImage(file)) {
+    if (!_isSupportedImage(fileName: fileName, mimeType: mimeType)) {
       throw const CloudinaryUploadException(
         'Please choose a PNG, JPEG, WebP, GIF, HEIC, or AVIF image.',
       );
@@ -55,15 +75,18 @@ class CloudinaryUploadService {
         http.MultipartFile.fromBytes(
           'file',
           bytes,
-          filename: file.name.isEmpty ? 'upload.jpg' : file.name,
+          filename: fileName.trim().isEmpty ? 'upload.jpg' : fileName,
         ),
       );
 
     final streamed = await _client.send(request);
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      final reason = _cloudinaryErrorMessage(response.body);
       throw CloudinaryUploadException(
-        'Cloudinary upload failed (${response.statusCode}).',
+        reason == null
+            ? 'Cloudinary upload failed (${response.statusCode}).'
+            : 'Cloudinary upload failed (${response.statusCode}): $reason',
       );
     }
 
@@ -74,13 +97,13 @@ class CloudinaryUploadService {
         'Cloudinary did not return an image URL.',
       );
     }
-    return secureUrl;
+    return _withDeliveryTransform(secureUrl, deliveryTransform);
   }
 
-  bool _isSupportedImage(XFile file) {
-    final mime = file.mimeType?.toLowerCase();
+  bool _isSupportedImage({required String fileName, String? mimeType}) {
+    final mime = mimeType?.toLowerCase();
     if (mime != null && mime.startsWith('image/')) return true;
-    final name = '${file.name} ${file.path}'.toLowerCase();
+    final name = fileName.toLowerCase();
     return const [
       '.jpg',
       '.jpeg',
@@ -91,6 +114,29 @@ class CloudinaryUploadService {
       '.heif',
       '.avif',
     ].any(name.contains);
+  }
+
+  String? _cloudinaryErrorMessage(String body) {
+    try {
+      final payload = jsonDecode(body) as Map<String, dynamic>;
+      final error = payload['error'];
+      if (error is Map<String, dynamic>) {
+        final message = error['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message.trim();
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  String _withDeliveryTransform(String url, String transform) {
+    final cleanTransform = transform.trim();
+    if (cleanTransform.isEmpty || !url.contains('/image/upload/')) return url;
+    if (url.contains('/upload/$cleanTransform/')) return url;
+    return url.replaceFirst('/upload/', '/upload/$cleanTransform/');
   }
 }
 
