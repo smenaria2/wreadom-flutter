@@ -115,19 +115,22 @@ class _MyAppState extends ConsumerState<MyApp> {
       setState(() => _firebaseReady = true);
     }
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
-      await _guardedStartupStep('Firebase App Check', () {
-        return FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode
-              ? const AndroidDebugProvider()
-              : const AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode
-              ? const AppleDebugProvider()
-              : const AppleDeviceCheckProvider(),
-          providerWeb: ReCaptchaV3Provider(
-            '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
-          ),
-        );
-      });
+      final shouldActivateAppCheck = !kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug;
+      if (shouldActivateAppCheck) {
+        await _guardedStartupStep('Firebase App Check', () {
+          return FirebaseAppCheck.instance.activate(
+            providerAndroid: kDebugMode
+                ? const AndroidDebugProvider()
+                : const AndroidPlayIntegrityProvider(),
+            providerApple: kDebugMode
+                ? const AppleDebugProvider()
+                : const AppleDeviceCheckProvider(),
+            providerWeb: ReCaptchaV3Provider(
+              '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
+            ),
+          );
+        });
+      }
       NotificationService.instance.attachNavigator(_navigatorKey);
       await _guardedStartupStep(
         'Notifications',

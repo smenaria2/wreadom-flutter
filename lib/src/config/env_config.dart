@@ -29,5 +29,10 @@ class EnvConfig {
     defaultValue: '127.0.0.1',
   );
 
+  static const bool enableAppCheckWebDebug = bool.fromEnvironment(
+    'ENABLE_APPCHECK_WEB_DEBUG',
+    defaultValue: false,
+  );
+
   // Add other sensitive values here only as dart-define keys, not defaults.
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/repositories/firebase_auth_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -18,7 +19,12 @@ Stream<fb_auth.User?> authState(Ref ref) {
 
 @riverpod
 Future<UserModel?> currentUser(Ref ref) async {
-  final user = await ref.watch(authStateProvider.future);
+  final authState = ref.watch(authStateProvider);
+  if (authState.isLoading) {
+    return Completer<UserModel?>().future;
+  }
+  final user = authState.value;
   if (user == null) return null;
   return ref.read(authRepositoryProvider).getUser(user.uid);
 }
+

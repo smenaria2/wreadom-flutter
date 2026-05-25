@@ -60,3 +60,5 @@ dart_defines.local.json
 android/build/
 
 .agent/
+
+.vercel

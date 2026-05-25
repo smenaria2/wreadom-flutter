@@ -10,7 +10,7 @@ _MessageStoryData _$MessageStoryDataFromJson(Map<String, dynamic> json) =>
     _MessageStoryData(
       id: json['id'] as String,
       title: json['title'] as String,
-      coverUrl: json['coverUrl'] as String?,
+      coverUrl: proxyImageUrl(json['coverUrl'] as String?),
       authorNames: json['authorNames'] as String,
     );
 

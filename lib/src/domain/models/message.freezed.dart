@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MessageStoryData {
 
- String get id; String get title; String? get coverUrl; String get authorNames;
+ String get id; String get title;@JsonKey(fromJson: proxyImageUrl) String? get coverUrl; String get authorNames;
 /// Create a copy of MessageStoryData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $MessageStoryDataCopyWith<$Res>  {
   factory $MessageStoryDataCopyWith(MessageStoryData value, $Res Function(MessageStoryData) _then) = _$MessageStoryDataCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? coverUrl, String authorNames
+ String id, String title,@JsonKey(fromJson: proxyImageUrl) String? coverUrl, String authorNames
 });
 
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? coverUrl,  String authorNames)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(fromJson: proxyImageUrl)  String? coverUrl,  String authorNames)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessageStoryData() when $default != null:
 return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
@@ -177,7 +177,7 @@ return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? coverUrl,  String authorNames)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(fromJson: proxyImageUrl)  String? coverUrl,  String authorNames)  $default,) {final _that = this;
 switch (_that) {
 case _MessageStoryData():
 return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
@@ -197,7 +197,7 @@ return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? coverUrl,  String authorNames)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title, @JsonKey(fromJson: proxyImageUrl)  String? coverUrl,  String authorNames)?  $default,) {final _that = this;
 switch (_that) {
 case _MessageStoryData() when $default != null:
 return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
@@ -212,12 +212,12 @@ return $default(_that.id,_that.title,_that.coverUrl,_that.authorNames);case _:
 @JsonSerializable()
 
 class _MessageStoryData implements MessageStoryData {
-  const _MessageStoryData({required this.id, required this.title, this.coverUrl, required this.authorNames});
+  const _MessageStoryData({required this.id, required this.title, @JsonKey(fromJson: proxyImageUrl) this.coverUrl, required this.authorNames});
   factory _MessageStoryData.fromJson(Map<String, dynamic> json) => _$MessageStoryDataFromJson(json);
 
 @override final  String id;
 @override final  String title;
-@override final  String? coverUrl;
+@override@JsonKey(fromJson: proxyImageUrl) final  String? coverUrl;
 @override final  String authorNames;
 
 /// Create a copy of MessageStoryData
@@ -253,7 +253,7 @@ abstract mixin class _$MessageStoryDataCopyWith<$Res> implements $MessageStoryDa
   factory _$MessageStoryDataCopyWith(_MessageStoryData value, $Res Function(_MessageStoryData) _then) = __$MessageStoryDataCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? coverUrl, String authorNames
+ String id, String title,@JsonKey(fromJson: proxyImageUrl) String? coverUrl, String authorNames
 });
 
 

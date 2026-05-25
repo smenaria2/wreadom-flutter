@@ -35,7 +35,10 @@
 <body>
   <script>
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      // App Check is disabled by default in local web development.
+      // If you wish to use App Check Debug Provider, register your token in the Firebase console
+      // and uncomment the line below (setting it to true or your custom debug token string):
+      // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     }
   </script>
   <!--

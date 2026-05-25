@@ -10,7 +10,7 @@ _Book _$BookFromJson(Map<String, dynamic> json) => _Book(
   id: json['id'] as String,
   title: json['title'] as String,
   description: json['description'] as String?,
-  coverUrl: json['coverUrl'] as String?,
+  coverUrl: proxyImageUrl(json['coverUrl'] as String?),
   authors: (json['authors'] as List<dynamic>)
       .map((e) => Author.fromJson(e as Map<String, dynamic>))
       .toList(),

@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../utils/image_proxy_utils.dart';
 import 'author.dart';
 import 'chapter.dart';
 
@@ -11,7 +12,7 @@ abstract class Book with _$Book {
     required String id,
     required String title,
     String? description,
-    String? coverUrl,
+    @JsonKey(fromJson: proxyImageUrl) String? coverUrl,
     required List<Author> authors,
     required List<String> subjects,
     required List<String> languages,

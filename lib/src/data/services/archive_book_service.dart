@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../../domain/models/book.dart';
 import '../../domain/models/author.dart';
 import '../../domain/models/chapter.dart';
+import '../../utils/image_proxy_utils.dart';
 
 class ArchiveBookService {
   static const String searchUrl = 'https://archive.org/advancedsearch.php';
@@ -306,7 +307,7 @@ class ArchiveBookService {
       mediaType: _stringValue(doc['mediatype'], fallback: 'texts'),
       bookshelves: collections,
       source: 'archive',
-      coverUrl: 'https://archive.org/services/img/$identifier',
+      coverUrl: proxyImageUrl('https://archive.org/services/img/$identifier'),
       year: doc['year'],
       description: _stringValue(doc['description']),
     );
@@ -391,7 +392,7 @@ class ArchiveBookService {
       mediaType: _stringValue(meta['mediatype'], fallback: 'texts'),
       bookshelves: collections,
       source: 'archive',
-      coverUrl: 'https://archive.org/services/img/$identifier',
+      coverUrl: proxyImageUrl('https://archive.org/services/img/$identifier'),
       year: meta['year'],
       description: _stringValue(meta['description']),
     );

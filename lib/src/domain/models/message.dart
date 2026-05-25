@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../utils/image_proxy_utils.dart';
 
 part 'message.freezed.dart';
 part 'message.g.dart';
@@ -8,7 +9,7 @@ abstract class MessageStoryData with _$MessageStoryData {
   const factory MessageStoryData({
     required String id,
     required String title,
-    String? coverUrl,
+    @JsonKey(fromJson: proxyImageUrl) String? coverUrl,
     required String authorNames,
   }) = _MessageStoryData;
 
