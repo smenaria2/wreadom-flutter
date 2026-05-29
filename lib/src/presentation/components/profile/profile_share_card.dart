@@ -48,9 +48,11 @@ Future<void> shareUserProfileCard(
     final bytes = await image
         ?.toByteData(format: ui.ImageByteFormat.png)
         .then((data) => data?.buffer.asUint8List());
+    final shareMessage = 'Follow $displayName on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}';
+
     if (bytes == null || bytes.isEmpty) {
       await Share.share(
-        fallbackText,
+        shareMessage,
         subject: l10n.shareProfileSubject(displayName),
       );
       return;
@@ -64,12 +66,14 @@ Future<void> shareUserProfileCard(
           mimeType: 'image/png',
         ),
       ],
-      text: AppLinkHelper.user(user.id),
+      text: shareMessage,
       subject: l10n.shareProfileSubject(displayName),
     );
   } catch (_) {
+    final displayName = _displayName(user);
+    final shareMessage = 'Follow $displayName on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}';
     await Share.share(
-      fallbackText,
+      shareMessage,
       subject: l10n.shareProfileSubject(displayName),
     );
   } finally {

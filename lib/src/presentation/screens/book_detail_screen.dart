@@ -29,6 +29,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/book_author_utils.dart';
+import '../utils/share_text_helper.dart';
 import '../utils/error_message_utils.dart';
 import '../utils/swipe_hint.dart';
 import '../widgets/adaptive_banner_ad.dart';
@@ -404,9 +405,10 @@ class _BookDetailBody extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.share_outlined),
                 onPressed: () async {
-                  final message = AppLocalizations.of(
-                    context,
-                  )!.shareBookMessage(book.title, AppLinkHelper.book(book.id));
+                  final message = generateBookShareText(
+                    book: book,
+                    link: AppLinkHelper.book(book.id),
+                  );
                   await AppHaptics.selection();
                   await shareBookLinkWithCover(
                     text: message,

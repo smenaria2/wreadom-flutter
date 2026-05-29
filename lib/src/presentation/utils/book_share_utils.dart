@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:share_plus/share_plus.dart';
 
 Future<void> shareBookLinkWithCover({
@@ -28,6 +29,16 @@ Future<void> shareBookLinkWithCover({
   );
 }
 
+Uint8List? _convertToJpeg(Uint8List bytes) {
+  try {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return null;
+    return img.encodeJpg(decoded, quality: 85);
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<_ShareableCover?> _downloadShareableCover(String? coverUrl) async {
   final url = coverUrl?.trim();
   if (url == null || url.isEmpty) return null;
@@ -40,9 +51,19 @@ Future<_ShareableCover?> _downloadShareableCover(String? coverUrl) async {
     if (response.statusCode < 200 || response.statusCode >= 300) return null;
     if (response.bodyBytes.isEmpty) return null;
 
-    final mimeType = _imageMimeType(response.headers['content-type']);
+    var mimeType = _imageMimeType(response.headers['content-type']);
+    var bytes = response.bodyBytes;
+
+    if (mimeType == 'image/webp') {
+      final converted = _convertToJpeg(bytes);
+      if (converted != null) {
+        bytes = converted;
+        mimeType = 'image/jpeg';
+      }
+    }
+
     return _ShareableCover(
-      bytes: response.bodyBytes,
+      bytes: bytes,
       mimeType: mimeType,
       extension: _extensionForMimeType(mimeType),
     );

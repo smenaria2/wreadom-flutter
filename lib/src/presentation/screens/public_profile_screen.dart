@@ -246,9 +246,7 @@ class PublicProfileScreen extends ConsumerWidget {
       context,
       user: user,
       worksCount: worksCount,
-      fallbackText: AppLocalizations.of(
-        context,
-      )!.readWithUserOnWreadom(name, AppLinkHelper.user(user.id)),
+      fallbackText: 'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
     );
   }
 }

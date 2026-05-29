@@ -31,6 +31,7 @@ import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/error_message_utils.dart';
+import '../utils/share_text_helper.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/section_error.dart';
@@ -2181,13 +2182,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final url = AppLinkHelper.chapter(widget.book.id, chapterNumber);
     final chapterTitle = chapter.title.trim();
 
-    final authors = widget.book.authors
-        .map((a) => a.name)
-        .where((n) => n.isNotEmpty)
-        .join(', ');
-
-    final shareText =
-        'Read "${widget.book.title}" - $chapterTitle ${authors.isNotEmpty ? 'by $authors' : ''}\n\n$url';
+    final shareText = generateChapterShareText(
+      book: widget.book,
+      chapterTitle: chapterTitle,
+      link: url,
+    );
 
     await shareBookLinkWithCover(
       text: shareText,
