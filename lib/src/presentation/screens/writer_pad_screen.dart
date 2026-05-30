@@ -1676,7 +1676,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             file: file,
             folder: 'covers',
             userId: user.id,
-            deliveryTransform: 'f_auto,q_auto,w_600,h_900,c_fill',
+            deliveryTransform: 'f_auto,q_auto,w_600,h_900,c_pad,b_auto',
           );
       setState(() => _coverUrl = uploaded);
       _markDirty();

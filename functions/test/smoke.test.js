@@ -14,6 +14,7 @@ test("functions module loads", () => {
   assert.ok(typeof exported.createAudioReviewUploadTarget === "function");
   assert.ok(typeof exported.deleteAudioReviewObject === "function");
   assert.ok(typeof exported.createAudioReviewDownloadUrl === "function");
+  assert.ok(typeof exported.sendAdminContentNotification === "function");
   assert.ok(exported.__test);
 });
 

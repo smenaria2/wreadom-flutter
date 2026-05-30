@@ -189,6 +189,124 @@ async function deleteNotificationDoc(docId) {
   await db.collection("notifications").doc(docId).delete().catch(() => undefined);
 }
 
+function contentRecommendationLink(bookId) {
+  return `https://wreadom.in/?book=${encodeURIComponent(bookId)}`;
+}
+
+async function validateAdminContentNotificationRequest(data = {}) {
+  const bookId = normalizeString(data.bookId);
+  const title = normalizeString(data.title);
+  const message = normalizeString(data.message);
+  const userIds = Array.isArray(data.userIds) ?
+    Array.from(new Set(data.userIds.map((value) => normalizeString(value)).filter(Boolean))) :
+    [];
+
+  if (!bookId) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Missing bookId.");
+  }
+  if (!title || title.length > 80) {
+    throw new functionsV1.https.HttpsError(
+        "invalid-argument",
+        "Title must be between 1 and 80 characters.",
+    );
+  }
+  if (!message || message.length > 500) {
+    throw new functionsV1.https.HttpsError(
+        "invalid-argument",
+        "Message must be between 1 and 500 characters.",
+    );
+  }
+  if (userIds.length === 0) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Select at least one recipient.");
+  }
+  if (userIds.length > 1000) {
+    throw new functionsV1.https.HttpsError(
+        "invalid-argument",
+        "Select 1000 recipients or fewer per send.",
+    );
+  }
+
+  const bookSnapshot = await db.collection("books").doc(bookId).get();
+  if (!bookSnapshot.exists) {
+    throw new functionsV1.https.HttpsError("not-found", "Selected content was not found.");
+  }
+  const book = bookSnapshot.data() || {};
+  if (normalizeString(book.status).toLowerCase() !== "published") {
+    throw new functionsV1.https.HttpsError(
+        "failed-precondition",
+        "Only published content can be recommended.",
+    );
+  }
+
+  return {
+    bookId,
+    title,
+    message,
+    link: contentRecommendationLink(bookId),
+    userIds,
+  };
+}
+
+async function createAdminContentRecommendationNotifications({
+  bookId,
+  title,
+  message,
+  link,
+  createdBy,
+  userIds,
+}) {
+  let created = 0;
+  let skipped = 0;
+
+  const results = await Promise.all(
+    userIds.map(async (userId) => {
+      try {
+        const userDoc = await db.collection("users").doc(userId).get();
+        const user = userDoc.exists ? userDoc.data() || {} : null;
+        if (!user || user.isDeactivated === true) {
+          return "skipped";
+        }
+
+        const notificationId = db.collection("notifications").doc().id;
+        const notificationData = buildNotification({
+          userId,
+          actorId: "system",
+          actorName: title,
+          actorPhotoURL: null,
+          type: "new_creation",
+          text: message,
+          link,
+          targetId: bookId,
+          metadata: {
+            source: "admin_content_recommendation",
+            bookId,
+            contentId: bookId,
+            targetType: "book",
+            createdBy,
+            selectedRecipient: true,
+          },
+        });
+
+        await sendPushNotificationToUser(userId, notificationData, notificationId);
+        return "created";
+      } catch (err) {
+        logger.error(`Failed to send recommendation push notification to user ${userId}:`, err);
+        return "skipped";
+      }
+    })
+  );
+
+  for (const r of results) {
+    if (r === "created") {
+      created += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return {created, skipped};
+}
+
 function notificationValue(...values) {
   for (const value of values) {
     const normalized = normalizeString(value);
@@ -610,17 +728,7 @@ async function notifyBookOwnersForBookActivity(commentId, data = {}) {
   }
 }
 
-exports.sendPushNotification = functionsV1.firestore.document("notifications/{notificationId}").onWrite(async (change, context) => {
-  const beforeData = change.before.exists ? change.before.data() : undefined;
-  const data = change.after.exists ? change.after.data() : undefined;
-  if (!shouldSendPushNotification(beforeData, data)) {
-    return;
-  }
-  if (!data) {
-    return;
-  }
-
-  const userId = data.userId;
+async function sendPushNotificationToUser(userId, data, notificationId = "") {
   const userDocRef = admin.firestore().doc(`users/${userId}`);
   const userDoc = await userDocRef.get();
   if (!userDoc.exists) {
@@ -705,10 +813,10 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
       notification: {
         icon: "https://wreadom.in/logo%20192x192.png",
         badge: "https://wreadom.in/logo-32x32.png",
-        tag: context.params.notificationId,
+        tag: notificationId,
       },
     },
-    data: pushDataFromNotification(data, context.params.notificationId),
+    data: pushDataFromNotification(data, notificationId),
   };
 
   try {
@@ -746,6 +854,19 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
   } catch (error) {
     logger.error("Error sending FCM push notification:", error);
   }
+}
+
+exports.sendPushNotification = functionsV1.firestore.document("notifications/{notificationId}").onWrite(async (change, context) => {
+  const beforeData = change.before.exists ? change.before.data() : undefined;
+  const data = change.after.exists ? change.after.data() : undefined;
+  if (!shouldSendPushNotification(beforeData, data)) {
+    return;
+  }
+  if (!data) {
+    return;
+  }
+
+  await sendPushNotificationToUser(data.userId, data, context.params.notificationId);
 });
 
 exports.claimFcmToken = functionsV1.https.onCall(async (data, context) => {
@@ -1719,6 +1840,18 @@ exports.toggleReviewHighlight = functionsV1.https.onCall(async (data, context) =
     maxHighlighted: Number.parseInt(`${data?.maxHighlighted ?? 3}`, 10) || 3,
   });
 });
+
+exports.sendAdminContentNotification = functionsV1
+    .runWith({timeoutSeconds: 540, memory: "512MB"})
+    .https.onCall(async (data, context) => {
+      requireAdminContext(context);
+      const request = await validateAdminContentNotificationRequest(data);
+      const result = await createAdminContentRecommendationNotifications({
+        ...request,
+        createdBy: context.auth?.uid || "",
+      });
+      return {success: true, ...result};
+    });
 
 exports.createAudioReviewUploadTarget = functionsV1
     .runWith({secrets: B2_SECRET_NAMES})
