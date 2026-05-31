@@ -2039,7 +2039,7 @@ exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) =
   return {success: true, message: "Homepage metadata refreshed successfully."};
 });
 
-exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("every 24 hours").onRun(async (context) => {
+exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *").timeZone("Asia/Kolkata").onRun(async (context) => {
   const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
   try {
