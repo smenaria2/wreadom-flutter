@@ -7,7 +7,7 @@ const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
 admin.initializeApp();
 
 const db = admin.firestore();
-const FieldValue = admin.firestore.FieldValue;
+const { FieldValue } = require("firebase-admin/firestore");
 const MAX_BATCH_WRITES = 450;
 const MAX_AUDIO_REVIEW_DURATION_MS = 120000;
 const MAX_AUDIO_REVIEW_BYTES = 2 * 1024 * 1024;
@@ -799,12 +799,16 @@ async function sendPushNotificationToUser(userId, data, notificationId = "") {
 
   const notificationTitle = normalizeString(data.actorName) || "Wreadom";
   const notificationBody = localizedPushBody(data, userData);
+  const imageUrl = typeof data.metadata?.coverUrl === "string" && data.metadata.coverUrl.trim()
+    ? data.metadata.coverUrl.trim()
+    : undefined;
 
   const message = {
     tokens: uniqueTokens,
     notification: {
       title: notificationTitle,
       body: notificationBody,
+      ...(imageUrl ? { imageUrl } : {}),
     },
     webpush: {
       fcmOptions: {
@@ -814,6 +818,7 @@ async function sendPushNotificationToUser(userId, data, notificationId = "") {
         icon: "https://wreadom.in/logo%20192x192.png",
         badge: "https://wreadom.in/logo-32x32.png",
         tag: notificationId,
+        ...(imageUrl ? { image: imageUrl } : {}),
       },
     },
     data: pushDataFromNotification(data, notificationId),
@@ -2074,7 +2079,6 @@ exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *")
 
     while (hasMore) {
       let usersQuery = db.collection("users")
-        .where("isDeactivated", "==", false)
         .limit(batchSize);
 
       if (lastDoc) {
@@ -2087,23 +2091,29 @@ exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *")
         break;
       }
 
-      const promises = usersSnap.docs.map(async (userDoc) => {
+      const activeUserDocs = usersSnap.docs.filter((userDoc) => {
+        const userData = userDoc.data();
+        return !userData || userData.isDeactivated !== true;
+      });
+
+      const promises = activeUserDocs.map(async (userDoc) => {
         const userId = userDoc.id;
         const notificationId = db.collection("notifications").doc().id;
         const notificationData = buildNotification({
           userId,
           actorId: "system",
-          actorName: "Wreadom Recommendation",
+          actorName: bookData.title || "Wreadom Recommendation",
           actorPhotoURL: null,
           type: "new_creation",
-          text: `Recommended for you: "${bookData.title}" - Check out this story!`,
+          text: `recommended: ${bookData.description || "Check out this story!"}`,
           link,
           targetId: bookId,
           metadata: {
             source: "scheduled_daily_recommendation",
             bookId,
             contentId: bookId,
-            targetType: "book"
+            targetType: "book",
+            coverUrl: bookData.coverUrl || null,
           }
         });
 
@@ -2112,7 +2122,7 @@ exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *")
 
       await Promise.all(promises);
 
-      totalPushesSent += usersSnap.docs.length;
+      totalPushesSent += activeUserDocs.length;
       lastDoc = usersSnap.docs[usersSnap.docs.length - 1];
 
       if (usersSnap.docs.length < batchSize) {
