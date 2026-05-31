@@ -2039,6 +2039,95 @@ exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) =
   return {success: true, message: "Homepage metadata refreshed successfully."};
 });
 
+exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("every 24 hours").onRun(async (context) => {
+  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+  try {
+    // 1. Query the books collection for books with status === "published" and updatedAt >= [7 days ago]
+    const booksSnap = await db.collection("books")
+      .where("status", "==", "published")
+      .where("updatedAt", ">=", oneWeekAgo)
+      .orderBy("updatedAt", "desc")
+      .limit(25)
+      .get();
+
+    if (booksSnap.empty) {
+      logger.info("No books published or updated in the last 7 days. Skipping daily recommendation push.");
+      return null;
+    }
+
+    // 2. Select one book randomly from the returned list of books
+    const docs = booksSnap.docs;
+    const randomIndex = Math.floor(Math.random() * docs.length);
+    const selectedDoc = docs[randomIndex];
+    const bookData = selectedDoc.data();
+    const bookId = selectedDoc.id;
+
+    logger.info(`Selected book "${bookData.title}" (${bookId}) for automated recommendation.`);
+
+    // 3. Paginate through all active users in batches of 500
+    let lastDoc = null;
+    let hasMore = true;
+    const batchSize = 500;
+    let totalPushesSent = 0;
+    const link = `https://wreadom.in/?book=${encodeURIComponent(bookId)}`;
+
+    while (hasMore) {
+      let usersQuery = db.collection("users")
+        .where("isDeactivated", "==", false)
+        .limit(batchSize);
+
+      if (lastDoc) {
+        usersQuery = usersQuery.startAfter(lastDoc);
+      }
+
+      const usersSnap = await usersQuery.get();
+      if (usersSnap.empty) {
+        hasMore = false;
+        break;
+      }
+
+      const promises = usersSnap.docs.map(async (userDoc) => {
+        const userId = userDoc.id;
+        const notificationId = db.collection("notifications").doc().id;
+        const notificationData = buildNotification({
+          userId,
+          actorId: "system",
+          actorName: "Wreadom Recommendation",
+          actorPhotoURL: null,
+          type: "new_creation",
+          text: `Recommended for you: "${bookData.title}" - Check out this story!`,
+          link,
+          targetId: bookId,
+          metadata: {
+            source: "scheduled_daily_recommendation",
+            bookId,
+            contentId: bookId,
+            targetType: "book"
+          }
+        });
+
+        await sendPushNotificationToUser(userId, notificationData, notificationId);
+      });
+
+      await Promise.all(promises);
+
+      totalPushesSent += usersSnap.docs.length;
+      lastDoc = usersSnap.docs[usersSnap.docs.length - 1];
+
+      if (usersSnap.docs.length < batchSize) {
+        hasMore = false;
+      }
+    }
+
+    logger.info(`Completed automated daily recommendation. Push notifications processed for ${totalPushesSent} users.`);
+  } catch (error) {
+    logger.error("Failed to run dailyRecommendationScheduler:", error);
+  }
+
+  return null;
+});
+
 if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
   exports.__test = {
     contentTypeLabel,

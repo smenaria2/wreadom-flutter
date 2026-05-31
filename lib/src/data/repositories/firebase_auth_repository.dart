@@ -26,6 +26,15 @@ class FirebaseAuthRepository implements AuthRepository {
     // listener causes duplicate/racy signInWithCredential calls and can leave
     // Firebase unsigned-in while the account picker has already completed.
     if (kIsWeb) {
+      _initWebGoogleSignIn();
+    }
+  }
+
+  Future<void> _initWebGoogleSignIn() async {
+    try {
+      await GoogleSignIn.instance.initialize(
+        clientId: '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com',
+      );
       GoogleSignIn.instance.authenticationEvents.listen((
         GoogleSignInAuthenticationEvent event,
       ) async {
@@ -39,6 +48,8 @@ class FirebaseAuthRepository implements AuthRepository {
           }
         }
       });
+    } catch (e) {
+      debugPrint('Failed to initialize Google Sign-In on web: $e');
     }
   }
 
@@ -280,6 +291,15 @@ class FirebaseAuthRepository implements AuthRepository {
     if (!doc.exists) return null;
     final data = normalizeUserMapForModel(doc.data()!, doc.id);
     return UserModel.fromJson(data);
+  }
+
+  @override
+  Stream<UserModel?> watchUser(String userId) {
+    return _firestore.collection('users').doc(userId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      final data = normalizeUserMapForModel(doc.data()!, doc.id);
+      return UserModel.fromJson(data);
+    });
   }
 
   @override

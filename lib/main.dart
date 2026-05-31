@@ -139,9 +139,8 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
     await _guardedStartupStep('Google Sign-In', () {
       if (kIsWeb) {
-        return GoogleSignIn.instance.initialize(
-          clientId: _googleServerClientId,
-        );
+        // Handled inside FirebaseAuthRepository to ensure correct listener registration order
+        return Future<void>.value();
       }
       if (defaultTargetPlatform == TargetPlatform.android) {
         return GoogleSignIn.instance.initialize(

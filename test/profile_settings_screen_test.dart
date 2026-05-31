@@ -29,7 +29,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            currentUserProvider.overrideWith((ref) async => user),
+            currentUserProvider.overrideWith((ref) => Stream.value(user)),
             profileRepositoryProvider.overrideWithValue(repository),
           ],
           child: const MaterialApp(

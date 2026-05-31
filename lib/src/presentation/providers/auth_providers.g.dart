@@ -97,9 +97,9 @@ final class CurrentUserProvider
         $FunctionalProvider<
           AsyncValue<UserModel?>,
           UserModel?,
-          FutureOr<UserModel?>
+          Stream<UserModel?>
         >
-    with $FutureModifier<UserModel?>, $FutureProvider<UserModel?> {
+    with $FutureModifier<UserModel?>, $StreamProvider<UserModel?> {
   CurrentUserProvider._()
     : super(
         from: null,
@@ -116,13 +116,13 @@ final class CurrentUserProvider
 
   @$internal
   @override
-  $FutureProviderElement<UserModel?> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
+  $StreamProviderElement<UserModel?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
   @override
-  FutureOr<UserModel?> create(Ref ref) {
+  Stream<UserModel?> create(Ref ref) {
     return currentUser(ref);
   }
 }
 
-String _$currentUserHash() => r'65eae41a09a11cc7929680e2d6693b62ec0167e6';
+String _$currentUserHash() => r'cb91967a1d57b4bfaa46347a784130a96da378e4';

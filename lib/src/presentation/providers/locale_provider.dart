@@ -34,9 +34,9 @@ class LocaleController extends Notifier<Locale> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null || userId.isEmpty) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'preferredLanguage': languageCode,
-      }, SetOptions(merge: true));
+      });
     } catch (_) {
       // The local preference is still saved; push localization catches up when
       // the profile write succeeds on a later language change.

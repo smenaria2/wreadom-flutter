@@ -22,6 +22,8 @@ import '../providers/shake_report_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/share_app_dialog.dart';
+import '../widgets/social_links_menu.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_log_collector.dart';
 import '../routing/app_routes.dart';
@@ -473,14 +475,14 @@ class _ProfileSideMenu extends ConsumerWidget {
         child: Column(
           children: [
             SizedBox(
-              height: 86,
+              height: 64,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Wreadom',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.primary,
                     ),
@@ -517,9 +519,17 @@ class _ProfileSideMenu extends ConsumerWidget {
                     onTap: () => _showThemePicker(context, ref),
                   ),
                   SwitchListTile.adaptive(
-                    secondary: const Icon(Icons.touch_app_outlined),
-                    title: Text(l10n.hapticFeedback),
-                    subtitle: Text(l10n.hapticFeedbackSubtitle),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    secondary: const Icon(Icons.touch_app_outlined, size: 20),
+                    title: Text(
+                      l10n.hapticFeedback,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      l10n.hapticFeedbackSubtitle,
+                      style: const TextStyle(fontSize: 11),
+                    ),
                     value: ref.watch(hapticsEnabledProvider),
                     onChanged: (enabled) => ref
                         .read(hapticsEnabledProvider.notifier)
@@ -534,9 +544,17 @@ class _ProfileSideMenu extends ConsumerWidget {
                     onTap: () => _showErrorReportDialog(context, ref),
                   ),
                   SwitchListTile.adaptive(
-                    secondary: const Icon(Icons.vibration_rounded),
-                    title: Text(l10n.shakeToReport),
-                    subtitle: Text(l10n.shakeToReportSubtitle),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    secondary: const Icon(Icons.vibration_rounded, size: 20),
+                    title: Text(
+                      l10n.shakeToReport,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      l10n.shakeToReportSubtitle,
+                      style: const TextStyle(fontSize: 11),
+                    ),
                     value: ref.watch(shakeToReportEnabledProvider),
                     onChanged: (enabled) => ref
                         .read(shakeToReportEnabledProvider.notifier)
@@ -546,6 +564,11 @@ class _ProfileSideMenu extends ConsumerWidget {
                     icon: Icons.help_outline_rounded,
                     title: l10n.help,
                     onTap: () => _go(context, AppRoutes.help),
+                  ),
+                  _MenuTile(
+                    icon: Icons.share_rounded,
+                    title: 'Share & Review App',
+                    onTap: () => ShareAppDialog.show(context),
                   ),
                   const Divider(),
                   _MenuSectionLabel(label: l10n.legal),
@@ -559,6 +582,9 @@ class _ProfileSideMenu extends ConsumerWidget {
                     title: l10n.termsOfUse,
                     onTap: () => _go(context, AppRoutes.terms),
                   ),
+                  const Divider(),
+                  const _MenuSectionLabel(label: 'Social'),
+                  const SocialLinksMenu(),
                   const _AppVersionTile(),
                 ],
               ),
@@ -642,13 +668,14 @@ class _MenuSectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: colorScheme.primary,
           fontWeight: FontWeight.w800,
           letterSpacing: 0,
+          fontSize: 10,
         ),
       ),
     );
@@ -678,14 +705,16 @@ class _AppVersionTileState extends State<_AppVersionTile> {
       builder: (context, snapshot) {
         return ListTile(
           enabled: false,
-          leading: const Icon(Icons.info_outline),
+          leading: const Icon(Icons.info_outline, size: 20),
           title: Text(
             snapshot.data ?? 'Version',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
+              fontSize: 11,
             ),
           ),
           dense: true,
+          visualDensity: VisualDensity.compact,
         );
       },
     );
@@ -970,9 +999,19 @@ class _MenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
       leading: _MenuTileIcon(icon: icon, showBadge: showBadge),
-      title: Text(title),
-      subtitle: subtitle == null ? null : Text(subtitle!),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 13.5),
+      ),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle!,
+              style: const TextStyle(fontSize: 11.5),
+            ),
       onTap: onTap,
     );
   }
@@ -986,12 +1025,12 @@ class _MenuTileIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!showBadge) return Icon(icon);
+    if (!showBadge) return Icon(icon, size: 20);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Icon(icon),
+        Icon(icon, size: 20),
         const Positioned(top: -1, right: -3, child: _UpdateMenuRedDot()),
       ],
     );

@@ -24,7 +24,7 @@ void main() {
 
   Widget writerPadTestApp(Book book) {
     return ProviderScope(
-      overrides: [currentUserProvider.overrideWith((ref) async => testUser)],
+      overrides: [currentUserProvider.overrideWith((ref) => Stream.value(testUser))],
       child: MaterialApp(
         localizationsDelegates: const [
           ...AppLocalizations.localizationsDelegates,

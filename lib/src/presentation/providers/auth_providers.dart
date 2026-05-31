@@ -18,13 +18,13 @@ Stream<fb_auth.User?> authState(Ref ref) {
 }
 
 @riverpod
-Future<UserModel?> currentUser(Ref ref) async {
+Stream<UserModel?> currentUser(Ref ref) {
   final authState = ref.watch(authStateProvider);
   if (authState.isLoading) {
-    return Completer<UserModel?>().future;
+    return Completer<UserModel?>().future.asStream();
   }
   final user = authState.value;
-  if (user == null) return null;
-  return ref.read(authRepositoryProvider).getUser(user.uid);
+  if (user == null) return Stream.value(null);
+  return ref.read(authRepositoryProvider).watchUser(user.uid);
 }
 

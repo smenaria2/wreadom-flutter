@@ -20,6 +20,8 @@ abstract class AuthRepository {
 
   Future<UserModel?> getUser(String userId);
 
+  Stream<UserModel?> watchUser(String userId);
+
   Future<UserModel?> getCurrentUser();
 
   Future<void> updateUserProfile(
