@@ -3,6 +3,7 @@ const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const {DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client} = require("@aws-sdk/client-s3");
 const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
+const {GoogleGenerativeAI} = require("@google/generative-ai");
 
 admin.initializeApp();
 
@@ -35,6 +36,21 @@ const B2_SECRET_NAMES = [
   "B2_AUDIO_BUCKET_ID",
   "B2_AUDIO_S3_ENDPOINT",
   "B2_AUDIO_DOWNLOAD_BASE_URL",
+];
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DAILY_TOPIC_FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1491841573190-151c03e821cd?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1474366521946-c3d4b507abf2?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1516414447565-b14be0adf13e?q=80&w=1000&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1526244434105-edb4b1ff13b0?q=80&w=1000&auto=format&fit=crop",
 ];
 
 function normalizeString(value) {
@@ -2042,6 +2058,146 @@ exports.manualRefreshHomepage = functionsV1.https.onCall(async (data, context) =
   requireAdminContext(context);
   await refreshHomepageMetadataInternal();
   return {success: true, message: "Homepage metadata refreshed successfully."};
+});
+
+async function generateDailyTopicAndSave() {
+  const currentDate = new Date();
+  const formatter = new Intl.DateTimeFormat("hi-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+  const formattedDate = formatter.format(currentDate);
+
+  const recentTopicsSnap = await db.collection("daily-topics")
+      .orderBy("timestamp", "desc")
+      .limit(5)
+      .get();
+  const recentTopicNames = recentTopicsSnap.docs
+      .map((doc) => normalizeString(doc.data()?.topicName))
+      .filter(Boolean);
+
+  const appConfigSnap = await db.collection("settings").doc("app_config").get();
+  const appConfigData = appConfigSnap.data() || {};
+  const geminiApiKey = normalizeString(appConfigData.geminiApiKey);
+  const geminiModel = normalizeString(appConfigData.geminiModel) || DEFAULT_GEMINI_MODEL;
+  const pexelsApiKey = normalizeString(appConfigData.pexelsApiKey);
+
+  if (!geminiApiKey) {
+    throw new Error("Missing 'geminiApiKey' inside 'settings/app_config' Firestore document.");
+  }
+
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
+  const model = genAI.getGenerativeModel({
+    model: geminiModel,
+    generationConfig: {responseMimeType: "application/json"},
+  });
+
+  const prompt = `You are an expert Hindi creative editor for Wreadom, a writing platform for books, poetry, and stories popular in India.
+Your task is to generate a new, engaging, and inspiring Daily Topic for the Wreadom writing community.
+
+Today's date is: ${formattedDate}.
+
+Using your knowledge of the calendar, historical events, observances, seasonal transitions (like Monsoon, Summer, Winter), and Indian cultural festivals (e.g. Holi, Diwali, Eid, Raksha Bandhan, Independence Day, Republic Day, Gandhi Jayanti, etc.):
+1. **Occasion-based Determination**: Check if today (or around this date) is a major Indian festival, holiday, or significant global/national occasion. If so, build the daily topic theme specifically around that occasion in an Indian cultural context.
+2. **Seasonal/Literary Vibe**: If there is no specific major occasion today, generate an inspiring daily topic based on a **random literary or creative writing theme** (e.g. character perspectives, poetry style challenges like ghazals/dohas, narrative voices, cozy reading, writing about monsoon rain/summer heat, local folklore/tales) grounded in an Indian cultural context.
+3. **Avoid Duplicates**: Do not repeat or generate topics highly similar to the following recent topics: ${recentTopicNames.join(", ")}.
+
+Generate the topic in JSON format with the following fields:
+- "topicName": A creative, catchy, and short Hindi title in Devanagari script (2-5 words). Avoid English and avoid transliterated Hindi unless it is a proper noun.
+- "description": A short, engaging Hindi one-sentence hook in Devanagari script (under 15 words) for the homepage card.
+- "fullDescription": A detailed Hindi description in Devanagari script (3-4 sentences) explaining the theme, offering 2-3 specific creative writing prompts or ideas, and inviting writers to publish their stories or poems on Wreadom under this topic.
+- "imageSearchQuery": A simple, descriptive search query (3-5 keywords, English) that will be used to search for a high-quality stock photo on Pexels (e.g., "monsoon rain india", "indian festival lights", "tea cup notebook"). Do not include punctuation or quotes.
+
+All user-facing copy must be in Hindi Devanagari except the exact app name "Wreadom" and the English-only "imageSearchQuery" field.
+Ensure the output is valid JSON in the specified structure. Do not include markdown formatting like \`\`\`json or any other text outside the JSON object.`;
+
+  const result = await model.generateContent(prompt);
+  const jsonString = result.response.text();
+  if (!jsonString) {
+    throw new Error("Empty response returned from Gemini.");
+  }
+  const generated = JSON.parse(jsonString);
+  if (!generated.topicName || !generated.description || !generated.fullDescription) {
+    throw new Error("Generated content is missing required fields.");
+  }
+
+  let coverImageUrl = "";
+  try {
+    if (pexelsApiKey) {
+      const query = encodeURIComponent(generated.imageSearchQuery || "indian reading book");
+      const pexelsRes = await fetch(
+          `https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape`,
+          {headers: {Authorization: pexelsApiKey}},
+      );
+      if (pexelsRes.ok) {
+        const pexelsData = await pexelsRes.json();
+        const photo = pexelsData.photos?.[0];
+        if (photo?.src?.landscape) {
+          coverImageUrl = photo.src.landscape;
+        } else {
+          logger.warn("Pexels returned no landscape photo for query:", generated.imageSearchQuery);
+        }
+      } else {
+        logger.warn("Pexels image search failed:", pexelsRes.status, pexelsRes.statusText);
+      }
+    } else {
+      logger.warn("Missing 'pexelsApiKey' inside 'settings/app_config'; using fallback cover image.");
+    }
+  } catch (error) {
+    logger.warn("Failed to retrieve image from Pexels:", error);
+  }
+
+  if (!coverImageUrl) {
+    const randomIndex = Math.floor(Math.random() * DAILY_TOPIC_FALLBACK_IMAGES.length);
+    coverImageUrl = DAILY_TOPIC_FALLBACK_IMAGES[randomIndex];
+  }
+
+  const newTopicRef = db.collection("daily-topics").doc();
+  const now = Date.now();
+  const newTopicData = {
+    topicName: generated.topicName,
+    description: generated.description,
+    fullDescription: generated.fullDescription,
+    coverImageUrl,
+    isEnabled: true,
+    timestamp: now,
+    lastUpdated: now,
+  };
+  await newTopicRef.set(newTopicData);
+
+  return {id: newTopicRef.id, ...newTopicData};
+}
+
+exports.scheduledDailyTopicGenerator = functionsV1.pubsub
+    .schedule("0 0 * * *")
+    .timeZone("Asia/Kolkata")
+    .onRun(async () => {
+      try {
+        logger.info("Starting scheduled daily topic generation...");
+        const newTopic = await generateDailyTopicAndSave();
+        logger.info("Successfully generated and saved new daily topic:", newTopic.topicName);
+      } catch (error) {
+        logger.error("Scheduled daily topic generator failed:", error);
+        throw error;
+      }
+      return null;
+    });
+
+exports.generateDailyTopicWithAI = functionsV1.https.onCall(async (data, context) => {
+  requireAdminContext(context);
+  try {
+    const newTopic = await generateDailyTopicAndSave();
+    return {success: true, topic: newTopic};
+  } catch (error) {
+    logger.error("Auto generation trigger failed:", error);
+    throw new functionsV1.https.HttpsError(
+        "internal",
+        error instanceof Error ? error.message : "Failed to auto-generate topic.",
+    );
+  }
 });
 
 exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *").timeZone("Asia/Kolkata").onRun(async (context) => {

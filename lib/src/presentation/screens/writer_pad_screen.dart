@@ -23,6 +23,7 @@ import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/writer_media_embed.dart';
+import '../../data/services/cover_image_service.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
   const WriterPadScreen({
@@ -87,6 +88,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _category = 'Romance';
   String _language = 'Hindi';
   String? _coverUrl;
+  final CoverImageService _coverImageService = CoverImageService();
+  List<String> _autoCoverUrls = [];
+  int _autoCoverIndex = 0;
+  bool _isFetchingAutoCover = false;
+  bool _autoCoverFetched = false;
   bool _collabEnabled = false;
   String? _selectedCollaboratorId;
   String? _selectedCollaboratorName;
@@ -95,8 +101,64 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
   void _setStep(int value) {
+    final oldStep = _step;
     _step = value.clamp(0, 1);
     _restorableStep.value = _step;
+    if (oldStep == 0 && _step == 1) {
+      _checkAndFetchAutoCover();
+    }
+  }
+
+  Future<void> _checkAndFetchAutoCover() async {
+    if (_coverUrl != null || _autoCoverFetched) {
+      return;
+    }
+
+    _autoCoverFetched = true;
+    final title = _titleController.value.text.trim();
+    if (title.isEmpty || title.toLowerCase() == 'untitled story') {
+      return;
+    }
+
+    setState(() {
+      _isFetchingAutoCover = true;
+    });
+
+    try {
+      final translatedQuery = await _coverImageService.translateTitle(title);
+      final images = await _coverImageService.searchImages(translatedQuery);
+
+      if (mounted && images.isNotEmpty) {
+        setState(() {
+          _autoCoverUrls = images;
+          _autoCoverIndex = 0;
+          _coverUrl = images[0];
+        });
+        _markDirty();
+      }
+    } catch (_) {
+      // Fail silently
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingAutoCover = false;
+        });
+      }
+    }
+  }
+
+  void _cycleAutoCover() {
+    if (_autoCoverUrls.isEmpty) return;
+    setState(() {
+      _autoCoverIndex = (_autoCoverIndex + 1) % _autoCoverUrls.length;
+      _coverUrl = _autoCoverUrls[_autoCoverIndex];
+    });
+    _markDirty();
+  }
+
+  Future<void> _retryAutoCoverFetch() async {
+    _autoCoverFetched = false;
+    await _checkAndFetchAutoCover();
   }
 
   void _setCurrentChapterIndex(int value) {
@@ -619,14 +681,23 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               fit: BoxFit.cover,
                             ),
                     ),
-                    child: _coverUrl == null
-                        ? Icon(
-                            Icons.auto_stories_outlined,
-                            color: _onWriterSurfaceColor(
-                              context,
-                            ).withValues(alpha: 0.42),
+                    child: _isFetchingAutoCover
+                        ? const Center(
+                            child: SizedBox.square(
+                              dimension: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
                           )
-                        : null,
+                        : (_coverUrl == null
+                            ? Icon(
+                                Icons.auto_stories_outlined,
+                                color: _onWriterSurfaceColor(
+                                  context,
+                                ).withValues(alpha: 0.42),
+                              )
+                            : null),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -635,7 +706,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       runSpacing: 8,
                       children: [
                         FilledButton.icon(
-                          onPressed: _isUploadingCover ? null : _pickCover,
+                          onPressed: _isUploadingCover || _isFetchingAutoCover
+                              ? null
+                              : _pickCover,
                           icon: _isUploadingCover
                               ? const SizedBox.square(
                                   dimension: 18,
@@ -650,11 +723,34 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 : l10n.writerUploadCover,
                           ),
                         ),
+                        if (_autoCoverUrls.length > 1)
+                          OutlinedButton.icon(
+                            onPressed: _isUploadingCover || _isFetchingAutoCover
+                                ? null
+                                : _cycleAutoCover,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Try Another Image'),
+                          ),
+                        if (_autoCoverUrls.isEmpty &&
+                            !_isFetchingAutoCover &&
+                            _autoCoverFetched)
+                          OutlinedButton.icon(
+                            onPressed: _isUploadingCover ? null : _retryAutoCoverFetch,
+                            icon: const Icon(Icons.image_search_rounded),
+                            label: const Text('Find Cover'),
+                          ),
                         OutlinedButton.icon(
-                          onPressed: _coverUrl == null || _isUploadingCover
+                          onPressed: _coverUrl == null ||
+                                  _isUploadingCover ||
+                                  _isFetchingAutoCover
                               ? null
                               : () {
-                                  setState(() => _coverUrl = null);
+                                  setState(() {
+                                    _coverUrl = null;
+                                    _autoCoverFetched = false;
+                                    _autoCoverUrls.clear();
+                                  });
+                                  _checkAndFetchAutoCover();
                                   _markDirty();
                                 },
                           icon: const Icon(Icons.delete_outline_rounded),

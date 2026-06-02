@@ -430,9 +430,9 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
-                final height = (constraints.maxWidth * 0.62).clamp(
-                  210.0,
-                  280.0,
+                final height = (constraints.maxWidth * 0.66).clamp(
+                  230.0,
+                  290.0,
                 );
                 return SizedBox(
                   height: height,
@@ -610,7 +610,7 @@ class _DailyTopicCard extends StatelessWidget {
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
@@ -643,25 +643,27 @@ class _DailyTopicCard extends StatelessWidget {
             const Spacer(),
             Text(
               topic.topicName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                height: 1.1,
+                height: 1.15,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               topic.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 14,
+                fontSize: 13,
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pushNamed(
@@ -680,14 +682,14 @@ class _DailyTopicCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  horizontal: 20,
+                  vertical: 8,
                 ),
               ),
               child: Text(
                 l10n.readMore,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),

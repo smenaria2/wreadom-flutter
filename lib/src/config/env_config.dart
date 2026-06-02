@@ -34,5 +34,10 @@ class EnvConfig {
     defaultValue: false,
   );
 
+  static const String unsplashAccessKey = String.fromEnvironment(
+    'UNSPLASH_ACCESS_KEY',
+    defaultValue: '',
+  );
+
   // Add other sensitive values here only as dart-define keys, not defaults.
 }
