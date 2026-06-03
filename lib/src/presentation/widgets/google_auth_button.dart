@@ -8,32 +8,44 @@ import 'google_sign_in_stub.dart'
     if (dart.library.html) 'google_sign_in_web_impl.dart'
     if (dart.library.js_interop) 'google_sign_in_web_impl.dart';
 
-class GoogleSignInButton extends ConsumerWidget {
+class GoogleSignInButton extends StatefulWidget {
   const GoogleSignInButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<GoogleSignInButton> createState() => _GoogleSignInButtonState();
+}
+
+class _GoogleSignInButtonState extends State<GoogleSignInButton> {
+  Widget? _webButtonCache;
+
+  @override
+  Widget build(BuildContext context) {
     if (kIsWeb) {
+      _webButtonCache ??= getGoogleSignInButton(
+        onPressed: () {}, // Ignored on Web as GIS handles it
+      );
       return Container(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         alignment: Alignment.center,
-        child: getGoogleSignInButton(
-          onPressed: () {}, // Ignored on Web as GIS handles it
-        ),
+        child: _webButtonCache!,
       );
     }
 
-    return OutlinedButton.icon(
-      onPressed: () =>
-          ref.read(authControllerProvider.notifier).signInWithGoogle(),
-      icon: const Icon(Icons.g_mobiledata, size: 30),
-      label: Text(AppLocalizations.of(context)!.continueWithGoogle),
-      style: OutlinedButton.styleFrom(
-        minimumSize: Size(double.infinity, 56.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-      ),
+    return Consumer(
+      builder: (context, ref, child) {
+        return OutlinedButton.icon(
+          onPressed: () =>
+              ref.read(authControllerProvider.notifier).signInWithGoogle(),
+          icon: const Icon(Icons.g_mobiledata, size: 30),
+          label: Text(AppLocalizations.of(context)!.continueWithGoogle),
+          style: OutlinedButton.styleFrom(
+            minimumSize: Size(double.infinity, 56.h),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+          ),
+        );
+      },
     );
   }
 }

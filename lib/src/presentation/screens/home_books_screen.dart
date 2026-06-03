@@ -1234,34 +1234,62 @@ class _BookshelfSection extends StatelessWidget {
           ],
         );
       },
-      loading: () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              height: 24,
-              width: 140,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: shelfHeight,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 5,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (_, _) => const _BookCardSkeleton(),
-            ),
-          ),
-        ],
-      ),
+      loading: () => _TimedBookshelfSkeleton(shelfHeight: shelfHeight),
       error: (_, _) => SectionError(title: title, onRetry: onRetry),
+    );
+  }
+}
+
+class _TimedBookshelfSkeleton extends StatefulWidget {
+  const _TimedBookshelfSkeleton({required this.shelfHeight});
+
+  final double shelfHeight;
+
+  @override
+  State<_TimedBookshelfSkeleton> createState() =>
+      _TimedBookshelfSkeletonState();
+}
+
+class _TimedBookshelfSkeletonState extends State<_TimedBookshelfSkeleton> {
+  var _showSkeleton = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _showSkeleton = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showSkeleton) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            height: 24,
+            width: 140,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: widget.shelfHeight,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: 5,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (_, _) => const _BookCardSkeleton(),
+          ),
+        ),
+      ],
     );
   }
 }

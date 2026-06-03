@@ -14,6 +14,8 @@ abstract class AuthRepository {
 
   Future<UserModel> signInWithGoogle();
 
+  Future<UserModel> signInWithGoogleIdToken(String idToken);
+
   Future<void> logout();
 
   Future<void> resetPassword(String email);

@@ -76,6 +76,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
   String? _lastDeepLinkKey;
   DateTime? _lastDeepLinkAt;
   bool _firebaseReady = false;
@@ -110,14 +111,22 @@ class _MyAppState extends ConsumerState<MyApp> {
       _initializeFirebaseIfNeeded,
     );
     if (firebaseReady) {
-      await _guardedStartupStep('Firebase emulators', _configureFirebaseEmulators);
+      await _guardedStartupStep(
+        'Firebase emulators',
+        _configureFirebaseEmulators,
+      );
       await _guardedStartupStep('Firestore cache', _configureFirestoreCache);
     }
     if (firebaseReady && mounted) {
       setState(() => _firebaseReady = true);
     }
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
-      final shouldActivateAppCheck = !kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug;
+      final isLocalWeb =
+          kIsWeb &&
+          (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1');
+      final shouldActivateAppCheck =
+          (!kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug) &&
+          !isLocalWeb;
       if (shouldActivateAppCheck) {
         await _guardedStartupStep('Firebase App Check', () {
           return FirebaseAppCheck.instance.activate(
@@ -141,8 +150,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
     await _guardedStartupStep('Google Sign-In', () {
       if (kIsWeb) {
-        // Handled inside FirebaseAuthRepository to ensure correct listener registration order
-        return Future<void>.value();
+        return _initializeWebGoogleSignIn();
       }
       if (defaultTargetPlatform == TargetPlatform.android) {
         return GoogleSignIn.instance.initialize(
@@ -152,6 +160,43 @@ class _MyAppState extends ConsumerState<MyApp> {
       return Future<void>.value();
     });
     unawaited(_initDeepLinks());
+  }
+
+  Future<void> _initializeWebGoogleSignIn() async {
+    await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
+    _googleAuthSubscription ??= GoogleSignIn.instance.authenticationEvents
+        .listen(
+          (event) => unawaited(_handleGoogleAuthenticationEvent(event)),
+          onError: (Object error, StackTrace stackTrace) {
+            AppLogCollector.add('error', 'Google Sign-In event failed: $error');
+            AppLogCollector.recordZoneError(error, stackTrace);
+          },
+        );
+  }
+
+  Future<void> _handleGoogleAuthenticationEvent(
+    GoogleSignInAuthenticationEvent event,
+  ) async {
+    if (event is GoogleSignInAuthenticationEventSignOut) {
+      ref.invalidate(currentUserProvider);
+      return;
+    }
+    if (event is! GoogleSignInAuthenticationEventSignIn) return;
+    try {
+      final idToken = event.user.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw Exception('Google Sign-In did not return an ID token.');
+      }
+      await ref.read(authRepositoryProvider).signInWithGoogleIdToken(idToken);
+      ref.invalidate(currentUserProvider);
+    } catch (error, stackTrace) {
+      AppLogCollector.add(
+        'error',
+        'Google credential could not sign in to Firebase: $error',
+      );
+      AppLogCollector.recordZoneError(error, stackTrace);
+      debugPrint('Google credential could not sign in to Firebase: $error');
+    }
   }
 
   Future<bool> _guardedStartupStep(
@@ -206,7 +251,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _processPendingDeepLink() {
     if (_pendingDeepLink == null) return;
     if (!_firebaseReady) {
-      Future.delayed(const Duration(milliseconds: 100), _processPendingDeepLink);
+      Future.delayed(
+        const Duration(milliseconds: 100),
+        _processPendingDeepLink,
+      );
       return;
     }
     final uri = _pendingDeepLink!;
@@ -238,6 +286,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     final navigator = _navigatorKey.currentState;
     if (navigator == null) return;
 
+    if (_isRootLink(uri)) {
+      if (FirebaseAuth.instance.currentUser == null) return;
+      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+      return;
+    }
+
     // Replace the entire stack with [Main, Target].
     // This fixes three issues:
     // 1. No duplicate routes (platform initialRoute + app_links both fire)
@@ -245,6 +299,11 @@ class _MyAppState extends ConsumerState<MyApp> {
     // 3. Any error from uninitialized provider rendering is wiped away
     navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
     navigator.pushNamed(uri.toString());
+  }
+
+  bool _isRootLink(Uri uri) {
+    final hasRootPath = uri.path.isEmpty || uri.path == '/';
+    return hasRootPath && !uri.hasQuery && !uri.hasFragment;
   }
 
   bool _isDuplicateDeepLink(Uri uri) {
@@ -263,6 +322,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _googleAuthSubscription?.cancel();
     super.dispose();
   }
 
@@ -331,6 +391,11 @@ class AuthWrapper extends ConsumerWidget {
     }
 
     ref.listen(authStateProvider, (previous, next) {
+      if (next.hasError) {
+        debugPrint('AuthWrapper: authStateProvider error received: ${next.error}');
+        unawaited(ref.read(authRepositoryProvider).logout());
+        return;
+      }
       final previousId = previous?.asData?.value?.uid;
       final nextId = next.asData?.value?.uid;
       if (previousId != nextId) {
@@ -380,11 +445,7 @@ class AuthWrapper extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) {
         AppLogCollector.recordZoneError(e, st);
-        return Scaffold(
-          body: Center(
-            child: Text(AppLocalizations.of(context)!.somethingWentWrong),
-          ),
-        );
+        return const LoginScreen();
       },
     );
   }

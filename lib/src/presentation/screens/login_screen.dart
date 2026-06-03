@@ -75,6 +75,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         },
       );
     });
+    ref.listen(authStateProvider, (previous, next) {
+      final user = next.asData?.value;
+      if (user == null) return;
+      if (!context.mounted) return;
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+    });
 
     final authState = ref.watch(authControllerProvider);
     final themeMode = ref.watch(appThemeControllerProvider);

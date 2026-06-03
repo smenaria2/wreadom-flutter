@@ -22,6 +22,7 @@ const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageMetadataCacheTtl = Duration(minutes: 30);
+const _homepageRequestTimeout = Duration(seconds: 8);
 
 final homepageRefreshCounterProvider =
     NotifierProvider<HomepageRefreshCounter, int>(HomepageRefreshCounter.new);
@@ -84,21 +85,27 @@ Future<void> _writeCachedValue(
 
 Future<List<Book>> _safeBookList(Future<List<Book>> request) async {
   try {
-    return await request;
+    return await request.timeout(_homepageRequestTimeout);
   } catch (_) {
     return <Book>[];
   }
+}
+
+Future<T> _withHomepageTimeout<T>(Future<T> request) {
+  return request.timeout(_homepageRequestTimeout);
 }
 
 Future<Map<String, BookRecommendationStats>> _fetchLiveRecommendationStats({
   int limit = 200,
 }) async {
   try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('book_stats')
-        .orderBy('upvotes', descending: true)
-        .limit(limit)
-        .get();
+    final snapshot = await _withHomepageTimeout(
+      FirebaseFirestore.instance
+          .collection('book_stats')
+          .orderBy('upvotes', descending: true)
+          .limit(limit)
+          .get(),
+    );
     return {
       for (final doc in snapshot.docs)
         if (_hasPositiveRecommendationStats(doc.data()))
@@ -210,10 +217,12 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
   }
 
   try {
-    final doc = await FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_metadata')
-        .get();
+    final doc = await _withHomepageTimeout(
+      FirebaseFirestore.instance
+          .collection('settings')
+          .doc('homepage_metadata')
+          .get(),
+    );
 
     final data = asStringMap(doc.data());
     final authors = data['authors'];
@@ -242,7 +251,7 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     return mergedMetadata;
   } catch (_) {
     if (cached != null) return cached;
-    rethrow;
+    return const HomepageMetadata();
   }
 });
 
@@ -261,10 +270,12 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
   final byId = <String, HomeBanner>{};
 
   try {
-    final metadataDoc = await FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_metadata')
-        .get();
+    final metadataDoc = await _withHomepageTimeout(
+      FirebaseFirestore.instance
+          .collection('settings')
+          .doc('homepage_metadata')
+          .get(),
+    );
     final rawBanners = asStringMap(metadataDoc.data())['homeBanners'];
     if (rawBanners is List) {
       for (final raw in rawBanners.whereType<Map>()) {
@@ -275,10 +286,9 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
   } catch (_) {}
 
   try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('home-banners')
-        .limit(10)
-        .get();
+    final snapshot = await _withHomepageTimeout(
+      FirebaseFirestore.instance.collection('home-banners').limit(10).get(),
+    );
     for (final doc in snapshot.docs) {
       final data = Map<String, dynamic>.from(doc.data());
       data['id'] = doc.id;
@@ -338,7 +348,9 @@ final homepageRecommendedBooksProvider = FutureProvider<List<Book>>((
   final metadata = await ref.watch(homepageMetadataProvider.future);
   final communityIds = _positiveRecommendationIds(metadata, limit: 80);
   if (communityIds.isEmpty) return <Book>[];
-  return ref.watch(bookRepositoryProvider).getBooksByIds(communityIds);
+  return _safeBookList(
+    ref.watch(bookRepositoryProvider).getBooksByIds(communityIds),
+  );
 });
 
 final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
@@ -446,7 +458,7 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
 
   try {
     final repo = ref.watch(bookRepositoryProvider);
-    final works = await repo.getOriginalBooks(limit: 240);
+    final works = await _safeBookList(repo.getOriginalBooks(limit: 240));
     final unique = <String, Book>{};
     for (final book in works.where(_isPublishedOriginal)) {
       unique[book.id] = book;

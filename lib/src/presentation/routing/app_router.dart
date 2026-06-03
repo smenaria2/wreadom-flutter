@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
@@ -135,6 +136,12 @@ class AppRouter {
         );
       case AppRoutes.main:
       case AppRoutes.root:
+        if (firebase_auth.FirebaseAuth.instance.currentUser == null) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => const LoginScreen(),
+          );
+        }
         final initialIndex = (arguments ?? settings.arguments) as int? ?? 0;
         return MaterialPageRoute(
           settings: routeSettings,

@@ -19,39 +19,7 @@ class FirebaseAuthRepository implements AuthRepository {
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
   FirebaseFunctions get _functions => FirebaseFunctions.instance;
   static const int _maxFanOutWritesPerBatch = 450;
-
-  FirebaseAuthRepository() {
-    // Web-only: GIS renderButton delivers sign-in via authenticationEvents.
-    // On Android/iOS, signInWithGoogle() already calls authenticate(); a second
-    // listener causes duplicate/racy signInWithCredential calls and can leave
-    // Firebase unsigned-in while the account picker has already completed.
-    if (kIsWeb) {
-      _initWebGoogleSignIn();
-    }
-  }
-
-  Future<void> _initWebGoogleSignIn() async {
-    try {
-      await GoogleSignIn.instance.initialize(
-        clientId: '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com',
-      );
-      GoogleSignIn.instance.authenticationEvents.listen((
-        GoogleSignInAuthenticationEvent event,
-      ) async {
-        if (event is GoogleSignInAuthenticationEventSignIn) {
-          if (_auth.currentUser == null) {
-            try {
-              await _handleGoogleSignInResult(event.user);
-            } catch (e) {
-              debugPrint('Auto Firebase sign-in from Google failed: $e');
-            }
-          }
-        }
-      });
-    } catch (e) {
-      debugPrint('Failed to initialize Google Sign-In on web: $e');
-    }
-  }
+  static const Duration _profileWriteTimeout = Duration(seconds: 8);
 
   @override
   Stream<firebase.User?> get authStateChanges => _auth.authStateChanges();
@@ -123,10 +91,19 @@ class FirebaseAuthRepository implements AuthRepository {
       );
       final fbUser = credential.user!;
 
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(fbUser.uid)
-          .get();
+      final fallbackUser = _userModelFromFirebaseUser(fbUser, email: email);
+      DocumentSnapshot<Map<String, dynamic>> userDoc;
+      try {
+        userDoc = await _firestore
+            .collection('users')
+            .doc(fbUser.uid)
+            .get()
+            .timeout(_profileWriteTimeout);
+      } catch (e) {
+        debugPrint('Signed in, but user profile load failed: $e');
+        AnalyticsService.logLogin(method: 'email');
+        return fallbackUser;
+      }
 
       if (userDoc.exists) {
         final raw = userDoc.data()!;
@@ -137,7 +114,15 @@ class FirebaseAuthRepository implements AuthRepository {
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
         }
-        await _firestore.collection('users').doc(fbUser.uid).update(patch);
+        try {
+          await _firestore
+              .collection('users')
+              .doc(fbUser.uid)
+              .update(patch)
+              .timeout(_profileWriteTimeout);
+        } catch (e) {
+          debugPrint('Signed in, but user profile update failed: $e');
+        }
 
         final data = normalizeUserMapForModel({
           ...raw,
@@ -148,24 +133,9 @@ class FirebaseAuthRepository implements AuthRepository {
         return UserModel.fromJson(data);
       } else {
         // Handle legacy or missing doc
-        final userModel = UserModel(
-          id: fbUser.uid,
-          username: fbUser.displayName ?? 'Reader',
-          email: fbUser.email ?? email,
-          privacyLevel: 'public',
-          readingHistory: [],
-          savedBooks: [],
-          bookmarks: [],
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          lastLogin: DateTime.now().millisecondsSinceEpoch,
-          notificationSettings: _defaultNotificationSettings,
-        );
-        await _firestore
-            .collection('users')
-            .doc(fbUser.uid)
-            .set(userModel.toJson());
+        await _setUserProfileIfPossible(fallbackUser);
         AnalyticsService.logLogin(method: 'email');
-        return userModel;
+        return fallbackUser;
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -204,16 +174,36 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
 
+      return signInWithGoogleIdToken(idToken);
+    } on GoogleSignInException {
+      rethrow;
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> signInWithGoogleIdToken(String idToken) async {
+    try {
       final firebase.AuthCredential credential =
           firebase.GoogleAuthProvider.credential(idToken: idToken);
 
       final result = await _auth.signInWithCredential(credential);
       final fbUser = result.user!;
 
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(fbUser.uid)
-          .get();
+      final fallbackUser = _userModelFromFirebaseUser(fbUser);
+      DocumentSnapshot<Map<String, dynamic>> userDoc;
+      try {
+        userDoc = await _firestore
+            .collection('users')
+            .doc(fbUser.uid)
+            .get()
+            .timeout(_profileWriteTimeout);
+      } catch (e) {
+        debugPrint('Signed in with Google, but user profile load failed: $e');
+        AnalyticsService.logLogin(method: 'google');
+        return fallbackUser;
+      }
 
       if (userDoc.exists) {
         final raw = userDoc.data()!;
@@ -224,7 +214,15 @@ class FirebaseAuthRepository implements AuthRepository {
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
         }
-        await _firestore.collection('users').doc(fbUser.uid).update(patch);
+        try {
+          await _firestore
+              .collection('users')
+              .doc(fbUser.uid)
+              .update(patch)
+              .timeout(_profileWriteTimeout);
+        } catch (e) {
+          debugPrint('Signed in with Google, but profile update failed: $e');
+        }
 
         final data = normalizeUserMapForModel({
           ...raw,
@@ -234,29 +232,11 @@ class FirebaseAuthRepository implements AuthRepository {
         AnalyticsService.logLogin(method: 'google');
         return UserModel.fromJson(data);
       } else {
-        final userModel = UserModel(
-          id: fbUser.uid,
-          username: fbUser.displayName ?? 'Reader',
-          email: fbUser.email ?? '',
-          photoURL: fbUser.photoURL,
-          privacyLevel: 'public',
-          readingHistory: [],
-          savedBooks: [],
-          bookmarks: [],
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          lastLogin: DateTime.now().millisecondsSinceEpoch,
-          notificationSettings: _defaultNotificationSettings,
-        );
-        await _firestore
-            .collection('users')
-            .doc(fbUser.uid)
-            .set(userModel.toJson());
+        await _setUserProfileIfPossible(fallbackUser);
 
         AnalyticsService.logSignUp(method: 'google');
-        return userModel;
+        return fallbackUser;
       }
-    } on GoogleSignInException {
-      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -287,19 +267,86 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<UserModel?> getUser(String userId) async {
-    final doc = await _firestore.collection('users').doc(userId).get();
-    if (!doc.exists) return null;
-    final data = normalizeUserMapForModel(doc.data()!, doc.id);
-    return UserModel.fromJson(data);
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .get()
+          .timeout(_profileWriteTimeout);
+      if (doc.exists) {
+        final data = normalizeUserMapForModel(doc.data()!, doc.id);
+        return UserModel.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('User profile load failed: $e');
+    }
+
+    final fallbackUser = _fallbackCurrentUserModel(userId);
+    if (fallbackUser != null) {
+      unawaited(_setUserProfileIfPossible(fallbackUser));
+    }
+    return fallbackUser;
+  }
+
+  UserModel _userModelFromFirebaseUser(firebase.User fbUser, {String? email}) {
+    return UserModel(
+      id: fbUser.uid,
+      username: fbUser.displayName ?? 'Reader',
+      email: fbUser.email ?? email ?? '',
+      displayName: fbUser.displayName,
+      photoURL: fbUser.photoURL,
+      privacyLevel: 'public',
+      readingHistory: [],
+      savedBooks: [],
+      bookmarks: [],
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      lastLogin: DateTime.now().millisecondsSinceEpoch,
+      notificationSettings: _defaultNotificationSettings,
+    );
+  }
+
+  Future<void> _setUserProfileIfPossible(UserModel userModel) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userModel.id)
+          .set(userModel.toJson())
+          .timeout(_profileWriteTimeout);
+    } catch (e) {
+      debugPrint('Signed in, but user profile creation failed: $e');
+    }
+  }
+
+  UserModel? _fallbackCurrentUserModel(String userId) {
+    final fbUser = _auth.currentUser;
+    if (fbUser == null || fbUser.uid != userId) return null;
+    return _userModelFromFirebaseUser(fbUser);
   }
 
   @override
-  Stream<UserModel?> watchUser(String userId) {
-    return _firestore.collection('users').doc(userId).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      final data = normalizeUserMapForModel(doc.data()!, doc.id);
-      return UserModel.fromJson(data);
-    });
+  Stream<UserModel?> watchUser(String userId) async* {
+    try {
+      await for (final doc
+          in _firestore.collection('users').doc(userId).snapshots()) {
+        if (doc.exists) {
+          final data = normalizeUserMapForModel(doc.data()!, doc.id);
+          yield UserModel.fromJson(data);
+          continue;
+        }
+        final fallbackUser = _fallbackCurrentUserModel(userId);
+        if (fallbackUser != null) {
+          unawaited(_setUserProfileIfPossible(fallbackUser));
+        }
+        yield fallbackUser;
+      }
+    } catch (e) {
+      debugPrint('User profile watch failed: $e');
+      final fallbackUser = _fallbackCurrentUserModel(userId);
+      if (fallbackUser != null) {
+        unawaited(_setUserProfileIfPossible(fallbackUser));
+      }
+      yield fallbackUser;
+    }
   }
 
   @override

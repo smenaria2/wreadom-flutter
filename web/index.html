@@ -19,12 +19,12 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  <meta name="google-signin-client_id" content="601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Wreadom">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
@@ -34,11 +34,40 @@
 </head>
 <body>
   <script>
+    const loadFlutterBootstrap = () => {
+      const script = document.createElement('script');
+      script.src = 'flutter_bootstrap.js';
+      script.async = true;
+      document.body.appendChild(script);
+    };
+
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      delete self.FIREBASE_APPCHECK_DEBUG_TOKEN;
+
+      const serviceWorkerCleanup = 'serviceWorker' in navigator
+        ? navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        })
+        : Promise.resolve();
+
+      const cacheCleanup = 'caches' in self
+        ? caches.keys().then((keys) => {
+          keys
+            .filter((key) => key.includes('flutter') || key.includes('wreadom'))
+            .forEach((key) => caches.delete(key));
+        })
+        : Promise.resolve();
+
       // App Check is disabled by default in local web development.
       // If you wish to use App Check Debug Provider, register your token in the Firebase console
       // and uncomment the line below (setting it to true or your custom debug token string):
       // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
+      Promise.all([serviceWorkerCleanup, cacheCleanup])
+        .catch(() => {})
+        .finally(loadFlutterBootstrap);
+    } else {
+      loadFlutterBootstrap();
     }
   </script>
   <!--
@@ -49,6 +78,5 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

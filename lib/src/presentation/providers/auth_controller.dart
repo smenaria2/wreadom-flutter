@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'auth_providers.dart';
@@ -36,7 +37,11 @@ class AuthController extends _$AuthController {
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
       if (!ref.mounted) return;
-      final user = await ref.read(currentUserProvider.future);
+      final user =
+          firebase_auth.FirebaseAuth.instance.currentUser ??
+          await ref
+              .read(authStateProvider.future)
+              .timeout(const Duration(seconds: 8));
       if (!ref.mounted) return;
       if (user == null) {
         throw Exception(
