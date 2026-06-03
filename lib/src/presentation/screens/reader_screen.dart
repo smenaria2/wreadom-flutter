@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/comment.dart';
@@ -304,7 +305,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
     AnalyticsService.logReaderOpen(widget.book);
-    _incrementView();
+    unawaited(_incrementView());
     _saveHistorySilently('initial_history_save');
     unawaited(
       _loadSavedScrollPosition().catchError((
@@ -362,6 +363,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _incrementView() async {
     try {
+      if (widget.book.source == 'archive') return;
       await _bookRepository.recordBookView(
         widget.book.id,
         await _viewerKeyForViewCount(),
@@ -379,11 +381,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<String> _viewerKeyForViewCount() async {
-    try {
-      final user = await ref.read(currentUserProvider.future);
-      final userId = user?.id.trim();
-      if (userId != null && userId.isNotEmpty) return 'user:$userId';
-    } catch (_) {}
+    final firebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      return 'user:${firebaseUser.uid}';
+    }
 
     const prefsKey = 'anonymous_reader_viewer_id';
     final prefs = ref.read(sharedPreferencesProvider);

@@ -21,6 +21,7 @@ import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
+import 'src/presentation/routing/app_routes.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
@@ -78,6 +79,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   String? _lastDeepLinkKey;
   DateTime? _lastDeepLinkAt;
   bool _firebaseReady = false;
+  Uri? _pendingDeepLink;
 
   static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
   static const Duration _startupTimeout = Duration(seconds: 8);
@@ -184,10 +186,8 @@ class _MyAppState extends ConsumerState<MyApp> {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        // Delay navigation slightly to ensure the app is ready
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _handleUri(initialUri);
-        });
+        _pendingDeepLink = initialUri;
+        _processPendingDeepLink();
       }
     } catch (e) {
       debugPrint('Failed to get initial deep link: $e');
@@ -201,6 +201,17 @@ class _MyAppState extends ConsumerState<MyApp> {
         debugPrint('Error handling deep link: $err');
       },
     );
+  }
+
+  void _processPendingDeepLink() {
+    if (_pendingDeepLink == null) return;
+    if (!_firebaseReady) {
+      Future.delayed(const Duration(milliseconds: 100), _processPendingDeepLink);
+      return;
+    }
+    final uri = _pendingDeepLink!;
+    _pendingDeepLink = null;
+    _handleUri(uri);
   }
 
   Future<void> _configureFirestoreCache() async {
@@ -223,9 +234,17 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _handleUri(Uri uri) {
     if (_isDuplicateDeepLink(uri)) return;
     debugPrint('Handling deep link: $uri');
-    // We pass the full string to pushNamed, as AppRouter will resolve it
-    // using AppLinkHelper. This works for both http/https and custom schemes.
-    _navigatorKey.currentState?.pushNamed(uri.toString());
+
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return;
+
+    // Replace the entire stack with [Main, Target].
+    // This fixes three issues:
+    // 1. No duplicate routes (platform initialRoute + app_links both fire)
+    // 2. Back from target goes to home screen, not closes the app
+    // 3. Any error from uninitialized provider rendering is wiped away
+    navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+    navigator.pushNamed(uri.toString());
   }
 
   bool _isDuplicateDeepLink(Uri uri) {

@@ -361,7 +361,9 @@ service cloud.firestore {
 
       // Sub-collection for tracking unique views
       match /views/{viewerKey} {
-        allow read, create: if signedIn() || isAdmin();
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['viewerKey', 'createdAt']) || 
+                         request.resource.data.keys().hasOnly(['timestamp', 'viewerId', 'isGuest', 'bookId']);
       }
 
       // Sub-collection for book chapters
@@ -459,8 +461,12 @@ service cloud.firestore {
 
     // Global settings
     match /settings/{settingId} {
-      allow read: if true;
+      allow read: if settingId != 'keys';
       allow write: if isAdmin();
+    }
+
+    match /settings/keys {
+      allow read, write: if isAdmin();
     }
 
     // Home banners

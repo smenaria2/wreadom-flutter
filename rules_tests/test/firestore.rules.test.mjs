@@ -143,19 +143,47 @@ describe('notifications and conversations', () => {
 });
 
 describe('books and recommendations', () => {
-  it('allows a signed-in user to record one book view and blocks anonymous views', async () => {
+  it('allows signed-in and guest users to record views with valid structures, and blocks invalid formats', async () => {
     const aliceDb = testEnv.authenticatedContext('alice').firestore();
     const guestDb = testEnv.unauthenticatedContext().firestore();
 
+    // Flutter format (authenticated)
     await assertSucceeds(setDoc(doc(aliceDb, 'books/book1/views/user:alice'), {
-      viewerId: 'user:alice',
-      bookId: 'book1',
-      timestamp: 1,
+      viewerKey: 'user:alice',
+      createdAt: 1,
     }));
-    await assertFails(setDoc(doc(guestDb, 'books/book1/views/anon:guest'), {
-      viewerId: 'anon:guest',
+    // Flutter format (guest)
+    await assertSucceeds(setDoc(doc(guestDb, 'books/book1/views/anon:guest1'), {
+      viewerKey: 'anon:guest1',
+      createdAt: 1,
+    }));
+    // Web format (authenticated)
+    await assertSucceeds(setDoc(doc(aliceDb, 'books/book1/views/alice'), {
+      viewerId: 'alice',
       bookId: 'book1',
       timestamp: 1,
+      isGuest: false,
+    }));
+    // Web format (guest)
+    await assertSucceeds(setDoc(doc(guestDb, 'books/book1/views/guest_abc'), {
+      viewerId: 'guest_abc',
+      bookId: 'book1',
+      timestamp: 1,
+      isGuest: true,
+    }));
+
+    // Failure cases (invalid structures)
+    await assertFails(setDoc(doc(guestDb, 'books/book1/views/guest_abc'), {
+      viewerId: 'guest_abc',
+      bookId: 'book1',
+      timestamp: 1,
+      isGuest: true,
+      extraField: 'not_allowed',
+    }));
+    await assertFails(setDoc(doc(guestDb, 'books/book1/views/anon:guest1'), {
+      viewerKey: 'anon:guest1',
+      createdAt: 1,
+      extraField: 'not_allowed',
     }));
   });
 

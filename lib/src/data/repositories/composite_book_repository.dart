@@ -214,9 +214,8 @@ class CompositeBookRepository implements BookRepository {
 
   @override
   Future<void> recordBookView(String bookId, String viewerKey) async {
-    if (_isFirebaseId(bookId)) {
-      await _firebaseRepo.recordBookView(bookId, viewerKey);
-    }
+    if (bookId.startsWith('local-')) return;
+    await _firebaseRepo.recordBookView(bookId, viewerKey);
   }
 
   @override
