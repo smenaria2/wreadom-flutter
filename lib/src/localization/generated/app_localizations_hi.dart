@@ -2111,6 +2111,36 @@ class AppLocalizationsHi extends AppLocalizations {
       'प्रोफाइल सेटिंग्स लोड नहीं हो सकीं।';
 
   @override
+  String get notificationPreferences => 'सूचना प्राथमिकताएं';
+
+  @override
+  String get notificationMessages => 'सीधे संदेश';
+
+  @override
+  String get notificationGroupMessages => 'समूह संदेश';
+
+  @override
+  String get notificationComments => 'टिप्पणियां और समीक्षाएं';
+
+  @override
+  String get notificationReplies => 'जवाब';
+
+  @override
+  String get notificationFollowers => 'नए फॉलोअर';
+
+  @override
+  String get notificationTestimonials => 'प्रशंसापत्र';
+
+  @override
+  String get notificationLikes => 'लाइक';
+
+  @override
+  String get notificationFollowedAuthorPosts => 'फॉलो किए लेखकों की पोस्ट';
+
+  @override
+  String get notificationNewCreations => 'नई रचनाएं और अध्याय';
+
+  @override
   String get collaborationRequestTitle => 'सहलेखन अनुरोध';
 
   @override

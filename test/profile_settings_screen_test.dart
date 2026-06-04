@@ -57,16 +57,84 @@ void main() {
       await tester.pump();
       expect(find.text('Private'), findsOneWidget);
 
-      await tester.tap(find.text('Save Settings'));
+      await _tapSaveSettings(tester);
       await tester.pumpAndSettle();
 
       expect(repository.savedPrivacyLevel, 'private');
     },
   );
+
+  testWidgets(
+    'notification category toggle saves app preference and preserves browser values',
+    (tester) async {
+      final repository = _FakeProfileRepository();
+      final user = _testUser(
+        notificationSettings: _notificationSettings(
+          comments: const NotificationPreference(app: true, browser: true),
+          browserNotifications: true,
+        ),
+      );
+
+      await _pumpProfileSettings(tester, repository, user);
+
+      await _scrollUntilTextVisible(tester, 'Comments and reviews');
+      await tester.tap(find.text('Comments and reviews'));
+      await tester.pumpAndSettle();
+      await _tapSaveSettings(tester);
+      await tester.pumpAndSettle();
+
+      final saved = repository.savedNotificationSettings;
+      expect(saved, isNotNull);
+      expect(saved!.comments.app, isFalse);
+      expect(saved.comments.browser, isTrue);
+      expect(saved.browserNotifications, isTrue);
+    },
+  );
+
+  testWidgets('legacy users render default notification controls', (
+    tester,
+  ) async {
+    final repository = _FakeProfileRepository();
+    final user = _testUser();
+
+    await _pumpProfileSettings(tester, repository, user);
+
+    expect(find.text('Notification preferences'), findsOneWidget);
+    expect(find.text('Direct messages'), findsOneWidget);
+    await _scrollUntilTextVisible(tester, 'New creations and chapters');
+    expect(find.text('New creations and chapters'), findsOneWidget);
+
+    await _tapSaveSettings(tester);
+    await tester.pumpAndSettle();
+
+    final saved = repository.savedNotificationSettings;
+    expect(saved, isNotNull);
+    expect(saved!.messages.app, isTrue);
+    expect(saved.messages.browser, isFalse);
+    expect(saved.browserNotifications, isFalse);
+  });
+}
+
+Future<void> _tapSaveSettings(WidgetTester tester) async {
+  await _scrollUntilTextVisible(tester, 'Save Settings');
+  await tester.pumpAndSettle();
+  final saveButton = find.text('Save Settings');
+  await tester.tap(saveButton);
+}
+
+Future<void> _scrollUntilTextVisible(WidgetTester tester, String text) async {
+  await tester.scrollUntilVisible(
+    find.text(text),
+    250,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
+  await tester.pumpAndSettle();
 }
 
 class _FakeProfileRepository implements ProfileRepository {
   String? savedPrivacyLevel;
+  NotificationSettings? savedNotificationSettings;
 
   @override
   Future<void> updateProfileDetails({
@@ -110,4 +178,106 @@ class _FakeProfileRepository implements ProfileRepository {
 
   @override
   Future<void> updateCoverPhoto(String userId, String? coverPhotoURL) async {}
+
+  @override
+  Future<void> updateNotificationSettings(
+    String userId,
+    NotificationSettings settings,
+  ) async {
+    savedNotificationSettings = settings;
+  }
+}
+
+Future<void> _pumpProfileSettings(
+  WidgetTester tester,
+  _FakeProfileRepository repository,
+  UserModel user,
+) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(user)),
+        profileRepositoryProvider.overrideWithValue(repository),
+      ],
+      child: const MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ProfileSettingsScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+UserModel _testUser({NotificationSettings? notificationSettings}) {
+  return UserModel(
+    id: 'user-1',
+    username: 'reader',
+    email: 'reader@example.com',
+    displayName: 'Reader',
+    privacyLevel: 'public',
+    readingHistory: const [],
+    savedBooks: const [],
+    bookmarks: const [],
+    notificationSettings: notificationSettings,
+  );
+}
+
+NotificationSettings _notificationSettings({
+  NotificationPreference messages = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference groupMessages = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference comments = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference replies = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference followers = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference testimonials = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference likes = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference followedAuthorPosts = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference newCreations = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  bool browserNotifications = false,
+}) {
+  return NotificationSettings(
+    messages: messages,
+    groupMessages: groupMessages,
+    comments: comments,
+    replies: replies,
+    followers: followers,
+    testimonials: testimonials,
+    likes: likes,
+    followedAuthorPosts: followedAuthorPosts,
+    newCreations: newCreations,
+    browserNotifications: browserNotifications,
+  );
 }

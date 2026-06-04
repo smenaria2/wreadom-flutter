@@ -16,6 +16,10 @@ abstract class ProfileRepository {
     String? displayName,
   });
   Future<void> updateCoverPhoto(String userId, String? coverPhotoURL);
+  Future<void> updateNotificationSettings(
+    String userId,
+    NotificationSettings settings,
+  );
   Future<void> updatePrivacyLevel(String userId, String privacyLevel);
   Future<void> deactivateProfile(String userId);
   Future<void> reactivateProfile(String userId);

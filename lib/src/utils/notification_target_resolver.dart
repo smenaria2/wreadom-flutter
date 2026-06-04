@@ -23,6 +23,18 @@ class NotificationTargetResolver {
     final metadata = notification.metadata ?? const <String, dynamic>{};
     final linkTarget = AppLinkHelper.resolve(notification.link);
     final type = notification.type.toLowerCase();
+    final targetType = _clean(metadata['targetType'])?.toLowerCase();
+
+    if (targetType == 'daily_topic' ||
+        linkTarget?.route == AppRoutes.dailyTopic) {
+      final topicId = _firstValid([
+        metadata['topicId'],
+        linkTarget?.payload,
+        _queryValue(notification.link, 'id'),
+        notification.targetId,
+      ]);
+      return NotificationTarget(AppRoutes.dailyTopic, topicId ?? '');
+    }
 
     final bookId = _firstValid([
       metadata['bookId'],
@@ -103,7 +115,6 @@ class NotificationTargetResolver {
       return NotificationTarget(AppRoutes.collaborationRequest, bookId);
     }
 
-    final targetType = _clean(metadata['targetType'])?.toLowerCase();
     final isBookType = _isBookType(type, targetType);
     final isPostType = _isPostType(type, targetType);
     final isMessageType = type == 'message' || type == 'groupmessage';

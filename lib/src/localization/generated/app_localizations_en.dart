@@ -2106,6 +2106,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadProfileSettings => 'Could not load profile settings.';
 
   @override
+  String get notificationPreferences => 'Notification preferences';
+
+  @override
+  String get notificationMessages => 'Direct messages';
+
+  @override
+  String get notificationGroupMessages => 'Group messages';
+
+  @override
+  String get notificationComments => 'Comments and reviews';
+
+  @override
+  String get notificationReplies => 'Replies';
+
+  @override
+  String get notificationFollowers => 'New followers';
+
+  @override
+  String get notificationTestimonials => 'Testimonials';
+
+  @override
+  String get notificationLikes => 'Likes';
+
+  @override
+  String get notificationFollowedAuthorPosts => 'Followed author posts';
+
+  @override
+  String get notificationNewCreations => 'New creations and chapters';
+
+  @override
   String get collaborationRequestTitle => 'Collaboration request';
 
   @override

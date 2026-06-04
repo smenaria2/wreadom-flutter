@@ -216,8 +216,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final RestorableDouble _restorableScrollProgress = RestorableDouble(0.0);
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _chapterContentStartKey = GlobalKey();
-  final GlobalKey _chapterContentEndKey = GlobalKey();
-  int _scrollRestoreAttempts = 0;
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
   Comment? _existingUserReview;
@@ -464,30 +462,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final progress = _pendingSavedScrollProgress;
     if (progress == null || progress <= 0) return;
 
-    _scrollRestoreAttempts++;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients || _initialScrollRestored) {
         return;
       }
-      final maxScroll = _progressScrollRange();
+      final position = _scrollController.position;
+      final maxScroll = position.maxScrollExtent;
       if (maxScroll <= 0) {
-        if (_scrollRestoreAttempts < 5) {
-          _restorePendingScrollPosition();
-        } else {
-          _initialScrollRestored = true;
-          _pendingSavedScrollProgress = null;
-          setState(() {
-            _scrollProgress = 0.0;
-            _restorableScrollProgress.value = 0.0;
-          });
-        }
+        _initialScrollRestored = true;
+        _pendingSavedScrollProgress = null;
+        setState(() {
+          _scrollProgress = 0.0;
+          _restorableScrollProgress.value = 0.0;
+        });
         return;
       }
 
       _scrollController.jumpTo(
-        (progress * maxScroll)
-            .clamp(0.0, _scrollController.position.maxScrollExtent)
-            .toDouble(),
+        (progress * maxScroll).clamp(0.0, maxScroll).toDouble(),
       );
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
@@ -514,26 +506,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  double _progressScrollRange() {
-    if (!_scrollController.hasClients) return 0.0;
-    final position = _scrollController.position;
-    final markerContext = _chapterContentEndKey.currentContext;
-    final marker = markerContext?.findRenderObject();
-    if (marker != null) {
-      final viewport = RenderAbstractViewport.maybeOf(marker);
-      if (viewport != null) {
-        final revealOffset = viewport.getOffsetToReveal(marker, 0.0).offset;
-        return revealOffset.clamp(0.0, position.maxScrollExtent).toDouble();
-      }
-    }
-    return position.maxScrollExtent;
-  }
-
   double _currentProgressPosition() {
     if (!_scrollController.hasClients) return _scrollProgress;
-    final extent = _progressScrollRange();
-    if (extent <= 0) return _scrollProgress;
-    return (_scrollController.offset / extent).clamp(0.0, 1.0);
+    final position = _scrollController.position;
+    final maxScroll = position.maxScrollExtent;
+    if (maxScroll <= 0) return 0.0;
+    return (position.pixels / maxScroll).clamp(0.0, 1.0);
   }
 
   bool get _useLegacyTtsTapSeeking => false;
@@ -695,7 +673,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _lastScrollOffset = 0.0;
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
-      _scrollRestoreAttempts = 0;
       // Reset TTS position for new chapter
       _ttsChunkIndex = 0;
       _activeTtsBlockIndex = -1;
@@ -1250,7 +1227,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             return launchUrl(uri, mode: LaunchMode.externalApplication);
           },
         ),
-        SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
           actionColor: _getReaderActionColor(),
@@ -1293,7 +1269,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 ? null
                 : () => unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
           ),
-        SizedBox(key: _chapterContentEndKey, height: 1),
         const SizedBox(height: 24),
         _ChapterEndActions(
           actionColor: _getReaderActionColor(),

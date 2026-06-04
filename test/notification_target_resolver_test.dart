@@ -91,6 +91,25 @@ void main() {
     },
   );
 
+  test('daily topic new creation notification opens daily topic', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'new_creation',
+        link:
+            'https://wreadom.in/daily-topic?id=topic123&topic=%E0%A4%86%E0%A4%9C',
+        targetId: 'topic123',
+        metadata: {
+          'targetType': 'daily_topic',
+          'topicId': 'topic123',
+          'topicName': 'आज',
+        },
+      ),
+    );
+
+    expect(target?.route, AppRoutes.dailyTopic);
+    expect(target?.payload, 'topic123');
+  });
+
   test('published notification without link falls back to book targetId', () {
     final target = NotificationTargetResolver.resolve(
       notification(type: 'published', targetId: 'book1'),

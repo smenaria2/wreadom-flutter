@@ -232,6 +232,16 @@ class FirebaseProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<void> updateNotificationSettings(
+    String userId,
+    NotificationSettings settings,
+  ) async {
+    await _firestore.collection('users').doc(userId).update({
+      'notificationSettings': _notificationSettingsToFirestore(settings),
+    });
+  }
+
+  @override
   Future<void> updateCoverPhoto(String userId, String? coverPhotoURL) async {
     await _firestore.collection('users').doc(userId).update({
       'coverPhotoURL': coverPhotoURL,
@@ -258,5 +268,27 @@ class FirebaseProfileRepository implements ProfileRepository {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return FieldValue.delete();
     return trimmed;
+  }
+
+  Map<String, dynamic> _notificationSettingsToFirestore(
+    NotificationSettings settings,
+  ) {
+    Map<String, bool> preference(NotificationPreference value) => {
+      'app': value.app,
+      'browser': value.browser,
+    };
+
+    return {
+      'messages': preference(settings.messages),
+      'groupMessages': preference(settings.groupMessages),
+      'comments': preference(settings.comments),
+      'replies': preference(settings.replies),
+      'followers': preference(settings.followers),
+      'testimonials': preference(settings.testimonials),
+      'likes': preference(settings.likes),
+      'followedAuthorPosts': preference(settings.followedAuthorPosts),
+      'newCreations': preference(settings.newCreations),
+      'browserNotifications': settings.browserNotifications,
+    };
   }
 }

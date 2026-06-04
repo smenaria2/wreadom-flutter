@@ -39,5 +39,15 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  static const String testUserEmail = String.fromEnvironment(
+    'TEST_USER_EMAIL',
+    defaultValue: '',
+  );
+
+  static const String testUserPassword = String.fromEnvironment(
+    'TEST_USER_PASSWORD',
+    defaultValue: '',
+  );
+
   // Add other sensitive values here only as dart-define keys, not defaults.
 }

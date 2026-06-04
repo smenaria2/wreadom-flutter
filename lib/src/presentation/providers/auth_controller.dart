@@ -18,6 +18,10 @@ class AuthController extends _$AuthController {
       await ref
           .read(authRepositoryProvider)
           .signIn(email: email, password: password);
+      if (firebase_auth.FirebaseAuth.instance.currentUser == null) {
+        throw Exception('Sign-in could not complete. Please try again.');
+      }
+      _refreshAuthProviders();
     });
     if (ref.mounted) state = result;
   }
@@ -28,6 +32,12 @@ class AuthController extends _$AuthController {
       await ref
           .read(authRepositoryProvider)
           .signUp(email: email, password: password, username: username);
+      if (firebase_auth.FirebaseAuth.instance.currentUser == null) {
+        throw Exception(
+          'Account creation could not complete. Please try again.',
+        );
+      }
+      _refreshAuthProviders();
     });
     if (ref.mounted) state = result;
   }
@@ -48,6 +58,7 @@ class AuthController extends _$AuthController {
           'Google sign-in could not complete. Please sign in to Google in your browser, then try again.',
         );
       }
+      _refreshAuthProviders();
       state = const AsyncValue.data(null);
     } on GoogleSignInException catch (e, st) {
       if (!ref.mounted) return;
@@ -67,7 +78,14 @@ class AuthController extends _$AuthController {
     state = const AsyncValue.loading();
     final result = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).logout();
+      _refreshAuthProviders();
     });
     if (ref.mounted) state = result;
+  }
+
+  void _refreshAuthProviders() {
+    if (!ref.mounted) return;
+    ref.invalidate(authStateProvider);
+    ref.invalidate(currentUserProvider);
   }
 }

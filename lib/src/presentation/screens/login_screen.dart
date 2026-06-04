@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../config/env_config.dart';
 import '../providers/auth_controller.dart';
 import '../providers/auth_providers.dart';
 import '../providers/homepage_providers.dart';
@@ -32,6 +33,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    final testEmail = EnvConfig.testUserEmail.trim();
+    final testPassword = EnvConfig.testUserPassword;
+    if (testEmail.isNotEmpty) {
+      _emailController.text = testEmail;
+    }
+    if (testPassword.isNotEmpty) {
+      _passwordController.text = testPassword;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       warmPublicHomepageCache(ref);

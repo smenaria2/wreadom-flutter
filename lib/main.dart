@@ -466,8 +466,14 @@ class AuthWrapper extends ConsumerWidget {
 
     ref.listen(authStateProvider, (previous, next) {
       if (next.hasError) {
-        debugPrint('AuthWrapper: authStateProvider error received: ${next.error}');
-        unawaited(ref.read(authRepositoryProvider).logout());
+        debugPrint(
+          'AuthWrapper: authStateProvider error received: ${next.error}',
+        );
+        if (FirebaseAuth.instance.currentUser == null) {
+          unawaited(ref.read(authRepositoryProvider).logout());
+        } else {
+          ref.invalidate(currentUserProvider);
+        }
         return;
       }
       final previousId = previous?.asData?.value?.uid;

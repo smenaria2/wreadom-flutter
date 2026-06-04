@@ -625,6 +625,9 @@ function pushDataFromNotification(data = {}, notificationId = "") {
     "targetReplyId",
     "conversationId",
     "targetType",
+    "topicId",
+    "topicName",
+    "topic",
   ]) {
     const value = normalizeString(metadata[key]);
     if (value) {
@@ -653,8 +656,16 @@ function pushNavigationUrl(data = {}, metadata = {}) {
   const commentId = firstPushValue(data, metadata, ["commentId", "parentCommentId", "targetCommentId"]);
   const replyId = firstPushValue(data, metadata, ["replyId", "targetReplyId"]);
   const conversationId = firstPushValue(data, metadata, ["conversationId"]);
+  const targetType = normalizeString(metadata.targetType).toLowerCase();
+  const topicId = firstPushValue(data, metadata, ["topicId"]);
+  const topicName = firstPushValue(data, metadata, ["topicName", "topic"]);
   const query = new URLSearchParams();
 
+  if (targetType === "daily_topic" || type === "daily_topic") {
+    if (topicId) query.set("id", topicId);
+    if (topicName) query.set("topic", topicName);
+    return `/daily-topic${query.toString() ? `?${query.toString()}` : ""}`;
+  }
   if ((type === "message" || type === "groupmessage") && (conversationId || targetId)) {
     return `/messages/${encodeURIComponent(conversationId || targetId)}`;
   }
@@ -2289,6 +2300,95 @@ exports.dailyRecommendationScheduler = functionsV1.pubsub.schedule("0 21 * * *")
     logger.info(`Completed automated daily recommendation. Push notifications processed for ${totalPushesSent} users.`);
   } catch (error) {
     logger.error("Failed to run dailyRecommendationScheduler:", error);
+  }
+
+  return null;
+});
+
+exports.dailyTopicNotificationScheduler = functionsV1.pubsub.schedule("0 8 * * *").timeZone("Asia/Kolkata").onRun(async (context) => {
+  try {
+    const topicsSnap = await db.collection("daily-topics")
+      .where("isEnabled", "==", true)
+      .orderBy("timestamp", "desc")
+      .limit(1)
+      .get();
+
+    if (topicsSnap.empty) {
+      logger.info("No enabled daily topic found. Skipping daily topic push.");
+      return null;
+    }
+
+    const topicDoc = topicsSnap.docs[0];
+    const topicData = topicDoc.data();
+    const topicId = topicDoc.id;
+    const topicName = normalizeString(topicData.topicName) || "Daily Topic";
+    const topicDescription = normalizeString(topicData.description) || "आज के विषय पर लिखें।";
+    const coverUrl = normalizeString(topicData.coverImageUrl);
+    const link = `https://wreadom.in/daily-topic?id=${encodeURIComponent(topicId)}&topic=${encodeURIComponent(topicName)}`;
+
+    logger.info(`Selected daily topic "${topicName}" (${topicId}) for automated notification.`);
+
+    let lastDoc = null;
+    let hasMore = true;
+    const batchSize = 500;
+    let totalPushesSent = 0;
+
+    while (hasMore) {
+      let usersQuery = db.collection("users")
+        .limit(batchSize);
+
+      if (lastDoc) {
+        usersQuery = usersQuery.startAfter(lastDoc);
+      }
+
+      const usersSnap = await usersQuery.get();
+      if (usersSnap.empty) {
+        hasMore = false;
+        break;
+      }
+
+      const activeUserDocs = usersSnap.docs.filter((userDoc) => {
+        const userData = userDoc.data();
+        return !userData || userData.isDeactivated !== true;
+      });
+
+      const promises = activeUserDocs.map(async (userDoc) => {
+        const userId = userDoc.id;
+        const notificationId = db.collection("notifications").doc().id;
+        const notificationData = buildNotification({
+          userId,
+          actorId: "system",
+          actorName: topicName,
+          actorPhotoURL: null,
+          type: "new_creation",
+          text: topicDescription,
+          link,
+          targetId: topicId,
+          metadata: {
+            source: "scheduled_daily_topic",
+            targetType: "daily_topic",
+            topicId,
+            topicName,
+            coverUrl: coverUrl || null,
+          }
+        });
+
+        await sendPushNotificationToUser(userId, notificationData, notificationId);
+      });
+
+      await Promise.all(promises);
+
+      totalPushesSent += activeUserDocs.length;
+      lastDoc = usersSnap.docs[usersSnap.docs.length - 1];
+
+      if (usersSnap.docs.length < batchSize) {
+        hasMore = false;
+      }
+    }
+
+    logger.info(`Completed automated daily topic notification. Push notifications processed for ${totalPushesSent} users.`);
+  } catch (error) {
+    logger.error("Failed to run dailyTopicNotificationScheduler:", error);
   }
 
   return null;

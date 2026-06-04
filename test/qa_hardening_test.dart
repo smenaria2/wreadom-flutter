@@ -855,9 +855,14 @@ void main() {
         'lib/src/presentation/screens/reader_screen.dart',
       ).readAsStringSync();
 
-      expect(readerSource, contains('_chapterContentEndKey'));
-      expect(readerSource, contains('_progressScrollRange'));
-      expect(readerSource, contains('RenderAbstractViewport.maybeOf'));
+      expect(readerSource, isNot(contains('_chapterContentEndKey')));
+      expect(readerSource, isNot(contains('_progressScrollRange')));
+      expect(readerSource, isNot(contains('RenderAbstractViewport.maybeOf')));
+      expect(
+        readerSource,
+        contains('final maxScroll = position.maxScrollExtent'),
+      );
+      expect(readerSource, contains('position.pixels / maxScroll'));
       final menuStart = readerSource.indexOf('final buttonItems');
       final menuSource = readerSource.substring(menuStart);
       final shareQuoteIndex = menuSource.indexOf('Share Quote');
@@ -1904,7 +1909,7 @@ void main() {
     expect(repoSource, contains('chapterIndex'));
     expect(repoSource, contains('Future<bool> recordBookView'));
     expect(readerSource, contains('_chapterContentStartKey'));
-    expect(readerSource, contains('_progressScrollRange'));
+    expect(readerSource, contains('position.pixels / maxScroll'));
     expect(readerSource, contains('_incrementView(chapterIndex: index)'));
     expect(rulesSource, contains('chapterKey'));
     expect(rulesSource, contains('chapterIndex'));

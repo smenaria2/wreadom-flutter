@@ -3728,6 +3728,66 @@ abstract class AppLocalizations {
   /// **'Could not load profile settings.'**
   String get failedToLoadProfileSettings;
 
+  /// No description provided for @notificationPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification preferences'**
+  String get notificationPreferences;
+
+  /// No description provided for @notificationMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct messages'**
+  String get notificationMessages;
+
+  /// No description provided for @notificationGroupMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Group messages'**
+  String get notificationGroupMessages;
+
+  /// No description provided for @notificationComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments and reviews'**
+  String get notificationComments;
+
+  /// No description provided for @notificationReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Replies'**
+  String get notificationReplies;
+
+  /// No description provided for @notificationFollowers.
+  ///
+  /// In en, this message translates to:
+  /// **'New followers'**
+  String get notificationFollowers;
+
+  /// No description provided for @notificationTestimonials.
+  ///
+  /// In en, this message translates to:
+  /// **'Testimonials'**
+  String get notificationTestimonials;
+
+  /// No description provided for @notificationLikes.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes'**
+  String get notificationLikes;
+
+  /// No description provided for @notificationFollowedAuthorPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Followed author posts'**
+  String get notificationFollowedAuthorPosts;
+
+  /// No description provided for @notificationNewCreations.
+  ///
+  /// In en, this message translates to:
+  /// **'New creations and chapters'**
+  String get notificationNewCreations;
+
   /// No description provided for @collaborationRequestTitle.
   ///
   /// In en, this message translates to:
