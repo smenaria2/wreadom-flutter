@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
@@ -107,25 +110,72 @@ class AppRouter {
     );
   }
 
+  static Future<void> openExternalPolicy(
+    BuildContext context,
+    String routeName,
+  ) async {
+    final policy = _externalPolicyForRoute(routeName);
+    if (policy == null) {
+      await Navigator.of(context).pushNamed(routeName);
+      return;
+    }
+
+    final opened = await _launchExternalUrl(policy.url);
+    if (opened || !context.mounted) return;
+    await Navigator.of(context).pushNamed(routeName);
+  }
+
+  static RouteSettings? routeSettingsForAppLink(String rawLink) {
+    final resolved = _resolveIncomingName(rawLink);
+    if (resolved == null) return null;
+    return RouteSettings(
+      name: resolved.route,
+      arguments: _argumentsForResolvedLink(resolved),
+    );
+  }
+
+  static Object? _argumentsForResolvedLink(ResolvedAppLink resolved) {
+    if (resolved.route == AppRoutes.bookDetail && resolved.payload != null) {
+      return BookDetailArguments(
+        bookId: resolved.payload!,
+        initialReaderChapterIndex: resolved.chapterIndex,
+      );
+    }
+    if (resolved.route == AppRoutes.postDetail && resolved.payload != null) {
+      return PostDetailArguments(postId: resolved.payload!);
+    }
+    if (resolved.route == AppRoutes.publicProfile && resolved.payload != null) {
+      return PublicProfileArguments(userId: resolved.payload!);
+    }
+    if (resolved.route == AppRoutes.conversation && resolved.payload != null) {
+      return ConversationArguments(
+        conversationId: resolved.payload!,
+        title: '',
+      );
+    }
+    if (resolved.route == AppRoutes.collaborationRequest &&
+        resolved.payload != null) {
+      return CollaborationRequestArguments(bookId: resolved.payload!);
+    }
+    return resolved.payload;
+  }
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     String? name = settings.name;
     Object? arguments = settings.arguments;
 
     final resolvedIncoming = _resolveIncomingName(name);
+    final didResolveIncoming = resolvedIncoming != null;
     if (resolvedIncoming != null) {
       name = resolvedIncoming.route;
-      arguments =
-          resolvedIncoming.route == AppRoutes.bookDetail &&
-              resolvedIncoming.payload != null
-          ? BookDetailArguments(
-              bookId: resolvedIncoming.payload!,
-              initialReaderChapterIndex: resolvedIncoming.chapterIndex,
-            )
-          : resolvedIncoming.payload;
+      arguments = _argumentsForResolvedLink(resolvedIncoming);
     }
+    final resolvedArguments = didResolveIncoming
+        ? arguments
+        : arguments ?? settings.arguments;
     final routeSettings = RouteSettings(
       name: name,
-      arguments: arguments ?? settings.arguments,
+      arguments: resolvedArguments,
     );
 
     switch (name) {
@@ -142,13 +192,13 @@ class AppRouter {
             builder: (_) => const LoginScreen(),
           );
         }
-        final initialIndex = (arguments ?? settings.arguments) as int? ?? 0;
+        final initialIndex = resolvedArguments as int? ?? 0;
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (_) => MainNavigationShell(initialIndex: initialIndex),
         );
       case AppRoutes.bookDetail:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         String bookId;
         Book? book;
 
@@ -173,7 +223,8 @@ class AppRouter {
             preloadedBook: book,
             initialReaderChapterIndex: args is BookDetailArguments
                 ? args.initialReaderChapterIndex
-                : null,
+                : resolvedIncoming
+                      ?.chapterIndex, // resolvedIncoming.chapterIndex
             targetCommentId: args is BookDetailArguments
                 ? args.targetCommentId
                 : null,
@@ -183,7 +234,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.reader:
-        final argsValue = arguments ?? settings.arguments;
+        final argsValue = resolvedArguments;
         if (argsValue is! ReaderArguments) {
           return _notFound('Reader details are missing.');
         }
@@ -196,13 +247,16 @@ class AppRouter {
           ),
         );
       case AppRoutes.publicProfile:
-        final argsValue = arguments ?? settings.arguments;
-        final args = argsValue is PublicProfileArguments
-            ? argsValue
-            : PublicProfileArguments(userId: argsValue.toString());
+        final argsValue = resolvedArguments;
+        final userId = argsValue is PublicProfileArguments
+            ? argsValue.userId
+            : argsValue?.toString();
+        if (_isMissingRouteValue(userId)) {
+          return _notFound('Profile details are missing.');
+        }
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => PublicProfileScreen(userId: args.userId),
+          builder: (_) => PublicProfileScreen(userId: userId!.trim()),
         );
       case AppRoutes.notifications:
         return MaterialPageRoute(
@@ -210,7 +264,7 @@ class AppRouter {
           builder: (_) => const NotificationsScreen(),
         );
       case AppRoutes.conversation:
-        final argsValue = arguments ?? settings.arguments;
+        final argsValue = resolvedArguments;
         if (argsValue is! ConversationArguments) {
           return _notFound('Conversation details are missing.');
         }
@@ -224,7 +278,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.collaborationRequest:
-        final argsValue = arguments ?? settings.arguments;
+        final argsValue = resolvedArguments;
         final bookId = argsValue is CollaborationRequestArguments
             ? argsValue.bookId
             : argsValue?.toString();
@@ -246,7 +300,7 @@ class AppRouter {
           builder: (_) => const DiscoveryScreen(),
         );
       case AppRoutes.writerPad:
-        final argsValue = arguments ?? settings.arguments;
+        final argsValue = resolvedArguments;
         if (argsValue != null && argsValue is! WriterPadArguments) {
           return _notFound('Writer details are missing.');
         }
@@ -259,7 +313,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.postDetail:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         String postId;
         FeedPost? post;
 
@@ -291,13 +345,16 @@ class AppRouter {
           ),
         );
       case AppRoutes.category:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         final category = args is CategoryBooksArguments
             ? args.category
-            : args.toString();
+            : args?.toString();
+        if (_isMissingRouteValue(category)) {
+          return _notFound('Category details are missing.');
+        }
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => CategoryBooksScreen(category: category),
+          builder: (_) => CategoryBooksScreen(category: category!.trim()),
         );
       case AppRoutes.savedBooks:
         return MaterialPageRoute(
@@ -305,7 +362,7 @@ class AppRouter {
           builder: (_) => const SavedBooksScreen(),
         );
       case AppRoutes.followList:
-        final argsValue = arguments ?? settings.arguments;
+        final argsValue = resolvedArguments;
         if (argsValue is! FollowListArguments) {
           return _notFound('Follow list details are missing.');
         }
@@ -336,17 +393,17 @@ class AppRouter {
       case AppRoutes.privacy:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const StaticInfoScreen(
+          builder: (_) => const _ExternalPolicyScreen(
             title: 'Privacy Policy',
-            body: _privacyPolicyBody,
+            url: AppLinkHelper.privacyPolicyUrl,
           ),
         );
       case AppRoutes.terms:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const StaticInfoScreen(
+          builder: (_) => const _ExternalPolicyScreen(
             title: 'Terms of Use',
-            body: _termsOfUseBody,
+            url: AppLinkHelper.termsUrl,
           ),
         );
       case AppRoutes.certificate:
@@ -361,7 +418,7 @@ class AppRouter {
           },
         );
       case AppRoutes.dailyTopic:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         String? topicId;
         DailyTopicArguments? topicArgs;
         if (args is DailyTopicArguments) {
@@ -378,7 +435,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.homeBanner:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         if (args is! HomeBannerArguments) {
           return _notFound('Banner details are missing.');
         }
@@ -398,7 +455,7 @@ class AppRouter {
           },
         );
       case AppRoutes.archiveReader:
-        final args = arguments ?? settings.arguments;
+        final args = resolvedArguments;
         if (args is! Book) {
           return _notFound('Book details are missing for Archive Reader.');
         }
@@ -440,337 +497,56 @@ class AppRouter {
 
     return null;
   }
+
+  static bool _isMissingRouteValue(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty || trimmed == 'null';
+  }
+
+  static _ExternalPolicyDefinition? _externalPolicyForRoute(String routeName) {
+    return switch (routeName) {
+      AppRoutes.privacy => const _ExternalPolicyDefinition(
+        url: AppLinkHelper.privacyPolicyUrl,
+      ),
+      AppRoutes.terms => const _ExternalPolicyDefinition(
+        url: AppLinkHelper.termsUrl,
+      ),
+      _ => null,
+    };
+  }
+
+  static Future<bool> _launchExternalUrl(String url) async {
+    try {
+      return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
-const _privacyPolicyBody = r'''Last Updated: May 19, 2026
-
-1. Introduction
-
-Welcome to Wreadom ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our web application and services (collectively, the "Service").
-
-This Privacy Policy is compliant with the Information Technology Act, 2000, the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011, and the Digital Personal Data Protection Act, 2023 (DPDPA).
-
-2. Information We Collect
-
-2.1 Personal Information
-
-We collect the following personal information when you register and use our Service:
-
-- Name and display name
-- Email address
-- Username and password (encrypted)
-- Profile picture (optional)
-- Pen name and biography (optional)
-
-2.2 Content Information
-
-- Books, stories, poems, articles, drafts, chapters, and chapter version history you create or upload
-- Comments, replies, text reviews, audio reviews, and testimonies you post
-- Bookmarks and reading history
-- Feed posts, messages, chats, collaboration activity, and social interactions
-
-2.3 Usage Information
-
-- Device information (browser type, operating system)
-- IP address and general location data
-- Reading preferences and settings
-- Text-to-speech playback state and notification preferences where supported
-- Usage patterns and analytics
-- App profile name/display name used to identify signed-in analytics activity
-
-3. How We Use Your Information
-
-We use your information for the following purposes:
-
-- To provide, maintain, and improve our Service
-- To create and manage your account
-- To enable you to read, listen to text-to-speech, write, save drafts, manage chapters, restore chapter versions, and publish content
-- To facilitate social features (following, testimonies, feed, reviews, replies, messages, chats, and collaboration)
-- To host and play audio reviews and support replies to reviews or comments
-- To personalize your reading experience
-- To send in-app, push, browser, and media playback notifications where enabled
-- To communicate with you about updates and features
-- To ensure security and prevent fraud
-- To comply with legal obligations
-
-4. Data Sharing and Disclosure
-
-4.1 Public Information
-
-Your published works, public profile information, comments, replies, reviews, audio reviews, feed posts, and public collaboration details are visible to other users based on your privacy settings and the feature you use. Drafts and chapter version history are intended to remain private to authorized authors and collaborators unless published or shared by you.
-
-4.2 Service Providers
-
-We use third-party service providers including:
-
-- Google Firebase (for authentication and database hosting)
-- Google Analytics for Firebase (for app usage analytics)
-- Vercel (for hosting)
-- Cloudinary (for image and media uploads)
-- Backblaze B2 / compatible storage providers (for audio review upload and playback storage)
-- Internet Archive (for accessing public domain books)
-
-4.3 Legal Requirements
-
-We may disclose your information if required by law, court order, or government authority, or to protect our rights and safety.
-
-5. Data Storage and Security
-
-We implement industry-standard security measures to protect your personal information, including:
-
-- Encryption of data in transit using SSL/TLS
-- Secure authentication through Firebase Auth
-- Regular security audits and updates
-- Access controls and authentication requirements
-
-Your data is stored on secure servers maintained by Google Firebase, which complies with international security standards.
-
-6. Your Rights Under Indian Law
-
-Under the DPDPA 2023 and IT Act 2000, you have the following rights:
-
-- Right to Access: You can access your personal data through your account settings
-- Right to Correction: You can update or correct your information at any time
-- Right to Erasure: You can request deletion of your account and data (see Section 14 for detailed steps)
-- Right to Data Portability: You can request a copy of your data in a portable format
-- Right to Withdraw Consent: You can withdraw consent for data processing
-- Right to Grievance Redressal: You can file complaints regarding data handling
-
-7. Cookies and Tracking
-
-We use browser storage (sessionStorage and localStorage) to enhance your experience by:
-
-- Remembering your login session
-- Saving your reader preferences
-- Maintaining your reading position
-- Supporting text-to-speech playback controls and notification state where available
-- Persisting your application state
-
-8. Children's Privacy
-
-Our Service is not directed to individuals under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
-
-9. Data Retention
-
-We retain your personal information for as long as your account is active or as needed to provide you services. You may request deletion of your account at any time (see Section 14 for detailed steps), after which we will delete or anonymize your data within 30 days, except where we are required to retain it for legal purposes.
-
-10. International Data Transfers
-
-Your information may be transferred to and processed in countries other than India. We ensure appropriate safeguards are in place to protect your data in accordance with this Privacy Policy and applicable laws.
-
-11. Changes to This Privacy Policy
-
-We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. Your continued use of the Service after any changes constitutes acceptance of the updated Privacy Policy.
-
-12. Grievance Officer
-
-In accordance with the Information Technology Act, 2000, and the DPDPA 2023, we have appointed a Grievance Officer to address your concerns regarding data protection and privacy:
-
-Name: S. Menaria
-Email: contact@wreadom.in
-Response Time: Within 30 days of receiving a complaint
-
-13. Contact Us
-
-If you have any questions about this Privacy Policy or our data practices, please contact us at:
-
-Email: contact@wreadom.in
-
-14. Account and Data Deletion Request
-
-At Wreadom (developed by S. Menaria), we value your privacy and give you full control over your personal data. If you no longer wish to use our Service, you can request the deletion of your account and all associated personal and content data at any time.
-
-To request account and data deletion, please follow these steps:
-
-1. Send an Email Request: Send an email from your registered email address to our support team at contact@wreadom.in.
-2. Subject Line: Use the subject line "Account Deletion Request - [Your Username]".
-3. Specify Data to Delete: By default, we will delete your entire account including your profile information, reading history, bookmarks, saved books, and all uploaded content (books, comments, and reviews). If you wish to retain any published works under an anonymous pen name instead of complete deletion, please specify this in your email.
-
-What happens after you submit a request?
-
-- Upon receiving your request, we will verify your identity to protect your account security.
-- Once verified, your account and all associated data will be permanently deleted from our active databases and servers within 30 days.
-- Please note that some backups or legally required transactional logs may persist for a limited period to comply with local financial or legal obligations, after which they will also be permanently purged.''';
-
-const _termsOfUseBody = r'''Last Updated: May 14, 2026
-
-1. Acceptance of Terms
-
-Welcome to Wreadom. By accessing or using our Service, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our Service.
-
-These Terms constitute a legally binding agreement under the Indian Contract Act, 1872, between you and Wreadom. The Service is governed by the laws of India, and disputes shall be subject to the exclusive jurisdiction of courts in Rajasthan, India only.
-
-2. Definitions
-
-- "Service" refers to the Wreadom web application, mobile application, and all associated features
-- "User," "you," "your" refers to the individual accessing or using the Service
-- "Content" refers to text, images, audio reviews, comments, replies, reviews, messages, drafts, chapters, and other materials
-- "Original Works" refers to stories, poems, articles created by users
-- "We," "us," "our" refers to Wreadom and its operators
-
-3. Eligibility
-
-To use our Service, you must:
-
-- Be at least 13 years of age
-- Have the legal capacity to enter into a binding contract
-- Not be prohibited from using the Service under Indian law
-- Provide accurate and complete registration information
-
-If you are between 13 and 18 years of age, you may only use the Service under the supervision of a parent or legal guardian who agrees to be bound by these Terms.
-
-4. User Accounts
-
-4.1 Account Creation
-
-You must create an account to access certain features. You are responsible for:
-
-- Maintaining the confidentiality of your password
-- All activities that occur under your account
-- Notifying us immediately of any unauthorized use
-
-4.2 Account Termination
-
-We reserve the right to suspend or terminate your account if you violate these Terms or engage in conduct that we deem inappropriate or harmful to the Service or other users.
-
-5. Intellectual Property Rights
-
-5.1 Your Content
-
-You retain all ownership rights to the Original Works and other content you create and publish on Wreadom. By publishing content, you grant us a non-exclusive, worldwide, royalty-free license to:
-
-- Display, distribute, and promote your content on our Service
-- Make your published works available to other users
-- Create derivative works for the purpose of formatting and displaying content
-
-You represent and warrant that you own or have the necessary rights to all content you publish and that your content does not infringe upon the intellectual property rights of any third party.
-
-Drafts, unpublished chapters, and chapter version history remain under your ownership and are provided as authoring tools. You are responsible for reviewing content before publishing, moving chapters to drafts, importing drafts into a book, restoring previous versions, or inviting collaborators who may edit your work.
-
-5.2 Our Content
-
-The Service itself, including its design, functionality, text, graphics, logos, and software, is owned by Wreadom and protected under the Copyright Act, 1957, and other applicable intellectual property laws. You may not copy, modify, distribute, or reverse engineer any part of our Service without our written permission.
-
-5.3 Third-Party Content
-
-We provide access to public domain books from Internet Archive and other sources. We do not claim ownership of these works and they remain subject to their respective copyright status.
-
-6. User Conduct and Prohibited Activities
-
-You agree NOT to:
-
-- Publish content that is illegal, harmful, threatening, abusive, defamatory, obscene, or otherwise objectionable
-- Infringe upon the intellectual property rights of others
-- Impersonate any person or entity or misrepresent your affiliation
-- Harass, bully, or harm other users
-- Misuse messages, chats, replies, audio reviews, or collaboration tools to spam, harass, impersonate, or pressure others
-- Distribute spam, viruses, or malicious code
-- Attempt to gain unauthorized access to our systems
-- Use automated tools (bots, scrapers) without our permission
-- Violate any applicable laws or regulations of India
-- Engage in any activity that disrupts or interferes with the Service
-
-7. Content Moderation
-
-We reserve the right, but are not obligated, to:
-
-- Monitor and review user-generated content
-- Remove or modify content that violates these Terms
-- Take action against users who violate these Terms
-
-In compliance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, we will make reasonable efforts to remove unlawful content upon receiving actual knowledge or notification.
-
-Content moderation may apply to published works, feed posts, comments, replies, reviews, audio reviews, messages reported to us, and collaboration activity that affects other users.
-
-8. Privacy and Data Protection
-
-Your use of the Service is also governed by our Privacy Policy, which explains how we collect, use, and protect your personal information in compliance with the Digital Personal Data Protection Act, 2023, and the Information Technology Act, 2000. By using the Service, you consent to our data practices as described in the Privacy Policy.
-
-Some features, including text-to-speech controls, media notifications, audio reviews, replies, direct chats, group chats, and collaboration requests, may process additional content or device-level notification preferences needed to provide those features.
-
-9. Copyright Infringement
-
-We respect intellectual property rights and expect our users to do the same. If you believe your copyright has been infringed, please contact us with:
-
-- Identification of the copyrighted work
-- Identification of the infringing material
-- Your contact information
-- A statement of good faith belief that the use is unauthorized
-- A statement of accuracy under penalty of perjury
-
-Send notices to: contact@wreadom.in
-
-10. Disclaimer of Warranties
-
-THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
-
-- Warranties of merchantability or fitness for a particular purpose
-- Warranties that the Service will be uninterrupted or error-free
-- Warranties regarding the accuracy or reliability of content
-
-11. Limitation of Liability
-
-To the fullest extent permitted by law, Wreadom shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or relating to your use of the Service, including but not limited to:
-
-- Loss of data or content
-- Loss of profits or revenue
-- Personal injury or property damage
-- Third-party claims
-
-Our total liability shall not exceed Rs. 1,000 (One Thousand Rupees) or the amount you paid us in the last 12 months, whichever is greater.
-
-12. Indemnification
-
-You agree to indemnify, defend, and hold harmless Wreadom, its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees) arising out of:
-
-- Your use of the Service
-- Your violation of these Terms
-- Your violation of any third-party rights
-- Content you publish on the Service
-
-13. Dispute Resolution
-
-13.1 Governing Law
-
-These Terms shall be governed by and construed in accordance with the laws of India, without regard to conflict of law principles.
-
-13.2 Jurisdiction
-
-Any disputes arising out of or relating to these Terms or the Service shall be subject to the exclusive jurisdiction of the courts in Rajasthan, India.
-
-13.3 Arbitration
-
-Before filing any lawsuit, you agree to attempt to resolve disputes through good faith negotiations. If negotiations fail, disputes may be resolved through binding arbitration in accordance with the Arbitration and Conciliation Act, 1996.
-
-14. Changes to Terms
-
-We reserve the right to modify these Terms at any time. We will notify you of material changes by posting the updated Terms on the Service and updating the "Last Updated" date. Your continued use of the Service after such changes constitutes your acceptance of the modified Terms.
-
-15. Termination
-
-We may terminate or suspend your access to the Service immediately, without prior notice, for any reason, including but not limited to:
-
-- Violation of these Terms
-- Fraudulent or illegal activity
-- Extended period of inactivity
-- Request by law enforcement or government authority
-
-Upon termination, your right to use the Service will cease immediately. We may, but are not obligated to, delete your account and content.
-
-16. Severability
-
-If any provision of these Terms is found to be unlawful, void, or unenforceable, that provision shall be deemed severable and shall not affect the validity and enforceability of the remaining provisions.
-
-17. Entire Agreement
-
-These Terms, along with our Privacy Policy, constitute the entire agreement between you and Wreadom regarding the use of the Service and supersede all prior agreements and understandings.
-
-18. Contact Information
-
-If you have any questions about these Terms, please contact us:
-
-Email: contact@wreadom.in
-
-Important Notice:
-
-By using Wreadom, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.''';
+class _ExternalPolicyDefinition {
+  const _ExternalPolicyDefinition({required this.url});
+
+  final String url;
+}
+
+class _ExternalPolicyScreen extends StatelessWidget {
+  const _ExternalPolicyScreen({required this.title, required this.url});
+
+  final String title;
+  final String url;
+
+  Future<void> _open() async {
+    await AppRouter._launchExternalUrl(url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StaticInfoScreen(
+      title: title,
+      body: 'Open $url in your browser.',
+      actionLabel: 'Open',
+      onAction: () => unawaited(_open()),
+    );
+  }
+}

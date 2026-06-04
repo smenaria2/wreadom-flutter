@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,8 +22,10 @@ const _homepageBooksCacheKey = 'homepage_books_cache_v3';
 const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
-const _homepageMetadataCacheTtl = Duration(minutes: 30);
 const _homepageRequestTimeout = Duration(seconds: 8);
+bool _homepageBackgroundRefreshQueued = false;
+bool _publicHomepageWarmQueued = false;
+bool _userHomepageWarmQueued = false;
 
 final homepageRefreshCounterProvider =
     NotifierProvider<HomepageRefreshCounter, int>(HomepageRefreshCounter.new);
@@ -59,6 +62,41 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ref.invalidate(homepageRecentProvider);
   ref.invalidate(homepageGenreProvider);
   ref.invalidate(homeBannersProvider);
+}
+
+void warmPublicHomepageCache(WidgetRef ref) {
+  if (_publicHomepageWarmQueued) return;
+  _publicHomepageWarmQueued = true;
+  unawaited(
+    Future.wait(<Future<Object?>>[
+      ref.read(homepageMetadataProvider.future).then<Object?>((_) => null),
+      ref.read(homeBannersProvider.future).then<Object?>((_) => null),
+      ref.read(homepageBooksProvider.future).then<Object?>((_) => null),
+      ref.read(homepageAuthorWorksProvider.future).then<Object?>((_) => null),
+      ref.read(homepageIABooksProvider.future).then<Object?>((_) => null),
+    ]).catchError((_) => <Object?>[]),
+  );
+}
+
+Future<void> warmUserHomepageCache(WidgetRef ref) async {
+  if (_userHomepageWarmQueued) return;
+  _userHomepageWarmQueued = true;
+  await Future.wait(<Future<Object?>>[
+    ref.read(readingHistoryBooksProvider.future).then<Object?>((_) => null),
+    ref.read(savedBooksProvider.future).then<Object?>((_) => null),
+    ref.read(homepageDownloadedBooksProvider.future).then<Object?>((_) => null),
+  ]).catchError((_) => <Object?>[]);
+}
+
+void _queueHomepageBackgroundRefresh(Ref ref) {
+  if (_homepageBackgroundRefreshQueued) return;
+  _homepageBackgroundRefreshQueued = true;
+  scheduleMicrotask(() {
+    ref.read(homepageRefreshCounterProvider.notifier).bump();
+    Timer(const Duration(seconds: 30), () {
+      _homepageBackgroundRefreshQueued = false;
+    });
+  });
 }
 
 T? _readCachedValue<T>(
@@ -203,16 +241,14 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
   final now = DateTime.now().millisecondsSinceEpoch;
-  final cachedAt = prefs.getInt(_homepageMetadataCacheUpdatedAtKey) ?? 0;
-  final isCacheFresh =
-      now - cachedAt < _homepageMetadataCacheTtl.inMilliseconds;
   final cached = _readCachedValue<HomepageMetadata>(
     prefs,
     _homepageMetadataCacheKey,
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (refreshTick == 0 && cached != null && isCacheFresh) {
+  if (refreshTick == 0 && cached != null) {
+    _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
@@ -265,7 +301,10 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
         .map((raw) => HomeBanner.fromJson(asStringMap(raw)))
         .toList(),
   );
-  if (refreshTick == 0 && cached != null) return cached;
+  if (refreshTick == 0 && cached != null) {
+    _queueHomepageBackgroundRefresh(ref);
+    return cached;
+  }
 
   final byId = <String, HomeBanner>{};
 
@@ -363,6 +402,7 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
+    _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
@@ -453,6 +493,7 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
+    _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
@@ -642,6 +683,7 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (refreshTick == 0 && cached != null) {
+    _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 

@@ -1,5 +1,9 @@
 // ignore_for_file: avoid_print
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:librebook_flutter/src/data/services/cover_image_service.dart';
 
@@ -11,13 +15,46 @@ void main() {
       service = CoverImageService();
     });
 
-    test('translateTitle translates Hindi text to English', () async {
-      final hindiTitle = 'मेरी नई किताब'; // My new book
-      final result = await service.translateTitle(hindiTitle);
-      
-      expect(result.toLowerCase(), contains('my'));
-      expect(result.toLowerCase(), contains('book'));
-    });
+    test(
+      'translateTitle repairs mojibake Hindi text before translation',
+      () async {
+        const hindiTitle =
+            '\u092e\u0947\u0930\u0940 \u0928\u0908 \u0915\u093f\u0924\u093e\u092c';
+        final mojibakeHindiTitle = latin1.decode(utf8.encode(hindiTitle));
+        final service = CoverImageService(
+          httpClient: MockClient((request) async {
+            expect(request.url.queryParameters['q'], equals(hindiTitle));
+            return http.Response(
+              jsonEncode([
+                [
+                  ['My new book'],
+                ],
+              ]),
+              200,
+            );
+          }),
+        );
+
+        final result = await service.translateTitle(mojibakeHindiTitle);
+
+        expect(result, equals('My new book'));
+      },
+    );
+
+    test(
+      'translateTitle uses an English cover query when Hindi translation fails',
+      () async {
+        const hindiTitle =
+            '\u092e\u0947\u0930\u0940 \u0928\u0908 \u0915\u093f\u0924\u093e\u092c';
+        final service = CoverImageService(
+          httpClient: MockClient((request) async => http.Response('', 503)),
+        );
+
+        final result = await service.translateTitle(hindiTitle);
+
+        expect(result, equals('hindi book cover story'));
+      },
+    );
 
     test('translateTitle handles empty/untitled title fallback', () async {
       final resultEmpty = await service.translateTitle('');
@@ -29,7 +66,9 @@ void main() {
 
     test('searchImages fetches exactly 3 images from Unsplash', () async {
       if (EnvConfig.unsplashAccessKey.isEmpty) {
-        print('Skipping Unsplash search test because UNSPLASH_ACCESS_KEY is not configured.');
+        print(
+          'Skipping Unsplash search test because UNSPLASH_ACCESS_KEY is not configured.',
+        );
         return;
       }
 

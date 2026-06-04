@@ -98,8 +98,14 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
-  Future<void> recordBookView(String bookId, String viewerKey) async {
+  Future<bool> recordBookView(
+    String bookId,
+    String viewerKey, {
+    required int chapterIndex,
+    String? chapterId,
+  }) async {
     // We don't increment view counts on Archive.org
+    return false;
   }
 
   @override

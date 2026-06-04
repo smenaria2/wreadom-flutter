@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -53,6 +54,10 @@ class NotificationService {
 
   void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
+    _drainPendingNavigation();
+  }
+
+  void drainPendingNavigation() {
     _drainPendingNavigation();
   }
 
@@ -288,6 +293,13 @@ class NotificationService {
       _pendingNavigationKey = navigationKey;
       return;
     }
+    if (fb_auth.FirebaseAuth.instance.currentUser == null) {
+      if (_pendingNavigationKey == navigationKey) return;
+      _pendingNavigationData = Map<String, dynamic>.from(data);
+      _pendingNavigationKey = navigationKey;
+      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+      return;
+    }
     if (_isDuplicateNavigationKey(navigationKey)) return;
 
     switch (target.route) {
@@ -304,6 +316,7 @@ class NotificationService {
             bookId: target.payload,
             targetCommentId: target.commentId,
             targetReplyId: target.replyId,
+            initialReaderChapterIndex: target.chapterIndex,
           ),
         );
         return;
@@ -387,6 +400,7 @@ class NotificationService {
       target.payload,
       target.commentId,
       target.replyId,
+      target.chapterIndex?.toString(),
     ].whereType<String>().join('|');
   }
 
@@ -396,7 +410,8 @@ class NotificationService {
     _pendingNavigationData = null;
     _pendingNavigationKey = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_navigatorKey?.currentState == null) {
+      if (_navigatorKey?.currentState == null ||
+          fb_auth.FirebaseAuth.instance.currentUser == null) {
         _pendingNavigationData = data;
         final notification = AppNotification(
           id: data['notificationId']?.toString(),

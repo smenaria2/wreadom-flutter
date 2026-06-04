@@ -8,12 +8,14 @@ class NotificationTarget {
     this.payload, {
     this.commentId,
     this.replyId,
+    this.chapterIndex,
   });
 
   final String route;
   final String payload;
   final String? commentId;
   final String? replyId;
+  final int? chapterIndex;
 }
 
 class NotificationTargetResolver {
@@ -76,6 +78,7 @@ class NotificationTargetResolver {
         linkTarget!.payload!,
         commentId: commentId,
         replyId: replyId,
+        chapterIndex: linkTarget.chapterIndex,
       );
     }
     if (linkTarget?.route == AppRoutes.postDetail &&
@@ -123,6 +126,9 @@ class NotificationTargetResolver {
         bookId,
         commentId: commentId,
         replyId: replyId,
+        chapterIndex: linkTarget?.route == AppRoutes.bookDetail
+            ? linkTarget?.chapterIndex
+            : null,
       );
     }
 
@@ -156,6 +162,9 @@ class NotificationTargetResolver {
         targetId,
         commentId: commentId,
         replyId: replyId,
+        chapterIndex: linkTarget?.route == AppRoutes.bookDetail
+            ? linkTarget?.chapterIndex
+            : null,
       );
     }
     if (isPostType && targetId != null) {

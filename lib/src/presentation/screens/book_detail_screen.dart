@@ -22,6 +22,7 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
+import '../providers/follow_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../providers/message_providers.dart';
 import '../providers/profile_providers.dart';
@@ -34,7 +35,6 @@ import '../utils/error_message_utils.dart';
 import '../utils/swipe_hint.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
-import '../widgets/follow_button.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
@@ -65,12 +65,14 @@ class BookDetailScreen extends ConsumerStatefulWidget {
 
 class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
   final Set<String> _preloadedBookIds = <String>{};
+  final Set<String> _precachedCoverUrls = <String>{};
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _precacheCover(widget.preloadedBook?.coverUrl);
       final l10n = AppLocalizations.of(context)!;
       showSwipeHintOnce(
         context: context,
@@ -101,6 +103,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
               ),
             );
           }
+          _precacheCover(book.coverUrl);
           if (widget.initialReaderChapterIndex != null) {
             return _ReaderDeepLinkLauncher(
               book: book,
@@ -141,6 +144,15 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       if (!mounted) return;
       unawaited(ref.read(bookChaptersProvider(bookId).future));
       unawaited(ref.read(offlineChaptersProvider(bookId).future));
+    });
+  }
+
+  void _precacheCover(String? coverUrl) {
+    final url = coverUrl?.trim();
+    if (url == null || url.isEmpty || !_precachedCoverUrls.add(url)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      precacheImage(CachedNetworkImageProvider(url), context);
     });
   }
 }
@@ -859,10 +871,8 @@ class _AuthorLine extends StatelessWidget {
               label: primaryName.isEmpty ? fallback : primaryName,
             ),
           ),
-          if (authorId?.trim().isNotEmpty == true) ...[
-            const SizedBox(width: 8),
-            FollowButton(targetUserId: authorId!.trim(), compact: true),
-          ],
+          const SizedBox(width: 8),
+          _AuthorFollowSlot(authorId: authorId),
         ],
       );
     }
@@ -925,11 +935,8 @@ class _AuthorPill extends StatelessWidget {
     final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (photoURL != null && photoURL.isNotEmpty) ...[
-          CircleAvatar(
-            radius: 12,
-            backgroundImage: CachedNetworkImageProvider(photoURL),
-          ),
+        if (canOpenProfile) ...[
+          _AuthorAvatar(photoURL: photoURL, label: label),
           const SizedBox(width: 8),
         ],
         Flexible(
@@ -960,6 +967,116 @@ class _AuthorPill extends StatelessWidget {
         child: content,
       ),
     );
+  }
+}
+
+class _AuthorFollowSlot extends ConsumerWidget {
+  const _AuthorFollowSlot({required this.authorId});
+
+  final String? authorId;
+
+  static const double _slotSize = 40;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final targetUserId = authorId?.trim();
+    if (targetUserId == null || targetUserId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    if (currentUser == null || currentUser.id == targetUserId) {
+      return const SizedBox(width: _slotSize, height: _slotSize);
+    }
+
+    final isFollowingAsync = ref.watch(isFollowingProvider(targetUserId));
+    final child = isFollowingAsync.maybeWhen(
+      data: (isFollowing) {
+        if (isFollowing) return const SizedBox.shrink();
+        return IconButton(
+          tooltip: AppLocalizations.of(context)!.follow,
+          icon: const Icon(Icons.person_add_outlined),
+          iconSize: 20,
+          color: Theme.of(context).colorScheme.primary,
+          onPressed: () => _followAuthor(context, ref, targetUserId),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+
+    return SizedBox(
+      width: _slotSize,
+      height: _slotSize,
+      child: Center(child: child),
+    );
+  }
+
+  Future<void> _followAuthor(
+    BuildContext context,
+    WidgetRef ref,
+    String targetUserId,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final follower = ref.read(currentUserProvider).value;
+    final followerId = follower?.id;
+    if (followerId == null || follower == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
+      return;
+    }
+
+    try {
+      await ref
+          .read(followRepositoryProvider)
+          .followUser(followerId: followerId, followingId: targetUserId);
+      AnalyticsService.logFollow(followed: true, targetUserId: targetUserId);
+      await AppHaptics.medium();
+      ref.invalidate(isFollowingProvider(targetUserId));
+      ref.invalidate(followingListProvider);
+    } catch (e) {
+      debugPrint('Error following author: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.followActionFailed(e.toString()))),
+      );
+    }
+  }
+}
+
+class _AuthorAvatar extends StatelessWidget {
+  const _AuthorAvatar({required this.photoURL, required this.label});
+
+  final String? photoURL;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolvedPhotoURL = photoURL?.trim();
+    final initial = _initialForLabel(label);
+    return CircleAvatar(
+      radius: 12,
+      backgroundColor: theme.colorScheme.primaryContainer,
+      backgroundImage: resolvedPhotoURL == null || resolvedPhotoURL.isEmpty
+          ? null
+          : CachedNetworkImageProvider(resolvedPhotoURL),
+      child: resolvedPhotoURL == null || resolvedPhotoURL.isEmpty
+          ? Text(
+              initial,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          : null,
+    );
+  }
+
+  String _initialForLabel(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '?';
+    return String.fromCharCode(trimmed.runes.first).toUpperCase();
   }
 }
 
@@ -1399,18 +1516,12 @@ class _DetailCover extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: book.coverUrl != null
-          ? CachedNetworkImage(
-              imageUrl: book.coverUrl!,
+          ? Image(
+              image: CachedNetworkImageProvider(book.coverUrl!),
               height: 220,
               width: 150,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(
-                height: 220,
-                width: 150,
-                color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (_, _, _) => _PlaceholderCover(book: book),
+              errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
             )
           : _PlaceholderCover(book: book),
     );

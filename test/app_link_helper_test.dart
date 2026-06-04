@@ -4,6 +4,11 @@ import 'package:librebook_flutter/src/utils/app_link_helper.dart';
 
 void main() {
   group('AppLinkHelper', () {
+    test('exposes canonical web policy URLs', () {
+      expect(AppLinkHelper.privacyPolicyUrl, 'https://wreadom.in/privacy');
+      expect(AppLinkHelper.termsUrl, 'https://wreadom.in/terms');
+    });
+
     test('builds canonical web-compatible post share URL', () {
       expect(
         AppLinkHelper.post('post 123'),

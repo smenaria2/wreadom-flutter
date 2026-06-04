@@ -323,22 +323,28 @@ void main() {
       'lib/src/presentation/routing/app_router.dart',
     ).readAsStringSync();
 
-    expect(source, contains('Last Updated: May 19, 2026'));
-    expect(source, contains('Digital Personal Data Protection Act, 2023'));
-    expect(source, contains('Indian Contract Act, 1872'));
-    expect(source, contains('Terms of Use'));
-    expect(source, contains('Grievance Officer'));
+    expect(source, contains('AppLinkHelper.privacyPolicyUrl'));
+    expect(source, contains('AppLinkHelper.termsUrl'));
+    expect(source, contains('_ExternalPolicyScreen'));
   });
 
   test('book detail exposes original author profile and follow actions', () {
     final source = File(
       'lib/src/presentation/screens/book_detail_screen.dart',
     ).readAsStringSync();
+    final collaborationAuthorBlock = source.substring(
+      source.indexOf('return Wrap('),
+      source.indexOf('class _AuthorPill'),
+    );
 
     expect(source, contains('book.isOriginal'));
     expect(source, contains('AppRoutes.publicProfile'));
     expect(source, contains('PublicProfileArguments'));
-    expect(source, contains('FollowButton'));
+    expect(source, contains('class _AuthorFollowSlot'));
+    expect(source, contains('_AuthorFollowSlot(authorId: authorId)'));
+    expect(source, contains('isFollowingProvider'));
+    expect(source, contains('followRepositoryProvider'));
+    expect(collaborationAuthorBlock, isNot(contains('_AuthorFollowSlot')));
   });
 
   testWidgets('published writer card exposes edit button only', (tester) async {
@@ -425,6 +431,7 @@ void main() {
     expect(readerSource, contains('didChangeAppLifecycleState'));
     expect(readerSource, contains('_saveProgressSilently'));
     expect(readerSource, contains('catchError'));
+    expect(readerSource, contains('_markInitialScrollRestored'));
     expect(readerSource, contains('RestorableInt _restorableChapterIndex'));
     expect(
       readerSource,
@@ -849,7 +856,7 @@ void main() {
       ).readAsStringSync();
 
       expect(readerSource, contains('_chapterContentEndKey'));
-      expect(readerSource, contains('_progressScrollExtent'));
+      expect(readerSource, contains('_progressScrollRange'));
       expect(readerSource, contains('RenderAbstractViewport.maybeOf'));
       final menuStart = readerSource.indexOf('final buttonItems');
       final menuSource = readerSource.substring(menuStart);
@@ -1714,7 +1721,7 @@ void main() {
     expect(helpSource, contains("path: 'contact@wreadom.in'"));
     expect(helpSource, contains('LaunchMode.externalApplication'));
     expect(helpSource, contains('SubmitErrorDialog'));
-    expect(routerSource, contains('contact@wreadom.in'));
+    expect(routerSource, contains('LaunchMode.externalApplication'));
     expect(routerSource, isNot(contains('smenaria2@gmail.com')));
   });
 
@@ -1859,5 +1866,63 @@ void main() {
     ]) {
       expect(l10n[key], isA<String>());
     }
+  });
+
+  test('web policy links are used from auth and routing surfaces', () {
+    final loginSource = File(
+      'lib/src/presentation/screens/login_screen.dart',
+    ).readAsStringSync();
+    final routerSource = File(
+      'lib/src/presentation/routing/app_router.dart',
+    ).readAsStringSync();
+    final linkSource = File(
+      'lib/src/utils/app_link_helper.dart',
+    ).readAsStringSync();
+
+    expect(linkSource, contains("privacyPolicyUrl = '\$origin/privacy'"));
+    expect(linkSource, contains("termsUrl = '\$origin/terms'"));
+    expect(loginSource, contains('AppRoutes.privacy'));
+    expect(loginSource, contains('AppRoutes.terms'));
+    expect(loginSource, contains('AppRouter.openExternalPolicy'));
+    expect(routerSource, contains('LaunchMode.externalApplication'));
+    expect(routerSource, contains('AppLinkHelper.privacyPolicyUrl'));
+    expect(routerSource, contains('AppLinkHelper.termsUrl'));
+    expect(routerSource, contains('openExternalPolicy'));
+    expect(routerSource, contains('_ExternalPolicyScreen'));
+  });
+
+  test('chapter reads and reader progress are chapter scoped', () {
+    final repoSource = File(
+      'lib/src/data/repositories/firebase_book_repository.dart',
+    ).readAsStringSync();
+    final readerSource = File(
+      'lib/src/presentation/screens/reader_screen.dart',
+    ).readAsStringSync();
+    final rulesSource = File('firestore.rules').readAsStringSync();
+
+    expect(repoSource, contains('chapterKey'));
+    expect(repoSource, contains('chapterIndex'));
+    expect(repoSource, contains('Future<bool> recordBookView'));
+    expect(readerSource, contains('_chapterContentStartKey'));
+    expect(readerSource, contains('_progressScrollRange'));
+    expect(readerSource, contains('_incrementView(chapterIndex: index)'));
+    expect(rulesSource, contains('chapterKey'));
+    expect(rulesSource, contains('chapterIndex'));
+  });
+
+  test('homepage cache warming and background refresh are wired', () {
+    final homeProviderSource = File(
+      'lib/src/presentation/providers/homepage_providers.dart',
+    ).readAsStringSync();
+    final loginSource = File(
+      'lib/src/presentation/screens/login_screen.dart',
+    ).readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
+
+    expect(homeProviderSource, contains('warmPublicHomepageCache'));
+    expect(homeProviderSource, contains('warmUserHomepageCache'));
+    expect(homeProviderSource, contains('_queueHomepageBackgroundRefresh'));
+    expect(loginSource, contains('warmPublicHomepageCache(ref)'));
+    expect(mainSource, contains('warmUserHomepageCache(ref)'));
   });
 }

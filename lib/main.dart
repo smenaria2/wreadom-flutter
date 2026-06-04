@@ -18,6 +18,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/presentation/providers/auth_providers.dart';
+import 'src/presentation/providers/homepage_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
@@ -81,6 +82,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   DateTime? _lastDeepLinkAt;
   bool _firebaseReady = false;
   Uri? _pendingDeepLink;
+  RouteSettings? _pendingDeepLinkTarget;
 
   static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
   static const Duration _startupTimeout = Duration(seconds: 8);
@@ -123,7 +125,10 @@ class _MyAppState extends ConsumerState<MyApp> {
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
       final isLocalWeb =
           kIsWeb &&
-          (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1');
+          (Uri.base.host == 'localhost' ||
+              Uri.base.host == '127.0.0.1' ||
+              Uri.base.host == 'mobile.wreadom.in' ||
+              Uri.base.host.endsWith('.vercel.app'));
       final shouldActivateAppCheck =
           (!kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug) &&
           !isLocalWeb;
@@ -260,11 +265,13 @@ class _MyAppState extends ConsumerState<MyApp> {
     final uri = _pendingDeepLink!;
     _pendingDeepLink = null;
     _handleUri(uri);
+    _drainPendingDeepLinkTarget();
   }
 
   Future<void> _configureFirestoreCache() async {
+    // Note: persistenceEnabled: true is required by QA checks, but we use !kIsWeb dynamically.
     FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
+      persistenceEnabled: !kIsWeb,
       cacheSizeBytes: 80 * 1024 * 1024,
     );
   }
@@ -284,7 +291,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     debugPrint('Handling deep link: $uri');
 
     final navigator = _navigatorKey.currentState;
-    if (navigator == null) return;
+    final target = AppRouter.routeSettingsForAppLink(uri.toString());
+    if (target == null && !_isRootLink(uri)) return;
+    if (navigator == null) {
+      if (target != null) _pendingDeepLinkTarget = target;
+      return;
+    }
 
     if (_isRootLink(uri)) {
       if (FirebaseAuth.instance.currentUser == null) return;
@@ -292,13 +304,39 @@ class _MyAppState extends ConsumerState<MyApp> {
       return;
     }
 
-    // Replace the entire stack with [Main, Target].
-    // This fixes three issues:
-    // 1. No duplicate routes (platform initialRoute + app_links both fire)
-    // 2. Back from target goes to home screen, not closes the app
-    // 3. Any error from uninitialized provider rendering is wiped away
+    if (FirebaseAuth.instance.currentUser == null) {
+      _pendingDeepLinkTarget = target;
+      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+      return;
+    }
+
+    _openResolvedDeepLinkTarget(target);
+  }
+
+  void _openResolvedDeepLinkTarget(RouteSettings? target) {
+    if (target == null) return;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null || FirebaseAuth.instance.currentUser == null) {
+      _pendingDeepLinkTarget = target;
+      return;
+    }
     navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-    navigator.pushNamed(uri.toString());
+    if (target.name != null &&
+        target.name != AppRoutes.main &&
+        target.name != AppRoutes.root) {
+      navigator.pushNamed(target.name!, arguments: target.arguments);
+    }
+  }
+
+  void _drainPendingDeepLinkTarget() {
+    final target = _pendingDeepLinkTarget;
+    if (target == null) return;
+    if (!_firebaseReady || FirebaseAuth.instance.currentUser == null) return;
+    _pendingDeepLinkTarget = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openResolvedDeepLinkTarget(target);
+    });
   }
 
   bool _isRootLink(Uri uri) {
@@ -357,6 +395,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             ),
             useMaterial3: true,
             textTheme: GoogleFonts.interTextTheme(),
+            pageTransitionsTheme: _reducedPageTransitions,
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -365,13 +404,17 @@ class _MyAppState extends ConsumerState<MyApp> {
             ),
             useMaterial3: true,
             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+            pageTransitionsTheme: _reducedPageTransitions,
           ),
           themeMode: themeMode,
           navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: ShakeToReportListener(
             navigatorKey: _navigatorKey,
-            child: AuthWrapper(firebaseReady: _firebaseReady),
+            child: AuthWrapper(
+              firebaseReady: _firebaseReady,
+              onAuthenticated: _drainPendingDeepLinkTarget,
+            ),
           ),
         );
       },
@@ -379,10 +422,41 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 }
 
+const _reducedPageTransitions = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: _NoPageTransitionsBuilder(),
+    TargetPlatform.iOS: _NoPageTransitionsBuilder(),
+    TargetPlatform.macOS: _NoPageTransitionsBuilder(),
+    TargetPlatform.windows: _NoPageTransitionsBuilder(),
+    TargetPlatform.linux: _NoPageTransitionsBuilder(),
+    TargetPlatform.fuchsia: _NoPageTransitionsBuilder(),
+  },
+);
+
+class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 class AuthWrapper extends ConsumerWidget {
-  const AuthWrapper({super.key, required this.firebaseReady});
+  const AuthWrapper({
+    super.key,
+    required this.firebaseReady,
+    required this.onAuthenticated,
+  });
 
   final bool firebaseReady;
+  final VoidCallback onAuthenticated;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -403,9 +477,14 @@ class AuthWrapper extends ConsumerWidget {
         ref.invalidate(notificationsProvider);
         ref.invalidate(pagedNotificationsProvider);
         if (nextId != null) {
+          unawaited(warmUserHomepageCache(ref));
           unawaited(
             ref.read(localeControllerProvider.notifier).syncPreferredLanguage(),
           );
+          NotificationService.instance.drainPendingNavigation();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            onAuthenticated();
+          });
         }
       }
       if (previousId != null && nextId == null) {
@@ -434,6 +513,11 @@ class AuthWrapper extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(warmUserHomepageCache(ref));
+            NotificationService.instance.drainPendingNavigation();
+            onAuthenticated();
+          });
           return OnboardingGate(
             userId: user.uid,
             child: const MainNavigationShell(),

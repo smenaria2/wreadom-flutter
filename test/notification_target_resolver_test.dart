@@ -61,6 +61,20 @@ void main() {
     expect(target?.payload, 'book1');
   });
 
+  test('book notification preserves chapter index from shared link', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'chapter_update',
+        link: 'https://wreadom.in/?book=book1&mode=read&chapter=4',
+        targetId: 'book1',
+      ),
+    );
+
+    expect(target?.route, AppRoutes.bookDetail);
+    expect(target?.payload, 'book1');
+    expect(target?.chapterIndex, 3);
+  });
+
   test(
     'new creation notification with backend book link opens book detail',
     () {

@@ -215,7 +215,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final RestorableInt _restorableChapterIndex = RestorableInt(0);
   final RestorableDouble _restorableScrollProgress = RestorableDouble(0.0);
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _chapterContentStartKey = GlobalKey();
   final GlobalKey _chapterContentEndKey = GlobalKey();
+  int _scrollRestoreAttempts = 0;
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
   Comment? _existingUserReview;
@@ -305,7 +307,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
     AnalyticsService.logReaderOpen(widget.book);
-    unawaited(_incrementView());
+    unawaited(_incrementView(chapterIndex: _chapterIndex));
     _saveHistorySilently('initial_history_save');
     unawaited(
       _loadSavedScrollPosition().catchError((
@@ -337,6 +339,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _onScroll() {
+    if (!_initialScrollRestored) return;
     if (_scrollController.hasClients) {
       final position = _scrollController.position;
       final currentOffset = _scrollController.offset;
@@ -361,13 +364,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
-  Future<void> _incrementView() async {
+  Future<void> _incrementView({required int chapterIndex}) async {
     try {
       if (widget.book.source == 'archive') return;
-      await _bookRepository.recordBookView(
+      final didCreateRead = await _bookRepository.recordBookView(
         widget.book.id,
         await _viewerKeyForViewCount(),
+        chapterIndex: chapterIndex,
+        chapterId: _chapterIdForViewCount(chapterIndex),
       );
+      if (!didCreateRead) return;
       AnalyticsService.logBookView(widget.book);
       ref.invalidate(liveBookDetailProvider(widget.book.id));
       final authorId = widget.book.authorId?.trim();
@@ -380,10 +386,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  String? _chapterIdForViewCount(int chapterIndex) {
+    final chapters = widget.book.chapters;
+    if (chapters == null ||
+        chapterIndex < 0 ||
+        chapterIndex >= chapters.length) {
+      return null;
+    }
+    final id = chapters[chapterIndex].id.trim();
+    return id.isEmpty ? null : id;
+  }
+
   Future<String> _viewerKeyForViewCount() async {
     final firebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser != null) {
-      return 'user:${firebaseUser.uid}';
+      final userId = firebaseUser.uid;
+      return 'user:$userId';
     }
 
     const prefsKey = 'anonymous_reader_viewer_id';
@@ -414,7 +432,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (user != null &&
         user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
       final rawProgress = user.readingProgress![widget.book.id.toString()];
-      if (rawProgress is! Map) return;
+      if (rawProgress is! Map) {
+        _markInitialScrollRestored();
+        return;
+      }
 
       final progress = Map<String, dynamic>.from(rawProgress);
       final savedChapterIndex =
@@ -423,9 +444,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
       if (savedChapterIndex == _chapterIndex && savedPosition > 0) {
         _pendingSavedScrollProgress = savedPosition.clamp(0.0, 1.0).toDouble();
+        setState(() {
+          _scrollProgress = _pendingSavedScrollProgress!;
+          _restorableScrollProgress.value = _scrollProgress;
+        });
         _restorePendingScrollPosition();
+        return;
       }
     }
+    _markInitialScrollRestored();
+  }
+
+  void _markInitialScrollRestored() {
+    _initialScrollRestored = true;
   }
 
   void _restorePendingScrollPosition() {
@@ -433,23 +464,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final progress = _pendingSavedScrollProgress;
     if (progress == null || progress <= 0) return;
 
+    _scrollRestoreAttempts++;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients || _initialScrollRestored) {
         return;
       }
-      final maxScroll = _progressScrollExtent();
+      final maxScroll = _progressScrollRange();
       if (maxScroll <= 0) {
-        _initialScrollRestored = true;
-        _pendingSavedScrollProgress = null;
-        setState(() {
-          _scrollProgress = 1.0;
-          _restorableScrollProgress.value = 1.0;
-        });
+        if (_scrollRestoreAttempts < 5) {
+          _restorePendingScrollPosition();
+        } else {
+          _initialScrollRestored = true;
+          _pendingSavedScrollProgress = null;
+          setState(() {
+            _scrollProgress = 0.0;
+            _restorableScrollProgress.value = 0.0;
+          });
+        }
         return;
       }
 
       _scrollController.jumpTo(
-        (progress * maxScroll).clamp(0.0, maxScroll).toDouble(),
+        (progress * maxScroll)
+            .clamp(0.0, _scrollController.position.maxScrollExtent)
+            .toDouble(),
       );
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
@@ -476,14 +514,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  double _currentProgressPosition() {
-    if (!_scrollController.hasClients) return _scrollProgress;
-    final extent = _progressScrollExtent();
-    if (extent <= 0) return 1.0;
-    return (_scrollController.offset / extent).clamp(0.0, 1.0).toDouble();
-  }
-
-  double _progressScrollExtent() {
+  double _progressScrollRange() {
     if (!_scrollController.hasClients) return 0.0;
     final position = _scrollController.position;
     final markerContext = _chapterContentEndKey.currentContext;
@@ -491,11 +522,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (marker != null) {
       final viewport = RenderAbstractViewport.maybeOf(marker);
       if (viewport != null) {
-        final revealOffset = viewport.getOffsetToReveal(marker, 1.0).offset;
+        final revealOffset = viewport.getOffsetToReveal(marker, 0.0).offset;
         return revealOffset.clamp(0.0, position.maxScrollExtent).toDouble();
       }
     }
     return position.maxScrollExtent;
+  }
+
+  double _currentProgressPosition() {
+    if (!_scrollController.hasClients) return _scrollProgress;
+    final extent = _progressScrollRange();
+    if (extent <= 0) return _scrollProgress;
+    return (_scrollController.offset / extent).clamp(0.0, 1.0);
   }
 
   bool get _useLegacyTtsTapSeeking => false;
@@ -657,6 +695,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _lastScrollOffset = 0.0;
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
+      _scrollRestoreAttempts = 0;
       // Reset TTS position for new chapter
       _ttsChunkIndex = 0;
       _activeTtsBlockIndex = -1;
@@ -670,6 +709,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _scrollController.jumpTo(0);
       }
     });
+    unawaited(_incrementView(chapterIndex: index));
     _saveProgressSilently('chapter_change_after_navigation');
   }
 
@@ -1137,6 +1177,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       controller: _scrollController,
       padding: const EdgeInsets.all(20),
       children: [
+        SizedBox(key: _chapterContentStartKey, height: 1),
         Text(
           chapter?.title ?? widget.book.title,
           textAlign: isPoem ? TextAlign.center : TextAlign.start,
@@ -1238,6 +1279,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       controller: _scrollController,
       padding: const EdgeInsets.all(20),
       children: [
+        SizedBox(key: _chapterContentStartKey, height: 1),
         for (final block in blocks)
           _ReaderTtsBlockView(
             block: block,

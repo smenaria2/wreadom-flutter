@@ -4,6 +4,8 @@ class AppLinkHelper {
   static const host = 'wreadom.in';
   static const wwwHost = 'www.wreadom.in';
   static const origin = 'https://$host';
+  static const privacyPolicyUrl = '$origin/privacy';
+  static const termsUrl = '$origin/terms';
 
   static String book(String bookId) {
     return 'https://wreadom.in/?book=$bookId';

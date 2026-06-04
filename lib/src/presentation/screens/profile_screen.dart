@@ -575,12 +575,24 @@ class _ProfileSideMenu extends ConsumerWidget {
                   _MenuTile(
                     icon: Icons.privacy_tip_outlined,
                     title: l10n.privacyPolicy,
-                    onTap: () => _go(context, AppRoutes.privacy),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      launchUrl(
+                        Uri.parse(AppLinkHelper.privacyPolicyUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
                   ),
                   _MenuTile(
                     icon: Icons.description_outlined,
                     title: l10n.termsOfUse,
-                    onTap: () => _go(context, AppRoutes.terms),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      launchUrl(
+                        Uri.parse(AppLinkHelper.termsUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
                   ),
                   const Divider(),
                   const _MenuSectionLabel(label: 'Social'),

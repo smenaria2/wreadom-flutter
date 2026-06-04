@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../providers/auth_controller.dart';
 import '../providers/auth_providers.dart';
+import '../providers/homepage_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/theme_provider.dart';
+import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/auth_text_field.dart';
@@ -26,6 +28,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
   bool _isLogin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      warmPublicHomepageCache(ref);
+    });
+  }
 
   @override
   void dispose() {
@@ -339,6 +350,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ],
                             ),
                           ),
+                        ),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4.w,
+                          children: [
+                            TextButton(
+                              onPressed: () => AppRouter.openExternalPolicy(
+                                context,
+                                AppRoutes.privacy,
+                              ),
+                              child: Text(l10n.privacyPolicy),
+                            ),
+                            Text(
+                              '|',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => AppRouter.openExternalPolicy(
+                                context,
+                                AppRoutes.terms,
+                              ),
+                              child: Text(l10n.termsOfUse),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 50.h),
                       ],

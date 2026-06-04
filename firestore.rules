@@ -363,7 +363,23 @@ service cloud.firestore {
       match /views/{viewerKey} {
         allow read: if true;
         allow create: if request.resource.data.keys().hasOnly(['viewerKey', 'createdAt']) || 
-                         request.resource.data.keys().hasOnly(['timestamp', 'viewerId', 'isGuest', 'bookId']);
+                         request.resource.data.keys().hasOnly(['timestamp', 'viewerId', 'isGuest', 'bookId']) ||
+                         (
+                           request.resource.data.keys().hasOnly([
+                             'viewerKey',
+                             'chapterKey',
+                             'chapterIndex',
+                             'chapterId',
+                             'createdAt'
+                           ]) &&
+                           request.resource.data.viewerKey is string &&
+                           request.resource.data.chapterKey is string &&
+                           request.resource.data.chapterIndex is int &&
+                           (
+                             !request.resource.data.keys().hasAny(['chapterId']) ||
+                             request.resource.data.chapterId is string
+                           )
+                         );
       }
 
       // Sub-collection for book chapters

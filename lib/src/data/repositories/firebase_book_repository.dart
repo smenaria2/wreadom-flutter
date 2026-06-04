@@ -424,26 +424,45 @@ class FirebaseBookRepository implements BookRepository {
   }
 
   @override
-  Future<void> recordBookView(String bookId, String viewerKey) async {
+  Future<bool> recordBookView(
+    String bookId,
+    String viewerKey, {
+    required int chapterIndex,
+    String? chapterId,
+  }) async {
     final normalizedViewerKey = viewerKey.trim();
-    if (bookId.trim().isEmpty || normalizedViewerKey.isEmpty) return;
+    if (bookId.trim().isEmpty || normalizedViewerKey.isEmpty) return false;
+    final normalizedChapterIndex = chapterIndex < 0 ? 0 : chapterIndex;
+    final normalizedChapterId = chapterId?.trim();
+    final chapterKey = normalizedChapterId != null &&
+            normalizedChapterId.isNotEmpty
+        ? 'id:$normalizedChapterId'
+        : 'index:$normalizedChapterIndex';
 
     final bookRef = _firestore.collection(_collection).doc(bookId);
     final viewRef = bookRef
         .collection('views')
-        .doc(Uri.encodeComponent(normalizedViewerKey));
+        .doc(
+          '${Uri.encodeComponent(normalizedViewerKey)}__'
+          '${Uri.encodeComponent(chapterKey)}',
+        );
 
-    await _firestore.runTransaction((transaction) async {
+    return _firestore.runTransaction<bool>((transaction) async {
       final existingView = await transaction.get(viewRef);
-      if (existingView.exists) return;
+      if (existingView.exists) return false;
 
       transaction.set(viewRef, {
         'viewerKey': normalizedViewerKey,
+        'chapterKey': chapterKey,
+        'chapterIndex': normalizedChapterIndex,
+        if (normalizedChapterId != null && normalizedChapterId.isNotEmpty)
+          'chapterId': normalizedChapterId,
         'createdAt': FieldValue.serverTimestamp(),
       });
       transaction.set(bookRef, {
         'viewCount': FieldValue.increment(1),
       }, SetOptions(merge: true));
+      return true;
     });
   }
 

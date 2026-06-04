@@ -19,7 +19,12 @@ abstract class BookRepository {
   Future<List<Book>> searchOriginalBooks(String query, {int limit = 20});
   Future<List<Book>> searchArchiveBooks(String query, {int limit = 20});
   Future<List<Book>> getBooksByIds(List<String> ids);
-  Future<void> recordBookView(String bookId, String viewerKey);
+  Future<bool> recordBookView(
+    String bookId,
+    String viewerKey, {
+    required int chapterIndex,
+    String? chapterId,
+  });
   Future<void> updateReadingHistory(String userId, String bookId);
   Future<List<Book>> getBooksByGenre(
     String genre, {
