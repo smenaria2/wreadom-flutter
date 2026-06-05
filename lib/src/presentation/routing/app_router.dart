@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
@@ -103,17 +102,21 @@ class AppRouter {
   static MaterialPageRoute _notFound([String? message, String? rawLink]) {
     final webFallbackUrl = _webFallbackUrl(rawLink);
     return MaterialPageRoute(
-      builder: (_) => StaticInfoScreen(
+      builder: (ctx) => StaticInfoScreen(
         title: 'Page Not Found',
         body: message ?? 'The requested page could not be found.',
         actionLabel: webFallbackUrl == null ? null : 'Open on web',
         actionIcon: Icons.open_in_browser_rounded,
         onAction: webFallbackUrl == null
             ? null
-            : () => launchUrl(
-                webFallbackUrl,
-                mode: LaunchMode.externalApplication,
-              ),
+            : () => Navigator.of(ctx).push(
+                  MaterialPageRoute(
+                    builder: (context) => LegalDocumentScreen(
+                      title: 'Wreadom',
+                      url: webFallbackUrl.toString(),
+                    ),
+                  ),
+                ),
       ),
     );
   }

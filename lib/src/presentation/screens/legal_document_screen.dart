@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../data/services/legal_document_service.dart';
+import 'webview_platform_helper.dart';
 
-class LegalDocumentScreen extends ConsumerStatefulWidget {
+class LegalDocumentScreen extends StatefulWidget {
   const LegalDocumentScreen({
     super.key,
     required this.title,
@@ -15,111 +14,151 @@ class LegalDocumentScreen extends ConsumerStatefulWidget {
   final String url;
 
   @override
-  ConsumerState<LegalDocumentScreen> createState() =>
-      _LegalDocumentScreenState();
+  State<LegalDocumentScreen> createState() => _LegalDocumentScreenState();
 }
 
-class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
-  late Future<LegalDocument> _documentFuture;
+class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
+  WebViewController? _controller;
+  bool _isLoading = true;
+  double _loadingProgress = 0;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _documentFuture = _loadDocument();
+    initializeWebViewPlatform();
+    _initController();
   }
 
-  @override
-  void didUpdateWidget(LegalDocumentScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url || oldWidget.title != widget.title) {
-      _documentFuture = _loadDocument();
+  void _initController() {
+    try {
+      final controller = createWebViewController();
+      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      controller.setBackgroundColor(const Color(0x00000000));
+      controller.setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            if (mounted) {
+              setState(() {
+                _loadingProgress = progress / 100.0;
+              });
+            }
+          },
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+                _hasError = false;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('LegalDocument WebView Error: ${error.description}');
+            if (error.isForMainFrame == true) {
+              if (mounted) {
+                setState(() {
+                  _hasError = true;
+                  _isLoading = false;
+                });
+              }
+            }
+          },
+        ),
+      );
+      controller.loadRequest(Uri.parse(widget.url));
+
+      setState(() {
+        _controller = controller;
+        _isLoading = true;
+        _loadingProgress = 0;
+        _hasError = false;
+      });
+    } catch (error) {
+      debugPrint('LegalDocument WebView initialization failed: $error');
+      if (!mounted) return;
+      setState(() {
+        _controller = null;
+        _hasError = true;
+        _isLoading = false;
+      });
     }
-  }
-
-  Future<LegalDocument> _loadDocument() {
-    return ref
-        .read(legalDocumentServiceProvider)
-        .fetch(widget.url, title: widget.title);
-  }
-
-  void _retry() {
-    setState(() {
-      _documentFuture = _loadDocument();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _initController,
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
       body: SafeArea(
-        child: FutureBuilder<LegalDocument>(
-          future: _documentFuture,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final document = snapshot.data!;
-            return RefreshIndicator(
-              onRefresh: () async => _retry(),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                children: [
-                  if (document.isFallback) ...[
-                    Material(
-                      color: colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: colorScheme.onErrorContainer,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Showing an in-app fallback because the live '
-                                'document could not be loaded.',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: colorScheme.onErrorContainer,
-                                    ),
-                              ),
-                            ),
-                          ],
+        child: Stack(
+          children: [
+            if (_controller != null) WebViewWidget(controller: _controller!),
+            if (_isLoading)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(
+                  value: _loadingProgress > 0 ? _loadingProgress : null,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    theme.primaryColor,
+                  ),
+                ),
+              ),
+            if (_hasError)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 64,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Could not load ${widget.title}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  HtmlWidget(
-                    document.html,
-                    textStyle: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(height: 1.55),
-                    customStylesBuilder: (element) {
-                      final tag = element.localName?.toLowerCase();
-                      if (tag == 'table') {
-                        return {'width': '100%'};
-                      }
-                      if (tag == 'th' || tag == 'td') {
-                        return {'padding': '8px', 'border': '1px solid #ddd'};
-                      }
-                      return null;
-                    },
-                    onTapUrl: (_) async => false,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Please check your internet connection or try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _initController,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            );
-          },
+          ],
         ),
       ),
     );

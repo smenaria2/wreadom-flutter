@@ -13,8 +13,8 @@ class FirebaseFeedRepository implements FeedRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collection = 'feed';
   static const int _maxBatchWrites = 450;
-  static const int _followingFeedChunkSize = 10;
-  static const int _followingFeedMaxParallelQueries = 3;
+  static const int _followingFeedChunkSize = 30;
+  static const int _followingFeedMaxParallelQueries = 10;
   static const Duration _followingFeedTimeout = Duration(seconds: 12);
 
   @override

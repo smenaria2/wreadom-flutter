@@ -5,6 +5,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
   Future<void> pumpGeneratedRoute(
@@ -141,17 +142,10 @@ void main() {
         tester,
         const RouteSettings(name: AppRoutes.privacy),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is HtmlWidget &&
-              widget.html.contains('Sanitized legal content'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(WebViewWidget), findsOneWidget);
       expect(find.text('Open'), findsNothing);
     });
 
@@ -162,17 +156,10 @@ void main() {
         tester,
         const RouteSettings(name: AppRoutes.terms),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.text('Terms of Use'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is HtmlWidget &&
-              widget.html.contains('Sanitized legal content'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(WebViewWidget), findsOneWidget);
       expect(find.text('Open'), findsNothing);
     });
 
@@ -183,33 +170,19 @@ void main() {
         tester,
         const RouteSettings(name: 'https://wreadom.in/privacy'),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is HtmlWidget &&
-              widget.html.contains('Sanitized legal content'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(WebViewWidget), findsOneWidget);
 
       await pumpGeneratedRoute(
         tester,
         const RouteSettings(name: 'https://wreadom.in/terms'),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.text('Terms of Use'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is HtmlWidget &&
-              widget.html.contains('Sanitized legal content'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(WebViewWidget), findsOneWidget);
     });
   });
 }
