@@ -2141,6 +2141,38 @@ class AppLocalizationsHi extends AppLocalizations {
   String get notificationNewCreations => 'नई रचनाएं और अध्याय';
 
   @override
+  String get notificationGroupConversations => 'बातचीत';
+
+  @override
+  String get notificationGroupResponses => 'प्रतिक्रियाएं';
+
+  @override
+  String get notificationGroupCommunity => 'समुदाय';
+
+  @override
+  String get notificationGroupCreations => 'रचनाएं';
+
+  @override
+  String get appUpdateAvailable => 'नया Wreadom अपडेट उपलब्ध है।';
+
+  @override
+  String get updateAction => 'अपडेट';
+
+  @override
+  String get updateApp => 'ऐप अपडेट करें';
+
+  @override
+  String latestBuild(int buildNumber) {
+    return 'नवीनतम बिल्ड $buildNumber';
+  }
+
+  @override
+  String get invalidUpdateLink => 'अपडेट लिंक मान्य नहीं है।';
+
+  @override
+  String get couldNotOpenUpdateLink => 'अपडेट लिंक नहीं खुल सका।';
+
+  @override
   String get collaborationRequestTitle => 'सहलेखन अनुरोध';
 
   @override

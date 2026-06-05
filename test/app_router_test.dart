@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 
@@ -12,7 +15,14 @@ void main() {
     expect(route, isA<MaterialPageRoute>());
     final pageRoute = route as MaterialPageRoute;
     await tester.pumpWidget(
-      MaterialApp(home: Builder(builder: pageRoute.builder)),
+      ProviderScope(
+        overrides: [
+          legalDocumentServiceProvider.overrideWithValue(
+            _FakeLegalDocumentService(),
+          ),
+        ],
+        child: MaterialApp(home: Builder(builder: pageRoute.builder)),
+      ),
     );
   }
 
@@ -107,30 +117,113 @@ void main() {
 
       expect(find.text('Page Not Found'), findsOneWidget);
       expect(find.text('Category details are missing.'), findsOneWidget);
+      expect(find.text('Open on web'), findsNothing);
     });
 
-    testWidgets('direct privacy route shows browser fallback screen', (
+    testWidgets('unsupported Wreadom web links can be opened on web', (
+      tester,
+    ) async {
+      await pumpGeneratedRoute(
+        tester,
+        const RouteSettings(
+          name: 'https://wreadom.in/?page=profile&tab=achievements',
+        ),
+      );
+
+      expect(find.text('Page Not Found'), findsOneWidget);
+      expect(find.text('Open on web'), findsOneWidget);
+    });
+
+    testWidgets('direct privacy route shows in-app legal content', (
       tester,
     ) async {
       await pumpGeneratedRoute(
         tester,
         const RouteSettings(name: AppRoutes.privacy),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is HtmlWidget &&
+              widget.html.contains('Sanitized legal content'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Open'), findsNothing);
     });
 
-    testWidgets('direct terms route shows browser fallback screen', (
+    testWidgets('direct terms route shows in-app legal content', (
       tester,
     ) async {
       await pumpGeneratedRoute(
         tester,
         const RouteSettings(name: AppRoutes.terms),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Terms of Use'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is HtmlWidget &&
+              widget.html.contains('Sanitized legal content'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Open'), findsNothing);
+    });
+
+    testWidgets('intercepted browser legal links open in-app legal screens', (
+      tester,
+    ) async {
+      await pumpGeneratedRoute(
+        tester,
+        const RouteSettings(name: 'https://wreadom.in/privacy'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Privacy Policy'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is HtmlWidget &&
+              widget.html.contains('Sanitized legal content'),
+        ),
+        findsOneWidget,
+      );
+
+      await pumpGeneratedRoute(
+        tester,
+        const RouteSettings(name: 'https://wreadom.in/terms'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Terms of Use'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is HtmlWidget &&
+              widget.html.contains('Sanitized legal content'),
+        ),
+        findsOneWidget,
+      );
     });
   });
+}
+
+class _FakeLegalDocumentService implements LegalDocumentService {
+  @override
+  Duration get timeout => const Duration(seconds: 1);
+
+  @override
+  Future<LegalDocument> fetch(String url, {required String title}) async {
+    return LegalDocument(
+      html: '<h1>$title</h1><p>Sanitized legal content</p>',
+      sourceUrl: url,
+      isFallback: false,
+    );
+  }
 }

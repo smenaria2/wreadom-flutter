@@ -2136,6 +2136,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationNewCreations => 'New creations and chapters';
 
   @override
+  String get notificationGroupConversations => 'Conversations';
+
+  @override
+  String get notificationGroupResponses => 'Responses';
+
+  @override
+  String get notificationGroupCommunity => 'Community';
+
+  @override
+  String get notificationGroupCreations => 'Creations';
+
+  @override
+  String get appUpdateAvailable => 'A new Wreadom update is available.';
+
+  @override
+  String get updateAction => 'Update';
+
+  @override
+  String get updateApp => 'Update App';
+
+  @override
+  String latestBuild(int buildNumber) {
+    return 'Latest build $buildNumber';
+  }
+
+  @override
+  String get invalidUpdateLink => 'Update link is not valid.';
+
+  @override
+  String get couldNotOpenUpdateLink => 'Could not open update link.';
+
+  @override
   String get collaborationRequestTitle => 'Collaboration request';
 
   @override

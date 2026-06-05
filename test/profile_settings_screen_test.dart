@@ -78,7 +78,14 @@ void main() {
       await _pumpProfileSettings(tester, repository, user);
 
       await _scrollUntilTextVisible(tester, 'Comments and reviews');
-      await tester.tap(find.text('Comments and reviews'));
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.text('Comments and reviews'),
+              matching: find.byType(ListTile),
+            )
+            .first,
+      );
       await tester.pumpAndSettle();
       await _tapSaveSettings(tester);
       await tester.pumpAndSettle();
@@ -128,7 +135,6 @@ Future<void> _scrollUntilTextVisible(WidgetTester tester, String text) async {
     250,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
   await tester.pumpAndSettle();
 }
 

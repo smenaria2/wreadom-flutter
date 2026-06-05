@@ -6,12 +6,14 @@ class StaticInfoScreen extends StatelessWidget {
     required this.title,
     required this.body,
     this.actionLabel,
+    this.actionIcon = Icons.search_rounded,
     this.onAction,
   });
 
   final String title;
   final String body;
   final String? actionLabel;
+  final IconData actionIcon;
   final VoidCallback? onAction;
 
   @override
@@ -34,7 +36,7 @@ class StaticInfoScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: onAction,
-                  icon: const Icon(Icons.search_rounded),
+                  icon: Icon(actionIcon),
                   label: Text(actionLabel!),
                 ),
               ],

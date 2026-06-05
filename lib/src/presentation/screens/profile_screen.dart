@@ -212,7 +212,8 @@ class ProfileScreen extends ConsumerWidget {
       context,
       user: user,
       worksCount: worksCount,
-      fallbackText: 'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
+      fallbackText:
+          'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
     );
   }
 }
@@ -575,24 +576,12 @@ class _ProfileSideMenu extends ConsumerWidget {
                   _MenuTile(
                     icon: Icons.privacy_tip_outlined,
                     title: l10n.privacyPolicy,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      launchUrl(
-                        Uri.parse(AppLinkHelper.privacyPolicyUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
+                    onTap: () => _go(context, AppRoutes.privacy),
                   ),
                   _MenuTile(
                     icon: Icons.description_outlined,
                     title: l10n.termsOfUse,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      launchUrl(
-                        Uri.parse(AppLinkHelper.termsUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
+                    onTap: () => _go(context, AppRoutes.terms),
                   ),
                   const Divider(),
                   const _MenuSectionLabel(label: 'Social'),
@@ -742,10 +731,11 @@ class _AppUpdateTile extends ConsumerWidget {
     return updateAsync.maybeWhen(
       data: (availability) {
         if (availability == null) return const SizedBox.shrink();
+        final l10n = AppLocalizations.of(context)!;
         return _MenuTile(
           icon: Icons.system_update_alt_rounded,
-          title: 'Update App',
-          subtitle: 'Latest build ${availability.config.androidBuildNumber}',
+          title: l10n.updateApp,
+          subtitle: l10n.latestBuild(availability.config.androidBuildNumber),
           showBadge: true,
           onTap: () => _openUpdateLink(context, availability),
         );
@@ -759,11 +749,10 @@ class _AppUpdateTile extends ConsumerWidget {
     AppUpdateAvailability availability,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final uri = Uri.tryParse(availability.config.androidDownloadUrl);
     if (uri == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Update link is not valid.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.invalidUpdateLink)));
       return;
     }
 
@@ -774,7 +763,7 @@ class _AppUpdateTile extends ConsumerWidget {
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not open update link.')),
+        SnackBar(content: Text(l10n.couldNotOpenUpdateLink)),
       );
     }
   }
@@ -1014,16 +1003,10 @@ class _MenuTile extends StatelessWidget {
       dense: true,
       visualDensity: VisualDensity.compact,
       leading: _MenuTileIcon(icon: icon, showBadge: showBadge),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 13.5),
-      ),
+      title: Text(title, style: const TextStyle(fontSize: 13.5)),
       subtitle: subtitle == null
           ? null
-          : Text(
-              subtitle!,
-              style: const TextStyle(fontSize: 11.5),
-            ),
+          : Text(subtitle!, style: const TextStyle(fontSize: 11.5)),
       onTap: onTap,
     );
   }

@@ -1175,6 +1175,23 @@
   "notificationLikes": "Likes",
   "notificationFollowedAuthorPosts": "Followed author posts",
   "notificationNewCreations": "New creations and chapters",
+  "notificationGroupConversations": "Conversations",
+  "notificationGroupResponses": "Responses",
+  "notificationGroupCommunity": "Community",
+  "notificationGroupCreations": "Creations",
+  "appUpdateAvailable": "A new Wreadom update is available.",
+  "updateAction": "Update",
+  "updateApp": "Update App",
+  "latestBuild": "Latest build {buildNumber}",
+  "@latestBuild": {
+    "placeholders": {
+      "buildNumber": {
+        "type": "int"
+      }
+    }
+  },
+  "invalidUpdateLink": "Update link is not valid.",
+  "couldNotOpenUpdateLink": "Could not open update link.",
   "collaborationRequestTitle": "Collaboration request",
   "collaborationRequestUnavailable": "This request is no longer available.",
   "collaborationRequestMessage": "{authorName} wants to collaborate with you.",

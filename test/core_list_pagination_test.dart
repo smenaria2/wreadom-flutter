@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:librebook_flutter/src/domain/models/message.dart';
 import 'package:librebook_flutter/src/domain/models/paged_result.dart';
 import 'package:librebook_flutter/src/domain/repositories/feed_repository.dart';
 import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
+import 'package:librebook_flutter/src/presentation/providers/follow_providers.dart';
 import 'package:librebook_flutter/src/presentation/utils/message_display_utils.dart';
 
 void main() {
@@ -43,6 +45,109 @@ void main() {
     expect(state.hasMore, isFalse);
   });
 
+  test(
+    'following feed controller uses followed ids and timestamp cursor',
+    () async {
+      final repo = _FakeFeedRepository(
+        followingPages: [
+          PagedResult(
+            items: [_post('f1', 30), _post('f2', 20)],
+            hasMore: true,
+            nextCursor: 20,
+          ),
+          PagedResult(items: [_post('f3', 10)], hasMore: false),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          feedRepositoryProvider.overrideWith((ref) => repo),
+          followingListProvider.overrideWith((ref) async => ['author-1']),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        pagedFeedPostsProvider(FeedFilter.following),
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+
+      await _waitFor(() {
+        return container
+            .read(pagedFeedPostsProvider(FeedFilter.following))
+            .items
+            .isNotEmpty;
+      });
+
+      await container
+          .read(pagedFeedPostsProvider(FeedFilter.following).notifier)
+          .loadMore();
+      final state = container.read(
+        pagedFeedPostsProvider(FeedFilter.following),
+      );
+
+      expect(state.items.map((post) => post.id), ['f1', 'f2', 'f3']);
+      expect(repo.followingRequests.length, 2);
+      expect(repo.followingRequests[0].ids, ['author-1']);
+      expect(repo.followingRequests[0].cursor, isNull);
+      expect(repo.followingRequests[1].ids, ['author-1']);
+      expect(repo.followingRequests[1].cursor, 20);
+    },
+  );
+
+  test('following feed keeps empty state when user follows nobody', () async {
+    final repo = _FakeFeedRepository();
+    final container = ProviderContainer(
+      overrides: [
+        feedRepositoryProvider.overrideWith((ref) => repo),
+        followingListProvider.overrideWith((ref) async => const <String>[]),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      pagedFeedPostsProvider(FeedFilter.following),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    await _waitFor(() {
+      return !container
+              .read(pagedFeedPostsProvider(FeedFilter.following))
+              .isInitialLoading &&
+          !container.read(pagedFeedPostsProvider(FeedFilter.following)).hasMore;
+    });
+
+    final state = container.read(pagedFeedPostsProvider(FeedFilter.following));
+    expect(state.items, isEmpty);
+    expect(state.hasMore, isFalse);
+  });
+
+  test('following feed surfaces repository timeout errors', () async {
+    final repo = _FakeFeedRepository(throwOnFollowing: true);
+    final container = ProviderContainer(
+      overrides: [
+        feedRepositoryProvider.overrideWith((ref) => repo),
+        followingListProvider.overrideWith((ref) async => ['author-1']),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      pagedFeedPostsProvider(FeedFilter.following),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    await _waitFor(() {
+      return container
+              .read(pagedFeedPostsProvider(FeedFilter.following))
+              .error !=
+          null;
+    });
+
+    final state = container.read(pagedFeedPostsProvider(FeedFilter.following));
+    expect(state.isInitialLoading, isFalse);
+    expect(state.error, isA<TimeoutException>());
+  });
+
   test('visibleConversations hides conversations without a last message', () {
     final conversations = [
       _conversation('empty'),
@@ -68,9 +173,9 @@ void main() {
 }
 
 Future<void> _waitFor(bool Function() condition) async {
-  for (var i = 0; i < 20; i++) {
+  for (var i = 0; i < 100; i++) {
     if (condition()) return;
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
   }
 }
 
@@ -123,6 +228,16 @@ Conversation _conversation(String id, {LastMessageInfo? lastMessage}) {
 }
 
 class _FakeFeedRepository implements FeedRepository {
+  _FakeFeedRepository({
+    this.followingPages = const [],
+    this.throwOnFollowing = false,
+  });
+
+  final List<PagedResult<FeedPost>> followingPages;
+  final bool throwOnFollowing;
+  final followingRequests = <({List<String> ids, Object? cursor})>[];
+  int _followingPageIndex = 0;
+
   @override
   Future<PagedResult<FeedPost>> getFeedPostsPage({
     int limit = 10,
@@ -149,7 +264,16 @@ class _FakeFeedRepository implements FeedRepository {
     int limit = 10,
     Object? cursor,
   }) async {
-    return const PagedResult(items: [], hasMore: false);
+    followingRequests.add((ids: followedUserIds, cursor: cursor));
+    if (throwOnFollowing) {
+      throw TimeoutException('following feed timed out');
+    }
+    if (followingPages.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    return followingPages[_followingPageIndex++ >= followingPages.length
+        ? followingPages.length - 1
+        : _followingPageIndex - 1];
   }
 
   @override

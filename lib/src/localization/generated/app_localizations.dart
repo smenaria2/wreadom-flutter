@@ -3788,6 +3788,66 @@ abstract class AppLocalizations {
   /// **'New creations and chapters'**
   String get notificationNewCreations;
 
+  /// No description provided for @notificationGroupConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get notificationGroupConversations;
+
+  /// No description provided for @notificationGroupResponses.
+  ///
+  /// In en, this message translates to:
+  /// **'Responses'**
+  String get notificationGroupResponses;
+
+  /// No description provided for @notificationGroupCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get notificationGroupCommunity;
+
+  /// No description provided for @notificationGroupCreations.
+  ///
+  /// In en, this message translates to:
+  /// **'Creations'**
+  String get notificationGroupCreations;
+
+  /// No description provided for @appUpdateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'A new Wreadom update is available.'**
+  String get appUpdateAvailable;
+
+  /// No description provided for @updateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAction;
+
+  /// No description provided for @updateApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Update App'**
+  String get updateApp;
+
+  /// No description provided for @latestBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest build {buildNumber}'**
+  String latestBuild(int buildNumber);
+
+  /// No description provided for @invalidUpdateLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Update link is not valid.'**
+  String get invalidUpdateLink;
+
+  /// No description provided for @couldNotOpenUpdateLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open update link.'**
+  String get couldNotOpenUpdateLink;
+
   /// No description provided for @collaborationRequestTitle.
   ///
   /// In en, this message translates to:

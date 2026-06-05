@@ -134,5 +134,17 @@ void main() {
       expect(writerQuery?.route, AppRoutes.writerDashboard);
       expect(writerQuery?.payload, isNull);
     });
+
+    test('resolves canonical legal policy paths', () {
+      final privacy = AppLinkHelper.resolve('https://wreadom.in/privacy');
+      final terms = AppLinkHelper.resolve('https://wreadom.in/terms');
+      final wwwTerms = AppLinkHelper.resolve('https://www.wreadom.in/terms');
+
+      expect(privacy?.route, AppRoutes.privacy);
+      expect(privacy?.payload, isNull);
+      expect(terms?.route, AppRoutes.terms);
+      expect(terms?.payload, isNull);
+      expect(wwwTerms?.route, AppRoutes.terms);
+    });
   });
 }

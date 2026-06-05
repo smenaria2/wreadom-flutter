@@ -109,6 +109,12 @@ class AppLinkHelper {
         return const ResolvedAppLink(AppRoutes.discovery, null);
       case 'writer':
         return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+      case 'privacy':
+      case 'privacy-policy':
+        return const ResolvedAppLink(AppRoutes.privacy, null);
+      case 'terms':
+      case 'terms-of-use':
+        return const ResolvedAppLink(AppRoutes.terms, null);
     }
 
     final malformed = _resolveMalformedQueryPath(rawLink);

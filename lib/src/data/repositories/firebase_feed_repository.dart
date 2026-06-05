@@ -13,6 +13,9 @@ class FirebaseFeedRepository implements FeedRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collection = 'feed';
   static const int _maxBatchWrites = 450;
+  static const int _followingFeedChunkSize = 10;
+  static const int _followingFeedMaxParallelQueries = 3;
+  static const Duration _followingFeedTimeout = Duration(seconds: 12);
 
   @override
   Future<List<FeedPost>> getFeedPosts({int limit = 10, dynamic lastDoc}) async {
@@ -102,42 +105,20 @@ class FirebaseFeedRepository implements FeedRepository {
     }
 
     try {
-      final chunks = [];
-      for (var i = 0; i < followedUserIds.length; i += 10) {
-        chunks.add(
-          followedUserIds.sublist(
-            i,
-            i + 10 > followedUserIds.length ? followedUserIds.length : i + 10,
-          ),
-        );
-      }
-
-      final List<FeedPost> allPosts = [];
-
+      final chunks = _chunks(followedUserIds, _followingFeedChunkSize);
       final cursorTimestamp = cursor is int ? cursor : null;
-      for (final chunk in chunks) {
-        Query query = _firestore
-            .collection(_collection)
-            .where('userId', whereIn: chunk)
-            .where('userIsDeactivated', isNotEqualTo: true)
-            .orderBy('userIsDeactivated')
-            .orderBy('timestamp', descending: true)
-            .limit(limit + 1);
+      final queryResults =
+          await _mapWithBoundedConcurrency<List<String>, List<FeedPost>>(
+            chunks,
+            _followingFeedMaxParallelQueries,
+            (chunk) => _fetchFollowingFeedChunk(
+              chunk,
+              limit: limit,
+              cursorTimestamp: cursorTimestamp,
+            ),
+          ).timeout(_followingFeedTimeout);
 
-        final snapshot = await query.get();
-        allPosts.addAll(
-          snapshot.docs
-              .map((doc) {
-                final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
-                return FeedPost.fromJson(data);
-              })
-              .where(
-                (post) =>
-                    cursorTimestamp == null || post.timestamp < cursorTimestamp,
-              )
-              .toList(),
-        );
-      }
+      final allPosts = queryResults.expand((posts) => posts).toList();
 
       allPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       final pageItems = allPosts.take(limit).toList();
@@ -150,6 +131,60 @@ class FirebaseFeedRepository implements FeedRepository {
       debugPrint('[FirebaseFeedRepository] Error fetching following feed: $e');
       rethrow;
     }
+  }
+
+  Future<List<FeedPost>> _fetchFollowingFeedChunk(
+    List<String> followedUserIds, {
+    required int limit,
+    required int? cursorTimestamp,
+  }) async {
+    Query query = _firestore
+        .collection(_collection)
+        .where('userId', whereIn: followedUserIds)
+        .where('visibility', isEqualTo: 'public');
+
+    if (cursorTimestamp != null) {
+      query = query.where('timestamp', isLessThan: cursorTimestamp);
+    }
+
+    query = query.orderBy('timestamp', descending: true).limit(limit + 1);
+
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((doc) {
+          final raw = asStringMap(doc.data());
+          if (raw['userIsDeactivated'] == true) return null;
+          final data = mapFirestoreData(raw, doc.id);
+          return FeedPost.fromJson(data);
+        })
+        .whereType<FeedPost>()
+        .toList();
+  }
+
+  List<List<T>> _chunks<T>(List<T> values, int size) {
+    final chunks = <List<T>>[];
+    for (var i = 0; i < values.length; i += size) {
+      chunks.add(
+        values.sublist(i, i + size > values.length ? values.length : i + size),
+      );
+    }
+    return chunks;
+  }
+
+  Future<List<R>> _mapWithBoundedConcurrency<T, R>(
+    List<T> values,
+    int concurrency,
+    Future<R> Function(T value) mapper,
+  ) async {
+    final results = <R>[];
+    for (var i = 0; i < values.length; i += concurrency) {
+      final window = values.sublist(
+        i,
+        i + concurrency > values.length ? values.length : i + concurrency,
+      );
+      results.addAll(await Future.wait(window.map(mapper)));
+    }
+    return results;
   }
 
   @override

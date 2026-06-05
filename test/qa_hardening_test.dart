@@ -322,10 +322,14 @@ void main() {
     final source = File(
       'lib/src/presentation/routing/app_router.dart',
     ).readAsStringSync();
+    final legalSource = File(
+      'lib/src/data/services/legal_document_service.dart',
+    ).readAsStringSync();
 
     expect(source, contains('AppLinkHelper.privacyPolicyUrl'));
     expect(source, contains('AppLinkHelper.termsUrl'));
-    expect(source, contains('_ExternalPolicyScreen'));
+    expect(source, contains('LegalDocumentScreen'));
+    expect(legalSource, contains('sanitizeLegalHtml'));
   });
 
   test('book detail exposes original author profile and follow actions', () {
@@ -806,6 +810,16 @@ void main() {
     expect(readerSource, contains('_shouldPersistProgress'));
     expect(readerSource, contains('const Duration(seconds: 30)'));
     expect(readerSource, contains('(position - lastPosition).abs() >= 0.025'));
+    expect(readerSource, contains('_ReaderTopBar'));
+    expect(readerSource, contains('contentPadding: readerContentPadding'));
+    expect(
+      readerSource,
+      isNot(contains('bottomNavigationBar: _ReaderBottomBar')),
+    );
+    expect(
+      readerSource,
+      isNot(contains('preferredSize: Size.fromHeight(_showReaderChrome')),
+    );
   });
 
   test('firebase index config is deployed with firestore resources', () {
@@ -1726,7 +1740,8 @@ void main() {
     expect(helpSource, contains("path: 'contact@wreadom.in'"));
     expect(helpSource, contains('LaunchMode.externalApplication'));
     expect(helpSource, contains('SubmitErrorDialog'));
-    expect(routerSource, contains('LaunchMode.externalApplication'));
+    expect(routerSource, contains('LegalDocumentScreen'));
+    expect(routerSource, isNot(contains('LaunchMode.externalApplication')));
     expect(routerSource, isNot(contains('smenaria2@gmail.com')));
   });
 
@@ -1889,11 +1904,11 @@ void main() {
     expect(loginSource, contains('AppRoutes.privacy'));
     expect(loginSource, contains('AppRoutes.terms'));
     expect(loginSource, contains('AppRouter.openExternalPolicy'));
-    expect(routerSource, contains('LaunchMode.externalApplication'));
+    expect(routerSource, isNot(contains('LaunchMode.externalApplication')));
     expect(routerSource, contains('AppLinkHelper.privacyPolicyUrl'));
     expect(routerSource, contains('AppLinkHelper.termsUrl'));
     expect(routerSource, contains('openExternalPolicy'));
-    expect(routerSource, contains('_ExternalPolicyScreen'));
+    expect(routerSource, contains('LegalDocumentScreen'));
   });
 
   test('chapter reads and reader progress are chapter scoped', () {
@@ -1919,14 +1934,31 @@ void main() {
     final homeProviderSource = File(
       'lib/src/presentation/providers/homepage_providers.dart',
     ).readAsStringSync();
+    final dailyTopicProviderSource = File(
+      'lib/src/presentation/providers/daily_topic_providers.dart',
+    ).readAsStringSync();
     final loginSource = File(
       'lib/src/presentation/screens/login_screen.dart',
     ).readAsStringSync();
     final mainSource = File('lib/main.dart').readAsStringSync();
+    final dailyTopicBuildSource = dailyTopicProviderSource.substring(
+      dailyTopicProviderSource.indexOf('FutureOr<List<DailyTopic>> build()'),
+      dailyTopicProviderSource.indexOf('Future<void> fetchMore()'),
+    );
 
     expect(homeProviderSource, contains('warmPublicHomepageCache'));
     expect(homeProviderSource, contains('warmUserHomepageCache'));
     expect(homeProviderSource, contains('_queueHomepageBackgroundRefresh'));
+    expect(dailyTopicProviderSource, contains('daily_topics_cache_v1'));
+    expect(dailyTopicBuildSource, contains('_readCachedTopics()'));
+    expect(
+      dailyTopicBuildSource,
+      contains('_queueBackgroundRefresh(metadataTopics)'),
+    );
+    expect(
+      dailyTopicBuildSource,
+      isNot(contains('await _fetchRemoteTopics()')),
+    );
     expect(loginSource, contains('warmPublicHomepageCache(ref)'));
     expect(mainSource, contains('warmUserHomepageCache(ref)'));
   });

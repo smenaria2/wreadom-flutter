@@ -162,9 +162,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         ..showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: const Text('A new Wreadom update is available.'),
+            content: Text(AppLocalizations.of(context)!.appUpdateAvailable),
             action: SnackBarAction(
-              label: 'Update',
+              label: AppLocalizations.of(context)!.updateAction,
               onPressed: () => unawaited(_openUpdateLink(availability)),
             ),
           ),
@@ -174,18 +174,17 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   Future<void> _openUpdateLink(AppUpdateAvailability availability) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final uri = Uri.tryParse(availability.config.androidDownloadUrl);
     if (uri == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Update link is not valid.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.invalidUpdateLink)));
       return;
     }
 
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not open update link.')),
+        SnackBar(content: Text(l10n.couldNotOpenUpdateLink)),
       );
     }
   }

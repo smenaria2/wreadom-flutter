@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:in_app_update/in_app_update.dart';
 import '../../data/services/play_store_update_service.dart';
 
 class AppUpdateConfig {
@@ -58,25 +57,33 @@ final appUpdateAvailabilityProvider = FutureProvider<AppUpdateAvailability?>((
   final packageInfo = await PackageInfo.fromPlatform();
   final installedBuildNumber = int.tryParse(packageInfo.buildNumber) ?? 0;
 
-  final updateInfo = await PlayStoreUpdateService.checkForUpdate();
-  if (updateInfo == null) return null;
-
-  if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
-    final availableVersion = updateInfo.availableVersionCode;
-    if (availableVersion == null) return null;
-
-    final config = AppUpdateConfig(
-      androidDownloadUrl: 'https://play.google.com/store/apps/details?id=${packageInfo.packageName}',
-      androidBuildNumber: availableVersion,
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
-    );
-
-    final availability = AppUpdateAvailability(
-      config: config,
-      installedBuildNumber: installedBuildNumber,
-    );
-    return availability.isUpdateAvailable ? availability : null;
+  final PlayStoreUpdateResult? updateInfo;
+  try {
+    updateInfo = await ref
+        .watch(playStoreUpdateServiceProvider)
+        .checkForUpdate();
+  } catch (_) {
+    return null;
   }
+  if (updateInfo == null || !updateInfo.updateAvailable) return null;
 
-  return null;
+  final availableVersion = updateInfo.availableVersionCode;
+  if (availableVersion == null) return null;
+
+  final config = AppUpdateConfig(
+    androidDownloadUrl:
+        'https://play.google.com/store/apps/details?id=${packageInfo.packageName}',
+    androidBuildNumber: availableVersion,
+    updatedAt: DateTime.now().millisecondsSinceEpoch,
+  );
+
+  final availability = AppUpdateAvailability(
+    config: config,
+    installedBuildNumber: installedBuildNumber,
+  );
+  return availability.isUpdateAvailable ? availability : null;
+});
+
+final playStoreUpdateServiceProvider = Provider<PlayStoreUpdateService>((ref) {
+  return const PlayStoreUpdateService();
 });

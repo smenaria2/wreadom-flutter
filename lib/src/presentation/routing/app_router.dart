@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,6 +17,7 @@ import '../screens/login_screen.dart';
 import '../screens/help_screen.dart';
 import '../screens/home_banner_screen.dart';
 import '../screens/language_settings_screen.dart';
+import '../screens/legal_document_screen.dart';
 import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/post_detail_screen.dart';
@@ -101,11 +100,20 @@ class CollaborationRequestArguments {
 }
 
 class AppRouter {
-  static MaterialPageRoute _notFound([String? message]) {
+  static MaterialPageRoute _notFound([String? message, String? rawLink]) {
+    final webFallbackUrl = _webFallbackUrl(rawLink);
     return MaterialPageRoute(
       builder: (_) => StaticInfoScreen(
         title: 'Page Not Found',
         body: message ?? 'The requested page could not be found.',
+        actionLabel: webFallbackUrl == null ? null : 'Open on web',
+        actionIcon: Icons.open_in_browser_rounded,
+        onAction: webFallbackUrl == null
+            ? null
+            : () => launchUrl(
+                webFallbackUrl,
+                mode: LaunchMode.externalApplication,
+              ),
       ),
     );
   }
@@ -114,14 +122,6 @@ class AppRouter {
     BuildContext context,
     String routeName,
   ) async {
-    final policy = _externalPolicyForRoute(routeName);
-    if (policy == null) {
-      await Navigator.of(context).pushNamed(routeName);
-      return;
-    }
-
-    final opened = await _launchExternalUrl(policy.url);
-    if (opened || !context.mounted) return;
     await Navigator.of(context).pushNamed(routeName);
   }
 
@@ -393,7 +393,7 @@ class AppRouter {
       case AppRoutes.privacy:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const _ExternalPolicyScreen(
+          builder: (_) => const LegalDocumentScreen(
             title: 'Privacy Policy',
             url: AppLinkHelper.privacyPolicyUrl,
           ),
@@ -401,7 +401,7 @@ class AppRouter {
       case AppRoutes.terms:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const _ExternalPolicyScreen(
+          builder: (_) => const LegalDocumentScreen(
             title: 'Terms of Use',
             url: AppLinkHelper.termsUrl,
           ),
@@ -464,8 +464,20 @@ class AppRouter {
           builder: (_) => ArchiveReaderScreen(book: args),
         );
       default:
-        return _notFound();
+        return _notFound(null, name);
     }
+  }
+
+  static Uri? _webFallbackUrl(String? rawLink) {
+    if (rawLink == null || rawLink.trim().isEmpty) return null;
+    final uri = Uri.tryParse(rawLink.trim());
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return null;
+    }
+    if (uri.host != AppLinkHelper.host && uri.host != AppLinkHelper.wwwHost) {
+      return null;
+    }
+    return uri;
   }
 
   static ResolvedAppLink? _resolveIncomingName(String? name) {
@@ -501,52 +513,5 @@ class AppRouter {
   static bool _isMissingRouteValue(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty || trimmed == 'null';
-  }
-
-  static _ExternalPolicyDefinition? _externalPolicyForRoute(String routeName) {
-    return switch (routeName) {
-      AppRoutes.privacy => const _ExternalPolicyDefinition(
-        url: AppLinkHelper.privacyPolicyUrl,
-      ),
-      AppRoutes.terms => const _ExternalPolicyDefinition(
-        url: AppLinkHelper.termsUrl,
-      ),
-      _ => null,
-    };
-  }
-
-  static Future<bool> _launchExternalUrl(String url) async {
-    try {
-      return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } catch (_) {
-      return false;
-    }
-  }
-}
-
-class _ExternalPolicyDefinition {
-  const _ExternalPolicyDefinition({required this.url});
-
-  final String url;
-}
-
-class _ExternalPolicyScreen extends StatelessWidget {
-  const _ExternalPolicyScreen({required this.title, required this.url});
-
-  final String title;
-  final String url;
-
-  Future<void> _open() async {
-    await AppRouter._launchExternalUrl(url);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StaticInfoScreen(
-      title: title,
-      body: 'Open $url in your browser.',
-      actionLabel: 'Open',
-      onAction: () => unawaited(_open()),
-    );
   }
 }
