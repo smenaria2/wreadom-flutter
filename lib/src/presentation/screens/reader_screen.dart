@@ -47,6 +47,9 @@ import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../utils/book_author_utils.dart';
 
+const double _readerBottomBarHeight = 50;
+const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
+
 String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
   if (sourceContent == null || sourceContent.isEmpty) return flat;
   final selected = flat.trim();
@@ -877,84 +880,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final topPadding = MediaQuery.of(context).padding.top;
     final appBarHeight = kToolbarHeight + topPadding;
+    final readerContentPadding = EdgeInsets.fromLTRB(
+      20,
+      appBarHeight + 20,
+      20,
+      _readerBottomBarHeight + MediaQuery.of(context).padding.bottom + 20,
+    );
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(_showReaderChrome ? appBarHeight : 0),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          height: _showReaderChrome ? appBarHeight : 0,
-          child: ClipRect(
-            child: AppBar(
-              backgroundColor: _getAppBarBackgroundColor(),
-              foregroundColor: _getAppBarForegroundColor(),
-              iconTheme: IconThemeData(color: _getAppBarForegroundColor()),
-              actionsIconTheme: IconThemeData(
-                color: _getAppBarForegroundColor(),
-              ),
-              title: Text(
-                widget.book.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: _getAppBarForegroundColor()),
-              ),
-              actions: [
-                if (isOffline)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Chip(
-                      label: const Text(
-                        'Offline',
-                        style: TextStyle(fontSize: 10, color: Colors.white),
-                      ),
-                      backgroundColor: Colors.green.withValues(alpha: 0.7),
-                      padding: EdgeInsets.zero,
-                      side: BorderSide.none,
-                    ),
-                  ),
-                if (isArchiveBook)
-                  IconButton(
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    tooltip: AppLocalizations.of(context)!.viewPdf,
-                    onPressed: _openArchivePdfViewer,
-                  ),
-                IconButton(
-                  icon: _isTtsPreparing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          _isTtsPlaying
-                              ? Icons.stop_circle_outlined
-                              : _isTtsPaused
-                              ? Icons.play_circle_outline_rounded
-                              : Icons.volume_up_outlined,
-                        ),
-                  tooltip: _isTtsPlaying
-                      ? (_ttsChunkList.isNotEmpty
-                            ? AppLocalizations.of(context)!.stopReadingBlock(
-                                _ttsChunkIndex + 1,
-                                _ttsChunkList.length,
-                              )
-                            : AppLocalizations.of(context)!.stopReadingAloud)
-                      : AppLocalizations.of(context)!.readAloud,
-                  onPressed: chapter == null || _isTtsPreparing
-                      ? null
-                      : () => _toggleTts(chapter),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.format_size_rounded),
-                  onPressed: _showSettings,
-                  tooltip: AppLocalizations.of(context)!.readerSettings,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
       drawer: _ChapterDrawer(
         chapters: chapters,
         currentIndex: _chapterIndex,
@@ -1028,7 +961,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             !_isSelectionTtsPlaying
                         // When TTS is active, disable text selection so
                         // taps are handled cleanly for seeking.
-                        ? _buildTtsListView(chapter, chapters, commentCounts)
+                        ? _buildTtsListView(
+                            chapter,
+                            chapters,
+                            commentCounts,
+                            contentPadding: readerContentPadding,
+                          )
                         : SelectionArea(
                             onSelectionChanged: (content) {
                               setState(() {
@@ -1096,6 +1034,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               chapter,
                               chapters,
                               commentCounts,
+                              contentPadding: readerContentPadding,
                             ),
                           ),
                   ), // GestureDetector
@@ -1111,26 +1050,57 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   child: _QuoteImage(payload: _quoteSharePayload!),
                 ),
               ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: _ReaderTopBar(
+                visible: _showReaderChrome,
+                title: widget.book.title,
+                backgroundColor: _getAppBarBackgroundColor(),
+                foregroundColor: _getAppBarForegroundColor(),
+                isOffline: isOffline,
+                isArchiveBook: isArchiveBook,
+                isTtsPreparing: _isTtsPreparing,
+                isTtsPlaying: _isTtsPlaying,
+                isTtsPaused: _isTtsPaused,
+                ttsChunkIndex: _ttsChunkIndex,
+                ttsChunkCount: _ttsChunkList.length,
+                onOpenArchivePdf: _openArchivePdfViewer,
+                onToggleTts: chapter == null || _isTtsPreparing
+                    ? null
+                    : () => _toggleTts(chapter),
+                onShowSettings: _showSettings,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: _ReaderBottomBar(
+                  progress: _scrollProgress,
+                  visible: _showReaderChrome,
+                  onSwipeUp: () => _showDiscussion(chapter),
+                  onTap: () => _showDiscussion(chapter),
+                  theme: _getEffectiveTheme(),
+                  hasPrevious: _chapterIndex > 0,
+                  hasNext: _chapterIndex < chapters.length - 1,
+                  onPrevious: () {
+                    unawaited(AppHaptics.selection());
+                    _goToChapter(_chapterIndex - 1);
+                  },
+                  onNext: () {
+                    unawaited(AppHaptics.selection());
+                    unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
+                  },
+                  onClose: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-      bottomNavigationBar: _ReaderBottomBar(
-        progress: _scrollProgress,
-        visible: _showReaderChrome,
-        onSwipeUp: () => _showDiscussion(chapter),
-        onTap: () => _showDiscussion(chapter),
-        theme: _getEffectiveTheme(),
-        hasPrevious: _chapterIndex > 0,
-        hasNext: _chapterIndex < chapters.length - 1,
-        onPrevious: () {
-          unawaited(AppHaptics.selection());
-          _goToChapter(_chapterIndex - 1);
-        },
-        onNext: () {
-          unawaited(AppHaptics.selection());
-          unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
-        },
-        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }
@@ -1146,13 +1116,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildListView(
     Chapter? chapter,
     List<Chapter> chapters,
-    Map<int, int> commentCounts,
-  ) {
+    Map<int, int> commentCounts, {
+    required EdgeInsets contentPadding,
+  }) {
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
 
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.all(20),
+      padding: contentPadding,
       children: [
         SizedBox(key: _chapterContentStartKey, height: 1),
         Text(
@@ -1246,14 +1217,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildTtsListView(
     Chapter? chapter,
     List<Chapter> chapters,
-    Map<int, int> commentCounts,
-  ) {
+    Map<int, int> commentCounts, {
+    required EdgeInsets contentPadding,
+  }) {
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
     final blocks = _readerBlocksForChapter(chapter);
 
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.all(20),
+      padding: contentPadding,
       children: [
         SizedBox(key: _chapterContentStartKey, height: 1),
         for (final block in blocks)
@@ -4101,6 +4073,147 @@ String _formatReviewAudioDuration(int durationMs) {
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
+class _ReaderTopBar extends StatelessWidget {
+  const _ReaderTopBar({
+    required this.visible,
+    required this.title,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.isOffline,
+    required this.isArchiveBook,
+    required this.isTtsPreparing,
+    required this.isTtsPlaying,
+    required this.isTtsPaused,
+    required this.ttsChunkIndex,
+    required this.ttsChunkCount,
+    required this.onOpenArchivePdf,
+    required this.onToggleTts,
+    required this.onShowSettings,
+  });
+
+  final bool visible;
+  final String title;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final bool isOffline;
+  final bool isArchiveBook;
+  final bool isTtsPreparing;
+  final bool isTtsPlaying;
+  final bool isTtsPaused;
+  final int ttsChunkIndex;
+  final int ttsChunkCount;
+  final VoidCallback onOpenArchivePdf;
+  final VoidCallback? onToggleTts;
+  final VoidCallback onShowSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final ttsTooltip = isTtsPlaying
+        ? (ttsChunkCount > 0
+              ? l10n.stopReadingBlock(ttsChunkIndex + 1, ttsChunkCount)
+              : l10n.stopReadingAloud)
+        : l10n.readAloud;
+
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedSlide(
+        duration: _readerChromeAnimationDuration,
+        curve: Curves.easeOut,
+        offset: visible ? Offset.zero : const Offset(0, -1),
+        child: AnimatedOpacity(
+          duration: _readerChromeAnimationDuration,
+          curve: Curves.easeOut,
+          opacity: visible ? 1 : 0,
+          child: Material(
+            color: backgroundColor,
+            elevation: 1,
+            child: SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: kToolbarHeight,
+                child: Row(
+                  children: [
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: const Icon(Icons.menu_rounded),
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).openAppDrawerTooltip,
+                        color: foregroundColor,
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: foregroundColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (isOffline)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Chip(
+                          label: const Text(
+                            'Offline',
+                            style: TextStyle(fontSize: 10, color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green.withValues(alpha: 0.7),
+                          padding: EdgeInsets.zero,
+                          side: BorderSide.none,
+                        ),
+                      ),
+                    if (isArchiveBook)
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        tooltip: l10n.viewPdf,
+                        color: foregroundColor,
+                        onPressed: onOpenArchivePdf,
+                      ),
+                    IconButton(
+                      icon: isTtsPreparing
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: foregroundColor,
+                              ),
+                            )
+                          : Icon(
+                              isTtsPlaying
+                                  ? Icons.stop_circle_outlined
+                                  : isTtsPaused
+                                  ? Icons.play_circle_outline_rounded
+                                  : Icons.volume_up_outlined,
+                            ),
+                      tooltip: ttsTooltip,
+                      color: foregroundColor,
+                      onPressed: onToggleTts,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_size_rounded),
+                      tooltip: l10n.readerSettings,
+                      color: foregroundColor,
+                      onPressed: onShowSettings,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ReaderBottomBar extends StatelessWidget {
   const _ReaderBottomBar({
     required this.progress,
@@ -4150,9 +4263,9 @@ class _ReaderBottomBar extends StatelessWidget {
     };
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: _readerChromeAnimationDuration,
       curve: Curves.easeOut,
-      height: visible ? 50 : 0,
+      height: visible ? _readerBottomBarHeight : 0,
       child: ClipRect(
         child: GestureDetector(
           onVerticalDragEnd: (details) {

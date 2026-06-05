@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,13 +34,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    final testEmail = EnvConfig.testUserEmail.trim();
-    final testPassword = EnvConfig.testUserPassword;
-    if (testEmail.isNotEmpty) {
-      _emailController.text = testEmail;
-    }
-    if (testPassword.isNotEmpty) {
-      _passwordController.text = testPassword;
+    if (kDebugMode) {
+      final testEmail = EnvConfig.testUserEmail.trim();
+      final testPassword = EnvConfig.testUserPassword;
+      if (testEmail.isNotEmpty) {
+        _emailController.text = testEmail;
+      }
+      if (testPassword.isNotEmpty) {
+        _passwordController.text = testPassword;
+      }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
