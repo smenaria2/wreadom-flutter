@@ -41,46 +41,67 @@ class FollowListScreen extends ConsumerStatefulWidget {
 }
 
 class _FollowListScreenState extends ConsumerState<FollowListScreen> {
-  int _limit = 20;
-  static const int _increment = 20;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final idsAsync = widget.mode == FollowListMode.followers
-        ? ref.watch(userFollowersListProvider(widget.userId))
-        : ref.watch(userFollowingListProvider(widget.userId));
+    final query = FollowListQuery(
+      userId: widget.userId,
+      type: widget.mode == FollowListMode.followers
+          ? FollowListType.followers
+          : FollowListType.following,
+    );
+    final followState = ref.watch(pagedFollowListProvider(query));
+    final followController = ref.read(pagedFollowListProvider(query).notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: idsAsync.when(
-        data: (ids) {
-          if (ids.isEmpty) {
+      body: Builder(
+        builder: (context) {
+          if (followState.isInitialLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (followState.error != null) {
+            return Center(
+              child: Text(
+                l10n.failedToLoadTitle(
+                  widget.title,
+                  followState.error.toString(),
+                ),
+              ),
+            );
+          }
+          if (followState.items.isEmpty) {
             return Center(
               child: Text(l10n.noFollowersYet(widget.title.toLowerCase())),
             );
           }
 
-          final displayCount = (_limit < ids.length) ? _limit : ids.length;
-          final hasMore = _limit < ids.length;
-          final visibleIds = ids.take(displayCount).toList();
-          final profilesKey = visibleIds.join('|');
+          final profilesKey = followState.items.join('|');
           final profilesAsync = ref.watch(
             publicProfilesByStableIdsProvider(profilesKey),
           );
 
           return profilesAsync.when(
             data: (profiles) => ListView.separated(
-              itemCount: profiles.length + (hasMore ? 1 : 0),
+              itemCount: profiles.length + (followState.hasMore ? 1 : 0),
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
-                if (index == profiles.length && hasMore) {
+                if (index == profiles.length && followState.hasMore) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: Center(
                       child: TextButton.icon(
-                        onPressed: () => setState(() => _limit += _increment),
-                        icon: const Icon(Icons.add_rounded),
+                        onPressed: followState.isLoadingMore
+                            ? null
+                            : followController.loadMore,
+                        icon: followState.isLoadingMore
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add_rounded),
                         label: Text(l10n.loadMore),
                       ),
                     ),
@@ -97,10 +118,6 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Text(l10n.failedToLoadTitle(widget.title, error.toString())),
-        ),
       ),
     );
   }

@@ -42,6 +42,30 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
     state = AsyncValue.data(_allTopics.take(_limit).toList());
   }
 
+  Future<DailyTopic?> findTopicById(String? topicId) async {
+    final topics = await _ensureAllTopics();
+    if (topics.isEmpty) return null;
+
+    final normalizedTopicId = _normalizedTopicKey(topicId);
+    if (normalizedTopicId == null) return topics.first;
+
+    for (final topic in topics) {
+      if (_normalizedTopicKey(topic.id) == normalizedTopicId ||
+          _normalizedTopicKey(topic.topicName) == normalizedTopicId) {
+        return topic;
+      }
+    }
+
+    return _fetchRemoteTopic(topicId!.trim());
+  }
+
+  Future<List<DailyTopic>> _ensureAllTopics() async {
+    if (_allTopics.isNotEmpty) return _allTopics;
+    final metadata = await ref.read(homepageMetadataProvider.future);
+    _allTopics = _mergeTopics(_readCachedTopics(), metadata.dailyTopics);
+    return _allTopics;
+  }
+
   List<DailyTopic> _readCachedTopics() {
     final prefs = ref.read(sharedPreferencesProvider);
     final raw = prefs.getString(_dailyTopicsCacheKey);
@@ -118,6 +142,37 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
     }
   }
 
+  Future<DailyTopic?> _fetchRemoteTopic(String topicId) async {
+    final normalizedTopicId = _normalizedTopicKey(topicId);
+    if (normalizedTopicId == null) return null;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('daily-topics')
+          .doc(topicId)
+          .get();
+      if (doc.exists && doc.data() != null) {
+        final data = Map<String, dynamic>.from(doc.data()!);
+        data['id'] = doc.id;
+        final topic = DailyTopic.fromJson(data);
+        return topic.isEnabled ? topic : null;
+      }
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('daily-topics')
+          .where('topicName', isEqualTo: topicId)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      final data = Map<String, dynamic>.from(snapshot.docs.first.data());
+      data['id'] = snapshot.docs.first.id;
+      final topic = DailyTopic.fromJson(data);
+      return topic.isEnabled ? topic : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   List<DailyTopic> _mergeTopics(
     List<DailyTopic> primary,
     List<DailyTopic> fallback,
@@ -130,6 +185,12 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
     return byKey.values.where((topic) => topic.isEnabled).toList()
       ..sort((a, b) => b.sortTimestamp.compareTo(a.sortTimestamp));
   }
+}
+
+String? _normalizedTopicKey(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return Uri.decodeComponent(trimmed).trim().toLowerCase();
 }
 
 final dailyTopicsProvider =

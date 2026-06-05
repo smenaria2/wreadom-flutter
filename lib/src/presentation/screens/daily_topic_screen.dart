@@ -32,13 +32,8 @@ final dailyTopicByIdProvider = FutureProvider.family<DailyTopic?, String?>((
   ref,
   topicId,
 ) async {
-  final topics = await ref.watch(dailyTopicsProvider.future);
-  if (topics.isEmpty) return null;
-  if (topicId == null || topicId.isEmpty) return topics.first;
-  for (final topic in topics) {
-    if (topic.id == topicId) return topic;
-  }
-  return null;
+  await ref.watch(dailyTopicsProvider.future);
+  return ref.read(dailyTopicsProvider.notifier).findTopicById(topicId);
 });
 
 final dailyTopicBooksProvider = FutureProvider.family<List<Book>, DailyTopic>((
@@ -134,6 +129,13 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                 expandedHeight: 320,
                 pinned: true,
                 title: Text(l10n.dailyTopic),
+                foregroundColor: Colors.white,
+                iconTheme: const IconThemeData(color: Colors.white),
+                actionsIconTheme: const IconThemeData(color: Colors.white),
+                titleTextStyle: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
                 actions: [
                   IconButton(
                     tooltip: l10n.sharePost,
@@ -171,9 +173,11 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.05),
+                              Colors.black.withValues(alpha: 0.58),
+                              Colors.black.withValues(alpha: 0.24),
                               Colors.black.withValues(alpha: 0.82),
                             ],
+                            stops: const [0, 0.42, 1],
                           ),
                         ),
                       ),

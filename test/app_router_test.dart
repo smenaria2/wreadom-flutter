@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
+import 'package:librebook_flutter/src/presentation/screens/daily_topic_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
@@ -70,6 +70,26 @@ void main() {
       expect(route, isA<MaterialPageRoute>());
     });
 
+    test('preserves daily topic arguments for in-app navigation', () {
+      const arguments = DailyTopicArguments(topicId: 'older-topic');
+      final route = AppRouter.onGenerateRoute(
+        const RouteSettings(name: AppRoutes.dailyTopic, arguments: arguments),
+      );
+
+      expect(route.settings.arguments, same(arguments));
+    });
+
+    test('preserves daily topic id from notification navigation', () {
+      final route = AppRouter.onGenerateRoute(
+        const RouteSettings(
+          name: AppRoutes.dailyTopic,
+          arguments: 'topic-from-notification',
+        ),
+      );
+
+      expect(route.settings.arguments, 'topic-from-notification');
+    });
+
     test('parses category deep link correctly', () {
       const settings = RouteSettings(
         name: 'https://wreadom.in/category/Fantasy',
@@ -118,10 +138,10 @@ void main() {
 
       expect(find.text('Page Not Found'), findsOneWidget);
       expect(find.text('Category details are missing.'), findsOneWidget);
-      expect(find.text('Open on web'), findsNothing);
+      expect(find.text('Open in in-app browser'), findsNothing);
     });
 
-    testWidgets('unsupported Wreadom web links can be opened on web', (
+    testWidgets('unsupported Wreadom web links can be opened in-app', (
       tester,
     ) async {
       await pumpGeneratedRoute(
@@ -132,7 +152,7 @@ void main() {
       );
 
       expect(find.text('Page Not Found'), findsOneWidget);
-      expect(find.text('Open on web'), findsOneWidget);
+      expect(find.text('Open in in-app browser'), findsOneWidget);
     });
 
     testWidgets('direct privacy route shows in-app legal content', (

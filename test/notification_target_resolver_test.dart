@@ -110,6 +110,18 @@ void main() {
     expect(target?.payload, 'topic123');
   });
 
+  test('daily topic link notification opens daily topic without metadata', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'announcement',
+        link: 'https://wreadom.in/daily-topic?id=topic456',
+      ),
+    );
+
+    expect(target?.route, AppRoutes.dailyTopic);
+    expect(target?.payload, 'topic456');
+  });
+
   test('published notification without link falls back to book targetId', () {
     final target = NotificationTargetResolver.resolve(
       notification(type: 'published', targetId: 'book1'),

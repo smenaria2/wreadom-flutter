@@ -1387,9 +1387,10 @@ void main() {
     ).readAsStringSync();
     final enL10n = englishL10n();
 
+    expect(mainSource, contains('_bootstrapFirebaseBeforeRunApp'));
     expect(
-      mainSource.indexOf('runApp('),
-      lessThan(mainSource.indexOf('Firebase.initializeApp')),
+      mainSource.indexOf('_bootstrapFirebaseBeforeRunApp'),
+      lessThan(mainSource.indexOf('runApp(')),
     );
     expect(mainSource, contains('_guardedStartupStep'));
     expect(collaborationSource, contains('l10n.collaborationRequestTitle'));

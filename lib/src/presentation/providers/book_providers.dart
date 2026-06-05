@@ -42,9 +42,12 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
   bookId,
 ) async* {
   final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
-  yield initial;
+  if (initial != null) yield initial;
 
-  if (!_shouldWatchFirebaseBook(bookId, initial)) return;
+  if (!_shouldWatchFirebaseBook(bookId, initial)) {
+    if (initial == null) yield null;
+    return;
+  }
 
   yield* FirebaseFirestore.instance
       .collection('books')

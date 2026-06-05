@@ -33,6 +33,7 @@ import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
+import 'src/utils/app_link_helper.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -42,7 +43,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 const String _googleServerClientId =
     '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com';
 
-void main() {
+Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     AppLogCollector.init();
@@ -55,19 +56,102 @@ void main() {
       return false;
     };
     final sharedPreferences = await SharedPreferences.getInstance();
+    final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
     runApp(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sharedPreferences),
         ],
-        child: const MyApp(),
+        child: MyApp(firebaseBootstrap: firebaseBootstrap),
       ),
     );
   }, AppLogCollector.recordZoneError);
 }
 
+class FirebaseBootstrapResult {
+  const FirebaseBootstrapResult({
+    required this.ready,
+    required this.emulatorsConfigured,
+    required this.cacheConfigured,
+  });
+
+  final bool ready;
+  final bool emulatorsConfigured;
+  final bool cacheConfigured;
+}
+
+Future<FirebaseBootstrapResult> _bootstrapFirebaseBeforeRunApp() async {
+  final ready = await _guardedBootstrapStep(
+    'Firebase',
+    _initializeFirebaseIfNeeded,
+  );
+  var emulatorsConfigured = false;
+  var cacheConfigured = false;
+  if (ready) {
+    emulatorsConfigured = await _guardedBootstrapStep(
+      'Firebase emulators',
+      _configureFirebaseEmulators,
+    );
+    cacheConfigured = await _guardedBootstrapStep(
+      'Firestore cache',
+      _configureFirestoreCache,
+    );
+  }
+  return FirebaseBootstrapResult(
+    ready: ready,
+    emulatorsConfigured: emulatorsConfigured,
+    cacheConfigured: cacheConfigured,
+  );
+}
+
+Future<bool> _guardedBootstrapStep(
+  String name,
+  Future<void> Function() action,
+) async {
+  try {
+    await action().timeout(_MyAppState._startupTimeout);
+    return true;
+  } catch (error, stackTrace) {
+    AppLogCollector.add('error', '$name initialization failed: $error');
+    AppLogCollector.recordZoneError(error, stackTrace);
+    return false;
+  }
+}
+
+Future<void> _initializeFirebaseIfNeeded() async {
+  if (Firebase.apps.isNotEmpty) return;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } on FirebaseException catch (error) {
+    if (error.code == 'duplicate-app') return;
+    rethrow;
+  }
+}
+
+Future<void> _configureFirestoreCache() async {
+  // Note: persistenceEnabled: true is required by QA checks, but we use !kIsWeb dynamically.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: !kIsWeb,
+    cacheSizeBytes: 80 * 1024 * 1024,
+  );
+}
+
+Future<void> _configureFirebaseEmulators() async {
+  if (!EnvConfig.useFirebaseEmulators) return;
+  final host = EnvConfig.firebaseEmulatorHost.trim().isEmpty
+      ? '127.0.0.1'
+      : EnvConfig.firebaseEmulatorHost.trim();
+  await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+  FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+  FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+}
+
 class MyApp extends ConsumerStatefulWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.firebaseBootstrap});
+
+  final FirebaseBootstrapResult firebaseBootstrap;
 
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
@@ -80,7 +164,9 @@ class _MyAppState extends ConsumerState<MyApp> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
   String? _lastDeepLinkKey;
   DateTime? _lastDeepLinkAt;
-  bool _firebaseReady = false;
+  late bool _firebaseReady;
+  late bool _firebaseEmulatorsConfigured;
+  late bool _firestoreCacheConfigured;
   Uri? _pendingDeepLink;
   RouteSettings? _pendingDeepLinkTarget;
 
@@ -90,6 +176,9 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    _firebaseReady = widget.firebaseBootstrap.ready;
+    _firebaseEmulatorsConfigured = widget.firebaseBootstrap.emulatorsConfigured;
+    _firestoreCacheConfigured = widget.firebaseBootstrap.cacheConfigured;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_initializeAfterFirstFrame());
     });
@@ -113,11 +202,18 @@ class _MyAppState extends ConsumerState<MyApp> {
       _initializeFirebaseIfNeeded,
     );
     if (firebaseReady) {
-      await _guardedStartupStep(
-        'Firebase emulators',
-        _configureFirebaseEmulators,
-      );
-      await _guardedStartupStep('Firestore cache', _configureFirestoreCache);
+      if (!_firebaseEmulatorsConfigured) {
+        _firebaseEmulatorsConfigured = await _guardedStartupStep(
+          'Firebase emulators',
+          _configureFirebaseEmulators,
+        );
+      }
+      if (!_firestoreCacheConfigured) {
+        _firestoreCacheConfigured = await _guardedStartupStep(
+          'Firestore cache',
+          _configureFirestoreCache,
+        );
+      }
     }
     if (firebaseReady && mounted) {
       setState(() => _firebaseReady = true);
@@ -218,18 +314,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
   }
 
-  Future<void> _initializeFirebaseIfNeeded() async {
-    if (Firebase.apps.isNotEmpty) return;
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    } on FirebaseException catch (error) {
-      if (error.code == 'duplicate-app') return;
-      rethrow;
-    }
-  }
-
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
 
@@ -268,33 +352,30 @@ class _MyAppState extends ConsumerState<MyApp> {
     _drainPendingDeepLinkTarget();
   }
 
-  Future<void> _configureFirestoreCache() async {
-    // Note: persistenceEnabled: true is required by QA checks, but we use !kIsWeb dynamically.
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: !kIsWeb,
-      cacheSizeBytes: 80 * 1024 * 1024,
-    );
-  }
-
-  Future<void> _configureFirebaseEmulators() async {
-    if (!EnvConfig.useFirebaseEmulators) return;
-    final host = EnvConfig.firebaseEmulatorHost.trim().isEmpty
-        ? '127.0.0.1'
-        : EnvConfig.firebaseEmulatorHost.trim();
-    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
-    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-    FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
-  }
-
   void _handleUri(Uri uri) {
     if (_isDuplicateDeepLink(uri)) return;
+    if (!_firebaseReady) {
+      _pendingDeepLink = uri;
+      return;
+    }
     debugPrint('Handling deep link: $uri');
 
     final navigator = _navigatorKey.currentState;
     final target = AppRouter.routeSettingsForAppLink(uri.toString());
-    if (target == null && !_isRootLink(uri)) return;
+    final unresolvedWebTarget =
+        target == null && !_isRootLink(uri) && _isWreadomWebLink(uri)
+        ? RouteSettings(name: uri.toString())
+        : null;
+    if (target == null && unresolvedWebTarget == null && !_isRootLink(uri)) {
+      return;
+    }
     if (navigator == null) {
-      if (target != null) _pendingDeepLinkTarget = target;
+      _pendingDeepLinkTarget = target ?? unresolvedWebTarget;
+      return;
+    }
+
+    if (unresolvedWebTarget != null) {
+      navigator.pushNamed(unresolvedWebTarget.name!);
       return;
     }
 
@@ -342,6 +423,11 @@ class _MyAppState extends ConsumerState<MyApp> {
   bool _isRootLink(Uri uri) {
     final hasRootPath = uri.path.isEmpty || uri.path == '/';
     return hasRootPath && !uri.hasQuery && !uri.hasFragment;
+  }
+
+  bool _isWreadomWebLink(Uri uri) {
+    return (uri.scheme == 'http' || uri.scheme == 'https') &&
+        (uri.host == AppLinkHelper.host || uri.host == AppLinkHelper.wwwHost);
   }
 
   bool _isDuplicateDeepLink(Uri uri) {

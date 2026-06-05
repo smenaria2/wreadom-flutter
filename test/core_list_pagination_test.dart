@@ -7,7 +7,10 @@ import 'package:librebook_flutter/src/domain/models/comment.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
 import 'package:librebook_flutter/src/domain/models/message.dart';
 import 'package:librebook_flutter/src/domain/models/paged_result.dart';
+import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/domain/repositories/feed_repository.dart';
+import 'package:librebook_flutter/src/domain/repositories/follow_repository.dart';
+import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/follow_providers.dart';
 import 'package:librebook_flutter/src/presentation/utils/message_display_utils.dart';
@@ -148,6 +151,74 @@ void main() {
     expect(state.error, isA<TimeoutException>());
   });
 
+  test('follow list controller appends paged relationship ids', () async {
+    final repo = _FakeFollowRepository(
+      followingPages: const [
+        PagedResult(items: ['u1', 'u2'], hasMore: true, nextCursor: 'page-2'),
+        PagedResult(items: ['u3'], hasMore: false),
+      ],
+      followersPages: const [],
+    );
+    final query = const FollowListQuery(
+      userId: 'viewer',
+      type: FollowListType.following,
+    );
+    final container = ProviderContainer(
+      overrides: [followRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      pagedFollowListProvider(query),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    await _waitFor(() {
+      return container.read(pagedFollowListProvider(query)).items.isNotEmpty;
+    });
+    var state = container.read(pagedFollowListProvider(query));
+
+    expect(state.items, ['u1', 'u2']);
+    expect(state.hasMore, isTrue);
+
+    await container.read(pagedFollowListProvider(query).notifier).loadMore();
+    state = container.read(pagedFollowListProvider(query));
+
+    expect(state.items, ['u1', 'u2', 'u3']);
+    expect(state.hasMore, isFalse);
+    expect(repo.followingRequests, [
+      (userId: 'viewer', cursor: null),
+      (userId: 'viewer', cursor: 'page-2'),
+    ]);
+  });
+
+  test('isFollowingProvider uses direct relationship lookup', () async {
+    final repo = _FakeFollowRepository(isFollowingResult: true);
+    final container = ProviderContainer(
+      overrides: [
+        followRepositoryProvider.overrideWithValue(repo),
+        currentUserProvider.overrideWith(
+          (ref) => Stream.value(_user('viewer')),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      isFollowingProvider('author'),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    await _waitFor(() => repo.isFollowingRequests.isNotEmpty);
+    final result = container.read(isFollowingProvider('author')).value;
+
+    expect(result, isTrue);
+    expect(repo.isFollowingRequests, [
+      (followerId: 'viewer', followingId: 'author'),
+    ]);
+    expect(repo.fullFollowingListRequests, isEmpty);
+  });
+
   test('visibleConversations hides conversations without a last message', () {
     final conversations = [
       _conversation('empty'),
@@ -189,6 +260,17 @@ FeedPost _post(String id, int timestamp) {
     timestamp: timestamp,
     likes: const [],
     visibility: 'public',
+  );
+}
+
+UserModel _user(String id) {
+  return UserModel(
+    id: id,
+    username: id,
+    email: '$id@example.com',
+    readingHistory: const [],
+    savedBooks: const [],
+    bookmarks: const [],
   );
 }
 
@@ -382,4 +464,79 @@ class _FakeFeedRepository implements FeedRepository {
 
   @override
   Future<String> uploadPostImage(Uint8List bytes, String fileName) async => '';
+}
+
+class _FakeFollowRepository implements FollowRepository {
+  _FakeFollowRepository({
+    this.followingPages = const [],
+    this.followersPages = const [],
+    this.isFollowingResult = false,
+  });
+
+  final List<PagedResult<String>> followingPages;
+  final List<PagedResult<String>> followersPages;
+  final bool isFollowingResult;
+  final followingRequests = <({String userId, Object? cursor})>[];
+  final followersRequests = <({String userId, Object? cursor})>[];
+  final isFollowingRequests = <({String followerId, String followingId})>[];
+  final fullFollowingListRequests = <String>[];
+  int _followingPageIndex = 0;
+  int _followersPageIndex = 0;
+
+  @override
+  Future<void> followUser({
+    required String followerId,
+    required String followingId,
+  }) async {}
+
+  @override
+  Future<PagedResult<String>> getFollowersPage(
+    String followingId, {
+    int limit = 20,
+    Object? cursor,
+  }) async {
+    followersRequests.add((userId: followingId, cursor: cursor));
+    if (followersPages.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    return followersPages[_followersPageIndex++ >= followersPages.length
+        ? followersPages.length - 1
+        : _followersPageIndex - 1];
+  }
+
+  @override
+  Future<List<String>> getFollowersList(String followingId) async => const [];
+
+  @override
+  Future<PagedResult<String>> getFollowingPage(
+    String followerId, {
+    int limit = 20,
+    Object? cursor,
+  }) async {
+    followingRequests.add((userId: followerId, cursor: cursor));
+    if (followingPages.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    return followingPages[_followingPageIndex++ >= followingPages.length
+        ? followingPages.length - 1
+        : _followingPageIndex - 1];
+  }
+
+  @override
+  Future<List<String>> getFollowingList(String followerId) async {
+    fullFollowingListRequests.add(followerId);
+    return const [];
+  }
+
+  @override
+  Future<bool> isFollowing(String followerId, String followingId) async {
+    isFollowingRequests.add((followerId: followerId, followingId: followingId));
+    return isFollowingResult;
+  }
+
+  @override
+  Future<void> unfollowUser({
+    required String followerId,
+    required String followingId,
+  }) async {}
 }

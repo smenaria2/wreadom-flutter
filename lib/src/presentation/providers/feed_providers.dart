@@ -190,7 +190,7 @@ final liveSinglePostProvider = StreamProvider.family<FeedPost?, String>((
   postId,
 ) async* {
   final initial = await ref.watch(feedRepositoryProvider).getFeedPost(postId);
-  yield initial;
+  if (initial != null) yield initial;
 
   yield* FirebaseFirestore.instance
       .collection('feed')

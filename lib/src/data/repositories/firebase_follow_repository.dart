@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/follow_repository.dart';
 
 class FirebaseFollowRepository implements FollowRepository {
@@ -67,12 +68,68 @@ class FirebaseFollowRepository implements FollowRepository {
   }
 
   @override
+  Future<PagedResult<String>> getFollowingPage(
+    String followerId, {
+    int limit = 20,
+    Object? cursor,
+  }) {
+    return _getRelationshipPage(
+      matchField: 'followerId',
+      matchValue: followerId,
+      idField: 'followingId',
+      limit: limit,
+      cursor: cursor,
+    );
+  }
+
+  @override
   Future<List<String>> getFollowersList(String followingId) async {
     final snapshot = await _firestore
         .collection('follows')
         .where('followingId', isEqualTo: followingId)
         .get();
     return _uniqueIds(snapshot.docs, 'followerId');
+  }
+
+  @override
+  Future<PagedResult<String>> getFollowersPage(
+    String followingId, {
+    int limit = 20,
+    Object? cursor,
+  }) {
+    return _getRelationshipPage(
+      matchField: 'followingId',
+      matchValue: followingId,
+      idField: 'followerId',
+      limit: limit,
+      cursor: cursor,
+    );
+  }
+
+  Future<PagedResult<String>> _getRelationshipPage({
+    required String matchField,
+    required String matchValue,
+    required String idField,
+    required int limit,
+    required Object? cursor,
+  }) async {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('follows')
+        .where(matchField, isEqualTo: matchValue)
+        .limit(limit + 1);
+
+    if (cursor is DocumentSnapshot<Map<String, dynamic>>) {
+      query = query.startAfterDocument(cursor);
+    }
+
+    final snapshot = await query.get();
+    final docs = snapshot.docs;
+    final pageDocs = docs.take(limit).toList();
+    return PagedResult(
+      items: _uniqueIds(pageDocs, idField),
+      hasMore: docs.length > limit,
+      nextCursor: pageDocs.isEmpty ? cursor : pageDocs.last,
+    );
   }
 
   List<String> _uniqueIds(

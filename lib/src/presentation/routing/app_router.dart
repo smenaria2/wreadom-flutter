@@ -105,18 +105,18 @@ class AppRouter {
       builder: (ctx) => StaticInfoScreen(
         title: 'Page Not Found',
         body: message ?? 'The requested page could not be found.',
-        actionLabel: webFallbackUrl == null ? null : 'Open on web',
+        actionLabel: webFallbackUrl == null ? null : 'Open in in-app browser',
         actionIcon: Icons.open_in_browser_rounded,
         onAction: webFallbackUrl == null
             ? null
             : () => Navigator.of(ctx).push(
-                  MaterialPageRoute(
-                    builder: (context) => LegalDocumentScreen(
-                      title: 'Wreadom',
-                      url: webFallbackUrl.toString(),
-                    ),
+                MaterialPageRoute(
+                  builder: (context) => LegalDocumentScreen(
+                    title: 'Wreadom',
+                    url: webFallbackUrl.toString(),
                   ),
                 ),
+              ),
       ),
     );
   }
@@ -167,7 +167,9 @@ class AppRouter {
     String? name = settings.name;
     Object? arguments = settings.arguments;
 
-    final resolvedIncoming = _resolveIncomingName(name);
+    final resolvedIncoming = arguments == null
+        ? _resolveIncomingName(name)
+        : null;
     final didResolveIncoming = resolvedIncoming != null;
     if (resolvedIncoming != null) {
       name = resolvedIncoming.route;
