@@ -265,7 +265,7 @@ enum _NotificationPreferenceGroup {
   creations,
 }
 
-class _NotificationPreferencesSection extends StatelessWidget {
+class _NotificationPreferencesSection extends StatefulWidget {
   const _NotificationPreferencesSection({
     required this.specs,
     required this.values,
@@ -277,21 +277,46 @@ class _NotificationPreferencesSection extends StatelessWidget {
   final void Function(String key, bool value) onChanged;
 
   @override
+  State<_NotificationPreferencesSection> createState() =>
+      _NotificationPreferencesSectionState();
+}
+
+class _NotificationPreferencesSectionState
+    extends State<_NotificationPreferencesSection> {
+  var _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final enabledCount = specs.where((spec) => values[spec.key] ?? true).length;
+    final enabledCount = widget.specs
+        .where((spec) => widget.values[spec.key] ?? true)
+        .length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return Material(
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        onExpansionChanged: (expanded) {
+          setState(() => _isExpanded = expanded);
+        },
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        childrenPadding: EdgeInsets.zero,
+        leading: Icon(
+          _isExpanded
+              ? Icons.notifications_active_rounded
+              : Icons.notifications_active_outlined,
+          color: colorScheme.primary,
+        ),
+        title: Row(
           children: [
-            Icon(
-              Icons.notifications_active_outlined,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 l10n.notificationPreferences,
@@ -300,6 +325,7 @@ class _NotificationPreferencesSection extends StatelessWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
+            const SizedBox(width: 8),
             DecoratedBox(
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
@@ -311,7 +337,7 @@ class _NotificationPreferencesSection extends StatelessWidget {
                   vertical: 4,
                 ),
                 child: Text(
-                  '$enabledCount/${specs.length}',
+                  '$enabledCount/${widget.specs.length}',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -321,38 +347,27 @@ class _NotificationPreferencesSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Material(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+        children: [
+          for (var i = 0; i < widget.specs.length; i++) ...[
+            if (i == 0 || widget.specs[i].group != widget.specs[i - 1].group)
+              _NotificationGroupLabel(
+                label: _groupLabel(l10n, widget.specs[i].group),
+              ),
+            _NotificationPreferenceRow(
+              spec: widget.specs[i],
+              value: widget.values[widget.specs[i].key] ?? true,
+              onChanged: (value) =>
+                  widget.onChanged(widget.specs[i].key, value),
             ),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < specs.length; i++) ...[
-                if (i == 0 || specs[i].group != specs[i - 1].group)
-                  _NotificationGroupLabel(
-                    label: _groupLabel(l10n, specs[i].group),
-                  ),
-                _NotificationPreferenceRow(
-                  spec: specs[i],
-                  value: values[specs[i].key] ?? true,
-                  onChanged: (value) => onChanged(specs[i].key, value),
-                ),
-                if (i != specs.length - 1)
-                  Divider(
-                    height: 1,
-                    indent: 56,
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.55),
-                  ),
-              ],
-            ],
-          ),
-        ),
-      ],
+            if (i != widget.specs.length - 1)
+              Divider(
+                height: 1,
+                indent: 56,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+              ),
+          ],
+        ],
+      ),
     );
   }
 

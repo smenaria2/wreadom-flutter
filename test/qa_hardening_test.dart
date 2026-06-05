@@ -1942,6 +1942,15 @@ void main() {
       'lib/src/presentation/screens/login_screen.dart',
     ).readAsStringSync();
     final mainSource = File('lib/main.dart').readAsStringSync();
+    final homeScreenSource = File(
+      'lib/src/presentation/screens/home_books_screen.dart',
+    ).readAsStringSync();
+    final homeFeedSource = File(
+      'lib/src/presentation/screens/home_feed_screen.dart',
+    ).readAsStringSync();
+    final profileSettingsSource = File(
+      'lib/src/presentation/screens/profile_settings_screen.dart',
+    ).readAsStringSync();
     final dailyTopicBuildSource = dailyTopicProviderSource.substring(
       dailyTopicProviderSource.indexOf('FutureOr<List<DailyTopic>> build()'),
       dailyTopicProviderSource.indexOf('Future<void> fetchMore()'),
@@ -1950,6 +1959,13 @@ void main() {
     expect(homeProviderSource, contains('warmPublicHomepageCache'));
     expect(homeProviderSource, contains('warmUserHomepageCache'));
     expect(homeProviderSource, contains('_queueHomepageBackgroundRefresh'));
+    expect(homeProviderSource, contains('_refreshHomepageCachesInBackground'));
+    expect(homeProviderSource, contains('_homepageGenreBooksCacheKeyPrefix'));
+    expect(homeScreenSource, contains('_currentBooksOrNull'));
+    expect(homeFeedSource, contains('RefreshIndicator'));
+    expect(homeFeedSource, contains('AlwaysScrollableScrollPhysics'));
+    expect(profileSettingsSource, contains('ExpansionTile'));
+    expect(profileSettingsSource, contains('initiallyExpanded: false'));
     expect(dailyTopicProviderSource, contains('daily_topics_cache_v1'));
     expect(dailyTopicBuildSource, contains('_readCachedTopics()'));
     expect(

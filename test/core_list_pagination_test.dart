@@ -10,9 +10,11 @@ import 'package:librebook_flutter/src/domain/models/paged_result.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/domain/repositories/feed_repository.dart';
 import 'package:librebook_flutter/src/domain/repositories/follow_repository.dart';
+import 'package:librebook_flutter/src/domain/repositories/message_repository.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/follow_providers.dart';
+import 'package:librebook_flutter/src/presentation/providers/message_providers.dart';
 import 'package:librebook_flutter/src/presentation/utils/message_display_utils.dart';
 
 void main() {
@@ -151,6 +153,56 @@ void main() {
     expect(state.error, isA<TimeoutException>());
   });
 
+  test('mine feed resets when signed-in account changes', () async {
+    final repo = _FakeFeedRepository(
+      userPages: {
+        'user-a': [
+          PagedResult(items: [_postForUser('a1', 'user-a')], hasMore: false),
+        ],
+        'user-b': [
+          PagedResult(items: [_postForUser('b1', 'user-b')], hasMore: false),
+        ],
+      },
+    );
+    final users = StreamController<UserModel?>();
+    addTearDown(users.close);
+    final container = ProviderContainer(
+      overrides: [
+        feedRepositoryProvider.overrideWith((ref) => repo),
+        currentUserProvider.overrideWith((ref) => users.stream),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      pagedFeedPostsProvider(FeedFilter.mine),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    users.add(_user('user-a'));
+    await _waitFor(() {
+      return container
+          .read(pagedFeedPostsProvider(FeedFilter.mine))
+          .items
+          .map((post) => post.id)
+          .contains('a1');
+    });
+
+    users.add(_user('user-b'));
+    await _waitFor(() {
+      return container
+          .read(pagedFeedPostsProvider(FeedFilter.mine))
+          .items
+          .map((post) => post.id)
+          .contains('b1');
+    });
+
+    final state = container.read(pagedFeedPostsProvider(FeedFilter.mine));
+    expect(state.items.map((post) => post.id), ['b1']);
+    expect(repo.userFeedRequests.first, 'user-a');
+    expect(repo.userFeedRequests.last, 'user-b');
+  });
+
   test('follow list controller appends paged relationship ids', () async {
     final repo = _FakeFollowRepository(
       followingPages: const [
@@ -241,6 +293,48 @@ void main() {
     expect(messageGroupPlacement(messages, 1).continuesGroup, isFalse);
     expect(messageGroupPlacement(messages, 2).startsGroup, isTrue);
   });
+
+  test('paged conversations reset when signed-in account changes', () async {
+    final repo = _FakeMessageRepository();
+    final users = StreamController<UserModel?>();
+    addTearDown(users.close);
+    final container = ProviderContainer(
+      overrides: [
+        messageRepositoryProvider.overrideWithValue(repo),
+        currentUserProvider.overrideWith((ref) => users.stream),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      pagedConversationsProvider,
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+
+    users.add(_user('user-a'));
+    await _waitFor(() {
+      return container
+          .read(pagedConversationsProvider)
+          .items
+          .map((conversation) => conversation.id)
+          .contains('conversation-user-a');
+    });
+
+    users.add(_user('user-b'));
+    await _waitFor(() {
+      return container
+          .read(pagedConversationsProvider)
+          .items
+          .map((conversation) => conversation.id)
+          .contains('conversation-user-b');
+    });
+
+    final state = container.read(pagedConversationsProvider);
+    expect(state.items.map((conversation) => conversation.id), [
+      'conversation-user-b',
+    ]);
+    expect(repo.conversationPageRequests, ['user-a', 'user-b']);
+  });
 }
 
 Future<void> _waitFor(bool Function() condition) async {
@@ -258,6 +352,19 @@ FeedPost _post(String id, int timestamp) {
     type: 'post',
     text: 'Post $id',
     timestamp: timestamp,
+    likes: const [],
+    visibility: 'public',
+  );
+}
+
+FeedPost _postForUser(String id, String userId) {
+  return FeedPost(
+    id: id,
+    userId: userId,
+    username: userId,
+    type: 'post',
+    text: 'Post $id',
+    timestamp: 1,
     likes: const [],
     visibility: 'public',
   );
@@ -312,13 +419,17 @@ Conversation _conversation(String id, {LastMessageInfo? lastMessage}) {
 class _FakeFeedRepository implements FeedRepository {
   _FakeFeedRepository({
     this.followingPages = const [],
+    this.userPages = const {},
     this.throwOnFollowing = false,
   });
 
   final List<PagedResult<FeedPost>> followingPages;
+  final Map<String, List<PagedResult<FeedPost>>> userPages;
   final bool throwOnFollowing;
   final followingRequests = <({List<String> ids, Object? cursor})>[];
+  final userFeedRequests = <String>[];
   int _followingPageIndex = 0;
+  final _userPageIndexes = <String, int>{};
 
   @override
   Future<PagedResult<FeedPost>> getFeedPostsPage({
@@ -373,7 +484,14 @@ class _FakeFeedRepository implements FeedRepository {
     int limit = 10,
     Object? cursor,
   }) async {
-    return const PagedResult(items: [], hasMore: false);
+    userFeedRequests.add(userId);
+    final pages = userPages[userId];
+    if (pages == null || pages.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    final index = _userPageIndexes[userId] ?? 0;
+    _userPageIndexes[userId] = index + 1;
+    return pages[index >= pages.length ? pages.length - 1 : index];
   }
 
   @override
@@ -464,6 +582,93 @@ class _FakeFeedRepository implements FeedRepository {
 
   @override
   Future<String> uploadPostImage(Uint8List bytes, String fileName) async => '';
+}
+
+class _FakeMessageRepository implements MessageRepository {
+  final conversationPageRequests = <String>[];
+
+  @override
+  Future<void> blockUserInConversation({
+    required String conversationId,
+    required String blockedUserId,
+  }) async {}
+
+  @override
+  Future<void> deleteConversationForUser({
+    required String conversationId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> deleteMessage({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<String> getOrCreateDirectConversation({
+    required UserModel currentUser,
+    required UserModel otherUser,
+  }) async {
+    return 'conversation-${currentUser.id}';
+  }
+
+  @override
+  Future<PagedResult<Conversation>> getConversationsPage(
+    String userId, {
+    int limit = 25,
+    Object? cursor,
+  }) async {
+    conversationPageRequests.add(userId);
+    return PagedResult(
+      items: [
+        _conversation(
+          'conversation-$userId',
+          lastMessage: _lastMessage('hello $userId'),
+        ),
+      ],
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<PagedResult<Message>> getMessagesPage(
+    String conversationId, {
+    int limit = 25,
+    Object? cursor,
+  }) async {
+    return const PagedResult(items: [], hasMore: false);
+  }
+
+  @override
+  Future<void> sendMessage({
+    required String conversationId,
+    required UserModel sender,
+    required String text,
+  }) async {}
+
+  @override
+  Future<void> sendStoryMessage({
+    required String conversationId,
+    required UserModel sender,
+    required MessageStoryData storyData,
+  }) async {}
+
+  @override
+  Stream<Conversation?> watchConversation(String conversationId) {
+    return Stream.value(null);
+  }
+
+  @override
+  Stream<List<Conversation>> watchConversations(String userId) {
+    return Stream.value(const []);
+  }
+
+  @override
+  Stream<List<Message>> watchMessages(String conversationId) {
+    return Stream.value(const []);
+  }
 }
 
 class _FakeFollowRepository implements FollowRepository {

@@ -52,15 +52,27 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
 
   final FeedFilter _filter;
   Object? _cursor;
+  int _loadGeneration = 0;
 
   @override
   PagedListState<FeedPost> build() {
+    ref.listen(currentUserProvider, (previous, next) {
+      final previousUserId = previous?.asData?.value?.id;
+      final nextUserId = next.asData?.value?.id;
+      if (previousUserId != nextUserId) {
+        _cursor = null;
+        _loadGeneration++;
+        state = const PagedListState(isInitialLoading: true);
+        Future.microtask(refresh);
+      }
+    });
     Future.microtask(refresh);
     return const PagedListState();
   }
 
   Future<void> refresh() async {
     _cursor = null;
+    _loadGeneration++;
     state = const PagedListState(isInitialLoading: true);
     await _load(reset: true);
   }
@@ -73,6 +85,7 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     if (!reset) {
       state = state.copyWith(isLoadingMore: true, clearError: true);
     }
+    final generation = _loadGeneration;
 
     try {
       final repo = ref.read(feedRepositoryProvider);
@@ -88,14 +101,14 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
         ),
         FeedFilter.mine => await _loadMine(repo),
       };
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       _cursor = page.nextCursor;
       state = PagedListState(
         items: reset ? page.items : [...state.items, ...page.items],
         hasMore: page.hasMore,
       );
     } catch (error) {
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       state = state.copyWith(
         isInitialLoading: false,
         isLoadingMore: false,

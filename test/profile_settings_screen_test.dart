@@ -77,6 +77,7 @@ void main() {
 
       await _pumpProfileSettings(tester, repository, user);
 
+      await _expandNotificationPreferences(tester);
       await _scrollUntilTextVisible(tester, 'Comments and reviews');
       await tester.tap(
         find
@@ -107,6 +108,10 @@ void main() {
     await _pumpProfileSettings(tester, repository, user);
 
     expect(find.text('Notification preferences'), findsOneWidget);
+    expect(find.text('Direct messages'), findsNothing);
+
+    await _expandNotificationPreferences(tester);
+
     expect(find.text('Direct messages'), findsOneWidget);
     await _scrollUntilTextVisible(tester, 'New creations and chapters');
     expect(find.text('New creations and chapters'), findsOneWidget);
@@ -120,6 +125,12 @@ void main() {
     expect(saved.messages.browser, isFalse);
     expect(saved.browserNotifications, isFalse);
   });
+}
+
+Future<void> _expandNotificationPreferences(WidgetTester tester) async {
+  await _scrollUntilTextVisible(tester, 'Notification preferences');
+  await tester.tap(find.text('Notification preferences'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapSaveSettings(WidgetTester tester) async {

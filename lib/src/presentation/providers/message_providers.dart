@@ -38,15 +38,27 @@ final pagedConversationMessagesProvider =
 class PagedConversationsController
     extends Notifier<PagedListState<Conversation>> {
   Object? _cursor;
+  int _loadGeneration = 0;
 
   @override
   PagedListState<Conversation> build() {
+    ref.listen(currentUserProvider, (previous, next) {
+      final previousUserId = previous?.asData?.value?.id;
+      final nextUserId = next.asData?.value?.id;
+      if (previousUserId != nextUserId) {
+        _cursor = null;
+        _loadGeneration++;
+        state = const PagedListState(isInitialLoading: true);
+        Future.microtask(refresh);
+      }
+    });
     Future.microtask(refresh);
     return const PagedListState();
   }
 
   Future<void> refresh() async {
     _cursor = null;
+    _loadGeneration++;
     state = const PagedListState(isInitialLoading: true);
     await _load(reset: true);
   }
@@ -59,9 +71,11 @@ class PagedConversationsController
     if (!reset) {
       state = state.copyWith(isLoadingMore: true, clearError: true);
     }
+    final generation = _loadGeneration;
 
     try {
       final user = await ref.read(currentUserProvider.future);
+      if (!ref.mounted || generation != _loadGeneration) return;
       if (user == null) {
         state = const PagedListState(hasMore: false);
         return;
@@ -73,14 +87,14 @@ class PagedConversationsController
             limit: conversationPageSize,
             cursor: _cursor,
           );
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       _cursor = page.nextCursor;
       state = PagedListState(
         items: reset ? page.items : [...state.items, ...page.items],
         hasMore: page.hasMore,
       );
     } catch (error) {
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       state = state.copyWith(
         isInitialLoading: false,
         isLoadingMore: false,
@@ -96,15 +110,27 @@ class PagedConversationMessagesController
 
   final String _conversationId;
   Object? _olderCursor;
+  int _loadGeneration = 0;
 
   @override
   PagedListState<Message> build() {
+    ref.listen(currentUserProvider, (previous, next) {
+      final previousUserId = previous?.asData?.value?.id;
+      final nextUserId = next.asData?.value?.id;
+      if (previousUserId != nextUserId) {
+        _olderCursor = null;
+        _loadGeneration++;
+        state = const PagedListState(isInitialLoading: true);
+        Future.microtask(refresh);
+      }
+    });
     Future.microtask(refresh);
     return const PagedListState();
   }
 
   Future<void> refresh() async {
     _olderCursor = null;
+    _loadGeneration++;
     state = const PagedListState(isInitialLoading: true);
     await _load(reset: true);
   }
@@ -117,9 +143,11 @@ class PagedConversationMessagesController
     if (!reset) {
       state = state.copyWith(isLoadingMore: true, clearError: true);
     }
+    final generation = _loadGeneration;
 
     try {
       final user = await ref.read(currentUserProvider.future);
+      if (!ref.mounted || generation != _loadGeneration) return;
       if (user == null) {
         state = const PagedListState(hasMore: false);
         return;
@@ -131,7 +159,7 @@ class PagedConversationMessagesController
             limit: messagePageSize,
             cursor: _olderCursor,
           );
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       _olderCursor = page.nextCursor;
       final visibleItems = page.items
           .where((message) => !message.deletedFor.contains(user.id))
@@ -141,7 +169,7 @@ class PagedConversationMessagesController
         hasMore: page.hasMore,
       );
     } catch (error) {
-      if (!ref.mounted) return;
+      if (!ref.mounted || generation != _loadGeneration) return;
       state = state.copyWith(
         isInitialLoading: false,
         isLoadingMore: false,
@@ -154,15 +182,14 @@ class PagedConversationMessagesController
 final conversationMessagesProvider =
     StreamProvider.family<List<Message>, String>((ref, conversationId) {
       final userId = ref.watch(currentUserProvider).asData?.value?.id;
+      if (userId == null) return Stream.value(const <Message>[]);
       return ref
           .watch(messageRepositoryProvider)
           .watchMessages(conversationId)
           .map(
-            (messages) => userId == null
-                ? messages
-                : messages
-                      .where((message) => !message.deletedFor.contains(userId))
-                      .toList(),
+            (messages) => messages
+                .where((message) => !message.deletedFor.contains(userId))
+                .toList(),
           );
     });
 
@@ -170,5 +197,7 @@ final conversationProvider = StreamProvider.family<Conversation?, String>((
   ref,
   conversationId,
 ) {
+  final userId = ref.watch(currentUserProvider).asData?.value?.id;
+  if (userId == null) return Stream.value(null);
   return ref.watch(messageRepositoryProvider).watchConversation(conversationId);
 });

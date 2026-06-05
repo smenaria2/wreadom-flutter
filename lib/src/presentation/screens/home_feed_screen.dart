@@ -43,99 +43,92 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final feedController = ref.read(
-      pagedFeedPostsProvider(_selectedFilter).notifier,
-    );
-
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: RefreshIndicator(
-        onRefresh: feedController.refresh,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              title: Text(
-                l10n.feed,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                  letterSpacing: -0.5,
-                ),
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            title: Text(
+              l10n.feed,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                letterSpacing: -0.5,
               ),
-              actions: [
-                IconButton(
-                  tooltip: l10n.notifications,
-                  icon: Consumer(
-                    builder: (context, ref, _) {
-                      final unread = ref.watch(unreadNotificationCountProvider);
-                      const icon = Icon(Icons.notifications_none_rounded);
-                      if (unread <= 0) return icon;
-                      return Badge(
-                        label: Text(unread > 99 ? '99+' : '$unread'),
-                        child: icon,
-                      );
-                    },
-                  ),
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.notifications),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.search_rounded),
-                  tooltip: l10n.searchBooks,
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.discovery),
-                ),
-              ],
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: SegmentedButton<FeedFilter>(
-                  segments: [
-                    ButtonSegment(
-                      value: FeedFilter.following,
-                      label: Text(l10n.following),
-                      icon: const Icon(Icons.people_outline_rounded),
-                    ),
-                    ButtonSegment(
-                      value: FeedFilter.public,
-                      label: Text(l10n.public),
-                      icon: const Icon(Icons.public_rounded),
-                    ),
-                    ButtonSegment(
-                      value: FeedFilter.mine,
-                      label: Text(l10n.mine),
-                      icon: const Icon(Icons.person_outline_rounded),
-                    ),
-                  ],
-                  selected: {_selectedFilter},
-                  onSelectionChanged: (selection) {
-                    _selectFilter(selection.first);
+            actions: [
+              IconButton(
+                tooltip: l10n.notifications,
+                icon: Consumer(
+                  builder: (context, ref, _) {
+                    final unread = ref.watch(unreadNotificationCountProvider);
+                    const icon = Icon(Icons.notifications_none_rounded);
+                    if (unread <= 0) return icon;
+                    return Badge(
+                      label: Text(unread > 99 ? '99+' : '$unread'),
+                      child: icon,
+                    );
                   },
                 ),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.notifications),
+              ),
+              IconButton(
+                icon: const Icon(Icons.search_rounded),
+                tooltip: l10n.searchBooks,
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.discovery),
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: SegmentedButton<FeedFilter>(
+                segments: [
+                  ButtonSegment(
+                    value: FeedFilter.following,
+                    label: Text(l10n.following),
+                    icon: const Icon(Icons.people_outline_rounded),
+                  ),
+                  ButtonSegment(
+                    value: FeedFilter.public,
+                    label: Text(l10n.public),
+                    icon: const Icon(Icons.public_rounded),
+                  ),
+                  ButtonSegment(
+                    value: FeedFilter.mine,
+                    label: Text(l10n.mine),
+                    icon: const Icon(Icons.person_outline_rounded),
+                  ),
+                ],
+                selected: {_selectedFilter},
+                onSelectionChanged: (selection) {
+                  _selectFilter(selection.first);
+                },
               ),
             ),
-            SliverFillRemaining(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: FeedFilter.values.length,
-                onPageChanged: (index) {
-                  setState(() => _selectedFilter = FeedFilter.values[index]);
-                  AppHaptics.selection();
-                },
-                itemBuilder: (context, index) {
-                  final filter = FeedFilter.values[index];
-                  return _FeedFilterPage(filter: filter);
-                },
-              ),
+          ),
+          SliverFillRemaining(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: FeedFilter.values.length,
+              onPageChanged: (index) {
+                setState(() => _selectedFilter = FeedFilter.values[index]);
+                AppHaptics.selection();
+              },
+              itemBuilder: (context, index) {
+                final filter = FeedFilter.values[index];
+                return _FeedFilterPage(filter: filter);
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'home-feed-create-post-fab',
@@ -159,14 +152,35 @@ class _FeedFilterPage extends ConsumerWidget {
     final feedController = ref.read(pagedFeedPostsProvider(filter).notifier);
     final l10n = AppLocalizations.of(context)!;
 
+    Widget refreshable(Widget child) {
+      return RefreshIndicator(onRefresh: feedController.refresh, child: child);
+    }
+
+    Widget centeredScrollable(Widget child) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight,
+                child: Center(child: child),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     if (feedState.isInitialLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return refreshable(centeredScrollable(const CircularProgressIndicator()));
     }
     if (feedState.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+      return refreshable(
+        centeredScrollable(
+          Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -201,56 +215,62 @@ class _FeedFilterPage extends ConsumerWidget {
       );
     }
     if (feedState.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.feed_outlined,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              filter == FeedFilter.following
-                  ? l10n.noFollowingPosts
-                  : l10n.noPosts,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+      return refreshable(
+        centeredScrollable(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.feed_outlined,
+                size: 64,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.beFirstToPost,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+              const SizedBox(height: 16),
+              Text(
+                filter == FeedFilter.following
+                    ? l10n.noFollowingPosts
+                    : l10n.noPosts,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              icon: const Icon(Icons.edit_rounded),
-              label: Text(l10n.createAPost),
-              onPressed: () => showCreatePostSheet(context),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                l10n.beFirstToPost,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                icon: const Icon(Icons.edit_rounded),
+                label: Text(l10n.createAPost),
+                onPressed: () => showCreatePostSheet(context),
+              ),
+            ],
+          ),
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 132),
-      itemCount: feedState.items.length + 1,
-      itemBuilder: (context, index) {
-        if (index == feedState.items.length) {
-          return _LoadMoreFeedButton(
-            isLoading: feedState.isLoadingMore,
-            hasMore: feedState.hasMore,
-            onPressed: feedController.loadMore,
-          );
-        }
-        return FeedPostCard(post: feedState.items[index]);
-      },
+    return refreshable(
+      ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 132),
+        itemCount: feedState.items.length + 1,
+        itemBuilder: (context, index) {
+          if (index == feedState.items.length) {
+            return _LoadMoreFeedButton(
+              isLoading: feedState.isLoadingMore,
+              hasMore: feedState.hasMore,
+              onPressed: feedController.loadMore,
+            );
+          }
+          return FeedPostCard(post: feedState.items[index]);
+        },
+      ),
     );
   }
 }

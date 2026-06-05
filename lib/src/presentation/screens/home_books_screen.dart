@@ -1180,63 +1180,83 @@ class _BookshelfSection extends StatelessWidget {
       190.0,
       232.0,
     );
+    final visibleBooks = _currentBooksOrNull(booksAsync);
+    if (visibleBooks != null && visibleBooks.isNotEmpty) {
+      return _buildShelf(context, visibleBooks, shelfHeight);
+    }
+
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) return const SizedBox.shrink();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: onSeeAll,
-                    child: Text(AppLocalizations.of(context)!.seeAll),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: shelfHeight,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: books.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  final book = books[index];
-                  final shelfId =
-                      sectionId ?? title.replaceAll(' ', '-').toLowerCase();
-                  return _BookCard(
-                    book: book,
-                    heroTag: 'book-cover-$shelfId-${book.id}',
-                  );
-                },
-              ),
-            ),
-          ],
-        );
+        return _buildShelf(context, books, shelfHeight);
       },
       loading: () => _TimedBookshelfSkeleton(shelfHeight: shelfHeight),
       error: (_, _) => SectionError(title: title, onRetry: onRetry),
     );
+  }
+
+  Widget _buildShelf(
+    BuildContext context,
+    List<Book> books,
+    double shelfHeight,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onSeeAll,
+                child: Text(AppLocalizations.of(context)!.seeAll),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: shelfHeight,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: books.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final book = books[index];
+              final shelfId =
+                  sectionId ?? title.replaceAll(' ', '-').toLowerCase();
+              return _BookCard(
+                book: book,
+                heroTag: 'book-cover-$shelfId-${book.id}',
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Book>? _currentBooksOrNull(AsyncValue<List<Book>> booksAsync) {
+    try {
+      return booksAsync.value;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
