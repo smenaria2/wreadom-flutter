@@ -12,7 +12,6 @@ import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
-import '../utils/swipe_hint.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -33,21 +32,6 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _sending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      showSwipeHintOnce(
-        context: context,
-        key: 'swipe_hint_seen_conversation_v1',
-        message: l10n.swipeHintMessages,
-        actionLabel: l10n.gotIt,
-      );
-    });
-  }
 
   @override
   void dispose() {
@@ -76,11 +60,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             pagedConversationMessagesProvider(widget.conversationId).notifier,
           )
           .refresh();
-    } on MessageLimitException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } on MessageLimitException {
+      // The composer state already reflects blocked/first-message limits.
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -119,13 +100,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final waitingForReply =
         currentUser != null &&
         conversation != null &&
-        _isWaitingForReply(conversation, messages, currentUser.id);
+        _isWaitingForReply(conversation, currentUser.id, messages);
     final newDirectThread =
         currentUser != null &&
         conversation != null &&
         conversation.type == 'direct' &&
         conversation.createdBy == currentUser.id &&
-        messages.isEmpty;
+        conversation.firstMessageSenderId == null;
 
     return Scaffold(
       appBar: AppBar(
@@ -219,6 +200,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                           conversation: conversation,
                           message: message,
                           currentUserId: currentUser.id,
+                          messages: messages,
                         );
                     final placement = messageGroupPlacement(
                       messages,
@@ -358,39 +340,42 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   bool _isWaitingForReply(
     Conversation conversation,
-    List<Message> messages,
     String currentUserId,
+    List<Message> messages,
   ) {
     if (conversation.type != 'direct' ||
         conversation.createdBy != currentUserId) {
       return false;
     }
-    if (messages.isEmpty) return false;
-    return !messages.any((message) => message.senderId != currentUserId);
+    if (_hasLoadedRecipientReply(conversation, currentUserId, messages)) {
+      return false;
+    }
+    return conversation.firstMessageSenderId == currentUserId &&
+        !conversation.recipientHasReplied;
   }
 
   bool _isProtectedFirstMessage({
     required Conversation? conversation,
     required Message message,
     required String currentUserId,
+    required List<Message> messages,
   }) {
     if (conversation == null || conversation.type != 'direct') return false;
     if (conversation.createdBy != currentUserId) return false;
-    if (conversation.lastMessage == null) return false;
     if (message.senderId != currentUserId) return false;
-    final hasRecipientReply = messagesStateHasRecipientReply(
-      ref.read(pagedConversationMessagesProvider(widget.conversationId)).items,
-      currentUserId,
-    );
-    if (hasRecipientReply) return false;
-    return conversation.lastMessage?.senderId == currentUserId &&
-        conversation.lastMessage?.timestamp == message.timestamp;
+    if (_hasLoadedRecipientReply(conversation, currentUserId, messages)) {
+      return false;
+    }
+    return conversation.firstMessageSenderId == currentUserId &&
+        !conversation.recipientHasReplied;
   }
 
-  bool messagesStateHasRecipientReply(
-    List<Message> messages,
+  bool _hasLoadedRecipientReply(
+    Conversation conversation,
     String currentUserId,
+    List<Message> messages,
   ) {
+    if (conversation.recipientHasReplied) return true;
     return messages.any((message) => message.senderId != currentUserId);
   }
 

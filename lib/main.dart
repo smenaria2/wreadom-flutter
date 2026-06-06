@@ -28,20 +28,17 @@ import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/analytics_service.dart';
+import 'src/data/services/google_sign_in_initializer.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
-import 'src/utils/app_link_helper.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-
-const String _googleServerClientId =
-    '601247128838-qp60rioakq1s65j51e5t2utq4n9gmoad.apps.googleusercontent.com';
 
 Future<void> main() async {
   runZonedGuarded(() async {
@@ -253,18 +250,13 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (kIsWeb) {
         return _initializeWebGoogleSignIn();
       }
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        return GoogleSignIn.instance.initialize(
-          serverClientId: _googleServerClientId,
-        );
-      }
-      return Future<void>.value();
+      return GoogleSignInInitializer.ensureInitialized();
     });
     unawaited(_initDeepLinks());
   }
 
   Future<void> _initializeWebGoogleSignIn() async {
-    await GoogleSignIn.instance.initialize(clientId: _googleServerClientId);
+    await GoogleSignInInitializer.ensureInitialized();
     _googleAuthSubscription ??= GoogleSignIn.instance.authenticationEvents
         .listen(
           (event) => unawaited(_handleGoogleAuthenticationEvent(event)),
@@ -361,21 +353,16 @@ class _MyAppState extends ConsumerState<MyApp> {
     debugPrint('Handling deep link: $uri');
 
     final navigator = _navigatorKey.currentState;
-    final target = AppRouter.routeSettingsForAppLink(uri.toString());
-    final unresolvedWebTarget =
-        target == null && !_isRootLink(uri) && _isWreadomWebLink(uri)
-        ? RouteSettings(name: uri.toString())
-        : null;
-    if (target == null && unresolvedWebTarget == null && !_isRootLink(uri)) {
+    final target =
+        AppRouter.routeSettingsForAppLink(uri.toString()) ??
+        (!_isRootLink(uri)
+            ? AppRouter.notFoundRouteSettingsForAppLink(uri.toString())
+            : null);
+    if (target == null && !_isRootLink(uri)) {
       return;
     }
     if (navigator == null) {
-      _pendingDeepLinkTarget = target ?? unresolvedWebTarget;
-      return;
-    }
-
-    if (unresolvedWebTarget != null) {
-      navigator.pushNamed(unresolvedWebTarget.name!);
+      _pendingDeepLinkTarget = target;
       return;
     }
 
@@ -423,11 +410,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   bool _isRootLink(Uri uri) {
     final hasRootPath = uri.path.isEmpty || uri.path == '/';
     return hasRootPath && !uri.hasQuery && !uri.hasFragment;
-  }
-
-  bool _isWreadomWebLink(Uri uri) {
-    return (uri.scheme == 'http' || uri.scheme == 'https') &&
-        (uri.host == AppLinkHelper.host || uri.host == AppLinkHelper.wwwHost);
   }
 
   bool _isDuplicateDeepLink(Uri uri) {

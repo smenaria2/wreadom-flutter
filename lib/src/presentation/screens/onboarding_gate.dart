@@ -265,6 +265,8 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
         l10n.onboardingCommunityBulletReact,
         l10n.onboardingCommunityBulletFollow,
         l10n.onboardingCommunityBulletMessage,
+        l10n.swipeHintBookComments,
+        l10n.swipeHintMessages,
       ],
       accent: const Color(0xFF34D399),
     ),

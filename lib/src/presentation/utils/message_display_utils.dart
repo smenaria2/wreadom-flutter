@@ -10,9 +10,17 @@ class MessageGroupPlacement {
   final bool continuesGroup;
 }
 
-List<Conversation> visibleConversations(List<Conversation> conversations) {
+List<Conversation> visibleConversations(
+  List<Conversation> conversations, {
+  String? hiddenForUserId,
+}) {
   return conversations
       .where((conversation) => conversation.lastMessage != null)
+      .where(
+        (conversation) =>
+            hiddenForUserId == null ||
+            !conversation.deletedFor.contains(hiddenForUserId),
+      )
       .toList();
 }
 

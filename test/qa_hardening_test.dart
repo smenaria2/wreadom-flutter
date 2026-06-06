@@ -564,10 +564,23 @@ void main() {
       expect(source, contains('runTransaction((transaction) async'));
       expect(source, contains('firstMessageSenderId'));
       expect(source, contains('recipientHasReplied'));
+      expect(source, contains('_hasRecipientReply'));
+      expect(source, contains('hasRecipientReply: hasRecipientReply'));
+      expect(source, contains('_recipientHasRepliedFromConversation'));
+      expect(source, contains("'deletedFor': FieldValue.arrayUnion([userId])"));
+      expect(
+        source,
+        contains("'deletedFor': FieldValue.arrayRemove([senderId])"),
+      );
+      expect(
+        source,
+        contains("'deletedFor': FieldValue.arrayRemove([currentUser.id])"),
+      );
       expect(source, contains('_sendMessageDocument'));
       expect(source, contains('transaction.set(messageRef'));
       expect(source, contains('transaction.update(conversationRef'));
       expect(source, isNot(contains(".collection('conversations').add")));
+      expect(source, isNot(contains("'participants': FieldValue.arrayRemove")));
       expect(source, isNot(contains('await _assertCanSend(')));
     },
   );
@@ -1103,9 +1116,19 @@ void main() {
     final manifestSource = File(
       'android/app/src/main/AndroidManifest.xml',
     ).readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
 
     expect(routerSource, contains('_resolveIncomingName(name)'));
     expect(routerSource, contains('AppLinkHelper.resolve(name)'));
+    expect(routerSource, contains('notFoundRouteSettingsForAppLink'));
+    expect(routerSource, contains('NotFoundArguments'));
+    expect(routerSource, contains('AppRoutes.notFound'));
+    expect(routerSource, contains('Open in in-app browser'));
+    expect(mainSource, contains('notFoundRouteSettingsForAppLink'));
+    expect(
+      mainSource,
+      contains('navigator.pushNamedAndRemoveUntil(AppRoutes.main'),
+    );
     expect(routerSource, contains('initialReaderChapterIndex'));
     expect(routerSource, contains('resolvedIncoming.chapterIndex'));
     expect(routerSource, contains("'\${uri.path}?\${uri.query}'"));
@@ -1124,7 +1147,7 @@ void main() {
 
     expect(source, contains('_HomeShelfDestination'));
     expect(source, contains('_openShelfDestination'));
-    expect(source, contains('SectionError'));
+    expect(source, isNot(contains('SectionError')));
     expect(source, contains('onRetry'));
     expect(source, contains('_initialForName'));
     expect(source, isNot(contains('name.characters.first')));
@@ -1223,6 +1246,9 @@ void main() {
     final messagesSource = File(
       'lib/src/presentation/screens/messages_screen.dart',
     ).readAsStringSync();
+    final conversationSource = File(
+      'lib/src/presentation/screens/conversation_screen.dart',
+    ).readAsStringSync();
     final notificationRepoSource = File(
       'lib/src/domain/repositories/notification_repository.dart',
     ).readAsStringSync();
@@ -1265,6 +1291,8 @@ void main() {
     expect(helpScreenSource, contains('SubmitErrorDialog'));
     expect(discoverySource, isNot(contains("@\${author.username}")));
     expect(messagesSource, contains('_ConversationSwipeShell'));
+    expect(conversationSource, contains('_hasLoadedRecipientReply'));
+    expect(conversationSource, contains('_isWaitingForReply('));
     expect(messagesSource, isNot(contains('Icons.delete_outline_rounded')));
     expect(notificationRepoSource, contains('createNotification'));
     expect(notificationRepoSource, contains('createNotifications'));
@@ -1420,6 +1448,32 @@ void main() {
     ]) {
       expect(enL10n[key], isA<String>());
     }
+  });
+
+  test('google sign-in initialization is centralized before auth', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final authRepositorySource = File(
+      'lib/src/data/repositories/firebase_auth_repository.dart',
+    ).readAsStringSync();
+    final initializerSource = File(
+      'lib/src/data/services/google_sign_in_initializer.dart',
+    ).readAsStringSync();
+
+    expect(initializerSource, contains('class GoogleSignInInitializer'));
+    expect(
+      initializerSource,
+      contains('static Future<void>? _initializeFuture'),
+    );
+    expect(initializerSource, contains('serverClientId: serverClientId'));
+    expect(initializerSource, contains('clientId: serverClientId'));
+    expect(mainSource, contains('GoogleSignInInitializer.ensureInitialized()'));
+    expect(mainSource, isNot(contains('const String _googleServerClientId')));
+    expect(
+      authRepositorySource.indexOf(
+        'GoogleSignInInitializer.ensureInitialized()',
+      ),
+      lessThan(authRepositorySource.indexOf('_googleSignIn.authenticate()')),
+    );
   });
 
   test('points are removed and home rankings replace leaderboard behavior', () {
@@ -1851,7 +1905,7 @@ void main() {
     expect(routerSource, contains('targetReplyId'));
   });
 
-  test('target comments and swipe hints are wired', () {
+  test('target comments and onboarding swipe hints are wired', () {
     final postSource = File(
       'lib/src/presentation/screens/post_detail_screen.dart',
     ).readAsStringSync();
@@ -1867,15 +1921,23 @@ void main() {
     final conversationSource = File(
       'lib/src/presentation/screens/conversation_screen.dart',
     ).readAsStringSync();
+    final onboardingSource = File(
+      'lib/src/presentation/screens/onboarding_gate.dart',
+    ).readAsStringSync();
     final l10n = englishL10n();
 
     expect(postSource, contains('l10n.fromNotifications'));
     expect(bookSource, contains('targetCommentId'));
     expect(commentSource, contains('isTargetComment'));
     expect(commentSource, contains('isTargetReply'));
-    expect(bookSource, contains('swipe_hint_seen_book_comments_v1'));
-    expect(messagesSource, contains('swipe_hint_seen_messages_v1'));
-    expect(conversationSource, contains('swipe_hint_seen_conversation_v1'));
+    expect(bookSource, isNot(contains('swipe_hint_seen_book_comments_v1')));
+    expect(messagesSource, isNot(contains('swipe_hint_seen_messages_v1')));
+    expect(
+      conversationSource,
+      isNot(contains('swipe_hint_seen_conversation_v1')),
+    );
+    expect(onboardingSource, contains('l10n.swipeHintBookComments'));
+    expect(onboardingSource, contains('l10n.swipeHintMessages'));
     for (final key in [
       'targetComment',
       'fromNotifications',
@@ -1927,6 +1989,13 @@ void main() {
     expect(readerSource, contains('_chapterContentStartKey'));
     expect(readerSource, contains('position.pixels / maxScroll'));
     expect(readerSource, contains('_incrementView(chapterIndex: index)'));
+    expect(readerSource, contains('late SharedPreferences _sharedPreferences'));
+    expect(
+      readerSource,
+      contains('_sharedPreferences = ref.read(sharedPreferencesProvider)'),
+    );
+    expect(readerSource, contains('_sharedPreferences.getString(prefsKey)'));
+    expect(readerSource, contains('if (!mounted) return;'));
     expect(rulesSource, contains('chapterKey'));
     expect(rulesSource, contains('chapterIndex'));
   });

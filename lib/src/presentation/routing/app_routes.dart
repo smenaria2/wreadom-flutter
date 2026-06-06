@@ -25,4 +25,5 @@ class AppRoutes {
   static const followList = '/follow-list';
   static const languageSettings = '/language-settings';
   static const archiveReader = '/archive-reader';
+  static const notFound = '/not-found';
 }

@@ -1167,7 +1167,7 @@ mixin _$Conversation {
 
  String get id; List<String> get participants; Map<String, ParticipantDetail> get participantDetails; Map<String, String> get memberStatus;// 'pending' | 'accepted' | 'blocked'
  LastMessageInfo? get lastMessage; String get type;// 'direct' | 'group'
- String? get name; int get createdAt; int get updatedAt; String get createdBy;
+ String? get name; int get createdAt; int get updatedAt; String get createdBy; String? get firstMessageSenderId; bool get recipientHasReplied; List<String> get deletedFor;
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1180,16 +1180,16 @@ $ConversationCopyWith<Conversation> get copyWith => _$ConversationCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Conversation&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.participants, participants)&&const DeepCollectionEquality().equals(other.participantDetails, participantDetails)&&const DeepCollectionEquality().equals(other.memberStatus, memberStatus)&&(identical(other.lastMessage, lastMessage) || other.lastMessage == lastMessage)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Conversation&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.participants, participants)&&const DeepCollectionEquality().equals(other.participantDetails, participantDetails)&&const DeepCollectionEquality().equals(other.memberStatus, memberStatus)&&(identical(other.lastMessage, lastMessage) || other.lastMessage == lastMessage)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.firstMessageSenderId, firstMessageSenderId) || other.firstMessageSenderId == firstMessageSenderId)&&(identical(other.recipientHasReplied, recipientHasReplied) || other.recipientHasReplied == recipientHasReplied)&&const DeepCollectionEquality().equals(other.deletedFor, deletedFor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(participants),const DeepCollectionEquality().hash(participantDetails),const DeepCollectionEquality().hash(memberStatus),lastMessage,type,name,createdAt,updatedAt,createdBy);
+int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(participants),const DeepCollectionEquality().hash(participantDetails),const DeepCollectionEquality().hash(memberStatus),lastMessage,type,name,createdAt,updatedAt,createdBy,firstMessageSenderId,recipientHasReplied,const DeepCollectionEquality().hash(deletedFor));
 
 @override
 String toString() {
-  return 'Conversation(id: $id, participants: $participants, participantDetails: $participantDetails, memberStatus: $memberStatus, lastMessage: $lastMessage, type: $type, name: $name, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy)';
+  return 'Conversation(id: $id, participants: $participants, participantDetails: $participantDetails, memberStatus: $memberStatus, lastMessage: $lastMessage, type: $type, name: $name, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy, firstMessageSenderId: $firstMessageSenderId, recipientHasReplied: $recipientHasReplied, deletedFor: $deletedFor)';
 }
 
 
@@ -1200,7 +1200,7 @@ abstract mixin class $ConversationCopyWith<$Res>  {
   factory $ConversationCopyWith(Conversation value, $Res Function(Conversation) _then) = _$ConversationCopyWithImpl;
 @useResult
 $Res call({
- String id, List<String> participants, Map<String, ParticipantDetail> participantDetails, Map<String, String> memberStatus, LastMessageInfo? lastMessage, String type, String? name, int createdAt, int updatedAt, String createdBy
+ String id, List<String> participants, Map<String, ParticipantDetail> participantDetails, Map<String, String> memberStatus, LastMessageInfo? lastMessage, String type, String? name, int createdAt, int updatedAt, String createdBy, String? firstMessageSenderId, bool recipientHasReplied, List<String> deletedFor
 });
 
 
@@ -1217,7 +1217,7 @@ class _$ConversationCopyWithImpl<$Res>
 
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? participants = null,Object? participantDetails = null,Object? memberStatus = null,Object? lastMessage = freezed,Object? type = null,Object? name = freezed,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? participants = null,Object? participantDetails = null,Object? memberStatus = null,Object? lastMessage = freezed,Object? type = null,Object? name = freezed,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? firstMessageSenderId = freezed,Object? recipientHasReplied = null,Object? deletedFor = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,participants: null == participants ? _self.participants : participants // ignore: cast_nullable_to_non_nullable
@@ -1229,7 +1229,10 @@ as String,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as int,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String,
+as String,firstMessageSenderId: freezed == firstMessageSenderId ? _self.firstMessageSenderId : firstMessageSenderId // ignore: cast_nullable_to_non_nullable
+as String?,recipientHasReplied: null == recipientHasReplied ? _self.recipientHasReplied : recipientHasReplied // ignore: cast_nullable_to_non_nullable
+as bool,deletedFor: null == deletedFor ? _self.deletedFor : deletedFor // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 /// Create a copy of Conversation
@@ -1326,10 +1329,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy,  String? firstMessageSenderId,  bool recipientHasReplied,  List<String> deletedFor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Conversation() when $default != null:
-return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy);case _:
+return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy,_that.firstMessageSenderId,_that.recipientHasReplied,_that.deletedFor);case _:
   return orElse();
 
 }
@@ -1347,10 +1350,10 @@ return $default(_that.id,_that.participants,_that.participantDetails,_that.membe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy,  String? firstMessageSenderId,  bool recipientHasReplied,  List<String> deletedFor)  $default,) {final _that = this;
 switch (_that) {
 case _Conversation():
-return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy);case _:
+return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy,_that.firstMessageSenderId,_that.recipientHasReplied,_that.deletedFor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1367,10 +1370,10 @@ return $default(_that.id,_that.participants,_that.participantDetails,_that.membe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  List<String> participants,  Map<String, ParticipantDetail> participantDetails,  Map<String, String> memberStatus,  LastMessageInfo? lastMessage,  String type,  String? name,  int createdAt,  int updatedAt,  String createdBy,  String? firstMessageSenderId,  bool recipientHasReplied,  List<String> deletedFor)?  $default,) {final _that = this;
 switch (_that) {
 case _Conversation() when $default != null:
-return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy);case _:
+return $default(_that.id,_that.participants,_that.participantDetails,_that.memberStatus,_that.lastMessage,_that.type,_that.name,_that.createdAt,_that.updatedAt,_that.createdBy,_that.firstMessageSenderId,_that.recipientHasReplied,_that.deletedFor);case _:
   return null;
 
 }
@@ -1382,7 +1385,7 @@ return $default(_that.id,_that.participants,_that.participantDetails,_that.membe
 @JsonSerializable()
 
 class _Conversation implements Conversation {
-  const _Conversation({required this.id, required final  List<String> participants, required final  Map<String, ParticipantDetail> participantDetails, required final  Map<String, String> memberStatus, this.lastMessage, required this.type, this.name, required this.createdAt, required this.updatedAt, required this.createdBy}): _participants = participants,_participantDetails = participantDetails,_memberStatus = memberStatus;
+  const _Conversation({required this.id, required final  List<String> participants, required final  Map<String, ParticipantDetail> participantDetails, required final  Map<String, String> memberStatus, this.lastMessage, required this.type, this.name, required this.createdAt, required this.updatedAt, required this.createdBy, this.firstMessageSenderId, this.recipientHasReplied = false, final  List<String> deletedFor = const <String>[]}): _participants = participants,_participantDetails = participantDetails,_memberStatus = memberStatus,_deletedFor = deletedFor;
   factory _Conversation.fromJson(Map<String, dynamic> json) => _$ConversationFromJson(json);
 
 @override final  String id;
@@ -1415,6 +1418,15 @@ class _Conversation implements Conversation {
 @override final  int createdAt;
 @override final  int updatedAt;
 @override final  String createdBy;
+@override final  String? firstMessageSenderId;
+@override@JsonKey() final  bool recipientHasReplied;
+ final  List<String> _deletedFor;
+@override@JsonKey() List<String> get deletedFor {
+  if (_deletedFor is EqualUnmodifiableListView) return _deletedFor;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_deletedFor);
+}
+
 
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
@@ -1429,16 +1441,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Conversation&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other._participants, _participants)&&const DeepCollectionEquality().equals(other._participantDetails, _participantDetails)&&const DeepCollectionEquality().equals(other._memberStatus, _memberStatus)&&(identical(other.lastMessage, lastMessage) || other.lastMessage == lastMessage)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Conversation&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other._participants, _participants)&&const DeepCollectionEquality().equals(other._participantDetails, _participantDetails)&&const DeepCollectionEquality().equals(other._memberStatus, _memberStatus)&&(identical(other.lastMessage, lastMessage) || other.lastMessage == lastMessage)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.firstMessageSenderId, firstMessageSenderId) || other.firstMessageSenderId == firstMessageSenderId)&&(identical(other.recipientHasReplied, recipientHasReplied) || other.recipientHasReplied == recipientHasReplied)&&const DeepCollectionEquality().equals(other._deletedFor, _deletedFor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(_participants),const DeepCollectionEquality().hash(_participantDetails),const DeepCollectionEquality().hash(_memberStatus),lastMessage,type,name,createdAt,updatedAt,createdBy);
+int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(_participants),const DeepCollectionEquality().hash(_participantDetails),const DeepCollectionEquality().hash(_memberStatus),lastMessage,type,name,createdAt,updatedAt,createdBy,firstMessageSenderId,recipientHasReplied,const DeepCollectionEquality().hash(_deletedFor));
 
 @override
 String toString() {
-  return 'Conversation(id: $id, participants: $participants, participantDetails: $participantDetails, memberStatus: $memberStatus, lastMessage: $lastMessage, type: $type, name: $name, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy)';
+  return 'Conversation(id: $id, participants: $participants, participantDetails: $participantDetails, memberStatus: $memberStatus, lastMessage: $lastMessage, type: $type, name: $name, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy, firstMessageSenderId: $firstMessageSenderId, recipientHasReplied: $recipientHasReplied, deletedFor: $deletedFor)';
 }
 
 
@@ -1449,7 +1461,7 @@ abstract mixin class _$ConversationCopyWith<$Res> implements $ConversationCopyWi
   factory _$ConversationCopyWith(_Conversation value, $Res Function(_Conversation) _then) = __$ConversationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, List<String> participants, Map<String, ParticipantDetail> participantDetails, Map<String, String> memberStatus, LastMessageInfo? lastMessage, String type, String? name, int createdAt, int updatedAt, String createdBy
+ String id, List<String> participants, Map<String, ParticipantDetail> participantDetails, Map<String, String> memberStatus, LastMessageInfo? lastMessage, String type, String? name, int createdAt, int updatedAt, String createdBy, String? firstMessageSenderId, bool recipientHasReplied, List<String> deletedFor
 });
 
 
@@ -1466,7 +1478,7 @@ class __$ConversationCopyWithImpl<$Res>
 
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? participants = null,Object? participantDetails = null,Object? memberStatus = null,Object? lastMessage = freezed,Object? type = null,Object? name = freezed,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? participants = null,Object? participantDetails = null,Object? memberStatus = null,Object? lastMessage = freezed,Object? type = null,Object? name = freezed,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? firstMessageSenderId = freezed,Object? recipientHasReplied = null,Object? deletedFor = null,}) {
   return _then(_Conversation(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,participants: null == participants ? _self._participants : participants // ignore: cast_nullable_to_non_nullable
@@ -1478,7 +1490,10 @@ as String,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as int,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String,
+as String,firstMessageSenderId: freezed == firstMessageSenderId ? _self.firstMessageSenderId : firstMessageSenderId // ignore: cast_nullable_to_non_nullable
+as String?,recipientHasReplied: null == recipientHasReplied ? _self.recipientHasReplied : recipientHasReplied // ignore: cast_nullable_to_non_nullable
+as bool,deletedFor: null == deletedFor ? _self._deletedFor : deletedFor // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

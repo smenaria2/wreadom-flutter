@@ -76,6 +76,9 @@ abstract class Conversation with _$Conversation {
     required int createdAt,
     required int updatedAt,
     required String createdBy,
+    String? firstMessageSenderId,
+    @Default(false) bool recipientHasReplied,
+    @Default(<String>[]) List<String> deletedFor,
   }) = _Conversation;
 
   factory Conversation.fromJson(Map<String, dynamic> json) =>

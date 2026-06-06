@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/follow_repository.dart';
@@ -60,11 +61,16 @@ class FirebaseFollowRepository implements FollowRepository {
 
   @override
   Future<List<String>> getFollowingList(String followerId) async {
+    debugPrint('[FirebaseFollowRepository] Fetching following list...');
     final snapshot = await _firestore
         .collection('follows')
         .where('followerId', isEqualTo: followerId)
         .get();
-    return _uniqueIds(snapshot.docs, 'followingId');
+    final ids = _uniqueIds(snapshot.docs, 'followingId');
+    debugPrint(
+      '[FirebaseFollowRepository] Received ${ids.length} following ids.',
+    );
+    return ids;
   }
 
   @override
@@ -84,11 +90,16 @@ class FirebaseFollowRepository implements FollowRepository {
 
   @override
   Future<List<String>> getFollowersList(String followingId) async {
+    debugPrint('[FirebaseFollowRepository] Fetching followers list...');
     final snapshot = await _firestore
         .collection('follows')
         .where('followingId', isEqualTo: followingId)
         .get();
-    return _uniqueIds(snapshot.docs, 'followerId');
+    final ids = _uniqueIds(snapshot.docs, 'followerId');
+    debugPrint(
+      '[FirebaseFollowRepository] Received ${ids.length} follower ids.',
+    );
+    return ids;
   }
 
   @override

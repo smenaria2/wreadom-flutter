@@ -28,7 +28,13 @@ class FirebaseMessageRepository implements MessageRepository {
         .collection('conversations')
         .doc(deterministicId);
     final deterministicSnap = await deterministicRef.get();
-    if (deterministicSnap.exists) return deterministicId;
+    if (deterministicSnap.exists) {
+      await deterministicRef.update({
+        'deletedFor': FieldValue.arrayRemove([currentUser.id]),
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      return deterministicId;
+    }
 
     final existing = await _firestore
         .collection('conversations')
@@ -42,6 +48,10 @@ class FirebaseMessageRepository implements MessageRepository {
       if (participants.length == 2 &&
           participants.contains(currentUser.id) &&
           participants.contains(otherUser.id)) {
+        await doc.reference.update({
+          'deletedFor': FieldValue.arrayRemove([currentUser.id]),
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        });
         return doc.id;
       }
     }
@@ -74,6 +84,7 @@ class FirebaseMessageRepository implements MessageRepository {
         'createdBy': currentUser.id,
         'firstMessageSenderId': null,
         'recipientHasReplied': false,
+        'deletedFor': <String>[],
       });
     });
     return deterministicId;
@@ -182,14 +193,8 @@ class FirebaseMessageRepository implements MessageRepository {
     final ref = _firestore.collection('conversations').doc(conversationId);
     final snap = await ref.get();
     if (!snap.exists) return;
-    final participants = List<String>.from(snap.data()?['participants'] ?? []);
-    if (participants.length <= 1) {
-      await ref.delete();
-      return;
-    }
     await ref.update({
-      'participants': FieldValue.arrayRemove([userId]),
-      'memberStatus.$userId': 'deleted',
+      'deletedFor': FieldValue.arrayUnion([userId]),
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
   }
@@ -220,6 +225,9 @@ class FirebaseMessageRepository implements MessageRepository {
                 return Conversation.fromJson(data);
               })
               .where((conversation) => conversation.lastMessage != null)
+              .where(
+                (conversation) => !conversation.deletedFor.contains(userId),
+              )
               .toList();
           return items;
         });
@@ -249,6 +257,7 @@ class FirebaseMessageRepository implements MessageRepository {
           return Conversation.fromJson(data);
         })
         .where((conversation) => conversation.lastMessage != null)
+        .where((conversation) => !conversation.deletedFor.contains(userId))
         .toList();
     return PagedResult(
       items: items,
@@ -358,25 +367,64 @@ class FirebaseMessageRepository implements MessageRepository {
         .collection('conversations')
         .doc(conversationId);
     final messageRef = conversationRef.collection('messages').doc();
+    final hasRecipientReply = await _hasRecipientReply(
+      conversationRef: conversationRef,
+      senderId: senderId,
+    );
     await _firestore.runTransaction((transaction) async {
       final conversation = await transaction.get(conversationRef);
       final data = conversation.data();
       if (data == null) return;
-      _assertCanSend(data: data, senderId: senderId);
+      _assertCanSend(
+        data: data,
+        senderId: senderId,
+        hasRecipientReply: hasRecipientReply,
+      );
 
       final now = DateTime.now().millisecondsSinceEpoch;
       transaction.set(messageRef, messageDataBuilder(now));
       transaction.update(conversationRef, {
         'updatedAt': now,
         'lastMessage': lastMessageBuilder(now),
-        ..._messageLimitStateUpdates(data: data, senderId: senderId),
+        'deletedFor': FieldValue.arrayRemove([senderId]),
+        ..._messageLimitStateUpdates(
+          data: data,
+          senderId: senderId,
+          hasRecipientReply: hasRecipientReply,
+        ),
       });
     });
+  }
+
+  Future<bool> _hasRecipientReply({
+    required DocumentReference<Map<String, dynamic>> conversationRef,
+    required String senderId,
+  }) async {
+    final conversation = await conversationRef.get();
+    final data = conversation.data();
+    if (data == null || data['type'] != 'direct') return false;
+    final createdBy = data['createdBy']?.toString();
+    if (createdBy != senderId) return false;
+    if (data['recipientHasReplied'] == true) return true;
+    final participants = List<String>.from(data['participants'] ?? const []);
+    final recipientId = participants.firstWhere(
+      (id) => id != senderId,
+      orElse: () => '',
+    );
+    if (recipientId.isEmpty) return false;
+
+    final reply = await conversationRef
+        .collection('messages')
+        .where('senderId', isEqualTo: recipientId)
+        .limit(1)
+        .get();
+    return reply.docs.isNotEmpty;
   }
 
   void _assertCanSend({
     required Map<String, dynamic> data,
     required String senderId,
+    required bool hasRecipientReply,
   }) {
     final memberStatus = data['memberStatus'];
     if (memberStatus is Map && memberStatus[senderId] == 'blocked') {
@@ -390,7 +438,8 @@ class FirebaseMessageRepository implements MessageRepository {
     if (createdBy != senderId) return;
 
     final firstMessageSenderId = data['firstMessageSenderId']?.toString();
-    final recipientHasReplied = data['recipientHasReplied'] == true;
+    final recipientHasReplied =
+        hasRecipientReply || _recipientHasRepliedFromConversation(data);
     final lastMessage = data['lastMessage'];
     final legacyCreatorAlreadySent =
         firstMessageSenderId == null &&
@@ -409,11 +458,17 @@ class FirebaseMessageRepository implements MessageRepository {
   Map<String, dynamic> _messageLimitStateUpdates({
     required Map<String, dynamic> data,
     required String senderId,
+    required bool hasRecipientReply,
   }) {
     if (data['type'] != 'direct') return const {};
 
     final createdBy = data['createdBy']?.toString();
     final firstMessageSenderId = data['firstMessageSenderId']?.toString();
+    if (createdBy == senderId &&
+        hasRecipientReply &&
+        data['recipientHasReplied'] != true) {
+      return {'recipientHasReplied': true};
+    }
     if (createdBy == senderId && firstMessageSenderId == null) {
       return {'firstMessageSenderId': senderId};
     }
@@ -421,5 +476,15 @@ class FirebaseMessageRepository implements MessageRepository {
       return {'recipientHasReplied': true};
     }
     return const {};
+  }
+
+  bool _recipientHasRepliedFromConversation(Map<String, dynamic> data) {
+    if (data['recipientHasReplied'] == true) return true;
+    final createdBy = data['createdBy']?.toString();
+    if (createdBy == null || createdBy.isEmpty) return false;
+    final lastMessage = data['lastMessage'];
+    return lastMessage is Map &&
+        lastMessage['senderId']?.toString() != null &&
+        lastMessage['senderId']?.toString() != createdBy;
   }
 }

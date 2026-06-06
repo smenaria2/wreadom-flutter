@@ -108,6 +108,13 @@ _Conversation _$ConversationFromJson(
   createdAt: (json['createdAt'] as num).toInt(),
   updatedAt: (json['updatedAt'] as num).toInt(),
   createdBy: json['createdBy'] as String,
+  firstMessageSenderId: json['firstMessageSenderId'] as String?,
+  recipientHasReplied: json['recipientHasReplied'] as bool? ?? false,
+  deletedFor:
+      (json['deletedFor'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
 );
 
 Map<String, dynamic> _$ConversationToJson(_Conversation instance) =>
@@ -122,4 +129,7 @@ Map<String, dynamic> _$ConversationToJson(_Conversation instance) =>
       'createdAt': instance.createdAt,
       'updatedAt': instance.updatedAt,
       'createdBy': instance.createdBy,
+      'firstMessageSenderId': instance.firstMessageSenderId,
+      'recipientHasReplied': instance.recipientHasReplied,
+      'deletedFor': instance.deletedFor,
     };

@@ -20,7 +20,6 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
-import '../widgets/section_error.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -731,8 +730,7 @@ class _LazyGenreSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) =>
-          SectionError(title: title, onRetry: () => refreshHomepage(ref)),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -787,10 +785,7 @@ class _ContinueReadingSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => SectionError(
-        title: l10n.continueReading,
-        onRetry: () => ref.invalidate(readingHistoryBooksProvider),
-      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -954,10 +949,7 @@ class _SavedBooksSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => SectionError(
-        title: l10n.yourShelf,
-        onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
-      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -1151,10 +1143,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => SectionError(
-        title: l10n.authorsToFollow,
-        onRetry: () => refreshHomepage(ref),
-      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -1192,7 +1181,7 @@ class _BookshelfSection extends StatelessWidget {
         return _buildShelf(context, books, shelfHeight);
       },
       loading: () => _TimedBookshelfSkeleton(shelfHeight: shelfHeight),
-      error: (_, _) => SectionError(title: title, onRetry: onRetry),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -1745,12 +1734,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                           child: CircularProgressIndicator(color: Colors.white),
                         ),
                       ),
-                      error: (_, _) => SectionError(
-                        title: l10n.authorBooks(authorName),
-                        onRetry: () => ref.invalidate(
-                          homepageAuthorBooksProvider(author.id),
-                        ),
-                      ),
+                      error: (_, _) => const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -1760,12 +1744,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => SectionError(
-        title: l10n.authorSpotlight,
-        onRetry: () => ref.invalidate(
-          homepageRankedAuthorsProvider(HomeAuthorRanking.topRated),
-        ),
-      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

@@ -15,7 +15,6 @@ class FirebaseFeedRepository implements FeedRepository {
   static const int _maxBatchWrites = 450;
   static const int _followingFeedChunkSize = 10;
   static const int _followingFeedMaxParallelQueries = 3;
-  static const Duration _followingFeedTimeout = Duration(seconds: 12);
 
   @override
   Future<List<FeedPost>> getFeedPosts({int limit = 10, dynamic lastDoc}) async {
@@ -105,6 +104,10 @@ class FirebaseFeedRepository implements FeedRepository {
     }
 
     try {
+      debugPrint(
+        '[FirebaseFeedRepository] Fetching following feed for '
+        '${followedUserIds.length} followed users...',
+      );
       final chunks = _chunks(followedUserIds, _followingFeedChunkSize);
       final cursorTimestamp = cursor is int ? cursor : null;
       final queryResults =
@@ -116,12 +119,16 @@ class FirebaseFeedRepository implements FeedRepository {
               limit: limit,
               cursorTimestamp: cursorTimestamp,
             ),
-          ).timeout(_followingFeedTimeout);
+          );
 
       final allPosts = queryResults.expand((posts) => posts).toList();
 
       allPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       final pageItems = allPosts.take(limit).toList();
+      debugPrint(
+        '[FirebaseFeedRepository] Following feed parsed '
+        '${pageItems.length} posts from ${allPosts.length} candidates.',
+      );
       return PagedResult(
         items: pageItems,
         hasMore: allPosts.length > limit,

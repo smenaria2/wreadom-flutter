@@ -98,6 +98,13 @@ class CollaborationRequestArguments {
   final String bookId;
 }
 
+class NotFoundArguments {
+  const NotFoundArguments({this.message, this.rawLink});
+
+  final String? message;
+  final String? rawLink;
+}
+
 class AppRouter {
   static MaterialPageRoute _notFound([String? message, String? rawLink]) {
     final webFallbackUrl = _webFallbackUrl(rawLink);
@@ -109,7 +116,7 @@ class AppRouter {
         actionIcon: Icons.open_in_browser_rounded,
         onAction: webFallbackUrl == null
             ? null
-            : () => Navigator.of(ctx).push(
+            : () => Navigator.of(ctx).pushReplacement(
                 MaterialPageRoute(
                   builder: (context) => LegalDocumentScreen(
                     title: 'Wreadom',
@@ -134,6 +141,19 @@ class AppRouter {
     return RouteSettings(
       name: resolved.route,
       arguments: _argumentsForResolvedLink(resolved),
+    );
+  }
+
+  static RouteSettings? notFoundRouteSettingsForAppLink(String rawLink) {
+    final uri = Uri.tryParse(rawLink.trim());
+    if (uri == null) return null;
+    final isWreadomWebLink =
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        (uri.host == AppLinkHelper.host || uri.host == AppLinkHelper.wwwHost);
+    if (!isWreadomWebLink) return null;
+    return RouteSettings(
+      name: AppRoutes.notFound,
+      arguments: NotFoundArguments(rawLink: rawLink),
     );
   }
 
@@ -468,6 +488,12 @@ class AppRouter {
           settings: routeSettings,
           builder: (_) => ArchiveReaderScreen(book: args),
         );
+      case AppRoutes.notFound:
+        final args = resolvedArguments;
+        if (args is NotFoundArguments) {
+          return _notFound(args.message, args.rawLink);
+        }
+        return _notFound(null, args?.toString());
       default:
         return _notFound(null, name);
     }

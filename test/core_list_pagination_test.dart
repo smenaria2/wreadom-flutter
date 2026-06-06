@@ -63,10 +63,16 @@ void main() {
           PagedResult(items: [_post('f3', 10)], hasMore: false),
         ],
       );
+      final followRepo = _FakeFollowRepository(
+        fullFollowingList: const ['author-1'],
+      );
       final container = ProviderContainer(
         overrides: [
           feedRepositoryProvider.overrideWith((ref) => repo),
-          followingListProvider.overrideWith((ref) async => ['author-1']),
+          followRepositoryProvider.overrideWithValue(followRepo),
+          currentUserProvider.overrideWith(
+            (ref) => Stream.value(_user('viewer')),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -101,10 +107,14 @@ void main() {
 
   test('following feed keeps empty state when user follows nobody', () async {
     final repo = _FakeFeedRepository();
+    final followRepo = _FakeFollowRepository(fullFollowingList: const []);
     final container = ProviderContainer(
       overrides: [
         feedRepositoryProvider.overrideWith((ref) => repo),
-        followingListProvider.overrideWith((ref) async => const <String>[]),
+        followRepositoryProvider.overrideWithValue(followRepo),
+        currentUserProvider.overrideWith(
+          (ref) => Stream.value(_user('viewer')),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -126,12 +136,61 @@ void main() {
     expect(state.hasMore, isFalse);
   });
 
+  test(
+    'following feed ignores repeated auth readiness for same user',
+    () async {
+      final repo = _FakeFeedRepository(
+        followingPages: [
+          PagedResult(items: [_post('f1', 10)], hasMore: false),
+        ],
+      );
+      final followRepo = _FakeFollowRepository(
+        fullFollowingList: const ['author-1'],
+      );
+      final users = StreamController<UserModel?>();
+      addTearDown(users.close);
+      final container = ProviderContainer(
+        overrides: [
+          feedRepositoryProvider.overrideWith((ref) => repo),
+          followRepositoryProvider.overrideWithValue(followRepo),
+          currentUserProvider.overrideWith((ref) => users.stream),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        pagedFeedPostsProvider(FeedFilter.following),
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+
+      users.add(_user('viewer'));
+      await _waitFor(() {
+        return container
+            .read(pagedFeedPostsProvider(FeedFilter.following))
+            .items
+            .isNotEmpty;
+      });
+
+      users.add(_user('viewer'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(repo.followingRequests.length, 1);
+      expect(followRepo.fullFollowingListRequests, ['viewer']);
+    },
+  );
+
   test('following feed surfaces repository timeout errors', () async {
     final repo = _FakeFeedRepository(throwOnFollowing: true);
+    final followRepo = _FakeFollowRepository(
+      fullFollowingList: const ['author-1'],
+    );
     final container = ProviderContainer(
       overrides: [
         feedRepositoryProvider.overrideWith((ref) => repo),
-        followingListProvider.overrideWith((ref) async => ['author-1']),
+        followRepositoryProvider.overrideWithValue(followRepo),
+        currentUserProvider.overrideWith(
+          (ref) => Stream.value(_user('viewer')),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -271,13 +330,50 @@ void main() {
     expect(repo.fullFollowingListRequests, isEmpty);
   });
 
-  test('visibleConversations hides conversations without a last message', () {
+  test('visibleConversations hides empty and user-hidden conversations', () {
     final conversations = [
       _conversation('empty'),
       _conversation('active', lastMessage: _lastMessage('hello')),
+      _conversation(
+        'hidden',
+        lastMessage: _lastMessage('quiet'),
+        deletedFor: const ['viewer'],
+      ),
     ];
 
-    expect(visibleConversations(conversations).map((c) => c.id), ['active']);
+    expect(
+      visibleConversations(
+        conversations,
+        hiddenForUserId: 'viewer',
+      ).map((c) => c.id),
+      ['active'],
+    );
+  });
+
+  test('conversation parses direct chat quota and hide state', () {
+    final conversation = Conversation.fromJson({
+      'id': 'direct_a_b',
+      'participants': ['a', 'b'],
+      'participantDetails': <String, dynamic>{},
+      'memberStatus': <String, String>{'a': 'accepted', 'b': 'accepted'},
+      'lastMessage': {
+        'text': 'hello',
+        'senderId': 'a',
+        'timestamp': 1,
+        'readBy': ['a'],
+      },
+      'type': 'direct',
+      'createdAt': 1,
+      'updatedAt': 2,
+      'createdBy': 'a',
+      'firstMessageSenderId': 'a',
+      'recipientHasReplied': true,
+      'deletedFor': ['a'],
+    });
+
+    expect(conversation.firstMessageSenderId, 'a');
+    expect(conversation.recipientHasReplied, isTrue);
+    expect(conversation.deletedFor, ['a']);
   });
 
   test('message group placement keeps consecutive senders together', () {
@@ -402,7 +498,11 @@ LastMessageInfo _lastMessage(String text) {
   );
 }
 
-Conversation _conversation(String id, {LastMessageInfo? lastMessage}) {
+Conversation _conversation(
+  String id, {
+  LastMessageInfo? lastMessage,
+  List<String> deletedFor = const [],
+}) {
   return Conversation(
     id: id,
     participants: const ['a', 'b'],
@@ -413,6 +513,7 @@ Conversation _conversation(String id, {LastMessageInfo? lastMessage}) {
     createdAt: 1,
     updatedAt: 1,
     createdBy: 'a',
+    deletedFor: deletedFor,
   );
 }
 
@@ -675,11 +776,13 @@ class _FakeFollowRepository implements FollowRepository {
   _FakeFollowRepository({
     this.followingPages = const [],
     this.followersPages = const [],
+    this.fullFollowingList = const [],
     this.isFollowingResult = false,
   });
 
   final List<PagedResult<String>> followingPages;
   final List<PagedResult<String>> followersPages;
+  final List<String> fullFollowingList;
   final bool isFollowingResult;
   final followingRequests = <({String userId, Object? cursor})>[];
   final followersRequests = <({String userId, Object? cursor})>[];
@@ -730,7 +833,7 @@ class _FakeFollowRepository implements FollowRepository {
   @override
   Future<List<String>> getFollowingList(String followerId) async {
     fullFollowingListRequests.add(followerId);
-    return const [];
+    return fullFollowingList;
   }
 
   @override

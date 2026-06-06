@@ -1,11 +1,13 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/firebase_feed_repository.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../../domain/models/feed_post.dart';
+import '../../domain/models/user_model.dart';
 import '../../utils/map_utils.dart';
 import 'auth_providers.dart';
 import 'follow_providers.dart';
@@ -16,20 +18,46 @@ part 'feed_providers.g.dart';
 enum FeedFilter { following, public, mine }
 
 const int feedPageSize = 10;
+const Duration followingFeedLoadTimeout = Duration(seconds: 15);
+
+String? _currentFirebaseUserIdOrNull() {
+  try {
+    return fb_auth.FirebaseAuth.instance.currentUser?.uid;
+  } catch (_) {
+    return null;
+  }
+}
+
+String? _effectiveFeedUserId(AsyncValue<UserModel?> authState) {
+  final profileUserId = authState.asData?.value?.id.trim();
+  if (profileUserId != null && profileUserId.isNotEmpty) return profileUserId;
+  final firebaseUserId = _currentFirebaseUserIdOrNull()?.trim();
+  if (firebaseUserId == null || firebaseUserId.isEmpty) return null;
+  return firebaseUserId;
+}
 
 final filteredFeedPostsProvider =
     FutureProvider.family<List<FeedPost>, FeedFilter>((ref, filter) async {
       final repo = ref.watch(feedRepositoryProvider);
       switch (filter) {
         case FeedFilter.following:
-          final following = await ref.watch(followingListProvider.future);
-          return repo.getFollowingFeed(following);
+          final user = ref.watch(currentUserProvider).asData?.value;
+          final userId = user?.id ?? _currentFirebaseUserIdOrNull();
+          if (userId == null || userId.trim().isEmpty) return [];
+          final following = await ref
+              .read(followRepositoryProvider)
+              .getFollowingList(userId)
+              .timeout(followingFeedLoadTimeout);
+          return repo
+              .getFollowingFeed(following)
+              .timeout(followingFeedLoadTimeout);
         case FeedFilter.public:
           return repo.getFeedPosts();
         case FeedFilter.mine:
-          final user = await ref.watch(currentUserProvider.future);
-          if (user == null) return [];
-          return repo.getUserFeedPosts(user.id);
+          final user = ref.watch(currentUserProvider).asData?.value;
+          final userId = user?.id ?? _currentFirebaseUserIdOrNull();
+          if (userId == null || userId.trim().isEmpty) return [];
+          return repo.getUserFeedPosts(userId);
       }
     });
 
@@ -53,21 +81,39 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
   final FeedFilter _filter;
   Object? _cursor;
   int _loadGeneration = 0;
+  String? _activeUserId;
 
   @override
   PagedListState<FeedPost> build() {
+    final initialAuthState = ref.read(currentUserProvider);
     ref.listen(currentUserProvider, (previous, next) {
-      final previousUserId = previous?.asData?.value?.id;
-      final nextUserId = next.asData?.value?.id;
-      if (previousUserId != nextUserId) {
-        _cursor = null;
-        _loadGeneration++;
-        state = const PagedListState(isInitialLoading: true);
-        Future.microtask(refresh);
+      if (_filter == FeedFilter.public) return;
+      final previousUserId = previous == null
+          ? null
+          : _effectiveFeedUserId(previous);
+      final nextUserId = _effectiveFeedUserId(next);
+      final becameReady = previous?.isLoading == true && !next.isLoading;
+      if (!next.isLoading && (becameReady || previousUserId != nextUserId)) {
+        _refreshForAuthUser(nextUserId);
       }
     });
-    Future.microtask(refresh);
+    Future.microtask(() {
+      if (_filter == FeedFilter.public) {
+        refresh();
+        return;
+      }
+      final userId = _effectiveFeedUserId(initialAuthState);
+      if (userId != null || !initialAuthState.isLoading) {
+        _refreshForAuthUser(userId);
+      }
+    });
     return const PagedListState();
+  }
+
+  void _refreshForAuthUser(String? userId) {
+    if (_activeUserId == userId) return;
+    _activeUserId = userId;
+    Future.microtask(refresh);
   }
 
   Future<void> refresh() async {
@@ -90,11 +136,7 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     try {
       final repo = ref.read(feedRepositoryProvider);
       final PagedResult<FeedPost> page = switch (_filter) {
-        FeedFilter.following => await repo.getFollowingFeedPage(
-          await ref.read(followingListProvider.future),
-          limit: feedPageSize,
-          cursor: _cursor,
-        ),
+        FeedFilter.following => await _loadFollowing(repo),
         FeedFilter.public => await repo.getFeedPostsPage(
           limit: feedPageSize,
           cursor: _cursor,
@@ -117,13 +159,30 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     }
   }
 
+  Future<PagedResult<FeedPost>> _loadFollowing(FeedRepository repo) async {
+    final userId = _effectiveFeedUserId(ref.read(currentUserProvider));
+    if (userId == null || userId.trim().isEmpty) {
+      return const PagedResult<FeedPost>(items: [], hasMore: false);
+    }
+    final following = await ref
+        .read(followRepositoryProvider)
+        .getFollowingList(userId)
+        .timeout(followingFeedLoadTimeout);
+    if (following.isEmpty) {
+      return const PagedResult<FeedPost>(items: [], hasMore: false);
+    }
+    return repo
+        .getFollowingFeedPage(following, limit: feedPageSize, cursor: _cursor)
+        .timeout(followingFeedLoadTimeout);
+  }
+
   Future<PagedResult<FeedPost>> _loadMine(FeedRepository repo) async {
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null) {
+    final userId = _effectiveFeedUserId(ref.read(currentUserProvider));
+    if (userId == null || userId.trim().isEmpty) {
       return const PagedResult<FeedPost>(items: [], hasMore: false);
     }
     return repo.getUserFeedPostsPage(
-      user.id,
+      userId,
       limit: feedPageSize,
       cursor: _cursor,
     );

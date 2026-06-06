@@ -155,6 +155,30 @@ void main() {
       expect(find.text('Open in in-app browser'), findsOneWidget);
     });
 
+    testWidgets('unsupported Wreadom app links use explicit not found route', (
+      tester,
+    ) async {
+      final settings = AppRouter.notFoundRouteSettingsForAppLink(
+        'https://wreadom.in/?page=profile&tab=achievements',
+      );
+
+      expect(settings?.name, AppRoutes.notFound);
+      expect(settings?.arguments, isA<NotFoundArguments>());
+
+      await pumpGeneratedRoute(tester, settings!);
+
+      expect(find.text('Page Not Found'), findsOneWidget);
+      expect(find.text('Open in in-app browser'), findsOneWidget);
+    });
+
+    test('does not create not found routes for external links', () {
+      final settings = AppRouter.notFoundRouteSettingsForAppLink(
+        'https://example.com/missing',
+      );
+
+      expect(settings, isNull);
+    });
+
     testWidgets('direct privacy route shows in-app legal content', (
       tester,
     ) async {

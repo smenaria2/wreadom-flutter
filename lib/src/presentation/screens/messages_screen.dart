@@ -8,35 +8,13 @@ import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
-import '../utils/swipe_hint.dart';
 import '../widgets/auth_required_view.dart';
 
-class MessagesScreen extends ConsumerStatefulWidget {
+class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
 
   @override
-  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
-}
-
-class _MessagesScreenState extends ConsumerState<MessagesScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (ref.read(currentUserProvider).asData?.value == null) return;
-      final l10n = AppLocalizations.of(context)!;
-      showSwipeHintOnce(
-        context: context,
-        key: 'swipe_hint_seen_messages_v1',
-        message: l10n.swipeHintMessages,
-        actionLabel: l10n.gotIt,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final conversationsState = ref.watch(pagedConversationsProvider);
     final conversationsController = ref.read(
       pagedConversationsProvider.notifier,
@@ -70,6 +48,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                   }
                   final conversations = visibleConversations(
                     conversationsState.items,
+                    hiddenForUserId: currentUser.id,
                   );
                   if (conversations.isEmpty) {
                     return ListView(

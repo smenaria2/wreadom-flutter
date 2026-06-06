@@ -32,7 +32,6 @@ import '../utils/book_share_utils.dart';
 import '../utils/book_author_utils.dart';
 import '../utils/share_text_helper.dart';
 import '../utils/error_message_utils.dart';
-import '../utils/swipe_hint.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/report_dialog.dart';
@@ -73,13 +72,6 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _precacheCover(widget.preloadedBook?.coverUrl);
-      final l10n = AppLocalizations.of(context)!;
-      showSwipeHintOnce(
-        context: context,
-        key: 'swipe_hint_seen_book_comments_v1',
-        message: l10n.swipeHintBookComments,
-        actionLabel: l10n.gotIt,
-      );
     });
   }
 
@@ -795,11 +787,7 @@ class _BookDetailBody extends ConsumerWidget {
                                         : authors,
                                   ),
                                 );
-                          } on MessageLimitException catch (error) {
-                            if (!rootContext.mounted) return;
-                            ScaffoldMessenger.of(rootContext).showSnackBar(
-                              SnackBar(content: Text(error.message)),
-                            );
+                          } on MessageLimitException {
                             return;
                           }
                           await AppHaptics.selection();

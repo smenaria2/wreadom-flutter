@@ -13,6 +13,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../../domain/models/book.dart';
@@ -226,6 +227,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   String? _selectedQuote;
   String _selectedText = "";
   late BookRepository _bookRepository;
+  late SharedPreferences _sharedPreferences;
   String? _currentUserId;
   double _scrollProgress = 0.0;
   double _lastScrollOffset = 0.0;
@@ -296,6 +298,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _chapterIndex = widget.initialChapterIndex;
     WidgetsBinding.instance.addObserver(this);
     _bookRepository = ref.read(bookRepositoryProvider);
+    _sharedPreferences = ref.read(sharedPreferencesProvider);
     _readerAdService = ReaderAdService();
     unawaited(_readerAdService.preloadNextChapterAd());
     if (_isInternetArchiveBook) {
@@ -367,6 +370,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _incrementView({required int chapterIndex}) async {
     try {
+      if (!mounted) return;
       if (widget.book.source == 'archive') return;
       final didCreateRead = await _bookRepository.recordBookView(
         widget.book.id,
@@ -376,6 +380,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
       if (!didCreateRead) return;
       AnalyticsService.logBookView(widget.book);
+      if (!mounted) return;
       ref.invalidate(liveBookDetailProvider(widget.book.id));
       final authorId = widget.book.authorId?.trim();
       if (authorId != null && authorId.isNotEmpty) {
@@ -406,12 +411,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     const prefsKey = 'anonymous_reader_viewer_id';
-    final prefs = ref.read(sharedPreferencesProvider);
-    var anonymousId = prefs.getString(prefsKey)?.trim();
+    var anonymousId = _sharedPreferences.getString(prefsKey)?.trim();
     if (anonymousId == null || anonymousId.isEmpty) {
       anonymousId =
           '${DateTime.now().microsecondsSinceEpoch}_${identityHashCode(this)}';
-      await prefs.setString(prefsKey, anonymousId);
+      await _sharedPreferences.setString(prefsKey, anonymousId);
     }
     return 'anon:$anonymousId';
   }
