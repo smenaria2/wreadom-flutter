@@ -23,112 +23,127 @@ class AppLinkHelper {
   static String dailyTopic(String topicId) =>
       '$origin/daily-topic?id=${Uri.encodeComponent(topicId)}';
 
+  static String? _safeDecode(String? value) {
+    if (value == null) return null;
+    try {
+      return Uri.decodeComponent(value);
+    } catch (_) {
+      return value;
+    }
+  }
+
   static ResolvedAppLink? resolve(String rawLink) {
     if (rawLink.trim().isEmpty) return null;
 
     final uri = Uri.tryParse(rawLink.trim());
     if (uri == null) return null;
 
-    final isWebLink = uri.scheme == 'http' || uri.scheme == 'https';
-    if (isWebLink && uri.host != host && uri.host != wwwHost) return null;
+    try {
+      final isWebLink = uri.scheme == 'http' || uri.scheme == 'https';
+      if (isWebLink && uri.host != host && uri.host != wwwHost) return null;
 
-    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
-    final queryBookId = uri.queryParameters['book'];
-    final queryPostId = uri.queryParameters['post'];
-    final queryTopicId = uri.queryParameters['id'];
-    final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
-    if (segments.isEmpty) {
-      if (queryPage == 'writer') {
-        return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+      final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      final queryBookId = uri.queryParameters['book'];
+      final queryPostId = uri.queryParameters['post'];
+      final queryTopicId = uri.queryParameters['id'];
+      final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
+      if (segments.isEmpty) {
+        if (queryPage == 'writer') {
+          return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+        }
+        if (queryPage == 'search' || queryPage == 'discovery') {
+          return const ResolvedAppLink(AppRoutes.discovery, null);
+        }
+        if (_hasValue(queryBookId)) {
+          return ResolvedAppLink(
+            AppRoutes.bookDetail,
+            queryBookId,
+            chapterIndex: _chapterIndexFromQuery(uri),
+          );
+        }
+        if (_hasValue(queryPostId)) {
+          return ResolvedAppLink(AppRoutes.postDetail, queryPostId);
+        }
+        if (_hasValue(queryTopicId) && queryPage == 'daily-topic') {
+          return ResolvedAppLink(AppRoutes.dailyTopic, queryTopicId);
+        }
+        return _resolveMalformedQueryPath(rawLink);
       }
-      if (queryPage == 'search' || queryPage == 'discovery') {
-        return const ResolvedAppLink(AppRoutes.discovery, null);
+
+      final type = segments.first.toLowerCase();
+      String? id = segments.length > 1 ? _safeDecode(segments[1]) : null;
+
+      switch (type) {
+        case 'book':
+        case 'b':
+          id ??= queryBookId ?? queryTopicId;
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.bookDetail, id!);
+          }
+          break;
+        case 'post':
+        case 'posts':
+        case 'feed':
+        case 'p':
+          id ??= queryPostId;
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.postDetail, id!);
+          }
+          break;
+        case 'user':
+        case 'u':
+        case 'profile':
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.publicProfile, id!);
+          }
+          break;
+        case 'messages':
+        case 'message':
+        case 'conversation':
+        case 'conversations':
+          id ??= uri.queryParameters['conversationId'];
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.conversation, id!);
+          }
+          break;
+        case 'daily-topic':
+          id ??= queryTopicId;
+          return ResolvedAppLink(AppRoutes.dailyTopic, _hasValue(id) ? id : null);
+        case 'category':
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.category, id!);
+          }
+          break;
+        case 'discovery':
+        case 'search':
+          return const ResolvedAppLink(AppRoutes.discovery, null);
+        case 'writer':
+          return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+        case 'privacy':
+        case 'privacy-policy':
+          return const ResolvedAppLink(AppRoutes.privacy, null);
+        case 'terms':
+        case 'terms-of-use':
+          return const ResolvedAppLink(AppRoutes.terms, null);
       }
-      if (_hasValue(queryBookId)) {
-        return ResolvedAppLink(
-          AppRoutes.bookDetail,
-          queryBookId,
-          chapterIndex: _chapterIndexFromQuery(uri),
-        );
-      }
-      if (_hasValue(queryPostId)) {
-        return ResolvedAppLink(AppRoutes.postDetail, queryPostId);
-      }
-      if (_hasValue(queryTopicId) && queryPage == 'daily-topic') {
-        return ResolvedAppLink(AppRoutes.dailyTopic, queryTopicId);
-      }
-      return _resolveMalformedQueryPath(rawLink);
+
+      final malformed = _resolveMalformedQueryPath(rawLink);
+      if (malformed != null) return malformed;
+    } catch (_) {
+      // Return null or fallback if accessing queryParameters throws due to percent-encoding
     }
-
-    final type = segments.first.toLowerCase();
-    String? id = segments.length > 1 ? Uri.decodeComponent(segments[1]) : null;
-
-    switch (type) {
-      case 'book':
-      case 'b':
-        id ??= queryBookId ?? queryTopicId;
-        if (_hasValue(id)) {
-          return ResolvedAppLink(AppRoutes.bookDetail, id!);
-        }
-        break;
-      case 'post':
-      case 'posts':
-      case 'feed':
-      case 'p':
-        id ??= queryPostId;
-        if (_hasValue(id)) {
-          return ResolvedAppLink(AppRoutes.postDetail, id!);
-        }
-        break;
-      case 'user':
-      case 'u':
-      case 'profile':
-        if (_hasValue(id)) {
-          return ResolvedAppLink(AppRoutes.publicProfile, id!);
-        }
-        break;
-      case 'messages':
-      case 'message':
-      case 'conversation':
-      case 'conversations':
-        id ??= uri.queryParameters['conversationId'];
-        if (_hasValue(id)) {
-          return ResolvedAppLink(AppRoutes.conversation, id!);
-        }
-        break;
-      case 'daily-topic':
-        id ??= queryTopicId;
-        return ResolvedAppLink(AppRoutes.dailyTopic, _hasValue(id) ? id : null);
-      case 'category':
-        if (_hasValue(id)) {
-          return ResolvedAppLink(AppRoutes.category, id!);
-        }
-        break;
-      case 'discovery':
-      case 'search':
-        return const ResolvedAppLink(AppRoutes.discovery, null);
-      case 'writer':
-        return const ResolvedAppLink(AppRoutes.writerDashboard, null);
-      case 'privacy':
-      case 'privacy-policy':
-        return const ResolvedAppLink(AppRoutes.privacy, null);
-      case 'terms':
-      case 'terms-of-use':
-        return const ResolvedAppLink(AppRoutes.terms, null);
-    }
-
-    final malformed = _resolveMalformedQueryPath(rawLink);
-    if (malformed != null) return malformed;
 
     return null;
   }
 
   static ResolvedAppLink? _resolveMalformedQueryPath(String rawLink) {
-    final match = RegExp(
-      r'(?:^|[/?&])page=feed&post=([^&#\s]+)',
-    ).firstMatch(rawLink.trim());
-    final id = match == null ? null : Uri.decodeComponent(match.group(1)!);
-    if (_hasValue(id)) return ResolvedAppLink(AppRoutes.postDetail, id!);
+    try {
+      final match = RegExp(
+        r'(?:^|[/?&])page=feed&post=([^&#\s]+)',
+      ).firstMatch(rawLink.trim());
+      final id = match == null ? null : _safeDecode(match.group(1));
+      if (_hasValue(id)) return ResolvedAppLink(AppRoutes.postDetail, id!);
+    } catch (_) {}
     return null;
   }
 

@@ -47,6 +47,7 @@ import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../utils/book_author_utils.dart';
+import '../widgets/adaptive_banner_ad.dart';
 
 const double _readerBottomBarHeight = 50;
 const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
@@ -638,9 +639,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (_isNavigatingToNextChapterWithAd) return;
     _isNavigatingToNextChapterWithAd = true;
     try {
-      await _readerAdService.showNextChapterAdIfReady();
+      final success = await _readerAdService.showNextChapterAdIfReady();
       if (!mounted) return;
-      _goToChapter(index);
+      if (success) {
+        _goToChapter(index);
+      } else {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Watch Video Ad'),
+            content: const Text(
+              'Please watch the video completely to unlock the next chapter.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     } finally {
       _isNavigatingToNextChapterWithAd = false;
     }
@@ -1213,6 +1232,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           onViewComments: () => _showDiscussion(chapter),
           onShare: () => _handleShareChapter(chapter),
         ),
+        const SizedBox(height: 20),
+        const AdaptiveBannerAd(
+          adUnitId: 'ca-app-pub-7031076798250177/8829012161',
+          horizontalInset: 40,
+        ),
         const SizedBox(height: 100),
       ],
     );
@@ -1255,6 +1279,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               : null,
           onViewComments: () => _showDiscussion(chapter),
           onShare: () => _handleShareChapter(chapter),
+        ),
+        const SizedBox(height: 20),
+        const AdaptiveBannerAd(
+          adUnitId: 'ca-app-pub-7031076798250177/8829012161',
+          horizontalInset: 40,
         ),
         const SizedBox(height: 100),
       ],

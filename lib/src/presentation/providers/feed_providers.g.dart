@@ -237,3 +237,42 @@ final class SinglePostFamily extends $Family
   @override
   String toString() => r'singlePostProvider';
 }
+
+@ProviderFor(activeQuestions)
+final activeQuestionsProvider = ActiveQuestionsProvider._();
+
+final class ActiveQuestionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          FutureOr<List<String>>
+        >
+    with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
+  ActiveQuestionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'activeQuestionsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$activeQuestionsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<String>> create(Ref ref) {
+    return activeQuestions(ref);
+  }
+}
+
+String _$activeQuestionsHash() => r'192dce55f456b195010f3e0ab519a8c112a0164b';

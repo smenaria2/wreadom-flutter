@@ -565,7 +565,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get postBtn => 'पोस्ट';
 
   @override
-  String get postHint => 'आप क्या पढ़ रहे हैं, सोच रहे हैं या बना रहे हैं?';
+  String get postHint => 'आप क्या पढ़ रहे हैं, लिख रहे हैं या सोच रहे हैं?';
+
+  @override
+  String get answerQuestionHint =>
+      'इस सवाल का जवाब दें, या इसे हटाकर कुछ और साझा करें...';
 
   @override
   String get removeImage => 'छवि निकालें';
@@ -1813,6 +1817,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get feedTypeTestimony => 'प्रशंसा';
 
   @override
+  String get feedTypeAll => 'सभी';
+
+  @override
+  String get feedTypeQuestion => 'प्रश्न';
+
+  @override
   String get noRatingsYet => 'अभी कोई रेटिंग नहीं';
 
   @override
@@ -2250,4 +2260,47 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get hapticFeedbackSubtitle => 'लाइक, शेयर और कार्रवाइयों पर कंपन करें';
+
+  @override
+  String get resendSuccess => 'सत्यापन ईमेल सफलतापूर्वक फिर से भेज दिया गया।';
+
+  @override
+  String get verificationFailed =>
+      'सत्यापन विफल रहा। कृपया अपना ईमेल जांचें और फिर से प्रयास करें।';
+
+  @override
+  String get emailVerificationTitle => 'अपना ईमेल सत्यापित करें';
+
+  @override
+  String get emailVerificationDesc => 'हमने इस पते पर एक सत्यापन लिंक भेजा है';
+
+  @override
+  String get emailVerificationInstruction =>
+      'कृपया अपना इनबॉक्स (और स्पैम फ़ोल्डर) जांचें और अपना खाता सत्यापित करने के लिए लिंक पर क्लिक करें।';
+
+  @override
+  String get checkVerificationStatus => 'सत्यापन स्थिति जांचें';
+
+  @override
+  String resendCooldown(int seconds) {
+    return '$seconds सेकंड में फिर भेजें';
+  }
+
+  @override
+  String get resendVerification => 'सत्यापन फिर से भेजें';
+
+  @override
+  String get appUpdateChecking => 'अपडेट की जांच की जा रही है...';
+
+  @override
+  String get appUpdateNoUpdateFound => 'कोई अपडेट नहीं मिला।';
+
+  @override
+  String get notificationDailyTopics => 'दैनिक लेखन संकेत';
+
+  @override
+  String get notificationRecommendedContent => 'आपके लिए अनुशंसित रचनाएँ';
+
+  @override
+  String get notificationGroupDiscovery => 'खोज संबंधी सूचनाएं';
 }

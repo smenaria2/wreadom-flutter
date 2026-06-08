@@ -58,6 +58,7 @@ _FeedPost _$FeedPostFromJson(Map<String, dynamic> json) => _FeedPost(
   mentions: (json['mentions'] as Map<String, dynamic>?)?.map(
     (k, e) => MapEntry(k, e as String),
   ),
+  question: json['question'] as String?,
 );
 
 Map<String, dynamic> _$FeedPostToJson(_FeedPost instance) => <String, dynamic>{
@@ -91,4 +92,5 @@ Map<String, dynamic> _$FeedPostToJson(_FeedPost instance) => <String, dynamic>{
   'images': instance.images,
   'commentCount': instance.commentCount,
   'mentions': instance.mentions,
+  'question': instance.question,
 };

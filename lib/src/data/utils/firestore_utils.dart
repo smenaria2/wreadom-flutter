@@ -14,6 +14,8 @@ Map<String, dynamic> defaultNotificationSettingsMap() => {
   'likes': {'app': true, 'browser': false},
   'followedAuthorPosts': {'app': true, 'browser': false},
   'newCreations': {'app': true, 'browser': false},
+  'dailyTopics': {'app': true, 'browser': false},
+  'recommendedContent': {'app': true, 'browser': false},
   'browserNotifications': false,
 };
 
@@ -42,9 +44,9 @@ Map<String, dynamic> normalizeUserMapForModel(dynamic raw, String docId) {
     m['bookmarks'] = <dynamic>[];
   }
 
-  if (m['notificationSettings'] == null || m['notificationSettings'] is! Map) {
-    m['notificationSettings'] = defaultNotificationSettingsMap();
-  }
+  m['notificationSettings'] = _mergeNotificationSettingsDefaults(
+    m['notificationSettings'],
+  );
 
   m['email'] = m['email']?.toString() ?? '';
   m['username'] = m['username']?.toString().isNotEmpty == true
@@ -52,6 +54,25 @@ Map<String, dynamic> normalizeUserMapForModel(dynamic raw, String docId) {
       : 'reader';
 
   return m;
+}
+
+Map<String, dynamic> _mergeNotificationSettingsDefaults(dynamic raw) {
+  final defaults = defaultNotificationSettingsMap();
+  if (raw is! Map) return defaults;
+
+  final normalized = asStringMap(raw);
+  for (final entry in defaults.entries) {
+    if (entry.value is Map<String, dynamic>) {
+      final current = normalized[entry.key];
+      normalized[entry.key] = {
+        ...Map<String, dynamic>.from(entry.value as Map<String, dynamic>),
+        if (current is Map) ...asStringMap(current),
+      };
+    } else {
+      normalized.putIfAbsent(entry.key, () => entry.value);
+    }
+  }
+  return normalized;
 }
 
 Map<String, dynamic> mapFirestoreData(dynamic data, String id) {

@@ -51,6 +51,7 @@ abstract class FeedPost with _$FeedPost {
     List<StoryImage>? images,
     int? commentCount,
     Map<String, String>? mentions,
+    String? question,
   }) = _FeedPost;
 
   factory FeedPost.fromJson(Map<String, dynamic> json) =>

@@ -132,7 +132,22 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'home-feed-create-post-fab',
-        onPressed: () => showCreatePostSheet(context),
+        onPressed: () async {
+          // Pick a random active question to prompt the user
+          String? question;
+          try {
+            final questions = await ref.read(activeQuestionsProvider.future);
+            if (questions.isNotEmpty) {
+              questions.shuffle();
+              question = questions.first;
+            }
+          } catch (_) {
+            // Silently ignore — sheet opens without a question
+          }
+          if (mounted) {
+            showCreatePostSheet(context, initialQuestion: question);
+          }
+        },
         icon: const Icon(Icons.edit_rounded),
         label: Text(l10n.post),
       ),
@@ -140,16 +155,23 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   }
 }
 
-class _FeedFilterPage extends ConsumerWidget {
+class _FeedFilterPage extends ConsumerStatefulWidget {
   const _FeedFilterPage({required this.filter});
 
   final FeedFilter filter;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FeedFilterPage> createState() => _FeedFilterPageState();
+}
+
+class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
+  String _selectedType = 'all';
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final feedState = ref.watch(pagedFeedPostsProvider(filter));
-    final feedController = ref.read(pagedFeedPostsProvider(filter).notifier);
+    final feedState = ref.watch(pagedFeedPostsProvider(widget.filter));
+    final feedController = ref.read(pagedFeedPostsProvider(widget.filter).notifier);
     final l10n = AppLocalizations.of(context)!;
 
     Widget refreshable(Widget child) {
@@ -173,103 +195,285 @@ class _FeedFilterPage extends ConsumerWidget {
       );
     }
 
+    final items = feedState.items.where((post) {
+      if (_selectedType == 'all') return true;
+      if (_selectedType == 'question') {
+        return post.question != null && post.question!.isNotEmpty;
+      }
+      return post.type.toLowerCase() == _selectedType;
+    }).toList();
+
+    final filterChips = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _TypeChip(
+            label: l10n.feedTypeAll,
+            icon: Icons.public_rounded,
+            selected: _selectedType == 'all',
+            onSelected: () => setState(() => _selectedType = 'all'),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: l10n.feedTypeComment,
+            icon: Icons.chat_bubble_outline_rounded,
+            selected: _selectedType == 'comment',
+            onSelected: () => setState(() => _selectedType = 'comment'),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: l10n.feedTypeQuote,
+            icon: Icons.format_quote_rounded,
+            selected: _selectedType == 'quote',
+            onSelected: () => setState(() => _selectedType = 'quote'),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: l10n.feedTypeReview,
+            icon: Icons.star_outline_rounded,
+            selected: _selectedType == 'review',
+            onSelected: () => setState(() => _selectedType = 'review'),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: l10n.feedTypeTestimony,
+            icon: Icons.favorite_border_rounded,
+            selected: _selectedType == 'testimony',
+            onSelected: () => setState(() => _selectedType = 'testimony'),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: l10n.feedTypeQuestion,
+            icon: Icons.help_outline_rounded,
+            selected: _selectedType == 'question',
+            onSelected: () => setState(() => _selectedType = 'question'),
+          ),
+        ],
+      ),
+    );
+
     if (feedState.isInitialLoading) {
-      return refreshable(centeredScrollable(const CircularProgressIndicator()));
+      return refreshable(
+        Column(
+          children: [
+            filterChips,
+            Expanded(child: centeredScrollable(const CircularProgressIndicator())),
+          ],
+        ),
+      );
     }
     if (feedState.error != null) {
       return refreshable(
-        centeredScrollable(
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: 48,
-                color: Colors.red[300],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.somethingWentWrong,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+        Column(
+          children: [
+            filterChips,
+            Expanded(
+              child: centeredScrollable(
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: Colors.red[300],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.somethingWentWrong,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      feedState.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: feedController.refresh,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.tryAgain),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                feedState.error.toString(),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: feedController.refresh,
-                icon: const Icon(Icons.refresh),
-                label: Text(l10n.tryAgain),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
+
+    Widget body;
     if (feedState.items.isEmpty) {
-      return refreshable(
-        centeredScrollable(
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.feed_outlined,
-                size: 64,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+      body = centeredScrollable(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.feed_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.filter == FeedFilter.following
+                  ? l10n.noFollowingPosts
+                  : l10n.noPosts,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 16),
-              Text(
-                filter == FeedFilter.following
-                    ? l10n.noFollowingPosts
-                    : l10n.noPosts,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.beFirstToPost,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
               ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.beFirstToPost,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                icon: const Icon(Icons.edit_rounded),
-                label: Text(l10n.createAPost),
-                onPressed: () => showCreatePostSheet(context),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(l10n.createAPost),
+              onPressed: () => showCreatePostSheet(context),
+            ),
+          ],
         ),
       );
-    }
-    return refreshable(
-      ListView.builder(
+    } else if (items.isEmpty) {
+      body = centeredScrollable(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_list_off_rounded,
+              size: 48,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "No posts found for this filter",
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Try loading more posts or choosing another filter.",
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (feedState.hasMore)
+              FilledButton.icon(
+                icon: feedState.isLoadingMore
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.add_rounded),
+                label: Text(l10n.loadMore),
+                onPressed:
+                    feedState.isLoadingMore ? null : feedController.loadMore,
+              ),
+          ],
+        ),
+      );
+    } else {
+      body = ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 132),
-        itemCount: feedState.items.length + 1,
+        itemCount: items.length + 1,
         itemBuilder: (context, index) {
-          if (index == feedState.items.length) {
+          if (index == items.length) {
             return _LoadMoreFeedButton(
               isLoading: feedState.isLoadingMore,
               hasMore: feedState.hasMore,
               onPressed: feedController.loadMore,
             );
           }
-          return FeedPostCard(post: feedState.items[index]);
+          return FeedPostCard(
+            post: items[index],
+            onReplyToQuestion: (question) {
+              showCreatePostSheet(context, initialQuestion: question);
+            },
+          );
         },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        filterChips,
+        Expanded(
+          child: refreshable(body),
+        ),
+      ],
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _TypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FilterChip(
+      showCheckmark: false,
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: selected
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      selectedColor: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: selected
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: selected
+              ? Colors.transparent
+              : theme.colorScheme.outlineVariant,
+        ),
       ),
     );
   }

@@ -347,7 +347,7 @@ class _BookDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final userAsync = ref.watch(currentUserProvider);
-    final currentUser = userAsync.asData?.value;
+    final currentUser = userAsync.value;
     final authorId = (book.isOriginal ?? false) ? book.authorId?.trim() : null;
     final authorAsync = authorId == null || authorId.isEmpty
         ? null
@@ -507,7 +507,10 @@ class _BookDetailBody extends ConsumerWidget {
                         side: BorderSide.none,
                         onPressed: () => Navigator.of(context).pushNamed(
                           AppRoutes.discovery,
-                          arguments: {'query': 'topic:$subject'},
+                          arguments: {
+                            'query': 'topic:$subject',
+                            'language': book.languages.firstOrNull,
+                          },
                         ),
                       );
                     }).toList(),
@@ -647,7 +650,7 @@ class _BookDetailBody extends ConsumerWidget {
         return Consumer(
           builder: (context, ref, _) {
             final conversationsAsync = ref.watch(conversationsProvider);
-            final currentUser = ref.watch(currentUserProvider).asData?.value;
+            final currentUser = ref.watch(currentUserProvider).value;
 
             Future<void> shareToFeed() async {
               final sender = await ref.read(currentUserProvider.future);
@@ -844,8 +847,8 @@ class _AuthorLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryUser = authorAsync?.asData?.value;
-    final collaboratorUser = collaboratorAsync?.asData?.value;
+    final primaryUser = authorAsync?.value;
+    final collaboratorUser = collaboratorAsync?.value;
     final primaryName = primaryAuthorDisplayName(book, primaryUser);
     final coAuthorName = collaboratorDisplayName(book, collaboratorUser);
 
@@ -972,7 +975,7 @@ class _AuthorFollowSlot extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final currentUser = ref.watch(currentUserProvider).value;
     if (currentUser == null || currentUser.id == targetUserId) {
       return const SizedBox(width: _slotSize, height: _slotSize);
     }
@@ -1376,7 +1379,7 @@ class _ArchiveVotesInline extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(bookVoteStatsProvider(book.id));
     final userVoteAsync = ref.watch(userBookVoteProvider(book.id));
-    final currentVote = userVoteAsync.asData?.value;
+    final currentVote = userVoteAsync.value;
 
     return statsAsync.maybeWhen(
       data: (stats) => Row(

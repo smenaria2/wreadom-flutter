@@ -52,17 +52,18 @@ class ReaderAdService {
     }
   }
 
-  Future<void> showNextChapterAdIfReady() async {
-    if (!_canShowAds || _isDisposed) return;
+  Future<bool> showNextChapterAdIfReady() async {
+    if (!_canShowAds || _isDisposed) return true;
 
     final ad = _rewardedInterstitialAd;
     if (ad == null) {
       unawaited(preloadNextChapterAd());
-      return;
+      return true;
     }
 
     _rewardedInterstitialAd = null;
     final completer = Completer<void>();
+    bool rewardEarned = false;
 
     void completeOnce() {
       if (!completer.isCompleted) completer.complete();
@@ -78,6 +79,7 @@ class ReaderAdService {
           onAdFailedToShowFullScreenContent: (ad, error) {
             debugPrint('Next chapter ad failed to show: $error');
             ad.dispose();
+            rewardEarned = true; // Don't block user if ad fails to show
             completeOnce();
             unawaited(preloadNextChapterAd());
           },
@@ -89,15 +91,19 @@ class ReaderAdService {
           debugPrint(
             'Next chapter ad reward earned: ${reward.amount} ${reward.type}',
           );
+          rewardEarned = true;
         },
       );
       await completer.future.timeout(const Duration(seconds: 45));
     } catch (error) {
       debugPrint('Next chapter ad show error: $error');
       ad.dispose();
+      rewardEarned = true; // Don't block user on ad show timeout/error
       completeOnce();
       unawaited(preloadNextChapterAd());
     }
+
+    return rewardEarned;
   }
 
   Future<void> showArchiveLoadingAd() async {

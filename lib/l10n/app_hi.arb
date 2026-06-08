@@ -168,7 +168,8 @@
   "shareAnUpdate": "अपडेट साझा करें",
   "close": "बंद करें",
   "postBtn": "पोस्ट",
-  "postHint": "आप क्या पढ़ रहे हैं, सोच रहे हैं या बना रहे हैं?",
+  "postHint": "आप क्या पढ़ रहे हैं, लिख रहे हैं या सोच रहे हैं?",
+  "answerQuestionHint": "इस सवाल का जवाब दें, या इसे हटाकर कुछ और साझा करें...",
   "removeImage": "छवि निकालें",
   "addImage": "छवि जोड़ें",
   "likedYourPost": "ने आपकी पोस्ट को पसंद किया।",
@@ -839,6 +840,8 @@
   "feedTypeQuote": "उद्धरण",
   "feedTypeReview": "समीक्षा",
   "feedTypeTestimony": "प्रशंसा",
+  "feedTypeAll": "सभी",
+  "feedTypeQuestion": "प्रश्न",
   "noRatingsYet": "अभी कोई रेटिंग नहीं",
   "ratingMetric": "{rating} रेटिंग",
   "@ratingMetric": {
@@ -997,5 +1000,25 @@
   "systemDefault": "सिस्टम",
   "sepia": "सेपिया",
   "hapticFeedback": "हैप्टिक फीडबैक",
-  "hapticFeedbackSubtitle": "लाइक, शेयर और कार्रवाइयों पर कंपन करें"
+  "hapticFeedbackSubtitle": "लाइक, शेयर और कार्रवाइयों पर कंपन करें",
+  "resendSuccess": "सत्यापन ईमेल सफलतापूर्वक फिर से भेज दिया गया।",
+  "verificationFailed": "सत्यापन विफल रहा। कृपया अपना ईमेल जांचें और फिर से प्रयास करें।",
+  "emailVerificationTitle": "अपना ईमेल सत्यापित करें",
+  "emailVerificationDesc": "हमने इस पते पर एक सत्यापन लिंक भेजा है",
+  "emailVerificationInstruction": "कृपया अपना इनबॉक्स (और स्पैम फ़ोल्डर) जांचें और अपना खाता सत्यापित करने के लिए लिंक पर क्लिक करें।",
+  "checkVerificationStatus": "सत्यापन स्थिति जांचें",
+  "resendCooldown": "{seconds} सेकंड में फिर भेजें",
+  "@resendCooldown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "resendVerification": "सत्यापन फिर से भेजें",
+  "appUpdateChecking": "अपडेट की जांच की जा रही है...",
+  "appUpdateNoUpdateFound": "कोई अपडेट नहीं मिला।",
+  "notificationDailyTopics": "दैनिक लेखन संकेत",
+  "notificationRecommendedContent": "आपके लिए अनुशंसित रचनाएँ",
+  "notificationGroupDiscovery": "खोज संबंधी सूचनाएं"
 }

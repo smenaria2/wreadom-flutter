@@ -257,6 +257,11 @@ Future<FeedPost?> singlePost(Ref ref, String postId) async {
   return ref.watch(feedRepositoryProvider).getFeedPost(postId);
 }
 
+@riverpod
+Future<List<String>> activeQuestions(Ref ref) {
+  return ref.watch(feedRepositoryProvider).getActiveQuestions();
+}
+
 final liveSinglePostProvider = StreamProvider.family<FeedPost?, String>((
   ref,
   postId,

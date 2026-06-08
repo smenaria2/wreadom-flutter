@@ -228,19 +228,28 @@ class NotificationTargetResolver {
   static String? _idFromLink(String link, List<String> pathNames) {
     final uri = Uri.tryParse(link);
     if (uri == null) return null;
-    final segments = uri.pathSegments;
-    for (var i = 0; i < segments.length - 1; i++) {
-      if (pathNames.contains(segments[i].toLowerCase())) {
-        return _clean(Uri.decodeComponent(segments[i + 1]));
+    try {
+      final segments = uri.pathSegments;
+      for (var i = 0; i < segments.length - 1; i++) {
+        if (pathNames.contains(segments[i].toLowerCase())) {
+          String val = segments[i + 1];
+          try {
+            val = Uri.decodeComponent(val);
+          } catch (_) {}
+          return _clean(val);
+        }
       }
-    }
+    } catch (_) {}
     return null;
   }
 
   static String? _queryValue(String link, String key) {
     final uri = Uri.tryParse(link);
     if (uri == null) return null;
-    return _clean(uri.queryParameters[key]);
+    try {
+      return _clean(uri.queryParameters[key]);
+    } catch (_) {}
+    return null;
   }
 
   static String? _firstValid(List<dynamic> values) {

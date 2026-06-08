@@ -66,4 +66,5 @@ abstract class FeedRepository {
   );
   Future<String> uploadPostImage(Uint8List bytes, String fileName);
   Future<FeedPost?> getFeedPost(String postId);
+  Future<List<String>> getActiveQuestions();
 }

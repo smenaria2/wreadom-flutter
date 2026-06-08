@@ -17,7 +17,11 @@ abstract class BookRepository {
   Future<List<Book>> getRecentBooks({int limit = 10});
   Future<List<Book>> searchBooks(String query, {int limit = 20});
   Future<List<Book>> searchOriginalBooks(String query, {int limit = 20});
-  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20});
+  Future<List<Book>> searchArchiveBooks(
+    String query, {
+    String? language,
+    int limit = 20,
+  });
   Future<List<Book>> getBooksByIds(List<String> ids);
   Future<bool> recordBookView(
     String bookId,

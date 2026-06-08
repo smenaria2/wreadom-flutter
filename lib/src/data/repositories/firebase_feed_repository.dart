@@ -604,4 +604,21 @@ class FirebaseFeedRepository implements FeedRepository {
       return true;
     });
   }
+
+  @override
+  Future<List<String>> getActiveQuestions() async {
+    try {
+      final snapshot = await _firestore
+          .collection('feed-questions')
+          .where('isEnabled', isEqualTo: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => doc.data()['text'] as String? ?? '')
+          .where((text) => text.isNotEmpty)
+          .toList();
+    } catch (e) {
+      debugPrint('[FirebaseFeedRepository] Error fetching active questions: $e');
+      return [];
+    }
+  }
 }

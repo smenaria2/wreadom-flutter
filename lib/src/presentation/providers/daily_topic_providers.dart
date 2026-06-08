@@ -190,7 +190,11 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
 String? _normalizedTopicKey(String? value) {
   final trimmed = value?.trim();
   if (trimmed == null || trimmed.isEmpty) return null;
-  return Uri.decodeComponent(trimmed).trim().toLowerCase();
+  try {
+    return Uri.decodeComponent(trimmed).trim().toLowerCase();
+  } catch (_) {
+    return trimmed.trim().toLowerCase();
+  }
 }
 
 final dailyTopicsProvider =

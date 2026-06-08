@@ -1145,8 +1145,14 @@ abstract class AppLocalizations {
   /// No description provided for @postHint.
   ///
   /// In en, this message translates to:
-  /// **'What are you reading, thinking, or building?'**
+  /// **'What are you reading, writing or thinking?'**
   String get postHint;
+
+  /// No description provided for @answerQuestionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer this question, or remove it to share something else...'**
+  String get answerQuestionHint;
 
   /// No description provided for @removeImage.
   ///
@@ -3242,6 +3248,18 @@ abstract class AppLocalizations {
   /// **'Testimony'**
   String get feedTypeTestimony;
 
+  /// No description provided for @feedTypeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get feedTypeAll;
+
+  /// No description provided for @feedTypeQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get feedTypeQuestion;
+
   /// No description provided for @noRatingsYet.
   ///
   /// In en, this message translates to:
@@ -3985,6 +4003,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vibrate on likes, shares, and actions'**
   String get hapticFeedbackSubtitle;
+
+  /// No description provided for @resendSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification email resent successfully.'**
+  String get resendSuccess;
+
+  /// No description provided for @verificationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification failed. Please check your email and try again.'**
+  String get verificationFailed;
+
+  /// No description provided for @emailVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get emailVerificationTitle;
+
+  /// No description provided for @emailVerificationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ve sent a verification link to'**
+  String get emailVerificationDesc;
+
+  /// No description provided for @emailVerificationInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your inbox (and spam folder) and click the link to verify your account.'**
+  String get emailVerificationInstruction;
+
+  /// No description provided for @checkVerificationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Verification Status'**
+  String get checkVerificationStatus;
+
+  /// No description provided for @resendCooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String resendCooldown(int seconds);
+
+  /// No description provided for @resendVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Verification'**
+  String get resendVerification;
+
+  /// No description provided for @appUpdateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates...'**
+  String get appUpdateChecking;
+
+  /// No description provided for @appUpdateNoUpdateFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No updates found.'**
+  String get appUpdateNoUpdateFound;
+
+  /// No description provided for @notificationDailyTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily writing prompts'**
+  String get notificationDailyTopics;
+
+  /// No description provided for @notificationRecommendedContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended content for you'**
+  String get notificationRecommendedContent;
+
+  /// No description provided for @notificationGroupDiscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery notifications'**
+  String get notificationGroupDiscovery;
 }
 
 class _AppLocalizationsDelegate

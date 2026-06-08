@@ -174,9 +174,14 @@ class CompositeBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20}) async {
+  Future<List<Book>> searchArchiveBooks(
+    String query, {
+    String? language,
+    int limit = 20,
+  }) async {
     final archiveResults = await _archiveRepo.searchArchiveBooks(
       query,
+      language: language,
       limit: limit * 2,
     );
     return archiveResults.length > limit

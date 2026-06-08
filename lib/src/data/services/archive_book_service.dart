@@ -55,8 +55,11 @@ class ArchiveBookService {
     }
 
     if (language != null) {
-      if (language.toLowerCase() == 'hindi') {
+      final langLower = language.toLowerCase();
+      if (langLower == 'hindi' || langLower == 'hi' || langLower == 'hin') {
         queryParts.add('(language:hi OR language:hin OR language:hindi)');
+      } else if (langLower == 'english' || langLower == 'en' || langLower == 'eng') {
+        queryParts.add('(language:en OR language:eng OR language:english)');
       } else {
         queryParts.add('language:$language');
       }

@@ -30,15 +30,26 @@ final discoverySearchProvider =
           archiveBooks: [],
         );
       }
+      
+      String cleanQuery = term;
+      String? searchLanguage;
+      if (term.contains('|lang:')) {
+        final parts = term.split('|lang:');
+        cleanQuery = parts[0].trim();
+        if (parts.length > 1) {
+          searchLanguage = parts[1].trim();
+        }
+      }
+
       final repo = ref.watch(bookRepositoryProvider);
       final originals = await repo
-          .searchOriginalBooks(term, limit: 20)
+          .searchOriginalBooks(cleanQuery, limit: 20)
           .catchError((_) => <Book>[]);
       final authors = await ref
-          .watch(profileSearchProvider(term).future)
+          .watch(profileSearchProvider(cleanQuery).future)
           .catchError((_) => <UserModel>[]);
       final archiveBooks = await repo
-          .searchArchiveBooks(term, limit: 20)
+          .searchArchiveBooks(cleanQuery, language: searchLanguage, limit: 20)
           .catchError((_) => <Book>[]);
 
       return DiscoverySearchResults(

@@ -497,6 +497,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Feed questions
+    match /feed-questions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Book recommendations / Archive votes
     match /recommendations/{recommendationId} {
       allow read: if true;

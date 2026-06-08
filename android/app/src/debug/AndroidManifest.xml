@@ -4,7 +4,7 @@
     <!-- Debug builds use a different signing cert, so autoVerify fails.
          Adding the intent filter here without autoVerify ensures the app
          still receives deep link intents during development/sideloading. -->
-    <application>
+    <application android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

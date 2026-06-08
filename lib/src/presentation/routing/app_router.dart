@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 
 import '../../domain/models/book.dart';
@@ -17,7 +16,6 @@ import '../screens/help_screen.dart';
 import '../screens/home_banner_screen.dart';
 import '../screens/language_settings_screen.dart';
 import '../screens/legal_document_screen.dart';
-import '../screens/main_navigation_shell.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/profile_settings_screen.dart';
@@ -28,6 +26,7 @@ import '../screens/static_info_screen.dart';
 import '../screens/writer_dashboard_screen.dart';
 import '../screens/writer_pad_screen.dart';
 import '../screens/archive_reader_screen.dart';
+import '../components/main_route_gate.dart';
 import 'app_routes.dart';
 
 class ReaderArguments {
@@ -211,16 +210,10 @@ class AppRouter {
         );
       case AppRoutes.main:
       case AppRoutes.root:
-        if (firebase_auth.FirebaseAuth.instance.currentUser == null) {
-          return MaterialPageRoute(
-            settings: routeSettings,
-            builder: (_) => const LoginScreen(),
-          );
-        }
         final initialIndex = resolvedArguments as int? ?? 0;
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => MainNavigationShell(initialIndex: initialIndex),
+          builder: (_) => MainRouteGate(initialIndex: initialIndex),
         );
       case AppRoutes.bookDetail:
         final args = resolvedArguments;

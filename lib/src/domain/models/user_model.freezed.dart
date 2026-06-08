@@ -556,7 +556,7 @@ as bool,
 /// @nodoc
 mixin _$NotificationSettings {
 
- NotificationPreference get messages; NotificationPreference get groupMessages; NotificationPreference get comments; NotificationPreference get replies; NotificationPreference get followers; NotificationPreference get testimonials; NotificationPreference get likes; NotificationPreference get followedAuthorPosts; NotificationPreference get newCreations; bool get browserNotifications;
+ NotificationPreference get messages; NotificationPreference get groupMessages; NotificationPreference get comments; NotificationPreference get replies; NotificationPreference get followers; NotificationPreference get testimonials; NotificationPreference get likes; NotificationPreference get followedAuthorPosts; NotificationPreference get newCreations; NotificationPreference get dailyTopics; NotificationPreference get recommendedContent; bool get browserNotifications;
 /// Create a copy of NotificationSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -569,16 +569,16 @@ $NotificationSettingsCopyWith<NotificationSettings> get copyWith => _$Notificati
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationSettings&&(identical(other.messages, messages) || other.messages == messages)&&(identical(other.groupMessages, groupMessages) || other.groupMessages == groupMessages)&&(identical(other.comments, comments) || other.comments == comments)&&(identical(other.replies, replies) || other.replies == replies)&&(identical(other.followers, followers) || other.followers == followers)&&(identical(other.testimonials, testimonials) || other.testimonials == testimonials)&&(identical(other.likes, likes) || other.likes == likes)&&(identical(other.followedAuthorPosts, followedAuthorPosts) || other.followedAuthorPosts == followedAuthorPosts)&&(identical(other.newCreations, newCreations) || other.newCreations == newCreations)&&(identical(other.browserNotifications, browserNotifications) || other.browserNotifications == browserNotifications));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationSettings&&(identical(other.messages, messages) || other.messages == messages)&&(identical(other.groupMessages, groupMessages) || other.groupMessages == groupMessages)&&(identical(other.comments, comments) || other.comments == comments)&&(identical(other.replies, replies) || other.replies == replies)&&(identical(other.followers, followers) || other.followers == followers)&&(identical(other.testimonials, testimonials) || other.testimonials == testimonials)&&(identical(other.likes, likes) || other.likes == likes)&&(identical(other.followedAuthorPosts, followedAuthorPosts) || other.followedAuthorPosts == followedAuthorPosts)&&(identical(other.newCreations, newCreations) || other.newCreations == newCreations)&&(identical(other.dailyTopics, dailyTopics) || other.dailyTopics == dailyTopics)&&(identical(other.recommendedContent, recommendedContent) || other.recommendedContent == recommendedContent)&&(identical(other.browserNotifications, browserNotifications) || other.browserNotifications == browserNotifications));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,messages,groupMessages,comments,replies,followers,testimonials,likes,followedAuthorPosts,newCreations,browserNotifications);
+int get hashCode => Object.hash(runtimeType,messages,groupMessages,comments,replies,followers,testimonials,likes,followedAuthorPosts,newCreations,dailyTopics,recommendedContent,browserNotifications);
 
 @override
 String toString() {
-  return 'NotificationSettings(messages: $messages, groupMessages: $groupMessages, comments: $comments, replies: $replies, followers: $followers, testimonials: $testimonials, likes: $likes, followedAuthorPosts: $followedAuthorPosts, newCreations: $newCreations, browserNotifications: $browserNotifications)';
+  return 'NotificationSettings(messages: $messages, groupMessages: $groupMessages, comments: $comments, replies: $replies, followers: $followers, testimonials: $testimonials, likes: $likes, followedAuthorPosts: $followedAuthorPosts, newCreations: $newCreations, dailyTopics: $dailyTopics, recommendedContent: $recommendedContent, browserNotifications: $browserNotifications)';
 }
 
 
@@ -589,11 +589,11 @@ abstract mixin class $NotificationSettingsCopyWith<$Res>  {
   factory $NotificationSettingsCopyWith(NotificationSettings value, $Res Function(NotificationSettings) _then) = _$NotificationSettingsCopyWithImpl;
 @useResult
 $Res call({
- NotificationPreference messages, NotificationPreference groupMessages, NotificationPreference comments, NotificationPreference replies, NotificationPreference followers, NotificationPreference testimonials, NotificationPreference likes, NotificationPreference followedAuthorPosts, NotificationPreference newCreations, bool browserNotifications
+ NotificationPreference messages, NotificationPreference groupMessages, NotificationPreference comments, NotificationPreference replies, NotificationPreference followers, NotificationPreference testimonials, NotificationPreference likes, NotificationPreference followedAuthorPosts, NotificationPreference newCreations, NotificationPreference dailyTopics, NotificationPreference recommendedContent, bool browserNotifications
 });
 
 
-$NotificationPreferenceCopyWith<$Res> get messages;$NotificationPreferenceCopyWith<$Res> get groupMessages;$NotificationPreferenceCopyWith<$Res> get comments;$NotificationPreferenceCopyWith<$Res> get replies;$NotificationPreferenceCopyWith<$Res> get followers;$NotificationPreferenceCopyWith<$Res> get testimonials;$NotificationPreferenceCopyWith<$Res> get likes;$NotificationPreferenceCopyWith<$Res> get followedAuthorPosts;$NotificationPreferenceCopyWith<$Res> get newCreations;
+$NotificationPreferenceCopyWith<$Res> get messages;$NotificationPreferenceCopyWith<$Res> get groupMessages;$NotificationPreferenceCopyWith<$Res> get comments;$NotificationPreferenceCopyWith<$Res> get replies;$NotificationPreferenceCopyWith<$Res> get followers;$NotificationPreferenceCopyWith<$Res> get testimonials;$NotificationPreferenceCopyWith<$Res> get likes;$NotificationPreferenceCopyWith<$Res> get followedAuthorPosts;$NotificationPreferenceCopyWith<$Res> get newCreations;$NotificationPreferenceCopyWith<$Res> get dailyTopics;$NotificationPreferenceCopyWith<$Res> get recommendedContent;
 
 }
 /// @nodoc
@@ -606,7 +606,7 @@ class _$NotificationSettingsCopyWithImpl<$Res>
 
 /// Create a copy of NotificationSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? messages = null,Object? groupMessages = null,Object? comments = null,Object? replies = null,Object? followers = null,Object? testimonials = null,Object? likes = null,Object? followedAuthorPosts = null,Object? newCreations = null,Object? browserNotifications = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? messages = null,Object? groupMessages = null,Object? comments = null,Object? replies = null,Object? followers = null,Object? testimonials = null,Object? likes = null,Object? followedAuthorPosts = null,Object? newCreations = null,Object? dailyTopics = null,Object? recommendedContent = null,Object? browserNotifications = null,}) {
   return _then(_self.copyWith(
 messages: null == messages ? _self.messages : messages // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,groupMessages: null == groupMessages ? _self.groupMessages : groupMessages // ignore: cast_nullable_to_non_nullable
@@ -617,6 +617,8 @@ as NotificationPreference,testimonials: null == testimonials ? _self.testimonial
 as NotificationPreference,likes: null == likes ? _self.likes : likes // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,followedAuthorPosts: null == followedAuthorPosts ? _self.followedAuthorPosts : followedAuthorPosts // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,newCreations: null == newCreations ? _self.newCreations : newCreations // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,dailyTopics: null == dailyTopics ? _self.dailyTopics : dailyTopics // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,recommendedContent: null == recommendedContent ? _self.recommendedContent : recommendedContent // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,browserNotifications: null == browserNotifications ? _self.browserNotifications : browserNotifications // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -701,6 +703,24 @@ $NotificationPreferenceCopyWith<$Res> get newCreations {
   
   return $NotificationPreferenceCopyWith<$Res>(_self.newCreations, (value) {
     return _then(_self.copyWith(newCreations: value));
+  });
+}/// Create a copy of NotificationSettings
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$NotificationPreferenceCopyWith<$Res> get dailyTopics {
+  
+  return $NotificationPreferenceCopyWith<$Res>(_self.dailyTopics, (value) {
+    return _then(_self.copyWith(dailyTopics: value));
+  });
+}/// Create a copy of NotificationSettings
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$NotificationPreferenceCopyWith<$Res> get recommendedContent {
+  
+  return $NotificationPreferenceCopyWith<$Res>(_self.recommendedContent, (value) {
+    return _then(_self.copyWith(recommendedContent: value));
   });
 }
 }
@@ -784,10 +804,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  bool browserNotifications)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  NotificationPreference dailyTopics,  NotificationPreference recommendedContent,  bool browserNotifications)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NotificationSettings() when $default != null:
-return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.browserNotifications);case _:
+return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.dailyTopics,_that.recommendedContent,_that.browserNotifications);case _:
   return orElse();
 
 }
@@ -805,10 +825,10 @@ return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  bool browserNotifications)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  NotificationPreference dailyTopics,  NotificationPreference recommendedContent,  bool browserNotifications)  $default,) {final _that = this;
 switch (_that) {
 case _NotificationSettings():
-return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.browserNotifications);case _:
+return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.dailyTopics,_that.recommendedContent,_that.browserNotifications);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -825,10 +845,10 @@ return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  bool browserNotifications)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NotificationPreference messages,  NotificationPreference groupMessages,  NotificationPreference comments,  NotificationPreference replies,  NotificationPreference followers,  NotificationPreference testimonials,  NotificationPreference likes,  NotificationPreference followedAuthorPosts,  NotificationPreference newCreations,  NotificationPreference dailyTopics,  NotificationPreference recommendedContent,  bool browserNotifications)?  $default,) {final _that = this;
 switch (_that) {
 case _NotificationSettings() when $default != null:
-return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.browserNotifications);case _:
+return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,_that.followers,_that.testimonials,_that.likes,_that.followedAuthorPosts,_that.newCreations,_that.dailyTopics,_that.recommendedContent,_that.browserNotifications);case _:
   return null;
 
 }
@@ -840,7 +860,7 @@ return $default(_that.messages,_that.groupMessages,_that.comments,_that.replies,
 @JsonSerializable()
 
 class _NotificationSettings implements NotificationSettings {
-  const _NotificationSettings({required this.messages, required this.groupMessages, required this.comments, required this.replies, required this.followers, required this.testimonials, required this.likes, required this.followedAuthorPosts, required this.newCreations, required this.browserNotifications});
+  const _NotificationSettings({required this.messages, required this.groupMessages, required this.comments, required this.replies, required this.followers, required this.testimonials, required this.likes, required this.followedAuthorPosts, required this.newCreations, required this.dailyTopics, required this.recommendedContent, required this.browserNotifications});
   factory _NotificationSettings.fromJson(Map<String, dynamic> json) => _$NotificationSettingsFromJson(json);
 
 @override final  NotificationPreference messages;
@@ -852,6 +872,8 @@ class _NotificationSettings implements NotificationSettings {
 @override final  NotificationPreference likes;
 @override final  NotificationPreference followedAuthorPosts;
 @override final  NotificationPreference newCreations;
+@override final  NotificationPreference dailyTopics;
+@override final  NotificationPreference recommendedContent;
 @override final  bool browserNotifications;
 
 /// Create a copy of NotificationSettings
@@ -867,16 +889,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationSettings&&(identical(other.messages, messages) || other.messages == messages)&&(identical(other.groupMessages, groupMessages) || other.groupMessages == groupMessages)&&(identical(other.comments, comments) || other.comments == comments)&&(identical(other.replies, replies) || other.replies == replies)&&(identical(other.followers, followers) || other.followers == followers)&&(identical(other.testimonials, testimonials) || other.testimonials == testimonials)&&(identical(other.likes, likes) || other.likes == likes)&&(identical(other.followedAuthorPosts, followedAuthorPosts) || other.followedAuthorPosts == followedAuthorPosts)&&(identical(other.newCreations, newCreations) || other.newCreations == newCreations)&&(identical(other.browserNotifications, browserNotifications) || other.browserNotifications == browserNotifications));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationSettings&&(identical(other.messages, messages) || other.messages == messages)&&(identical(other.groupMessages, groupMessages) || other.groupMessages == groupMessages)&&(identical(other.comments, comments) || other.comments == comments)&&(identical(other.replies, replies) || other.replies == replies)&&(identical(other.followers, followers) || other.followers == followers)&&(identical(other.testimonials, testimonials) || other.testimonials == testimonials)&&(identical(other.likes, likes) || other.likes == likes)&&(identical(other.followedAuthorPosts, followedAuthorPosts) || other.followedAuthorPosts == followedAuthorPosts)&&(identical(other.newCreations, newCreations) || other.newCreations == newCreations)&&(identical(other.dailyTopics, dailyTopics) || other.dailyTopics == dailyTopics)&&(identical(other.recommendedContent, recommendedContent) || other.recommendedContent == recommendedContent)&&(identical(other.browserNotifications, browserNotifications) || other.browserNotifications == browserNotifications));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,messages,groupMessages,comments,replies,followers,testimonials,likes,followedAuthorPosts,newCreations,browserNotifications);
+int get hashCode => Object.hash(runtimeType,messages,groupMessages,comments,replies,followers,testimonials,likes,followedAuthorPosts,newCreations,dailyTopics,recommendedContent,browserNotifications);
 
 @override
 String toString() {
-  return 'NotificationSettings(messages: $messages, groupMessages: $groupMessages, comments: $comments, replies: $replies, followers: $followers, testimonials: $testimonials, likes: $likes, followedAuthorPosts: $followedAuthorPosts, newCreations: $newCreations, browserNotifications: $browserNotifications)';
+  return 'NotificationSettings(messages: $messages, groupMessages: $groupMessages, comments: $comments, replies: $replies, followers: $followers, testimonials: $testimonials, likes: $likes, followedAuthorPosts: $followedAuthorPosts, newCreations: $newCreations, dailyTopics: $dailyTopics, recommendedContent: $recommendedContent, browserNotifications: $browserNotifications)';
 }
 
 
@@ -887,11 +909,11 @@ abstract mixin class _$NotificationSettingsCopyWith<$Res> implements $Notificati
   factory _$NotificationSettingsCopyWith(_NotificationSettings value, $Res Function(_NotificationSettings) _then) = __$NotificationSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- NotificationPreference messages, NotificationPreference groupMessages, NotificationPreference comments, NotificationPreference replies, NotificationPreference followers, NotificationPreference testimonials, NotificationPreference likes, NotificationPreference followedAuthorPosts, NotificationPreference newCreations, bool browserNotifications
+ NotificationPreference messages, NotificationPreference groupMessages, NotificationPreference comments, NotificationPreference replies, NotificationPreference followers, NotificationPreference testimonials, NotificationPreference likes, NotificationPreference followedAuthorPosts, NotificationPreference newCreations, NotificationPreference dailyTopics, NotificationPreference recommendedContent, bool browserNotifications
 });
 
 
-@override $NotificationPreferenceCopyWith<$Res> get messages;@override $NotificationPreferenceCopyWith<$Res> get groupMessages;@override $NotificationPreferenceCopyWith<$Res> get comments;@override $NotificationPreferenceCopyWith<$Res> get replies;@override $NotificationPreferenceCopyWith<$Res> get followers;@override $NotificationPreferenceCopyWith<$Res> get testimonials;@override $NotificationPreferenceCopyWith<$Res> get likes;@override $NotificationPreferenceCopyWith<$Res> get followedAuthorPosts;@override $NotificationPreferenceCopyWith<$Res> get newCreations;
+@override $NotificationPreferenceCopyWith<$Res> get messages;@override $NotificationPreferenceCopyWith<$Res> get groupMessages;@override $NotificationPreferenceCopyWith<$Res> get comments;@override $NotificationPreferenceCopyWith<$Res> get replies;@override $NotificationPreferenceCopyWith<$Res> get followers;@override $NotificationPreferenceCopyWith<$Res> get testimonials;@override $NotificationPreferenceCopyWith<$Res> get likes;@override $NotificationPreferenceCopyWith<$Res> get followedAuthorPosts;@override $NotificationPreferenceCopyWith<$Res> get newCreations;@override $NotificationPreferenceCopyWith<$Res> get dailyTopics;@override $NotificationPreferenceCopyWith<$Res> get recommendedContent;
 
 }
 /// @nodoc
@@ -904,7 +926,7 @@ class __$NotificationSettingsCopyWithImpl<$Res>
 
 /// Create a copy of NotificationSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? messages = null,Object? groupMessages = null,Object? comments = null,Object? replies = null,Object? followers = null,Object? testimonials = null,Object? likes = null,Object? followedAuthorPosts = null,Object? newCreations = null,Object? browserNotifications = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? messages = null,Object? groupMessages = null,Object? comments = null,Object? replies = null,Object? followers = null,Object? testimonials = null,Object? likes = null,Object? followedAuthorPosts = null,Object? newCreations = null,Object? dailyTopics = null,Object? recommendedContent = null,Object? browserNotifications = null,}) {
   return _then(_NotificationSettings(
 messages: null == messages ? _self.messages : messages // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,groupMessages: null == groupMessages ? _self.groupMessages : groupMessages // ignore: cast_nullable_to_non_nullable
@@ -915,6 +937,8 @@ as NotificationPreference,testimonials: null == testimonials ? _self.testimonial
 as NotificationPreference,likes: null == likes ? _self.likes : likes // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,followedAuthorPosts: null == followedAuthorPosts ? _self.followedAuthorPosts : followedAuthorPosts // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,newCreations: null == newCreations ? _self.newCreations : newCreations // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,dailyTopics: null == dailyTopics ? _self.dailyTopics : dailyTopics // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,recommendedContent: null == recommendedContent ? _self.recommendedContent : recommendedContent // ignore: cast_nullable_to_non_nullable
 as NotificationPreference,browserNotifications: null == browserNotifications ? _self.browserNotifications : browserNotifications // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -1000,6 +1024,24 @@ $NotificationPreferenceCopyWith<$Res> get newCreations {
   
   return $NotificationPreferenceCopyWith<$Res>(_self.newCreations, (value) {
     return _then(_self.copyWith(newCreations: value));
+  });
+}/// Create a copy of NotificationSettings
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$NotificationPreferenceCopyWith<$Res> get dailyTopics {
+  
+  return $NotificationPreferenceCopyWith<$Res>(_self.dailyTopics, (value) {
+    return _then(_self.copyWith(dailyTopics: value));
+  });
+}/// Create a copy of NotificationSettings
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$NotificationPreferenceCopyWith<$Res> get recommendedContent {
+  
+  return $NotificationPreferenceCopyWith<$Res>(_self.recommendedContent, (value) {
+    return _then(_self.copyWith(recommendedContent: value));
   });
 }
 }

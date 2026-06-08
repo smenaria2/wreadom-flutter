@@ -379,7 +379,11 @@ class FirebaseBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20}) async {
+  Future<List<Book>> searchArchiveBooks(
+    String query, {
+    String? language,
+    int limit = 20,
+  }) async {
     return [];
   }
 

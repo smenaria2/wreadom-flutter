@@ -288,6 +288,8 @@ class FirebaseProfileRepository implements ProfileRepository {
       'likes': preference(settings.likes),
       'followedAuthorPosts': preference(settings.followedAuthorPosts),
       'newCreations': preference(settings.newCreations),
+      'dailyTopics': preference(settings.dailyTopics),
+      'recommendedContent': preference(settings.recommendedContent),
       'browserNotifications': settings.browserNotifications,
     };
   }

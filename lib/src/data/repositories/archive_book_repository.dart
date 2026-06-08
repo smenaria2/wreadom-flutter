@@ -84,8 +84,17 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
-  Future<List<Book>> searchArchiveBooks(String query, {int limit = 20}) async {
-    return searchBooks(query, limit: limit);
+  Future<List<Book>> searchArchiveBooks(
+    String query, {
+    String? language,
+    int limit = 20,
+  }) async {
+    final result = await _service.searchBooks(
+      query: query,
+      language: language,
+      rows: limit,
+    );
+    return result['results'] as List<Book>;
   }
 
   @override

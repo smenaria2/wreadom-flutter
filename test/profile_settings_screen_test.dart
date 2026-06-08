@@ -115,6 +115,10 @@ void main() {
     expect(find.text('Direct messages'), findsOneWidget);
     await _scrollUntilTextVisible(tester, 'New creations and chapters');
     expect(find.text('New creations and chapters'), findsOneWidget);
+    await _scrollUntilTextVisible(tester, 'Daily topics');
+    expect(find.text('Daily topics'), findsOneWidget);
+    await _scrollUntilTextVisible(tester, 'Recommended content');
+    expect(find.text('Recommended content'), findsOneWidget);
 
     await _tapSaveSettings(tester);
     await tester.pumpAndSettle();
@@ -122,6 +126,8 @@ void main() {
     final saved = repository.savedNotificationSettings;
     expect(saved, isNotNull);
     expect(saved!.messages.app, isTrue);
+    expect(saved.dailyTopics.app, isTrue);
+    expect(saved.recommendedContent.app, isTrue);
     expect(saved.messages.browser, isFalse);
     expect(saved.browserNotifications, isFalse);
   });
@@ -283,6 +289,14 @@ NotificationSettings _notificationSettings({
     app: true,
     browser: false,
   ),
+  NotificationPreference dailyTopics = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
+  NotificationPreference recommendedContent = const NotificationPreference(
+    app: true,
+    browser: false,
+  ),
   bool browserNotifications = false,
 }) {
   return NotificationSettings(
@@ -295,6 +309,8 @@ NotificationSettings _notificationSettings({
     likes: likes,
     followedAuthorPosts: followedAuthorPosts,
     newCreations: newCreations,
+    dailyTopics: dailyTopics,
+    recommendedContent: recommendedContent,
     browserNotifications: browserNotifications,
   );
 }

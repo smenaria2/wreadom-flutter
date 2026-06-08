@@ -563,7 +563,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postBtn => 'Post';
 
   @override
-  String get postHint => 'What are you reading, thinking, or building?';
+  String get postHint => 'What are you reading, writing or thinking?';
+
+  @override
+  String get answerQuestionHint =>
+      'Answer this question, or remove it to share something else...';
 
   @override
   String get removeImage => 'Remove image';
@@ -1813,6 +1817,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedTypeTestimony => 'Testimony';
 
   @override
+  String get feedTypeAll => 'All';
+
+  @override
+  String get feedTypeQuestion => 'Question';
+
+  @override
   String get noRatingsYet => 'No ratings yet';
 
   @override
@@ -2245,4 +2255,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hapticFeedbackSubtitle => 'Vibrate on likes, shares, and actions';
+
+  @override
+  String get resendSuccess => 'Verification email resent successfully.';
+
+  @override
+  String get verificationFailed =>
+      'Verification failed. Please check your email and try again.';
+
+  @override
+  String get emailVerificationTitle => 'Verify your email';
+
+  @override
+  String get emailVerificationDesc => 'We\'ve sent a verification link to';
+
+  @override
+  String get emailVerificationInstruction =>
+      'Please check your inbox (and spam folder) and click the link to verify your account.';
+
+  @override
+  String get checkVerificationStatus => 'Check Verification Status';
+
+  @override
+  String resendCooldown(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get resendVerification => 'Resend Verification';
+
+  @override
+  String get appUpdateChecking => 'Checking for updates...';
+
+  @override
+  String get appUpdateNoUpdateFound => 'No updates found.';
+
+  @override
+  String get notificationDailyTopics => 'Daily writing prompts';
+
+  @override
+  String get notificationRecommendedContent => 'Recommended content for you';
+
+  @override
+  String get notificationGroupDiscovery => 'Discovery notifications';
 }

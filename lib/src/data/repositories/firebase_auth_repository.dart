@@ -36,6 +36,8 @@ class FirebaseAuthRepository implements AuthRepository {
         likes: NotificationPreference(app: true, browser: false),
         followedAuthorPosts: NotificationPreference(app: true, browser: false),
         newCreations: NotificationPreference(app: true, browser: false),
+        dailyTopics: NotificationPreference(app: true, browser: false),
+        recommendedContent: NotificationPreference(app: true, browser: false),
         browserNotifications: false,
       );
 
@@ -54,6 +56,14 @@ class FirebaseAuthRepository implements AuthRepository {
 
       // Update display name
       await fbUser.updateDisplayName(username);
+      await fbUser.reload();
+
+      // Send verification email
+      try {
+        await fbUser.sendEmailVerification();
+      } catch (e) {
+        debugPrint('Failed to send email verification: $e');
+      }
 
       final userModel = UserModel(
         id: fbUser.uid,
@@ -68,10 +78,16 @@ class FirebaseAuthRepository implements AuthRepository {
         notificationSettings: _defaultNotificationSettings,
       );
 
+      final json = userModel.toJson();
+      if (userModel.notificationSettings != null) {
+        json['notificationSettings'] =
+            _notificationSettingsToMap(userModel.notificationSettings!);
+      }
+
       await _firestore
           .collection('users')
           .doc(fbUser.uid)
-          .set(userModel.toJson());
+          .set(json);
 
       AnalyticsService.logSignUp(method: 'email');
       return userModel;
@@ -284,17 +300,18 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     final fallbackUser = _fallbackCurrentUserModel(userId);
-    if (fallbackUser != null) {
-      unawaited(_setUserProfileIfPossible(fallbackUser));
-    }
     return fallbackUser;
   }
 
   UserModel _userModelFromFirebaseUser(firebase.User fbUser, {String? email}) {
+    final emailVal = fbUser.email ?? email;
+    final fallbackUsername = emailVal != null && emailVal.contains('@')
+        ? emailVal.split('@').first
+        : 'Reader';
     return UserModel(
       id: fbUser.uid,
-      username: fbUser.displayName ?? 'Reader',
-      email: fbUser.email ?? email ?? '',
+      username: fbUser.displayName ?? fallbackUsername,
+      email: emailVal ?? '',
       displayName: fbUser.displayName,
       photoURL: fbUser.photoURL,
       privacyLevel: 'public',
@@ -307,12 +324,39 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
+  Map<String, dynamic> _notificationSettingsToMap(NotificationSettings settings) {
+    Map<String, bool> preference(NotificationPreference value) => {
+      'app': value.app,
+      'browser': value.browser,
+    };
+
+    return {
+      'messages': preference(settings.messages),
+      'groupMessages': preference(settings.groupMessages),
+      'comments': preference(settings.comments),
+      'replies': preference(settings.replies),
+      'followers': preference(settings.followers),
+      'testimonials': preference(settings.testimonials),
+      'likes': preference(settings.likes),
+      'followedAuthorPosts': preference(settings.followedAuthorPosts),
+      'newCreations': preference(settings.newCreations),
+      'dailyTopics': preference(settings.dailyTopics),
+      'recommendedContent': preference(settings.recommendedContent),
+      'browserNotifications': settings.browserNotifications,
+    };
+  }
+
   Future<void> _setUserProfileIfPossible(UserModel userModel) async {
     try {
+      final json = userModel.toJson();
+      if (userModel.notificationSettings != null) {
+        json['notificationSettings'] =
+            _notificationSettingsToMap(userModel.notificationSettings!);
+      }
       await _firestore
           .collection('users')
           .doc(userModel.id)
-          .set(userModel.toJson())
+          .set(json)
           .timeout(_profileWriteTimeout);
     } catch (e) {
       debugPrint('Signed in, but user profile creation failed: $e');
@@ -336,17 +380,11 @@ class FirebaseAuthRepository implements AuthRepository {
           continue;
         }
         final fallbackUser = _fallbackCurrentUserModel(userId);
-        if (fallbackUser != null) {
-          unawaited(_setUserProfileIfPossible(fallbackUser));
-        }
         yield fallbackUser;
       }
     } catch (e) {
       debugPrint('User profile watch failed: $e');
       final fallbackUser = _fallbackCurrentUserModel(userId);
-      if (fallbackUser != null) {
-        unawaited(_setUserProfileIfPossible(fallbackUser));
-      }
       yield fallbackUser;
     }
   }

@@ -13,7 +13,7 @@ import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
 
-void showCreatePostSheet(BuildContext context) {
+void showCreatePostSheet(BuildContext context, {String? initialQuestion}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -22,12 +22,13 @@ void showCreatePostSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => const _CreatePostSheet(),
+    builder: (_) => _CreatePostSheet(initialQuestion: initialQuestion),
   );
 }
 
 class _CreatePostSheet extends ConsumerStatefulWidget {
-  const _CreatePostSheet();
+  final String? initialQuestion;
+  const _CreatePostSheet({this.initialQuestion});
 
   @override
   ConsumerState<_CreatePostSheet> createState() => _CreatePostSheetState();
@@ -39,11 +40,39 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   bool _isSubmitting = false;
   String _visibility = 'public';
   XFile? _pickedImage;
+  String? _currentQuestion;
+  bool _isChangingQuestion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentQuestion = widget.initialQuestion;
+  }
 
   @override
   void dispose() {
     _textController.dispose();
     super.dispose();
+  }
+
+  void _removeQuestion() => setState(() => _currentQuestion = null);
+
+  Future<void> _changeQuestion() async {
+    if (_isChangingQuestion) return;
+    setState(() => _isChangingQuestion = true);
+    try {
+      final questions = await ref.read(activeQuestionsProvider.future);
+      if (questions.isNotEmpty) {
+        final others = questions.where((q) => q != _currentQuestion).toList();
+        final pool = others.isNotEmpty ? others : questions;
+        pool.shuffle();
+        if (mounted) setState(() => _currentQuestion = pool.first);
+      }
+    } catch (_) {
+      // silently ignore
+    } finally {
+      if (mounted) setState(() => _isChangingQuestion = false);
+    }
   }
 
   Future<void> _pickImage() async {
@@ -53,34 +82,28 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         imageQuality: 70,
         maxWidth: 1200,
       );
-      if (image != null) {
-        setState(() => _pickedImage = image);
-      }
+      if (image != null) setState(() => _pickedImage = image);
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
   }
 
-  void _removeImage() {
-    setState(() => _pickedImage = null);
-  }
+  void _removeImage() => setState(() => _pickedImage = null);
 
   Future<void> _submit() async {
     final text = _textController.text.trim();
     if (text.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.writeSomethingFirst)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.writeSomethingFirst)),
+      );
       return;
     }
 
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.loginToPost)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.loginToPost)),
+      );
       return;
     }
 
@@ -108,6 +131,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         visibility: _visibility,
         privacy: _visibility,
         imageUrl: imageUrl,
+        question: _currentQuestion,
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
@@ -122,22 +146,20 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
 
       if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.postShared),
+            content: Text(AppLocalizations.of(context)!.postShared),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.errorWithDetails(e.toString())),
+            content: Text(AppLocalizations.of(context)!.errorWithDetails(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -153,260 +175,373 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final user = currentUserAsync.asData?.value;
     final photoUrl = user?.photoURL;
-    final name =
-        user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
+    final name = user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
     final username = user?.username ?? 'reader';
 
+    // Loading state
     if (currentUserAsync.isLoading) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 18 + bottomInset),
         child: const Center(child: CircularProgressIndicator()),
       );
     }
 
+    // Unauthenticated state
     if (user == null) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 18 + bottomInset),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            _DragHandle(),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Text(
                   l10n.shareAnUpdate,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close_rounded),
                   tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             const AuthRequiredView(
               icon: Icons.edit_rounded,
-              padding: EdgeInsets.fromLTRB(16, 28, 16, 36),
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 32),
             ),
           ],
         ),
       );
     }
 
+    // Main post creation UI
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 18 + bottomInset),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                l10n.shareAnUpdate,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close_rounded),
-                tooltip: l10n.close,
-                onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-              ),
-              const SizedBox(width: 4),
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(l10n.postBtn),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            padding: const EdgeInsets.all(14),
-            child: Column(
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            _DragHandle(),
+            const SizedBox(height: 10),
+
+            // Header row: title + close + post button
+            Row(
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 19,
-                      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(photoUrl)
-                          : null,
-                      child: photoUrl == null || photoUrl.isEmpty
-                          ? Text(
-                              name.substring(0, 1).toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
+                Text(
+                  l10n.shareAnUpdate,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 4),
+                FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(l10n.postBtn),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Main card
+            Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Question prompt card
+                  if (_currentQuestion != null) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.fromLTRB(10, 7, 10, 5),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border(
+                          left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                        ),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '@$username',
-                            maxLines: 1,
+                            _currentQuestion!,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
                               fontSize: 12,
+                              height: 1.3,
+                              color: theme.colorScheme.primary,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _QuestionActionChip(
+                                icon: Icons.refresh_rounded,
+                                isLoading: _isChangingQuestion,
+                                label: 'Change',
+                                color: theme.colorScheme.primary,
+                                onTap: _isChangingQuestion ? null : _changeQuestion,
+                              ),
+                              Container(
+                                width: 1,
+                                height: 10,
+                                margin: const EdgeInsets.symmetric(horizontal: 5),
+                                color: theme.colorScheme.outlineVariant,
+                              ),
+                              _QuestionActionChip(
+                                icon: Icons.close_rounded,
+                                label: 'Remove',
+                                color: theme.colorScheme.onSurfaceVariant,
+                                onTap: _removeQuestion,
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    _VisibilitySelector(
-                      value: _visibility,
-                      onChanged: (val) => setState(() => _visibility = val!),
-                    ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _textController,
-                  maxLines: 7,
-                  minLines: 3,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: l10n.postHint,
-                    hintStyle: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    border: InputBorder.none,
-                  ),
-                ),
-                if (_pickedImage != null) ...[
-                  const SizedBox(height: 10),
-                  Stack(
+
+                  // User info row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: FutureBuilder<Uint8List>(
-                          future: _pickedImage!.readAsBytes(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              return Image.memory(
-                                snapshot.data!,
-                                height: 200,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              );
-                            }
-                            return const SizedBox(
-                              height: 200,
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          },
+                      CircleAvatar(
+                        radius: 17,
+                        backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(photoUrl)
+                            : null,
+                        child: photoUrl == null || photoUrl.isEmpty
+                            ? Text(
+                                name.substring(0, 1).toUpperCase(),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                            ),
+                            Text(
+                              '@$username',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: IconButton.filledTonal(
-                          onPressed: _removeImage,
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                          tooltip: l10n.removeImage,
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.black54,
-                            foregroundColor: Colors.white,
+                      _VisibilitySelector(
+                        value: _visibility,
+                        onChanged: (val) => setState(() => _visibility = val!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Text input
+                  TextField(
+                    controller: _textController,
+                    maxLines: 6,
+                    minLines: 3,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: _currentQuestion != null
+                          ? l10n.answerQuestionHint
+                          : l10n.postHint,
+                      hintStyle: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                    ),
+                  ),
+
+                  // Image preview
+                  if (_pickedImage != null) ...[
+                    const SizedBox(height: 8),
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: FutureBuilder<Uint8List>(
+                            future: _pickedImage!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Image.memory(
+                                  snapshot.data!,
+                                  height: 160,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                );
+                              }
+                              return const SizedBox(
+                                height: 160,
+                                child: Center(child: CircularProgressIndicator()),
+                              );
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: IconButton.filledTonal(
+                            onPressed: _removeImage,
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            tooltip: l10n.removeImage,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black54,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(28, 28),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // Divider + image picker
+                  const Divider(height: 18),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: _pickImage,
+                        icon: Icon(
+                          Icons.image_outlined,
+                          color: theme.colorScheme.primary,
+                          size: 22,
+                        ),
+                        tooltip: l10n.addImage,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _pickedImage == null ? l10n.addImage : _pickedImage!.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 12,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ],
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    IconButton.filledTonal(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image_outlined),
-                      tooltip: l10n.addImage,
-                      style: IconButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primaryContainer,
-                        foregroundColor: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _pickedImage == null
-                            ? l10n.addImage
-                            : _pickedImage!.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact pill-shaped action chip for question actions.
+class _QuestionActionChip extends StatelessWidget {
+  const _QuestionActionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  final IconData? icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isLoading)
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(strokeWidth: 1.5, color: color),
+            )
+          else if (icon != null)
+            Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small drag handle indicator at the top of the sheet.
+class _DragHandle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 36,
+        height: 4,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }
@@ -422,15 +557,16 @@ class _VisibilitySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          iconSize: 18,
+          iconSize: 16,
+          isDense: true,
           borderRadius: BorderRadius.circular(12),
           style: TextStyle(
             fontSize: 12,

@@ -285,3 +285,26 @@ test("suppressed milestone notifications do not send push notifications", () => 
       true,
   );
 });
+
+test("scheduled discovery pushes use dedicated notification setting keys", () => {
+  assert.equal(
+      exported.__test.pushNotificationSettingKey({
+        type: "new_creation",
+        metadata: {source: "scheduled_daily_topic", targetType: "daily_topic"},
+      }),
+      "dailyTopics",
+  );
+  assert.equal(
+      exported.__test.pushNotificationSettingKey({
+        type: "new_creation",
+        metadata: {source: "scheduled_daily_recommendation"},
+      }),
+      "recommendedContent",
+  );
+  assert.equal(
+      exported.__test.pushNotificationSettingKey({
+        type: "published",
+      }),
+      "newCreations",
+  );
+});

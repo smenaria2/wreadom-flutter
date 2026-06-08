@@ -163,6 +163,8 @@ Map<String, bool> _notificationAppValuesFromSettings(
     'likes': settings.likes.app,
     'followedAuthorPosts': settings.followedAuthorPosts.app,
     'newCreations': settings.newCreations.app,
+    'dailyTopics': settings.dailyTopics.app,
+    'recommendedContent': settings.recommendedContent.app,
   };
 }
 
@@ -187,6 +189,11 @@ NotificationSettings _settingsWithAppValues(
       settings.followedAuthorPosts,
     ),
     newCreations: withApp('newCreations', settings.newCreations),
+    dailyTopics: withApp('dailyTopics', settings.dailyTopics),
+    recommendedContent: withApp(
+      'recommendedContent',
+      settings.recommendedContent,
+    ),
   );
 }
 
@@ -246,6 +253,18 @@ List<_NotificationToggleSpec> _notificationToggleSpecs(AppLocalizations l10n) {
       Icons.auto_stories_outlined,
       _NotificationPreferenceGroup.creations,
     ),
+    _NotificationToggleSpec(
+      'dailyTopics',
+      l10n.notificationDailyTopics,
+      Icons.lightbulb_outline_rounded,
+      _NotificationPreferenceGroup.discovery,
+    ),
+    _NotificationToggleSpec(
+      'recommendedContent',
+      l10n.notificationRecommendedContent,
+      Icons.recommend_outlined,
+      _NotificationPreferenceGroup.discovery,
+    ),
   ];
 }
 
@@ -263,6 +282,7 @@ enum _NotificationPreferenceGroup {
   responses,
   community,
   creations,
+  discovery,
 }
 
 class _NotificationPreferencesSection extends StatefulWidget {
@@ -381,6 +401,7 @@ class _NotificationPreferencesSectionState
       _NotificationPreferenceGroup.responses => l10n.notificationGroupResponses,
       _NotificationPreferenceGroup.community => l10n.notificationGroupCommunity,
       _NotificationPreferenceGroup.creations => l10n.notificationGroupCreations,
+      _NotificationPreferenceGroup.discovery => l10n.notificationGroupDiscovery,
     };
   }
 }

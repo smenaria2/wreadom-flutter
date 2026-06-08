@@ -63,6 +63,12 @@ _NotificationSettings _$NotificationSettingsFromJson(
   newCreations: NotificationPreference.fromJson(
     json['newCreations'] as Map<String, dynamic>,
   ),
+  dailyTopics: NotificationPreference.fromJson(
+    json['dailyTopics'] as Map<String, dynamic>,
+  ),
+  recommendedContent: NotificationPreference.fromJson(
+    json['recommendedContent'] as Map<String, dynamic>,
+  ),
   browserNotifications: json['browserNotifications'] as bool,
 );
 
@@ -78,6 +84,8 @@ Map<String, dynamic> _$NotificationSettingsToJson(
   'likes': instance.likes,
   'followedAuthorPosts': instance.followedAuthorPosts,
   'newCreations': instance.newCreations,
+  'dailyTopics': instance.dailyTopics,
+  'recommendedContent': instance.recommendedContent,
   'browserNotifications': instance.browserNotifications,
 };
 

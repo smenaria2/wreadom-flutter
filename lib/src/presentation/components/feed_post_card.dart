@@ -66,7 +66,13 @@ String _typeLabel(String type, AppLocalizations l10n) {
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
   final bool openOnTap;
-  const FeedPostCard({super.key, required this.post, this.openOnTap = true});
+  final ValueChanged<String>? onReplyToQuestion;
+  const FeedPostCard({
+    super.key,
+    required this.post,
+    this.openOnTap = true,
+    this.onReplyToQuestion,
+  });
 
   @override
   ConsumerState<FeedPostCard> createState() => _FeedPostCardState();
@@ -661,6 +667,58 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             ],
 
             const SizedBox(height: 10),
+
+            // ─── Question prompt (if present) ─────────────────
+            if (post.question != null && post.question!.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border(
+                    left: BorderSide(
+                      color: colorScheme.primary,
+                      width: 3,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        post.question!,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    if (currentUser != null && widget.onReplyToQuestion != null) ...[
+                      const SizedBox(width: 8),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () => widget.onReplyToQuestion!(post.question!),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.reply_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
 
             // ─── Post text ────────────────────────────────────
             // Italicise quotes

@@ -287,7 +287,8 @@
   "shareAnUpdate": "Share an update",
   "close": "Close",
   "postBtn": "Post",
-  "postHint": "What are you reading, thinking, or building?",
+  "postHint": "What are you reading, writing or thinking?",
+  "answerQuestionHint": "Answer this question, or remove it to share something else...",
   "removeImage": "Remove image",
   "addImage": "Add image",
   "likedYourPost": "liked your post.",
@@ -1056,6 +1057,8 @@
   "feedTypeQuote": "Quote",
   "feedTypeReview": "Review",
   "feedTypeTestimony": "Testimony",
+  "feedTypeAll": "All",
+  "feedTypeQuestion": "Question",
   "noRatingsYet": "No ratings yet",
   "ratingMetric": "{rating} rating",
   "@ratingMetric": {
@@ -1238,5 +1241,25 @@
   "systemDefault": "System",
   "sepia": "Sepia",
   "hapticFeedback": "Haptic feedback",
-  "hapticFeedbackSubtitle": "Vibrate on likes, shares, and actions"
+  "hapticFeedbackSubtitle": "Vibrate on likes, shares, and actions",
+  "resendSuccess": "Verification email resent successfully.",
+  "verificationFailed": "Verification failed. Please check your email and try again.",
+  "emailVerificationTitle": "Verify your email",
+  "emailVerificationDesc": "We've sent a verification link to",
+  "emailVerificationInstruction": "Please check your inbox (and spam folder) and click the link to verify your account.",
+  "checkVerificationStatus": "Check Verification Status",
+  "resendCooldown": "Resend in {seconds}s",
+  "@resendCooldown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "resendVerification": "Resend Verification",
+  "appUpdateChecking": "Checking for updates...",
+  "appUpdateNoUpdateFound": "No updates found.",
+  "notificationDailyTopics": "Daily writing prompts",
+  "notificationRecommendedContent": "Recommended content for you",
+  "notificationGroupDiscovery": "Discovery notifications"
 }

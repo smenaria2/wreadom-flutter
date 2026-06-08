@@ -765,26 +765,7 @@ async function sendPushNotificationToUser(userId, data, notificationId = "") {
 
   const userData = userDoc.data() || {};
   const notifSettings = userData.notificationSettings;
-  const typeToSettingKey = {
-    message: "messages",
-    groupMessage: "groupMessages",
-    comment: "comments",
-    reply: "replies",
-    follower: "followers",
-    testimonial: "testimonials",
-    like: "likes",
-    feedPost: "followedAuthorPosts",
-    new_creation: "newCreations",
-    published: "newCreations",
-    chapter_update: "newCreations",
-    mention: "comments",
-    feed_comment: "comments",
-    book_comment: "comments",
-    book_review: "comments",
-    feed_reply: "replies",
-    book_reply: "replies",
-  };
-  const settingKey = typeToSettingKey[data.type];
+  const settingKey = pushNotificationSettingKey(data);
 
   const legacyTokens = Array.isArray(userData.fcmTokens) ?
     userData.fcmTokens.map((token) => normalizeString(token)).filter(Boolean) :
@@ -886,6 +867,48 @@ async function sendPushNotificationToUser(userId, data, notificationId = "") {
   } catch (error) {
     logger.error("Error sending FCM push notification:", error);
   }
+}
+
+function pushNotificationSettingKey(data = {}) {
+  const metadata = data.metadata || {};
+  const source = normalizeString(metadata.source);
+  const targetType = normalizeString(metadata.targetType);
+  const type = normalizeString(data.type);
+
+  if (
+    source === "scheduled_daily_topic" ||
+    targetType === "daily_topic" ||
+    type === "daily_topic"
+  ) {
+    return "dailyTopics";
+  }
+  if (
+    source === "scheduled_daily_recommendation" ||
+    source === "admin_content_recommendation"
+  ) {
+    return "recommendedContent";
+  }
+
+  const typeToSettingKey = {
+    message: "messages",
+    groupMessage: "groupMessages",
+    comment: "comments",
+    reply: "replies",
+    follower: "followers",
+    testimonial: "testimonials",
+    like: "likes",
+    feedPost: "followedAuthorPosts",
+    new_creation: "newCreations",
+    published: "newCreations",
+    chapter_update: "newCreations",
+    mention: "comments",
+    feed_comment: "comments",
+    book_comment: "comments",
+    book_review: "comments",
+    feed_reply: "replies",
+    book_reply: "replies",
+  };
+  return typeToSettingKey[type];
 }
 
 exports.sendPushNotification = functionsV1.firestore.document("notifications/{notificationId}").onWrite(async (change, context) => {
@@ -2404,6 +2427,7 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     publishedBookNotificationText,
     newChapterNotificationText,
     localizedPushBody,
+    pushNotificationSettingKey,
     chapterKey,
     isSupersededBookCommentNotification,
     shouldSendPushNotification,

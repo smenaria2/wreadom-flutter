@@ -30,7 +30,7 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(publicProfileProvider(userId));
     final followingAsync = ref.watch(isFollowingProvider(userId));
-    final selfId = ref.watch(currentUserProvider).asData?.value?.id;
+    final selfId = ref.watch(currentUserProvider).value?.id;
     final isSelf = selfId == userId;
     final l10n = AppLocalizations.of(context)!;
 
@@ -117,12 +117,16 @@ class PublicProfileScreen extends ConsumerWidget {
                   ],
                 ],
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    _safePublicProfileDisplayName(user),
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  centerTitle: false,
+                  titlePadding: const EdgeInsetsDirectional.only(
+                    start: 56,
+                    bottom: 16,
+                  ),
+                  title: _ProfileAppBarTitle(
+                    displayName: _safePublicProfileDisplayName(user),
+                    rightPaddingMax: isSelf
+                        ? 56.0
+                        : ((followingAsync.value ?? false) ? 152.0 : 104.0),
                   ),
                   background: _PublicProfileHeader(user: user),
                 ),
@@ -348,6 +352,54 @@ class _PrivacyNoticeCard extends StatelessWidget {
   }
 }
 
+class _ProfileAppBarTitle extends StatelessWidget {
+  const _ProfileAppBarTitle({
+    required this.displayName,
+    required this.rightPaddingMax,
+  });
+
+  final String displayName;
+  final double rightPaddingMax;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings =
+        context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+
+    double opacity = 0.0;
+    double rightPadding = 0.0;
+
+    if (settings != null) {
+      final delta = settings.maxExtent - settings.minExtent;
+      final collapseProgress =
+          (settings.maxExtent - settings.currentExtent) / delta;
+
+      // Fade in the title in the last 30% of scroll progress
+      opacity = ((collapseProgress - 0.7) / 0.3).clamp(0.0, 1.0);
+
+      // Dynamically calculate right padding to avoid action buttons
+      rightPadding = collapseProgress.clamp(0.0, 1.0) * rightPaddingMax;
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Padding(
+        padding: EdgeInsets.only(right: rightPadding),
+        child: Text(
+          displayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PublicProfileHeader extends StatelessWidget {
   const _PublicProfileHeader({required this.user});
 
@@ -359,6 +411,17 @@ class _PublicProfileHeader extends StatelessWidget {
     final coverUrl = user.coverPhotoURL;
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
     final displayName = _safePublicProfileDisplayName(user);
+
+    final settings =
+        context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    double opacity = 1.0;
+    if (settings != null) {
+      final delta = settings.maxExtent - settings.minExtent;
+      final collapseProgress =
+          (settings.maxExtent - settings.currentExtent) / delta;
+      // Fade out the expanded header completely by 60% of scroll progress
+      opacity = (1.0 - collapseProgress / 0.6).clamp(0.0, 1.0);
+    }
 
     return Stack(
       fit: StackFit.expand,
@@ -384,30 +447,58 @@ class _PublicProfileHeader extends StatelessWidget {
               color: theme.colorScheme.surface.withValues(alpha: 0.42),
             ),
           ),
-        SafeArea(
-          child: Center(
-            child: CircleAvatar(
-              radius: 44,
-              backgroundColor: theme.colorScheme.surface,
-              child: CircleAvatar(
-                radius: 42,
-                backgroundColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.1,
+        Opacity(
+          opacity: opacity,
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 44,
+                  backgroundColor: theme.colorScheme.surface,
+                  child: CircleAvatar(
+                    radius: 42,
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
+                    backgroundImage: user.photoURL != null
+                        ? CachedNetworkImageProvider(user.photoURL!)
+                        : null,
+                    child: user.photoURL == null
+                        ? Text(
+                            _safePublicProfileInitial(displayName),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
-                backgroundImage: user.photoURL != null
-                    ? CachedNetworkImageProvider(user.photoURL!)
-                    : null,
-                child: user.photoURL == null
-                    ? Text(
-                        _safePublicProfileInitial(displayName),
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      )
-                    : null,
-              ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: hasCover ? Colors.white : theme.colorScheme.onSurface,
+                      shadows: hasCover
+                          ? [
+                              const Shadow(
+                                offset: Offset(0, 1),
+                                blurRadius: 4,
+                                color: Colors.black54,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

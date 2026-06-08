@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -683,15 +684,16 @@ class _MenuSectionLabel extends StatelessWidget {
   }
 }
 
-class _AppVersionTile extends StatefulWidget {
+class _AppVersionTile extends ConsumerStatefulWidget {
   const _AppVersionTile();
 
   @override
-  State<_AppVersionTile> createState() => _AppVersionTileState();
+  ConsumerState<_AppVersionTile> createState() => _AppVersionTileState();
 }
 
-class _AppVersionTileState extends State<_AppVersionTile> {
+class _AppVersionTileState extends ConsumerState<_AppVersionTile> {
   late final Future<String> _versionLabel = _loadVersionLabel();
+  bool _checking = false;
 
   Future<String> _loadVersionLabel() async {
     final info = await PackageInfo.fromPlatform();
@@ -705,8 +707,13 @@ class _AppVersionTileState extends State<_AppVersionTile> {
       future: _versionLabel,
       builder: (context, snapshot) {
         return ListTile(
-          enabled: false,
-          leading: const Icon(Icons.info_outline, size: 20),
+          enabled: !_checking,
+          leading: _checking
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.info_outline, size: 20),
           title: Text(
             snapshot.data ?? 'Version',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -716,9 +723,47 @@ class _AppVersionTileState extends State<_AppVersionTile> {
           ),
           dense: true,
           visualDensity: VisualDensity.compact,
+          onTap: _checking ? null : _checkForUpdate,
         );
       },
     );
+  }
+
+  Future<void> _checkForUpdate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _checking = true);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.appUpdateChecking)));
+
+    try {
+      final availability = await ref.refresh(
+        appUpdateAvailabilityProvider.future,
+      );
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      if (availability == null) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.appUpdateNoUpdateFound)),
+        );
+        return;
+      }
+
+      messenger.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(l10n.appUpdateAvailable),
+          action: SnackBarAction(
+            label: l10n.updateAction,
+            onPressed: () =>
+                unawaited(_openAppUpdateLink(context, availability)),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
   }
 }
 
@@ -750,22 +795,33 @@ class _AppUpdateTile extends ConsumerWidget {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final uri = Uri.tryParse(availability.config.androidDownloadUrl);
-    if (uri == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.invalidUpdateLink)));
-      return;
-    }
+    await _openAppUpdateLink(context, availability, messenger, l10n);
+  }
+}
 
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
+Future<void> _openAppUpdateLink(
+  BuildContext context,
+  AppUpdateAvailability availability, [
+  ScaffoldMessengerState? messenger,
+  AppLocalizations? l10n,
+]) async {
+  messenger ??= ScaffoldMessenger.of(context);
+  l10n ??= AppLocalizations.of(context)!;
+  final uri = Uri.tryParse(availability.config.androidDownloadUrl);
+  if (uri == null) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.invalidUpdateLink)));
+    return;
+  }
 
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.couldNotOpenUpdateLink)),
-      );
-    }
+  if (Navigator.of(context).canPop()) {
+    Navigator.of(context).pop();
+  }
+
+  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!opened) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.couldNotOpenUpdateLink)),
+    );
   }
 }
 

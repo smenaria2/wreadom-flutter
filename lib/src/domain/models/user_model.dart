@@ -40,6 +40,8 @@ abstract class NotificationSettings with _$NotificationSettings {
     required NotificationPreference likes,
     required NotificationPreference followedAuthorPosts,
     required NotificationPreference newCreations,
+    required NotificationPreference dailyTopics,
+    required NotificationPreference recommendedContent,
     required bool browserNotifications,
   }) = _NotificationSettings;
 

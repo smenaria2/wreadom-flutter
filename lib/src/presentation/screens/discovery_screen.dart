@@ -28,6 +28,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   Timer? _debounce;
   String _query = '';
   String? _activeGenre;
+  String? _searchLanguage;
   bool _initialized = false;
 
   static const _genres = [
@@ -50,6 +51,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     _initialized = true;
     final args = asStringMap(ModalRoute.of(context)?.settings.arguments);
     final query = args['query']?.toString();
+    _searchLanguage = args['language']?.toString();
     if (query == null || query == 'archive:') return;
     if (query.startsWith('subject:')) {
       _activeGenre = query.split(':').last;
@@ -80,7 +82,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final genreAsync = hasGenre
         ? ref.watch(booksByGenreProvider(_activeGenre!))
         : null;
-    final searchAsync = ref.watch(discoverySearchProvider(_query));
+    final String queryForProvider = _searchLanguage != null && _searchLanguage!.isNotEmpty
+        ? '$_query|lang:$_searchLanguage'
+        : _query;
+    final searchAsync = ref.watch(discoverySearchProvider(queryForProvider));
     final defaultAsync = ref.watch(discoveryDefaultBooksProvider);
 
     return Scaffold(
@@ -109,6 +114,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       final nextQuery = value.trim();
                       setState(() {
                         _query = nextQuery;
+                        _searchLanguage = null; // Clear tag source language on typing new query
                         if (_query.isNotEmpty) _activeGenre = null;
                       });
                       AnalyticsService.logSearch(nextQuery);

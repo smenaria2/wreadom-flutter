@@ -26,6 +26,8 @@ import 'src/presentation/routing/app_routes.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
+import 'src/presentation/screens/email_verification_screen.dart';
+import 'src/presentation/providers/email_verification_provider.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/analytics_service.dart';
 import 'src/data/services/google_sign_in_initializer.dart';
@@ -136,10 +138,14 @@ Future<void> _configureFirestoreCache() async {
 }
 
 Future<void> _configureFirebaseEmulators() async {
+  debugPrint('--- Configuring Firebase Emulators ---');
+  debugPrint('useFirebaseEmulators: ${EnvConfig.useFirebaseEmulators}');
+  debugPrint('firebaseEmulatorHost Env: ${EnvConfig.firebaseEmulatorHost}');
   if (!EnvConfig.useFirebaseEmulators) return;
   final host = EnvConfig.firebaseEmulatorHost.trim().isEmpty
       ? '127.0.0.1'
       : EnvConfig.firebaseEmulatorHost.trim();
+  debugPrint('Using emulator host: $host');
   await FirebaseAuth.instance.useAuthEmulator(host, 9099);
   FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
   FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
@@ -587,6 +593,10 @@ class AuthWrapper extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user != null) {
+          final isVerified = ref.watch(emailVerifiedProvider(user.uid));
+          if (!isVerified) {
+            return EmailVerificationScreen(userId: user.uid);
+          }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(warmUserHomepageCache(ref));
             NotificationService.instance.drainPendingNavigation();
