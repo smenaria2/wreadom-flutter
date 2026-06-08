@@ -23,28 +23,24 @@ Use this file as the durable project briefing for future Codex sessions that wor
 
 ## Cloud Functions Responsibilities
 
-- Treat Cloud Functions as one shared backend surface even though each repo has its own `functions` directory.
-- Current overlapping function responsibilities include push notifications, FCM token claiming/removal, follows, recommendations, book views, comments/replies, feed likes, profile denormalization, conversations/messages, book publishing and collaboration notifications, review highlighting, audio review B2 upload/download/delete URLs, and homepage metadata refresh.
-- Scheduled and homepage metadata behavior includes `refreshHomepageMetadata`, `onDailyTopicWrite`, `onHomeBannerWrite`, and `manualRefreshHomepage`.
-- Callable functions used by clients must remain compatible across web and Flutter. Check request parameters, auth requirements, return payloads, region assumptions, error codes, and client call sites before changing them.
-- Prefer making the web TypeScript functions source canonical when practical, then port or sync behavior into the Flutter repo's JavaScript functions if both Firebase workspaces remain active.
-- Do not deploy functions from one repo until shared behavior has been compared with the sibling repo and the intended canonical source is clear.
+- **DEPRECATED IN THIS REPOSITORY**: Cloud Functions are deprecated in the `librebook_flutter` repository. Do not edit, add, or deploy Cloud Functions from this repository.
+- The canonical source of truth for all Cloud Functions is the TypeScript workspace in the sibling `librebook` repository under `C:\Users\user\librebook\functions`.
+- Callable functions used by clients must remain compatible across web and Flutter. Before changing functions in the `librebook` repository, check request parameters, auth requirements, return payloads, region assumptions, error codes, and client call sites in both client repositories.
 
 ## Rules, Indexes, and Storage
 
-- `firestore.rules` currently exists in both repos and is synchronized. Keep it synchronized whenever rules change.
-- The web repo also has `storage.rules` and `firestore.indexes.json`. The Flutter repo currently does not have matching root files for those Firebase resources.
-- If adding or changing collections, query patterns, storage paths, roles, ownership rules, review/comment permissions, messaging permissions, profile visibility, or admin-like workflows, update rules and indexes as part of the same task.
-- When a rule or index change is required, inspect both clients for all affected reads/writes and update both repos' Firebase configuration files where appropriate.
-- Use file comparison rather than memory for sync checks. At minimum compare `firestore.rules`, function exports, callable function names, and client service usages before finishing backend-affecting work.
+- **DEPRECATED IN THIS REPOSITORY**: Firestore rules (`firestore.rules`) and Indexes (`firestore.indexes.json`) are deprecated in the `librebook_flutter` repository. Do not edit, add, or deploy rules/indexes from this repository.
+- The canonical source of truth for all rules and indexes is the `librebook` repository (`C:\Users\user\librebook`).
+- If adding or changing collections, query patterns, storage paths, roles, ownership rules, review/comment permissions, messaging permissions, profile visibility, or admin-like workflows, update rules and indexes in the `librebook` repository.
+- When a rule or index change is made in `librebook`, verify that all affected reads/writes in both the Flutter and Web clients remain compatible.
 
 ## Cross-Project Change Workflow
 
 - Start every non-trivial feature or backend task by identifying whether it touches shared Firebase state. Assume it does if it involves schema, collections, rules, functions, notifications, counters, homepage metadata, messaging, follows, comments, reviews, audio reviews, collaboration, auth, storage, or public links.
-- Search both repos before editing. Useful targets include Flutter `lib/src/data`, `lib/src/domain`, and `lib/src/presentation`; web `services`, `pages`, `components`, `types.ts`, and `constants.ts`; and both `functions` directories.
+- Search both repos before editing. Useful targets include Flutter `lib/src/data`, `lib/src/domain`, and `lib/src/presentation`; web `services`, `pages`, `components`, `types.ts`, and `constants.ts`; and the `librebook` `functions` directory.
 - Keep shared names stable unless intentionally migrating both clients. This includes collection names, document IDs, field names, callable names, notification `type` values, FCM payload keys, route/query parameters, and Cloudinary/B2 object metadata.
 - If a change affects one client first, add compatibility handling so the other client keeps working until it is updated.
-- When changing Firestore rules or functions in one repo, compare and update the other repo before considering the task complete.
+- When changing Firestore rules or functions, perform all edits and deployments exclusively from the `librebook` repository. Check client compatibility across both repos.
 - Note any intentional divergence explicitly in the final response, including which repo is canonical and why.
 
 ## Secrets and Config
@@ -62,14 +58,12 @@ Use this file as the durable project briefing for future Codex sessions that wor
 - Flutter app checks:
   - `flutter analyze`
   - `flutter test`
-  - `cd functions && npm test`
 - Web app checks:
   - `npm run build`
   - `cd functions && npm run build`
   - `cd functions && npm test`
-- Firebase sync checks:
-  - Compare `C:\Users\user\librebook_flutter\firestore.rules` with `C:\Users\user\librebook\firestore.rules`.
-  - Compare exported Cloud Function names and callable function names across both `functions` directories.
-  - Search both clients for changed callable names, collection names, notification types, FCM payload keys, storage paths, and route/query parameters.
-  - Confirm any required `storage.rules` or `firestore.indexes.json` updates in the web repo, and decide whether matching files/config are needed in the Flutter repo.
-- Final response for cross-project work should mention which repos changed, which sync checks were performed, which tests passed, and any remaining backend/client compatibility risks.
+- Firebase/Backend checks:
+  - Perform all Firestore rules and Cloud Functions edits and testing inside the `librebook` repository.
+  - Search both clients for changed callable names, collection names, notification types, FCM payload keys, storage paths, and route/query parameters to ensure compatibility.
+  - Confirm any required `storage.rules` or `firestore.indexes.json` updates in the web repo.
+- Final response for cross-project work should mention which repos changed, which tests passed, and any remaining backend/client compatibility risks.

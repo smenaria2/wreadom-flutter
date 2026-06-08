@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// DEPRECATED: Cloud Functions should not be developed or deployed from this repository.
+// The canonical source of truth for Cloud Functions is under the `librebook`
+// project (`C:\Users\user\librebook\functions`).
+////////////////////////////////////////////////////////////////////////////////
+
 const functionsV1 = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");

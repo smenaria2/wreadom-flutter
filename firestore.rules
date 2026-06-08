@@ -1,8 +1,11 @@
 rules_version = '2';
 
-// Shared Firestore rules for the Librebook Android app and web app.
-// Keep this file aligned in both project directories and deploy the same
-// ruleset for both clients so behavior stays consistent across platforms.
+////////////////////////////////////////////////////////////////////////////////
+// DEPRECATED: DO NOT EDIT OR DEPLOY RULES FROM THIS REPOSITORY.
+// The canonical source of truth for Firestore rules is under the `librebook`
+// project at `C:\Users\user\librebook\firestore.rules`.
+// Any changes to rules must be made there.
+////////////////////////////////////////////////////////////////////////////////
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,10 +15,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && (
-        ('admin' in request.auth.token && request.auth.token.admin == true) ||
-        ('email' in request.auth.token && request.auth.token.email == 'smenaria2@gmail.com')
-      );
+      return signedIn() && ('admin' in request.auth.token && request.auth.token.admin == true);
     }
 
     function uid() {

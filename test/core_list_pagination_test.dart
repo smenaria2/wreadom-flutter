@@ -683,6 +683,9 @@ class _FakeFeedRepository implements FeedRepository {
 
   @override
   Future<String> uploadPostImage(Uint8List bytes, String fileName) async => '';
+
+  @override
+  Future<List<String>> getActiveQuestions() async => const [];
 }
 
 class _FakeMessageRepository implements MessageRepository {

@@ -1,0 +1,11 @@
+# Firebase Configuration & Backend Directive
+
+## IMPORTANT
+Firebase Cloud Functions, Firestore Security Rules (`firestore.rules`), and Firestore Indexes (`firestore.indexes.json`) are DEPRECATED in this repository (`librebook_flutter`). 
+
+The canonical source of truth for these files is in the sibling repository `librebook` located at `C:\Users\user\librebook`.
+
+## Guidelines for AI Agents and Developers
+1. **NO NEW RULES OR FUNCTIONS**: Do not create or write any new Firebase Cloud Functions, Firestore Security Rules, or Firestore Indexes in this repository.
+2. **DO NOT MODIFY**: Do not modify existing rules/functions in `c:\Users\user\librebook_flutter`. If any changes are needed, you must perform them in the `librebook` project directory (`C:\Users\user\librebook`).
+3. **DO NOT DEPLOY**: Do not deploy rules or functions from this repository. Any Firebase backend deployments must be performed from the `librebook` repository.

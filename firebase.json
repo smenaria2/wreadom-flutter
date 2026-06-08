@@ -30,13 +30,7 @@
       }
     }
   },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "functions": {
-    "source": "functions"
-  },
+
   "emulators": {
     "auth": {
       "port": 9099
