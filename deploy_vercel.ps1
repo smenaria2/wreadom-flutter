@@ -26,11 +26,37 @@ Write-Host "=============================================" -ForegroundColor Cyan
 $dartDefinesFile = ""
 $isTempDefines = $false
 
-if (Test-Path "dart_defines.local.json") {
-    Write-Host "[Info] Found dart_defines.local.json. Using it for build." -ForegroundColor Green
-    $dartDefinesFile = "dart_defines.local.json"
+$preferredDefines = if ($Production) { "dart_defines.production.json" } else { "dart_defines.local.json" }
+$secondaryDefines = if ($Production) { "dart_defines.local.json" } else { "dart_defines.production.json" }
+
+$dopplerDefines = "dart_defines.doppler.json"
+
+if (Get-Command doppler -ErrorAction SilentlyContinue) {
+    Write-Host "[Info] Fetching build secrets from Doppler..." -ForegroundColor Green
+    try {
+        $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent
+        if ($LASTEXITCODE -ne 0 -or -not $secretJson) {
+            throw "Doppler secrets download failed."
+        }
+        $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $dopplerDefines), ($secretJson -join [Environment]::NewLine), $Utf8NoBomEncoding)
+        $dartDefinesFile = $dopplerDefines
+        $isTempDefines = $true
+    } catch {
+        Write-Warning "Failed to download secrets from Doppler. Falling back to local files or environment variables."
+    }
+}
+
+if ($dartDefinesFile) {
+    Write-Host "[Info] Using $dartDefinesFile for build." -ForegroundColor Green
+} elseif (Test-Path $preferredDefines) {
+    Write-Host "[Info] Found $preferredDefines. Using it for build." -ForegroundColor Green
+    $dartDefinesFile = $preferredDefines
+} elseif (Test-Path $secondaryDefines) {
+    Write-Host "[Warning] $preferredDefines not found. Falling back to $secondaryDefines for build." -ForegroundColor Yellow
+    $dartDefinesFile = $secondaryDefines
 } else {
-    Write-Host "[Info] dart_defines.local.json not found. Checking environment variables..." -ForegroundColor Yellow
+    Write-Host "[Info] No Dart define files found. Checking environment variables..." -ForegroundColor Yellow
     
     $defines = @{}
     $envKeys = @(
@@ -97,8 +123,12 @@ Write-Host "Running: $vercelDeployCmd" -ForegroundColor DarkGray
 Invoke-Expression $vercelDeployCmd
 
 # Cleanup
-if ($isTempDefines -and (Test-Path "dart_defines.temp.json")) {
-    Remove-Item "dart_defines.temp.json" -Force
+if ($isTempDefines) {
+    foreach ($tempDefinesFile in @("dart_defines.temp.json", $dopplerDefines)) {
+        if (Test-Path $tempDefinesFile) {
+            Remove-Item $tempDefinesFile -Force
+        }
+    }
 }
 
 Write-Host "`n=============================================" -ForegroundColor Green

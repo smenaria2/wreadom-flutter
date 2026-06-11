@@ -40,6 +40,8 @@ void main() {
       expect(gitignore, contains('**/*.jks'));
       expect(gitignore, contains('.env*.local'));
       expect(gitignore, contains('dart_defines.local.json'));
+      expect(gitignore, contains('dart_defines.production.json'));
+      expect(gitignore, contains('dart_defines.doppler.json'));
     });
   });
 }

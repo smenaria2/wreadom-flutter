@@ -666,7 +666,7 @@ void main() {
     expect(rulesSource, contains("ownsIncoming('followerId')"));
     expect(rulesSource, contains("ownsIncoming('userId')"));
     expect(rulesSource, contains("onlyChanges(['commentCount'])"));
-    expect(firebaseConfig, contains('"rules": "firestore.rules"'));
+    expect(firebaseConfig, isNot(contains('"rules": "firestore.rules"')));
   });
 
   test('localized feed labels and Hindi app wording stay wired', () {
@@ -835,16 +835,22 @@ void main() {
     );
   });
 
-  test('firebase index config is deployed with firestore resources', () {
-    final firebaseConfig = File('firebase.json').readAsStringSync();
-    final indexes = File('firestore.indexes.json').readAsStringSync();
+  test(
+    'deprecated firebase index config stays compatible but is not deployed',
+    () {
+      final firebaseConfig = File('firebase.json').readAsStringSync();
+      final indexes = File('firestore.indexes.json').readAsStringSync();
 
-    expect(firebaseConfig, contains('"indexes": "firestore.indexes.json"'));
-    expect(indexes, contains('"collectionGroup": "comments"'));
-    expect(indexes, contains('"fieldPath": "timestamp"'));
-    expect(indexes, contains('"collectionGroup": "books"'));
-    expect(indexes, contains('"collectionGroup": "feed"'));
-  });
+      expect(
+        firebaseConfig,
+        isNot(contains('"indexes": "firestore.indexes.json"')),
+      );
+      expect(indexes, contains('"collectionGroup": "comments"'));
+      expect(indexes, contains('"fieldPath": "timestamp"'));
+      expect(indexes, contains('"collectionGroup": "books"'));
+      expect(indexes, contains('"collectionGroup": "feed"'));
+    },
+  );
 
   test('archive search scope and home ia recommendations stay wired', () {
     final archiveServiceSource = File(

@@ -144,7 +144,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           } catch (_) {
             // Silently ignore — sheet opens without a question
           }
-          if (mounted) {
+          if (context.mounted) {
             showCreatePostSheet(context, initialQuestion: question);
           }
         },
@@ -171,7 +171,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final feedState = ref.watch(pagedFeedPostsProvider(widget.filter));
-    final feedController = ref.read(pagedFeedPostsProvider(widget.filter).notifier);
+    final feedController = ref.read(
+      pagedFeedPostsProvider(widget.filter).notifier,
+    );
     final l10n = AppLocalizations.of(context)!;
 
     Widget refreshable(Widget child) {
@@ -258,7 +260,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         Column(
           children: [
             filterChips,
-            Expanded(child: centeredScrollable(const CircularProgressIndicator())),
+            Expanded(
+              child: centeredScrollable(const CircularProgressIndicator()),
+            ),
           ],
         ),
       );
@@ -389,8 +393,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
                       )
                     : const Icon(Icons.add_rounded),
                 label: Text(l10n.loadMore),
-                onPressed:
-                    feedState.isLoadingMore ? null : feedController.loadMore,
+                onPressed: feedState.isLoadingMore
+                    ? null
+                    : feedController.loadMore,
               ),
           ],
         ),
@@ -422,9 +427,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         filterChips,
-        Expanded(
-          child: refreshable(body),
-        ),
+        Expanded(child: refreshable(body)),
       ],
     );
   }

@@ -53,6 +53,9 @@ android/app/upload-keystore.jks
 # Local secrets
 .env*.local
 dart_defines.local.json
+dart_defines.production.json
+dart_defines.doppler.json
+
 
 # Gradle and builds
 .gradle/

@@ -31,6 +31,21 @@ Write-Host "`n[Step 2/2] Launching Flutter Web Preview..." -ForegroundColor Cyan
 Write-Host "[Info] Open http://localhost:3000/ (Firebase Auth requires localhost authorized domain)." -ForegroundColor Green
 
 $dartDefinesFile = "dart_defines.local.json"
+
+if (Get-Command doppler -ErrorAction SilentlyContinue) {
+    Write-Host "[Info] Fetching latest secrets from Doppler..." -ForegroundColor Green
+    try {
+        $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent
+        if ($LASTEXITCODE -ne 0 -or -not $secretJson) {
+            throw "Doppler secrets download failed."
+        }
+        $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $dartDefinesFile), ($secretJson -join [Environment]::NewLine), $Utf8NoBomEncoding)
+    } catch {
+        Write-Warning "Failed to download secrets from Doppler. Falling back to existing local file if available."
+    }
+}
+
 $runCmd = "flutter run -d web-server --web-hostname=localhost --web-port=3000"
 
 if (Test-Path $dartDefinesFile) {

@@ -1,5 +1,16 @@
 {
   "buildCommand": "flutter build web",
   "outputDirectory": "build/web",
-  "framework": null
+  "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        }
+      ]
+    }
+  ]
 }

@@ -40,12 +40,38 @@ if ($foundVersion) {
     Write-Host "Starting Flutter Build (App Bundle Release)..."
     Write-Host "--------------------------------------------------"
     
-    if (Test-Path "dart_defines.local.json") {
-        Write-Host "Using dart_defines.local.json for release Dart defines."
+    $dartDefinesFile = "dart_defines.production.json"
+    $isTempDefines = $false
+
+    if (Get-Command doppler -ErrorAction SilentlyContinue) {
+        Write-Host "Fetching latest production secrets from Doppler..." -ForegroundColor Green
+        try {
+            $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent
+            if ($LASTEXITCODE -ne 0 -or -not $secretJson) {
+                throw "Doppler secrets download failed."
+            }
+            $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
+            [System.IO.File]::WriteAllText((Join-Path (Get-Location) $dartDefinesFile), ($secretJson -join [Environment]::NewLine), $Utf8NoBomEncoding)
+            $isTempDefines = $true
+        } catch {
+            Write-Warning "Failed to download secrets from Doppler. Falling back to existing file if available."
+        }
+    }
+
+    if (Test-Path $dartDefinesFile) {
+        Write-Host "Using $dartDefinesFile for release Dart defines."
+        flutter build appbundle --release --dart-define-from-file=$dartDefinesFile
+    } elseif (Test-Path "dart_defines.local.json") {
+        Write-Warning "Production defines not found. Falling back to dart_defines.local.json for release build."
         flutter build appbundle --release --dart-define-from-file=dart_defines.local.json
     } else {
-        Write-Warning "dart_defines.local.json not found. Building without local Dart defines."
+        Write-Warning "No Dart defines file found. Building without custom Dart defines."
         flutter build appbundle --release
+    }
+
+    if ($isTempDefines -and (Test-Path $dartDefinesFile)) {
+        Write-Host "Cleaning up temporary production defines file..." -ForegroundColor Green
+        Remove-Item $dartDefinesFile -Force
     }
     
     if ($LASTEXITCODE -eq 0) {

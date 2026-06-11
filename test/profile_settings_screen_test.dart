@@ -79,14 +79,15 @@ void main() {
 
       await _expandNotificationPreferences(tester);
       await _scrollUntilTextVisible(tester, 'Comments and reviews');
-      await tester.tap(
-        find
-            .ancestor(
-              of: find.text('Comments and reviews'),
-              matching: find.byType(ListTile),
-            )
-            .first,
-      );
+      final commentsTile = find
+          .ancestor(
+            of: find.text('Comments and reviews', skipOffstage: false),
+            matching: find.byType(ListTile),
+          )
+          .first;
+      await tester.ensureVisible(commentsTile);
+      await tester.pumpAndSettle();
+      await tester.tap(commentsTile);
       await tester.pumpAndSettle();
       await _tapSaveSettings(tester);
       await tester.pumpAndSettle();
@@ -115,10 +116,10 @@ void main() {
     expect(find.text('Direct messages'), findsOneWidget);
     await _scrollUntilTextVisible(tester, 'New creations and chapters');
     expect(find.text('New creations and chapters'), findsOneWidget);
-    await _scrollUntilTextVisible(tester, 'Daily topics');
-    expect(find.text('Daily topics'), findsOneWidget);
-    await _scrollUntilTextVisible(tester, 'Recommended content');
-    expect(find.text('Recommended content'), findsOneWidget);
+    await _scrollUntilTextVisible(tester, 'Daily writing prompts');
+    expect(find.text('Daily writing prompts'), findsOneWidget);
+    await _scrollUntilTextVisible(tester, 'Recommended content for you');
+    expect(find.text('Recommended content for you'), findsOneWidget);
 
     await _tapSaveSettings(tester);
     await tester.pumpAndSettle();
@@ -147,12 +148,10 @@ Future<void> _tapSaveSettings(WidgetTester tester) async {
 }
 
 Future<void> _scrollUntilTextVisible(WidgetTester tester, String text) async {
-  await tester.scrollUntilVisible(
-    find.text(text),
-    250,
-    scrollable: find.byType(Scrollable).first,
-  );
+  final offstageTextFinder = find.text(text, skipOffstage: false);
+  await tester.ensureVisible(offstageTextFinder);
   await tester.pumpAndSettle();
+  expect(find.text(text), findsOneWidget);
 }
 
 class _FakeProfileRepository implements ProfileRepository {
