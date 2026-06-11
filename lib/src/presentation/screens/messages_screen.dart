@@ -9,6 +9,8 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
@@ -24,8 +26,8 @@ class MessagesScreen extends ConsumerWidget {
     final isSignedIn = currentUser != null;
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.messages)),
+    return GlassScaffold(
+      appBar: glassAppBar(title: Text(l10n.messages)),
       body: currentUserAsync.isLoading
           ? const Center(child: CircularProgressIndicator())
           : !isSignedIn
@@ -62,11 +64,12 @@ class MessagesScreen extends ConsumerWidget {
                     );
                   }
                   return ListView.separated(
+                    padding: const EdgeInsets.all(16),
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount:
                         conversations.length +
                         (conversationsState.hasMore ? 1 : 0),
-                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       if (index == conversations.length &&
                           conversationsState.hasMore) {
@@ -132,17 +135,8 @@ class MessagesScreen extends ConsumerWidget {
                               );
                           await conversationsController.refresh();
                         },
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Text(title.characters.first.toUpperCase()),
-                          ),
-                          title: Text(title),
-                          subtitle: Text(
-                            conversation.lastMessage?.text ??
-                                l10n.noMessagesYet,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        child: GlassSurface(
+                          borderRadius: BorderRadius.circular(18),
                           onTap: () {
                             Navigator.of(context).pushNamed(
                               AppRoutes.conversation,
@@ -153,6 +147,19 @@ class MessagesScreen extends ConsumerWidget {
                               ),
                             );
                           },
+                          semanticButton: true,
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              child: Text(title.characters.first.toUpperCase()),
+                            ),
+                            title: Text(title),
+                            subtitle: Text(
+                              conversation.lastMessage?.text ??
+                                  l10n.noMessagesYet,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -258,9 +265,10 @@ class _ConversationActionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: colorScheme.errorContainer.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -268,16 +276,16 @@ class _ConversationActionChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.delete_sweep_rounded,
               size: 16,
-              color: Colors.white,
+              color: colorScheme.onErrorContainer,
             ),
             const SizedBox(width: 6),
             Text(
               l10n.deleteChat,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: colorScheme.onErrorContainer,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),

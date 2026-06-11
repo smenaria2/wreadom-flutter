@@ -9,6 +9,8 @@ import '../../domain/models/home_banner.dart';
 import '../../utils/app_link_helper.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class HomeBannerArguments {
   const HomeBannerArguments({required this.banner});
@@ -28,7 +30,7 @@ class HomeBannerScreen extends StatelessWidget {
     final plainContent = banner.body.trim().isEmpty
         ? banner.subtitle
         : banner.body;
-    return Scaffold(
+    return GlassScaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -82,39 +84,51 @@ class HomeBannerScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                if (banner.subtitle.trim().isNotEmpty) ...[
-                  Text(
-                    banner.subtitle,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                GlassSurface(
+                  strong: true,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (banner.subtitle.trim().isNotEmpty) ...[
+                        Text(
+                          banner.subtitle,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                      if (contentHtml.isNotEmpty)
+                        HtmlWidget(
+                          contentHtml,
+                          textStyle: theme.textTheme.bodyLarge?.copyWith(
+                            height: 1.55,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          customStylesBuilder: _bannerHtmlStyles,
+                          customWidgetBuilder: _bannerHtmlWidgets,
+                          onTapUrl: (url) => _openHtmlLink(context, url),
+                        )
+                      else
+                        Text(
+                          plainContent,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            height: 1.55,
+                          ),
+                        ),
+                      if (banner.buttonText.trim().isNotEmpty &&
+                          banner.buttonLink.trim().isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: () =>
+                              _openLink(context, banner.buttonLink),
+                          child: Text(banner.buttonText),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                ],
-                if (contentHtml.isNotEmpty)
-                  HtmlWidget(
-                    contentHtml,
-                    textStyle: theme.textTheme.bodyLarge?.copyWith(
-                      height: 1.55,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                    customStylesBuilder: _bannerHtmlStyles,
-                    customWidgetBuilder: _bannerHtmlWidgets,
-                    onTapUrl: (url) => _openHtmlLink(context, url),
-                  )
-                else
-                  Text(
-                    plainContent,
-                    style: theme.textTheme.bodyLarge?.copyWith(height: 1.55),
-                  ),
-                if (banner.buttonText.trim().isNotEmpty &&
-                    banner.buttonLink.trim().isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () => _openLink(context, banner.buttonLink),
-                    child: Text(banner.buttonText),
-                  ),
-                ],
+                ),
               ]),
             ),
           ),

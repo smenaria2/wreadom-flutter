@@ -11,6 +11,8 @@ import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/error_message_utils.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
 
 class CollaborationRequestScreen extends ConsumerStatefulWidget {
@@ -33,8 +35,8 @@ class _CollaborationRequestScreenState
     final bookAsync = ref.watch(bookDetailProvider(widget.bookId));
     final user = ref.watch(currentUserProvider).asData?.value;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.collaborationRequestTitle)),
+    return GlassScaffold(
+      appBar: glassAppBar(title: Text(l10n.collaborationRequestTitle)),
       body: bookAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) {
@@ -50,65 +52,72 @@ class _CollaborationRequestScreenState
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Center(
-                child: SizedBox(
-                  width: 150,
-                  height: 225,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: book.coverUrl?.isNotEmpty == true
-                        ? CachedNetworkImage(
-                            imageUrl: book.coverUrl!,
-                            fit: BoxFit.cover,
-                          )
-                        : GeneratedBookCover(
-                            title: book.title,
-                            author: book.authors.firstOrNull?.name,
-                            seed: book.id,
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                book.title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.collaborationRequestMessage(
-                  book.authors.firstOrNull?.name ?? l10n.unknownAuthor,
-                ),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              if (book.description?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 18),
-                Text(book.description!.trim()),
-              ],
-              if ((book.chapters ?? const []).isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
-                  l10n.draftPreview,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                for (final chapter in book.chapters!.take(5))
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(chapter.title),
-                    subtitle: Text(
-                      chapter.content.replaceAll(RegExp(r'<[^>]+>'), ' '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              GlassSurface(
+                strong: true,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: SizedBox(
+                        width: 150,
+                        height: 225,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: book.coverUrl?.isNotEmpty == true
+                              ? CachedNetworkImage(
+                                  imageUrl: book.coverUrl!,
+                                  fit: BoxFit.cover,
+                                )
+                              : GeneratedBookCover(
+                                  title: book.title,
+                                  author: book.authors.firstOrNull?.name,
+                                  seed: book.id,
+                                ),
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                    const SizedBox(height: 20),
+                    Text(
+                      book.title,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.collaborationRequestMessage(
+                        book.authors.firstOrNull?.name ?? l10n.unknownAuthor,
+                      ),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    if (book.description?.trim().isNotEmpty == true) ...[
+                      const SizedBox(height: 18),
+                      Text(book.description!.trim()),
+                    ],
+                    if ((book.chapters ?? const []).isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        l10n.draftPreview,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final chapter in book.chapters!.take(5))
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(chapter.title),
+                          subtitle: Text(
+                            chapter.content.replaceAll(RegExp(r'<[^>]+>'), ' '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
               if (canRespond)
                 Row(

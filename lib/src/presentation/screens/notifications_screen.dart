@@ -147,16 +147,46 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final currentUser = currentUserAsync.asData?.value;
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        title: Text(l10n.notifications),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: scheme.onSurface,
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                color: scheme.onSurface,
+                onPressed: () => Navigator.of(context).maybePop(),
+              )
+            : null,
+        flexibleSpace: const GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.zero,
+          child: SizedBox.expand(),
+        ),
+        title: Text(
+          l10n.notifications,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         actions: [
           if (currentUser != null)
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.primary,
+                textStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               onPressed: () async {
                 await ref
                     .read(notificationRepositoryProvider)
@@ -175,258 +205,285 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               : currentUser == null
               ? const AuthRequiredView(icon: Icons.notifications_none_rounded)
               : RefreshIndicator(
-              onRefresh: notificationsController.refresh,
-              child: Builder(
-                builder: (context) {
-                  if (notificationsState.isInitialLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (notificationsState.error != null) {
-                    logUiError(
-                      'Notifications load failed',
-                      notificationsState.error!,
-                      null,
-                    );
-                    return SectionError(title: l10n.notifications);
-                  }
-                  final items = notificationsState.items;
+                  onRefresh: notificationsController.refresh,
+                  child: Builder(
+                    builder: (context) {
+                      if (notificationsState.isInitialLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (notificationsState.error != null) {
+                        logUiError(
+                          'Notifications load failed',
+                          notificationsState.error!,
+                          null,
+                        );
+                        return SectionError(title: l10n.notifications);
+                      }
+                      final items = notificationsState.items;
 
-                  return Column(
-                    children: [
-                      _NotificationFilterBar(
-                        selected: _filter,
-                        onSelected: _selectFilter,
-                      ),
-                      Expanded(
-                        child: PageView.builder(
-                          controller: _pageController,
-                          itemCount: _NotificationFilter.values.length,
-                          onPageChanged: (index) {
-                            setState(
-                              () => _filter = _NotificationFilter.values[index],
-                            );
-                            AppHaptics.selection();
-                          },
-                          itemBuilder: (context, pageIndex) {
-                            final pageFilter =
-                                _NotificationFilter.values[pageIndex];
-                            final filteredItems = _groupNotificationItems(
-                              items.where(pageFilter.matches).toList(),
-                            );
-                            if (filteredItems.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  _emptyText(
-                                    context,
-                                    items.isEmpty,
-                                    pageFilter,
-                                  ),
-                                ),
-                              );
-                            }
-                            return ListView.separated(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount:
-                                  filteredItems.length +
-                                  (notificationsState.hasMore ? 1 : 0),
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 8),
-                              itemBuilder: (context, index) {
-                                if (index == filteredItems.length &&
-                                    notificationsState.hasMore) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16.0,
-                                    ),
-                                    child: Center(
-                                      child: TextButton.icon(
-                                        onPressed:
-                                            notificationsState.isLoadingMore
-                                            ? null
-                                            : notificationsController.loadMore,
-                                        icon: notificationsState.isLoadingMore
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
-                                              )
-                                            : const Icon(Icons.add_rounded),
-                                        label: Text(l10n.loadMore),
+                      return Column(
+                        children: [
+                          _NotificationFilterBar(
+                            selected: _filter,
+                            onSelected: _selectFilter,
+                          ),
+                          Expanded(
+                            child: PageView.builder(
+                              controller: _pageController,
+                              itemCount: _NotificationFilter.values.length,
+                              onPageChanged: (index) {
+                                setState(
+                                  () => _filter =
+                                      _NotificationFilter.values[index],
+                                );
+                                AppHaptics.selection();
+                              },
+                              itemBuilder: (context, pageIndex) {
+                                final pageFilter =
+                                    _NotificationFilter.values[pageIndex];
+                                final filteredItems = _groupNotificationItems(
+                                  items.where(pageFilter.matches).toList(),
+                                );
+                                if (filteredItems.isEmpty) {
+                                  return Center(
+                                    child: Text(
+                                      _emptyText(
+                                        context,
+                                        items.isEmpty,
+                                        pageFilter,
                                       ),
                                     ),
                                   );
                                 }
-                                final displayItem = filteredItems[index];
-                                final item = displayItem.latest;
-                                final openKey = _notificationOpenKey(
-                                  displayItem,
-                                );
-                                final isOpening =
-                                    _openingNotificationKey == openKey;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: GlassSurface(
-                                    strong: !displayItem.isRead,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: ListTile(
-                                      enabled: !isOpening,
-                                      leading: CircleAvatar(
-                                        backgroundImage:
-                                            item.actorPhotoURL != null
-                                            ? CachedNetworkImageProvider(
-                                                item.actorPhotoURL!,
-                                              )
-                                            : null,
-                                        child: item.actorPhotoURL == null
-                                            ? Text(
-                                                item.actorName.isEmpty
-                                                    ? '?'
-                                                    : item.actorName[0]
-                                                          .toUpperCase(),
-                                              )
-                                            : null,
-                                      ),
-                                      title: Text(item.actorName),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(displayItem.subtitle(l10n)),
-                                          Text(
-                                            FormatUtils.relativeTime(
-                                              item.timestamp,
-                                            ),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  fontSize: 12,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                      trailing: displayItem.isRead
-                                          ? null
-                                          : Icon(
-                                              Icons.circle,
-                                              size: 10,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                      onTap: isOpening
-                                      ? null
-                                      : () async {
-                                          setState(() {
-                                            _openingNotificationKey = openKey;
-                                          });
-                                          try {
-                                            final target =
-                                                NotificationTargetResolver.resolve(
-                                                  item,
-                                                );
-                                            unawaited(
-                                              _markNotificationItemRead(
-                                                ref,
-                                                displayItem,
-                                              ),
-                                            );
-                                            if (!context.mounted) return;
-
-                                            if (target != null) {
-                                              unawaited(
-                                                _markMatchingCommentNotificationsRead(
-                                                  ref,
-                                                  displayItem.notifications,
-                                                  target,
-                                                ),
-                                              );
-                                              if (!context.mounted) return;
-
-                                              final routeArgs = switch (target
-                                                  .route) {
-                                                AppRoutes.publicProfile =>
-                                                  PublicProfileArguments(
-                                                    userId: target.payload,
-                                                  ),
-                                                AppRoutes.bookDetail =>
-                                                  BookDetailArguments(
-                                                    bookId: target.payload,
-                                                    targetCommentId:
-                                                        target.commentId,
-                                                    targetReplyId:
-                                                        target.replyId,
-                                                  ),
-                                                AppRoutes.postDetail =>
-                                                  PostDetailArguments(
-                                                    postId: target.payload,
-                                                    targetCommentId:
-                                                        target.commentId,
-                                                    targetReplyId:
-                                                        target.replyId,
-                                                  ),
-                                                AppRoutes.conversation =>
-                                                  ConversationArguments(
-                                                    conversationId:
-                                                        target.payload,
-                                                    title: item.actorName,
-                                                  ),
-                                                AppRoutes
-                                                    .collaborationRequest =>
-                                                  CollaborationRequestArguments(
-                                                    bookId: target.payload,
-                                                  ),
-                                                _ => target.payload,
-                                              };
-                                              Navigator.of(context).pushNamed(
-                                                target.route,
-                                                arguments: routeArgs,
-                                              );
-                                            } else {
-                                              ref
-                                                  .read(
-                                                    selectedTabProvider
-                                                        .notifier,
+                                return ListView.separated(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemCount:
+                                      filteredItems.length +
+                                      (notificationsState.hasMore ? 1 : 0),
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    if (index == filteredItems.length &&
+                                        notificationsState.hasMore) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16.0,
+                                        ),
+                                        child: Center(
+                                          child: TextButton.icon(
+                                            onPressed:
+                                                notificationsState.isLoadingMore
+                                                ? null
+                                                : notificationsController
+                                                      .loadMore,
+                                            icon:
+                                                notificationsState.isLoadingMore
+                                                ? const SizedBox(
+                                                    width: 18,
+                                                    height: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
                                                   )
-                                                  .setTab(1);
-                                              Navigator.of(context).popUntil(
-                                                (route) =>
-                                                    route.settings.name ==
-                                                        AppRoutes.main ||
-                                                    route.isFirst,
-                                              );
-                                            }
-                                          } finally {
-                                            if (mounted &&
-                                                _openingNotificationKey ==
-                                                    openKey) {
-                                              setState(() {
-                                                _openingNotificationKey = null;
-                                              });
-                                            }
-                                          }
-                                        },
-                                    ),
-                                  ),
+                                                : const Icon(Icons.add_rounded),
+                                            label: Text(l10n.loadMore),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    final displayItem = filteredItems[index];
+                                    final item = displayItem.latest;
+                                    final openKey = _notificationOpenKey(
+                                      displayItem,
+                                    );
+                                    final isOpening =
+                                        _openingNotificationKey == openKey;
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      child: GlassSurface(
+                                        strong: !displayItem.isRead,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: ListTile(
+                                          enabled: !isOpening,
+                                          leading: CircleAvatar(
+                                            backgroundImage:
+                                                item.actorPhotoURL != null
+                                                ? CachedNetworkImageProvider(
+                                                    item.actorPhotoURL!,
+                                                  )
+                                                : null,
+                                            child: item.actorPhotoURL == null
+                                                ? Text(
+                                                    item.actorName.isEmpty
+                                                        ? '?'
+                                                        : item.actorName[0]
+                                                              .toUpperCase(),
+                                                  )
+                                                : null,
+                                          ),
+                                          title: Text(item.actorName),
+                                          subtitle: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(displayItem.subtitle(l10n)),
+                                              Text(
+                                                FormatUtils.relativeTime(
+                                                  item.timestamp,
+                                                ),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      fontSize: 12,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          trailing: displayItem.isRead
+                                              ? null
+                                              : Icon(
+                                                  Icons.circle,
+                                                  size: 10,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                          onTap: isOpening
+                                              ? null
+                                              : () async {
+                                                  setState(() {
+                                                    _openingNotificationKey =
+                                                        openKey;
+                                                  });
+                                                  try {
+                                                    final target =
+                                                        NotificationTargetResolver.resolve(
+                                                          item,
+                                                        );
+                                                    unawaited(
+                                                      _markNotificationItemRead(
+                                                        ref,
+                                                        displayItem,
+                                                      ),
+                                                    );
+                                                    if (!context.mounted) {
+                                                      return;
+                                                    }
+
+                                                    if (target != null) {
+                                                      unawaited(
+                                                        _markMatchingCommentNotificationsRead(
+                                                          ref,
+                                                          displayItem
+                                                              .notifications,
+                                                          target,
+                                                        ),
+                                                      );
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
+
+                                                      final routeArgs = switch (target
+                                                          .route) {
+                                                        AppRoutes
+                                                            .publicProfile =>
+                                                          PublicProfileArguments(
+                                                            userId:
+                                                                target.payload,
+                                                          ),
+                                                        AppRoutes.bookDetail =>
+                                                          BookDetailArguments(
+                                                            bookId:
+                                                                target.payload,
+                                                            targetCommentId:
+                                                                target
+                                                                    .commentId,
+                                                            targetReplyId:
+                                                                target.replyId,
+                                                          ),
+                                                        AppRoutes.postDetail =>
+                                                          PostDetailArguments(
+                                                            postId:
+                                                                target.payload,
+                                                            targetCommentId:
+                                                                target
+                                                                    .commentId,
+                                                            targetReplyId:
+                                                                target.replyId,
+                                                          ),
+                                                        AppRoutes
+                                                            .conversation =>
+                                                          ConversationArguments(
+                                                            conversationId:
+                                                                target.payload,
+                                                            title:
+                                                                item.actorName,
+                                                          ),
+                                                        AppRoutes
+                                                            .collaborationRequest =>
+                                                          CollaborationRequestArguments(
+                                                            bookId:
+                                                                target.payload,
+                                                          ),
+                                                        _ => target.payload,
+                                                      };
+                                                      Navigator.of(
+                                                        context,
+                                                      ).pushNamed(
+                                                        target.route,
+                                                        arguments: routeArgs,
+                                                      );
+                                                    } else {
+                                                      ref
+                                                          .read(
+                                                            selectedTabProvider
+                                                                .notifier,
+                                                          )
+                                                          .setTab(1);
+                                                      Navigator.of(
+                                                        context,
+                                                      ).popUntil(
+                                                        (route) =>
+                                                            route
+                                                                    .settings
+                                                                    .name ==
+                                                                AppRoutes
+                                                                    .main ||
+                                                            route.isFirst,
+                                                      );
+                                                    }
+                                                  } finally {
+                                                    if (mounted &&
+                                                        _openingNotificationKey ==
+                                                            openKey) {
+                                                      setState(() {
+                                                        _openingNotificationKey =
+                                                            null;
+                                                      });
+                                                    }
+                                                  }
+                                                },
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
         ],
       ),
     );

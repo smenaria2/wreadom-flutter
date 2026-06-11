@@ -21,16 +21,16 @@ import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 /// Maps post type → accent colour
-Color _typeColor(String type) {
+Color _typeColor(String type, ColorScheme scheme) {
   switch (type.toLowerCase()) {
     case 'review':
-      return Colors.amber;
+      return scheme.primary;
     case 'quote':
-      return Colors.teal;
+      return scheme.tertiary;
     case 'testimony':
-      return Colors.pink;
+      return scheme.secondary;
     default:
-      return const Color(0xFF7C3AED);
+      return scheme.primary;
   }
 }
 
@@ -351,7 +351,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final post = widget.post;
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final accentColor = _typeColor(post.type);
+    final accentColor = _typeColor(post.type, colorScheme);
     final typeLabel = _typeLabel(post.type, l10n);
 
     // Check if current user liked this post (with optimistic override)
@@ -475,6 +475,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   decoration: BoxDecoration(
                     color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.18),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -580,7 +583,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     size: 16,
-                    color: Colors.amber,
+                    color: accentColor,
                   );
                 }),
               ),

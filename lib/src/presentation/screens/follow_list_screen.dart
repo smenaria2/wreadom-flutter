@@ -9,6 +9,8 @@ import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/follow_button.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 enum FollowListMode { followers, following }
 
@@ -53,8 +55,8 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
     final followState = ref.watch(pagedFollowListProvider(query));
     final followController = ref.read(pagedFollowListProvider(query).notifier);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+    return GlassScaffold(
+      appBar: glassAppBar(title: Text(widget.title)),
       body: Builder(
         builder: (context) {
           if (followState.isInitialLoading) {
@@ -71,8 +73,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
             );
           }
           if (followState.items.isEmpty) {
-            return Center(
-              child: Text(l10n.noFollowersYet(widget.title.toLowerCase())),
+            return _FollowListMessage(
+              icon: Icons.people_outline_rounded,
+              message: l10n.noFollowersYet(widget.title.toLowerCase()),
             );
           }
 
@@ -83,8 +86,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
           return profilesAsync.when(
             data: (profiles) => ListView.separated(
+              padding: const EdgeInsets.all(16),
               itemCount: profiles.length + (followState.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 if (index == profiles.length && followState.hasMore) {
                   return Padding(
@@ -111,10 +115,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
               },
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(
-              child: Text(
-                l10n.failedToLoadTitle(widget.title, error.toString()),
-              ),
+            error: (error, _) => _FollowListMessage(
+              icon: Icons.error_outline_rounded,
+              message: l10n.failedToLoadTitle(widget.title, error.toString()),
             ),
           );
         },
@@ -137,20 +140,60 @@ class _FollowUserTile extends StatelessWidget {
         : penName != null && penName.isNotEmpty
         ? penName
         : user.username;
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: user.photoURL != null
-            ? CachedNetworkImageProvider(user.photoURL!)
-            : null,
-        child: user.photoURL == null && name.isNotEmpty
-            ? Text(name.characters.first.toUpperCase())
-            : null,
-      ),
-      title: Text(name),
-      trailing: FollowButton(targetUserId: user.id, compact: true),
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(18),
       onTap: () => Navigator.of(context).pushNamed(
         AppRoutes.publicProfile,
         arguments: PublicProfileArguments(userId: user.id),
+      ),
+      semanticButton: true,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundImage: user.photoURL != null
+              ? CachedNetworkImageProvider(user.photoURL!)
+              : null,
+          child: user.photoURL == null && name.isNotEmpty
+              ? Text(name.characters.first.toUpperCase())
+              : null,
+        ),
+        title: Text(name),
+        trailing: FollowButton(targetUserId: user.id, compact: true),
+      ),
+    );
+  }
+}
+
+class _FollowListMessage extends StatelessWidget {
+  const _FollowListMessage({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: GlassSurface(
+          strong: true,
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 42, color: theme.colorScheme.primary),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

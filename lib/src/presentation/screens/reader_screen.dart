@@ -47,6 +47,7 @@ import '../components/book/comment_reply_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
+import '../theme/app_theme.dart';
 import '../utils/book_author_utils.dart';
 import '../widgets/adaptive_banner_ad.dart';
 
@@ -911,35 +912,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _readerBottomBarHeight + MediaQuery.of(context).padding.bottom + 20,
     );
 
+    final chromeTheme = _getReaderChromeTheme();
+    final chromeScheme = chromeTheme.colorScheme;
+
     return Scaffold(
-      drawer: _ChapterDrawer(
-        chapters: chapters,
-        currentIndex: _chapterIndex,
-        completedChapterIndexes: completedChapterIndexes,
-        commentCounts: commentCounts,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        headerColor: Theme.of(context).colorScheme.surface,
-        textColor: Theme.of(context).colorScheme.onSurface,
-        secondaryTextColor: Theme.of(context).colorScheme.onSurfaceVariant,
-        accentColor: Theme.of(context).colorScheme.primary,
-        onSelect: (index) {
-          _goToChapter(index);
-          Navigator.of(context).pop();
-        },
-        onOpenComments: (index) {
-          Navigator.of(context).pop();
-          _showDiscussion(chapters[index], chapterIndex: index);
-        },
-        onBack: () {
-          Navigator.of(context).pop();
-          Navigator.of(context).pushReplacementNamed(
-            AppRoutes.bookDetail,
-            arguments: BookDetailArguments(
-              bookId: widget.book.id,
-              book: widget.book,
-            ),
-          );
-        },
+      drawer: Theme(
+        data: chromeTheme,
+        child: _ChapterDrawer(
+          chapters: chapters,
+          currentIndex: _chapterIndex,
+          completedChapterIndexes: completedChapterIndexes,
+          commentCounts: commentCounts,
+          backgroundColor: chromeScheme.surface,
+          headerColor: chromeScheme.surface,
+          textColor: chromeScheme.onSurface,
+          secondaryTextColor: chromeScheme.onSurfaceVariant,
+          accentColor: chromeScheme.primary,
+          onSelect: (index) {
+            _goToChapter(index);
+            Navigator.of(context).pop();
+          },
+          onOpenComments: (index) {
+            Navigator.of(context).pop();
+            _showDiscussion(chapters[index], chapterIndex: index);
+          },
+          onBack: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pushReplacementNamed(
+              AppRoutes.bookDetail,
+              arguments: BookDetailArguments(
+                bookId: widget.book.id,
+                book: widget.book,
+              ),
+            );
+          },
+        ),
       ),
       body: Container(
         color: _getBackgroundColor(),
@@ -1081,6 +1088,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               child: _ReaderTopBar(
                 visible: _showReaderChrome,
                 title: widget.book.title,
+                chromeTheme: chromeTheme,
                 backgroundColor: _getAppBarBackgroundColor(),
                 foregroundColor: _getAppBarForegroundColor(),
                 isOffline: isOffline,
@@ -1108,6 +1116,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   visible: _showReaderChrome,
                   onSwipeUp: () => _showDiscussion(chapter),
                   onTap: () => _showDiscussion(chapter),
+                  chromeTheme: chromeTheme,
                   theme: _getEffectiveTheme(),
                   hasPrevious: _chapterIndex > 0,
                   hasNext: _chapterIndex < chapters.length - 1,
@@ -2732,79 +2741,141 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-          child: GlassSurface(
-            strong: true,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: _getSecondaryTextColor().withValues(
-                                alpha: 0.3,
+            child: GlassSurface(
+              strong: true,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: _getSecondaryTextColor().withValues(
+                                  alpha: 0.3,
+                                ),
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: 'Close',
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
+                        IconButton(
+                          tooltip: 'Close',
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      StatefulBuilder(
-                        builder: (context, setModalState) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_selectedQuote != null)
-                                GlassSurface(
-                                  borderRadius: BorderRadius.circular(14),
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.format_quote,
-                                            size: 16,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        StatefulBuilder(
+                          builder: (context, setModalState) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_selectedQuote != null)
+                                  GlassSurface(
+                                    borderRadius: BorderRadius.circular(14),
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.format_quote,
+                                              size: 16,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Text(
+                                              'Quote',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(
+                                                  () => _selectedQuote = null,
+                                                );
+                                                setModalState(() {});
+                                              },
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _selectedQuote!,
+                                          maxLines: 3,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 13,
+                                            color: _getSecondaryTextColor(),
                                           ),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            'Quote',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_replyingTo != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 12.0,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                            .withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                                              style: TextStyle(
+                                                fontStyle: FontStyle.italic,
+                                                fontSize: 13,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
                                             ),
                                           ),
-                                          const Spacer(),
                                           GestureDetector(
                                             onTap: () {
-                                              setState(
-                                                () => _selectedQuote = null,
-                                              );
+                                              setState(() {
+                                                _replyingTo = null;
+                                                _clearAudioReviewState();
+                                              });
                                               setModalState(() {});
                                             },
                                             child: const Icon(
@@ -2814,416 +2885,369 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 4),
+                                    ),
+                                  )
+                                else ...[
+                                  Row(
+                                    children: [
                                       Text(
-                                        _selectedQuote!,
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
+                                        'Your Rating:',
                                         style: TextStyle(
-                                          fontStyle: FontStyle.italic,
                                           fontSize: 13,
                                           color: _getSecondaryTextColor(),
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              if (_replyingTo != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer
-                                          .withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
-                                            style: TextStyle(
-                                              fontStyle: FontStyle.italic,
-                                              fontSize: 13,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimaryContainer,
+                                      const SizedBox(width: 8),
+                                      ...List.generate(5, (index) {
+                                        final active = index < _chapterRating;
+                                        return GestureDetector(
+                                          onTap:
+                                              _existingUserReview != null &&
+                                                  !_isReviewEditMode
+                                              ? null
+                                              : () {
+                                                  setState(
+                                                    () => _chapterRating =
+                                                        index + 1,
+                                                  );
+                                                  setModalState(() {});
+                                                },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 2,
+                                            ),
+                                            child: Icon(
+                                              active
+                                                  ? Icons.star_rounded
+                                                  : Icons.star_border_rounded,
+                                              color: active
+                                                  ? Colors.amber
+                                                  : _getSecondaryTextColor(),
+                                              size: 24,
                                             ),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _replyingTo = null;
-                                              _clearAudioReviewState();
-                                            });
-                                            setModalState(() {});
-                                          },
-                                          child: const Icon(
-                                            Icons.close,
+                                        );
+                                      }),
+                                      if (_existingUserReview != null) ...[
+                                        const Spacer(),
+                                        TextButton.icon(
+                                          style: TextButton.styleFrom(
+                                            foregroundColor:
+                                                _getReaderActionColor(),
+                                            disabledForegroundColor:
+                                                _getReaderActionColor()
+                                                    .withValues(alpha: 0.38),
+                                          ),
+                                          onPressed: _isReviewEditMode
+                                              ? null
+                                              : () {
+                                                  _isReviewEditMode = true;
+                                                  setModalState(() {});
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback((
+                                                        _,
+                                                      ) {
+                                                        if (mounted &&
+                                                            _isDiscussionOpen) {
+                                                          _commentFocusNode
+                                                              .requestFocus();
+                                                        }
+                                                      });
+                                                },
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
                                             size: 16,
+                                          ),
+                                          label: const Text('Edit'),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                                TextField(
+                                  controller: _commentController.value,
+                                  focusNode: _commentFocusNode,
+                                  readOnly:
+                                      _replyingTo == null &&
+                                      _existingUserReview != null &&
+                                      !_isReviewEditMode,
+                                  minLines: 2,
+                                  maxLines: 4,
+                                  decoration: InputDecoration(
+                                    hintText: _replyingTo != null
+                                        ? 'Add a reply...'
+                                        : 'Add your review about this chapter',
+                                    hintStyle: TextStyle(
+                                      color: _getSecondaryTextColor(),
+                                    ),
+                                    suffixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          tooltip: _isRecordingAudioReview
+                                              ? 'Stop recording'
+                                              : 'Record audio',
+                                          icon: Icon(
+                                            _isRecordingAudioReview
+                                                ? Icons.stop_circle_outlined
+                                                : Icons.mic_none_rounded,
+                                            color: _isRecordingAudioReview
+                                                ? Colors.red
+                                                : _getReaderActionColor(),
+                                          ),
+                                          onPressed:
+                                              _isSubmittingComment ||
+                                                  (_replyingTo == null &&
+                                                      _existingUserReview !=
+                                                          null &&
+                                                      !_isReviewEditMode)
+                                              ? null
+                                              : () async {
+                                                  if (_isRecordingAudioReview) {
+                                                    await _stopAudioReviewRecording(
+                                                      () =>
+                                                          setModalState(() {}),
+                                                    );
+                                                  } else {
+                                                    await _startAudioReviewRecording(
+                                                      () =>
+                                                          setModalState(() {}),
+                                                    );
+                                                  }
+                                                },
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8.0,
+                                          ),
+                                          child: IconButton(
+                                            tooltip: 'Send',
+                                            icon: _isSubmittingComment
+                                                ? SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color:
+                                                          _getReaderActionColor(),
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.send_rounded,
+                                                    color: _getReaderActionColor().withValues(
+                                                      alpha:
+                                                          (_replyingTo ==
+                                                                      null &&
+                                                                  ((_existingUserReview !=
+                                                                              null &&
+                                                                          !_isReviewEditMode) ||
+                                                                      !_canSubmitReview)) ||
+                                                              (_replyingTo !=
+                                                                      null &&
+                                                                  !_canSubmitReply)
+                                                          ? 0.35
+                                                          : 1,
+                                                    ),
+                                                  ),
+                                            onPressed:
+                                                _isSubmittingComment ||
+                                                    (_replyingTo == null &&
+                                                        ((_existingUserReview !=
+                                                                    null &&
+                                                                !_isReviewEditMode) ||
+                                                            !_canSubmitReview)) ||
+                                                    (_replyingTo != null &&
+                                                        !_canSubmitReply)
+                                                ? null
+                                                : () async {
+                                                    await _submitComment(
+                                                      chapter,
+                                                      chapterIndex:
+                                                          chapterIndex,
+                                                    );
+                                                    setModalState(() {});
+                                                  },
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                )
-                              else ...[
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Your Rating:',
+                                  onChanged: (_) => setModalState(() {}),
+                                  style: TextStyle(color: _getTextColor()),
+                                ),
+                                if (_isRecordingAudioReview ||
+                                    (_replyingTo == null
+                                        ? _hasReviewAudio
+                                        : _pendingAudioReviewPath != null)) ...[
+                                  const SizedBox(height: 8),
+                                  _AudioReviewComposerChip(
+                                    isRecording: _isRecordingAudioReview,
+                                    durationMs: _isRecordingAudioReview
+                                        ? _pendingAudioReviewDurationMs
+                                        : (_pendingAudioReviewPath != null
+                                              ? _pendingAudioReviewDurationMs
+                                              : (_reviewAudioDurationMs ?? 0)),
+                                    isPendingUpload:
+                                        _pendingAudioReviewPath != null,
+                                    textColor: _getTextColor(),
+                                    metadataColor: _getSecondaryTextColor(),
+                                    onStop: () => _stopAudioReviewRecording(
+                                      () => setModalState(() {}),
+                                    ),
+                                    onDelete: () => _removeAudioReview(
+                                      () => setModalState(() {}),
+                                    ),
+                                  ),
+                                ],
+                                if (_replyingTo == null) ...[
+                                  const SizedBox(height: 8),
+                                  CheckboxListTile(
+                                    value: _shareReviewToFeed,
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    title: Text(
+                                      'Share to feed',
                                       style: TextStyle(
+                                        color: _getTextColor(),
                                         fontSize: 13,
-                                        color: _getSecondaryTextColor(),
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    ...List.generate(5, (index) {
-                                      final active = index < _chapterRating;
-                                      return GestureDetector(
-                                        onTap:
-                                            _existingUserReview != null &&
-                                                !_isReviewEditMode
-                                            ? null
-                                            : () {
-                                                setState(
-                                                  () => _chapterRating =
-                                                      index + 1,
-                                                );
-                                                setModalState(() {});
-                                              },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 2,
-                                          ),
-                                          child: Icon(
-                                            active
-                                                ? Icons.star_rounded
-                                                : Icons.star_border_rounded,
-                                            color: active
-                                                ? Colors.amber
-                                                : _getSecondaryTextColor(),
-                                            size: 24,
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                    if (_existingUserReview != null) ...[
-                                      const Spacer(),
-                                      TextButton.icon(
-                                        style: TextButton.styleFrom(
-                                          foregroundColor:
-                                              _getReaderActionColor(),
-                                          disabledForegroundColor:
-                                              _getReaderActionColor()
-                                                  .withValues(alpha: 0.38),
-                                        ),
-                                        onPressed: _isReviewEditMode
-                                            ? null
-                                            : () {
-                                                _isReviewEditMode = true;
-                                                setModalState(() {});
-                                                WidgetsBinding.instance
-                                                    .addPostFrameCallback((_) {
-                                                      if (mounted &&
-                                                          _isDiscussionOpen) {
-                                                        _commentFocusNode
-                                                            .requestFocus();
-                                                      }
-                                                    });
-                                              },
-                                        icon: const Icon(
-                                          Icons.edit_outlined,
-                                          size: 16,
-                                        ),
-                                        label: const Text('Edit'),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              TextField(
-                                controller: _commentController.value,
-                                focusNode: _commentFocusNode,
-                                readOnly:
-                                    _replyingTo == null &&
-                                    _existingUserReview != null &&
-                                    !_isReviewEditMode,
-                                minLines: 2,
-                                maxLines: 4,
-                                decoration: InputDecoration(
-                                  hintText: _replyingTo != null
-                                      ? 'Add a reply...'
-                                      : 'Add your review about this chapter',
-                                  hintStyle: TextStyle(
-                                    color: _getSecondaryTextColor(),
+                                    activeColor: _getReaderActionColor(),
+                                    checkColor: _getBackgroundColor(),
+                                    onChanged:
+                                        _existingUserReview != null &&
+                                            !_isReviewEditMode
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _shareReviewToFeed =
+                                                  value ?? false;
+                                            });
+                                            setModalState(() {});
+                                          },
                                   ),
-                                  suffixIcon: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        tooltip: _isRecordingAudioReview
-                                            ? 'Stop recording'
-                                            : 'Record audio',
-                                        icon: Icon(
-                                          _isRecordingAudioReview
-                                              ? Icons.stop_circle_outlined
-                                              : Icons.mic_none_rounded,
-                                          color: _isRecordingAudioReview
-                                              ? Colors.red
-                                              : _getReaderActionColor(),
-                                        ),
-                                        onPressed:
-                                            _isSubmittingComment ||
-                                                (_replyingTo == null &&
-                                                    _existingUserReview !=
-                                                        null &&
-                                                    !_isReviewEditMode)
-                                            ? null
-                                            : () async {
-                                                if (_isRecordingAudioReview) {
-                                                  await _stopAudioReviewRecording(
-                                                    () => setModalState(() {}),
-                                                  );
-                                                } else {
-                                                  await _startAudioReviewRecording(
-                                                    () => setModalState(() {}),
-                                                  );
-                                                }
-                                              },
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8.0,
-                                        ),
-                                        child: IconButton(
-                                          tooltip: 'Send',
-                                          icon: _isSubmittingComment
-                                              ? SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
+                                ],
+                                const SizedBox(height: 24),
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final commentsAsync = ref.watch(
+                                      liveBookCommentsProvider(widget.book.id),
+                                    );
+                                    return commentsAsync.when(
+                                      data: (items) {
+                                        final chapterId = chapter?.id
+                                            .toString();
+                                        final chapterComments = items.where((
+                                          comment,
+                                        ) {
+                                          if (chapterId != null &&
+                                              chapterId.isNotEmpty &&
+                                              comment.chapterId == chapterId) {
+                                            return true;
+                                          }
+                                          return comment.chapterIndex ==
+                                              (chapterIndex ?? _chapterIndex);
+                                        }).toList();
+
+                                        if (chapterComments.isEmpty) {
+                                          return Center(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                32.0,
+                                              ),
+                                              child: Column(
+                                                children: [
+                                                  Icon(
+                                                    Icons
+                                                        .chat_bubble_outline_rounded,
+                                                    size: 48,
                                                     color:
-                                                        _getReaderActionColor(),
+                                                        _getSecondaryTextColor()
+                                                            .withValues(
+                                                              alpha: 0.3,
+                                                            ),
                                                   ),
-                                                )
-                                              : Icon(
-                                                  Icons.send_rounded,
-                                                  color: _getReaderActionColor().withValues(
-                                                    alpha:
-                                                        (_replyingTo == null &&
-                                                                ((_existingUserReview !=
-                                                                            null &&
-                                                                        !_isReviewEditMode) ||
-                                                                    !_canSubmitReview)) ||
-                                                            (_replyingTo !=
-                                                                    null &&
-                                                                !_canSubmitReply)
-                                                        ? 0.35
-                                                        : 1,
+                                                  const SizedBox(height: 16),
+                                                  Text(
+                                                    'No comments for this chapter yet.',
+                                                    style: TextStyle(
+                                                      color:
+                                                          _getSecondaryTextColor(),
+                                                    ),
                                                   ),
-                                                ),
-                                          onPressed:
-                                              _isSubmittingComment ||
-                                                  (_replyingTo == null &&
-                                                      ((_existingUserReview !=
-                                                                  null &&
-                                                              !_isReviewEditMode) ||
-                                                          !_canSubmitReview)) ||
-                                                  (_replyingTo != null &&
-                                                      !_canSubmitReply)
-                                              ? null
-                                              : () async {
-                                                  await _submitComment(
-                                                    chapter,
-                                                    chapterIndex: chapterIndex,
-                                                  );
-                                                  setModalState(() {});
-                                                },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                onChanged: (_) => setModalState(() {}),
-                                style: TextStyle(color: _getTextColor()),
-                              ),
-                              if (_isRecordingAudioReview ||
-                                  (_replyingTo == null
-                                      ? _hasReviewAudio
-                                      : _pendingAudioReviewPath != null)) ...[
-                                const SizedBox(height: 8),
-                                _AudioReviewComposerChip(
-                                  isRecording: _isRecordingAudioReview,
-                                  durationMs: _isRecordingAudioReview
-                                      ? _pendingAudioReviewDurationMs
-                                      : (_pendingAudioReviewPath != null
-                                            ? _pendingAudioReviewDurationMs
-                                            : (_reviewAudioDurationMs ?? 0)),
-                                  isPendingUpload:
-                                      _pendingAudioReviewPath != null,
-                                  textColor: _getTextColor(),
-                                  metadataColor: _getSecondaryTextColor(),
-                                  onStop: () => _stopAudioReviewRecording(
-                                    () => setModalState(() {}),
-                                  ),
-                                  onDelete: () => _removeAudioReview(
-                                    () => setModalState(() {}),
-                                  ),
-                                ),
-                              ],
-                              if (_replyingTo == null) ...[
-                                const SizedBox(height: 8),
-                                CheckboxListTile(
-                                  value: _shareReviewToFeed,
-                                  contentPadding: EdgeInsets.zero,
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                  title: Text(
-                                    'Share to feed',
-                                    style: TextStyle(
-                                      color: _getTextColor(),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  activeColor: _getReaderActionColor(),
-                                  checkColor: _getBackgroundColor(),
-                                  onChanged:
-                                      _existingUserReview != null &&
-                                          !_isReviewEditMode
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            _shareReviewToFeed = value ?? false;
-                                          });
-                                          setModalState(() {});
-                                        },
-                                ),
-                              ],
-                              const SizedBox(height: 24),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final commentsAsync = ref.watch(
-                                    liveBookCommentsProvider(widget.book.id),
-                                  );
-                                  return commentsAsync.when(
-                                    data: (items) {
-                                      final chapterId = chapter?.id.toString();
-                                      final chapterComments = items.where((
-                                        comment,
-                                      ) {
-                                        if (chapterId != null &&
-                                            chapterId.isNotEmpty &&
-                                            comment.chapterId == chapterId) {
-                                          return true;
+                                                ],
+                                              ),
+                                            ),
+                                          );
                                         }
-                                        return comment.chapterIndex ==
-                                            (chapterIndex ?? _chapterIndex);
-                                      }).toList();
 
-                                      if (chapterComments.isEmpty) {
-                                        return Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(32.0),
-                                            child: Column(
-                                              children: [
-                                                Icon(
-                                                  Icons
-                                                      .chat_bubble_outline_rounded,
-                                                  size: 48,
-                                                  color:
-                                                      _getSecondaryTextColor()
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          ),
+                                        return Column(
+                                          children: [
+                                            for (final comment
+                                                in chapterComments)
+                                              CommentTile(
+                                                key: ValueKey(
+                                                  'reader-comment-${comment.id ?? comment.timestamp}',
                                                 ),
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'No comments for this chapter yet.',
-                                                  style: TextStyle(
-                                                    color:
-                                                        _getSecondaryTextColor(),
-                                                  ),
+                                                comment: comment,
+                                                bookId: widget.book.id,
+                                                bookTitle: widget.book.title,
+                                                bookAuthorName: bookAuthorName(
+                                                  widget.book,
                                                 ),
-                                              ],
-                                            ),
-                                          ),
+                                                bookCover: widget.book.coverUrl,
+                                                bookAuthorId: _bookAuthorId,
+                                                textColor: _getTextColor(),
+                                                metadataColor:
+                                                    _getSecondaryTextColor(),
+                                                actionColor:
+                                                    _getReaderActionColor(),
+                                                onReply: () {
+                                                  unawaited(
+                                                    _showChapterReplySheet(
+                                                      comment,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                          ],
                                         );
-                                      }
-
-                                      return Column(
-                                        children: [
-                                          for (final comment in chapterComments)
-                                            CommentTile(
-                                              key: ValueKey(
-                                                'reader-comment-${comment.id ?? comment.timestamp}',
-                                              ),
-                                              comment: comment,
-                                              bookId: widget.book.id,
-                                              bookTitle: widget.book.title,
-                                              bookAuthorName: bookAuthorName(
-                                                widget.book,
-                                              ),
-                                              bookCover: widget.book.coverUrl,
-                                              bookAuthorId: _bookAuthorId,
-                                              textColor: _getTextColor(),
-                                              metadataColor:
-                                                  _getSecondaryTextColor(),
-                                              actionColor:
-                                                  _getReaderActionColor(),
-                                              onReply: () {
-                                                unawaited(
-                                                  _showChapterReplySheet(
-                                                    comment,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                        ],
-                                      );
-                                    },
-                                    loading: () => const Center(
-                                      child: LinearProgressIndicator(),
-                                    ),
-                                    error: (error, stackTrace) {
-                                      logUiError(
-                                        'Reader comments load failed',
-                                        error,
-                                        stackTrace,
-                                      );
-                                      return Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.somethingWentWrong,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
+                                      },
+                                      loading: () => const Center(
+                                        child: LinearProgressIndicator(),
+                                      ),
+                                      error: (error, stackTrace) {
+                                        logUiError(
+                                          'Reader comments load failed',
+                                          error,
+                                          stackTrace,
+                                        );
+                                        return Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.somethingWentWrong,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ),
+          );
+        },
+      ),
     ).whenComplete(() {
       _isDiscussionOpen = false;
       _commentFocusNode.unfocus();
@@ -3356,6 +3380,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return themeMode == ThemeMode.dark ? ReaderTheme.dark : ReaderTheme.light;
   }
 
+  ThemeData _getReaderChromeTheme() {
+    return _getEffectiveTheme() == ReaderTheme.dark
+        ? AppTheme.dark
+        : AppTheme.light;
+  }
+
+  ColorScheme _getReaderChromeColorScheme() {
+    return _getReaderChromeTheme().colorScheme;
+  }
+
   Color _getBackgroundColor() {
     switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
@@ -3370,28 +3404,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Color _getAppBarBackgroundColor() {
-    switch (_getEffectiveTheme()) {
-      case ReaderTheme.light:
-        return Colors.white;
-      case ReaderTheme.sepia:
-        return _getBackgroundColor();
-      case ReaderTheme.dark:
-        return Colors.black;
-      case ReaderTheme.system:
-        return Colors.white;
-    }
+    return _getReaderChromeColorScheme().surface;
   }
 
   Color _getAppBarForegroundColor() {
-    switch (_getEffectiveTheme()) {
-      case ReaderTheme.light:
-      case ReaderTheme.sepia:
-        return const Color(0xFF2E261B);
-      case ReaderTheme.dark:
-        return Colors.white;
-      case ReaderTheme.system:
-        return const Color(0xFF2E261B);
-    }
+    return _getReaderChromeColorScheme().onSurface;
   }
 
   Color _getTextColor() {
@@ -3989,7 +4006,10 @@ class _ChapterEndActions extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.share_rounded, color: theme.colorScheme.primary),
+                        Icon(
+                          Icons.share_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
@@ -4102,9 +4122,7 @@ class _ThemeOption extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected
-                    ? accent
-                    : Colors.grey.withValues(alpha: 0.5),
+                color: selected ? accent : Colors.grey.withValues(alpha: 0.5),
                 width: selected ? 3 : 1,
               ),
               boxShadow: [
@@ -4223,6 +4241,7 @@ class _ReaderTopBar extends StatelessWidget {
   const _ReaderTopBar({
     required this.visible,
     required this.title,
+    required this.chromeTheme,
     required this.backgroundColor,
     required this.foregroundColor,
     required this.isOffline,
@@ -4239,6 +4258,7 @@ class _ReaderTopBar extends StatelessWidget {
 
   final bool visible;
   final String title;
+  final ThemeData chromeTheme;
   final Color backgroundColor;
   final Color foregroundColor;
   final bool isOffline;
@@ -4261,95 +4281,108 @@ class _ReaderTopBar extends StatelessWidget {
               : l10n.stopReadingAloud)
         : l10n.readAloud;
 
-    return IgnorePointer(
-      ignoring: !visible,
-      child: AnimatedSlide(
-        duration: _readerChromeAnimationDuration,
-        curve: Curves.easeOut,
-        offset: visible ? Offset.zero : const Offset(0, -1),
-        child: AnimatedOpacity(
+    return Theme(
+      data: chromeTheme,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedSlide(
           duration: _readerChromeAnimationDuration,
           curve: Curves.easeOut,
-          opacity: visible ? 1 : 0,
-          child: GlassSurface(
-            strong: true,
-            borderRadius: BorderRadius.zero,
-            child: SafeArea(
-              bottom: false,
-              child: SizedBox(
-                height: kToolbarHeight,
-                child: Row(
-                  children: [
-                    Builder(
-                      builder: (context) => IconButton(
-                        icon: const Icon(Icons.menu_rounded),
-                        tooltip: MaterialLocalizations.of(
-                          context,
-                        ).openAppDrawerTooltip,
-                        color: foregroundColor,
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: foregroundColor,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (isOffline)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Chip(
-                          label: const Text(
-                            'Offline',
-                            style: TextStyle(fontSize: 10, color: Colors.white),
+          offset: visible ? Offset.zero : const Offset(0, -1),
+          child: AnimatedOpacity(
+            duration: _readerChromeAnimationDuration,
+            curve: Curves.easeOut,
+            opacity: visible ? 1 : 0,
+            child: GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: backgroundColor.withValues(alpha: 0.32),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: SizedBox(
+                    height: kToolbarHeight,
+                    child: Row(
+                      children: [
+                        Builder(
+                          builder: (context) => IconButton(
+                            icon: const Icon(Icons.menu_rounded),
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).openAppDrawerTooltip,
+                            color: foregroundColor,
+                            onPressed: () => Scaffold.of(context).openDrawer(),
                           ),
-                          backgroundColor: Colors.green.withValues(alpha: 0.7),
-                          padding: EdgeInsets.zero,
-                          side: BorderSide.none,
                         ),
-                      ),
-                    if (isArchiveBook)
-                      IconButton(
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                        tooltip: l10n.viewPdf,
-                        color: foregroundColor,
-                        onPressed: onOpenArchivePdf,
-                      ),
-                    IconButton(
-                      icon: isTtsPreparing
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: foregroundColor,
-                              ),
-                            )
-                          : Icon(
-                              isTtsPlaying
-                                  ? Icons.stop_circle_outlined
-                                  : isTtsPaused
-                                  ? Icons.play_circle_outline_rounded
-                                  : Icons.volume_up_outlined,
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: foregroundColor,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
                             ),
-                      tooltip: ttsTooltip,
-                      color: foregroundColor,
-                      onPressed: onToggleTts,
+                          ),
+                        ),
+                        if (isOffline)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Chip(
+                              label: const Text(
+                                'Offline',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              backgroundColor: Colors.green.withValues(
+                                alpha: 0.7,
+                              ),
+                              padding: EdgeInsets.zero,
+                              side: BorderSide.none,
+                            ),
+                          ),
+                        if (isArchiveBook)
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf_outlined),
+                            tooltip: l10n.viewPdf,
+                            color: foregroundColor,
+                            onPressed: onOpenArchivePdf,
+                          ),
+                        IconButton(
+                          icon: isTtsPreparing
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: foregroundColor,
+                                  ),
+                                )
+                              : Icon(
+                                  isTtsPlaying
+                                      ? Icons.stop_circle_outlined
+                                      : isTtsPaused
+                                      ? Icons.play_circle_outline_rounded
+                                      : Icons.volume_up_outlined,
+                                ),
+                          tooltip: ttsTooltip,
+                          color: foregroundColor,
+                          onPressed: onToggleTts,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.format_size_rounded),
+                          tooltip: l10n.readerSettings,
+                          color: foregroundColor,
+                          onPressed: onShowSettings,
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.format_size_rounded),
-                      tooltip: l10n.readerSettings,
-                      color: foregroundColor,
-                      onPressed: onShowSettings,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -4366,6 +4399,7 @@ class _ReaderBottomBar extends StatelessWidget {
     required this.visible,
     required this.onSwipeUp,
     required this.onTap,
+    required this.chromeTheme,
     required this.theme,
     required this.hasPrevious,
     required this.hasNext,
@@ -4378,6 +4412,7 @@ class _ReaderBottomBar extends StatelessWidget {
   final bool visible;
   final VoidCallback onSwipeUp;
   final VoidCallback onTap;
+  final ThemeData chromeTheme;
   final ReaderTheme theme;
   final bool hasPrevious;
   final bool hasNext;
@@ -4387,80 +4422,82 @@ class _ReaderBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = Theme.of(context);
-    final appColorScheme = appTheme.colorScheme;
+    final appColorScheme = chromeTheme.colorScheme;
     final textColor = appColorScheme.onSurface;
     final progressColor = appColorScheme.primary;
     final progressBackground = appColorScheme.onSurface.withValues(alpha: 0.1);
 
-    return AnimatedContainer(
-      duration: _readerChromeAnimationDuration,
-      curve: Curves.easeOut,
-      height: visible ? _readerBottomBarHeight : 0,
-      child: ClipRect(
-        child: GestureDetector(
-          onVerticalDragEnd: (details) {
-            if (details.primaryVelocity != null &&
-                details.primaryVelocity! < -100) {
-              onSwipeUp();
-            }
-          },
-          onTap: onTap,
-          child: GlassSurface(
-            strong: true,
-            borderRadius: BorderRadius.zero,
-            child: Column(
-              children: [
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: progressBackground,
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  minHeight: 2,
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          hasPrevious
-                              ? Icons.navigate_before_rounded
-                              : Icons.close_rounded,
-                        ),
-                        onPressed: hasPrevious ? onPrevious : onClose,
-                        color: textColor.withValues(alpha: 0.5),
-                        tooltip: hasPrevious
-                            ? AppLocalizations.of(context)!.back
-                            : AppLocalizations.of(context)!.closeReader,
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onVerticalDragEnd: (details) {
-                          if (details.primaryVelocity != null &&
-                              details.primaryVelocity! < -100) {
-                            onSwipeUp();
-                          }
-                        },
-                        onTap: onTap,
-                        child: Icon(
-                          Icons.keyboard_arrow_up_rounded,
-                          size: 24,
-                          color: textColor.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (hasNext)
-                        IconButton(
-                          icon: const Icon(Icons.navigate_next_rounded),
-                          onPressed: onNext,
-                          color: textColor.withValues(alpha: 0.5),
-                          tooltip: AppLocalizations.of(context)!.nextChapter,
-                        )
-                      else
-                        const SizedBox(width: 48),
-                    ],
+    return Theme(
+      data: chromeTheme,
+      child: AnimatedContainer(
+        duration: _readerChromeAnimationDuration,
+        curve: Curves.easeOut,
+        height: visible ? _readerBottomBarHeight : 0,
+        child: ClipRect(
+          child: GestureDetector(
+            onVerticalDragEnd: (details) {
+              if (details.primaryVelocity != null &&
+                  details.primaryVelocity! < -100) {
+                onSwipeUp();
+              }
+            },
+            onTap: onTap,
+            child: GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: progressBackground,
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                    minHeight: 2,
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            hasPrevious
+                                ? Icons.navigate_before_rounded
+                                : Icons.close_rounded,
+                          ),
+                          onPressed: hasPrevious ? onPrevious : onClose,
+                          color: textColor.withValues(alpha: 0.5),
+                          tooltip: hasPrevious
+                              ? AppLocalizations.of(context)!.back
+                              : AppLocalizations.of(context)!.closeReader,
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onVerticalDragEnd: (details) {
+                            if (details.primaryVelocity != null &&
+                                details.primaryVelocity! < -100) {
+                              onSwipeUp();
+                            }
+                          },
+                          onTap: onTap,
+                          child: Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            size: 24,
+                            color: textColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (hasNext)
+                          IconButton(
+                            icon: const Icon(Icons.navigate_next_rounded),
+                            onPressed: onNext,
+                            color: textColor.withValues(alpha: 0.5),
+                            tooltip: AppLocalizations.of(context)!.nextChapter,
+                          )
+                        else
+                          const SizedBox(width: 48),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

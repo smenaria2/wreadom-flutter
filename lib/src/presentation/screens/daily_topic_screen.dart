@@ -20,6 +20,8 @@ import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class DailyTopicArguments {
   const DailyTopicArguments({this.topicId, this.topic});
@@ -63,21 +65,56 @@ class DailyTopicScreen extends ConsumerWidget {
         ? AsyncValue.data(preloadedTopic)
         : ref.watch(dailyTopicByIdProvider(topicId));
 
-    return Scaffold(
+    return GlassScaffold(
       body: topicAsync.when(
         data: (topic) {
           if (topic == null) {
-            return Scaffold(
-              appBar: AppBar(title: Text(l10n.dailyTopic)),
-              body: Center(child: Text(l10n.dailyTopicNotFound)),
-            );
+            return _DailyTopicMessage(message: l10n.dailyTopicNotFound);
           }
           return _DailyTopicBody(topic: topic);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Scaffold(
-          appBar: AppBar(title: Text(l10n.dailyTopic)),
-          body: Center(child: Text(l10n.failedToLoadTopic(error.toString()))),
+        error: (error, _) => _DailyTopicMessage(
+          message: l10n.failedToLoadTopic(error.toString()),
+        ),
+      ),
+    );
+  }
+}
+
+class _DailyTopicMessage extends StatelessWidget {
+  const _DailyTopicMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: GlassSurface(
+          strong: true,
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_stories_outlined,
+                size: 42,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

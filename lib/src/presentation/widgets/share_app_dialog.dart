@@ -3,18 +3,26 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'glass_surface.dart';
+
 class ShareAppDialog extends StatelessWidget {
   const ShareAppDialog({super.key});
 
-  static const String appUrl = 'https://play.google.com/store/apps/details?id=in.wreadom.app';
+  static const String appUrl =
+      'https://play.google.com/store/apps/details?id=in.wreadom.app';
 
   static void show(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => const ShareAppDialog(),
+      builder: (context) => const GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        child: ShareAppDialog(),
+      ),
     );
   }
 
@@ -81,7 +89,10 @@ class ShareAppDialog extends StatelessWidget {
                       Navigator.of(context).pop();
                       final uri = Uri.parse(appUrl);
                       if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       }
                     },
                   ),
@@ -97,7 +108,10 @@ class ShareAppDialog extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.copy_rounded, size: 18),
-              label: const Text('Copy App Link', style: TextStyle(fontSize: 13)),
+              label: const Text(
+                'Copy App Link',
+                style: TextStyle(fontSize: 13),
+              ),
               onPressed: () async {
                 Navigator.of(context).pop();
                 await Clipboard.setData(const ClipboardData(text: appUrl));
@@ -134,22 +148,22 @@ class _DialogActionButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Material(
-      color: colorScheme.primaryContainer,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+    return GlassSurface(
+      strong: true,
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      semanticButton: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 26,
-                color: colorScheme.onPrimaryContainer,
-              ),
+              Icon(icon, size: 26, color: colorScheme.onPrimaryContainer),
               const SizedBox(height: 8),
               Text(
                 label,

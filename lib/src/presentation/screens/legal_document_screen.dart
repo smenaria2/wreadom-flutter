@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 import 'webview_platform_helper.dart';
 
 class LegalDocumentScreen extends StatefulWidget {
@@ -94,8 +96,8 @@ class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      appBar: glassAppBar(
         title: Text(widget.title),
         actions: [
           IconButton(
@@ -117,44 +119,49 @@ class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
                 child: LinearProgressIndicator(
                   value: _loadingProgress > 0 ? _loadingProgress : null,
                   backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    theme.primaryColor,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
                 ),
               ),
             if (_hasError)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 64,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Could not load ${widget.title}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  child: GlassSurface(
+                    strong: true,
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          size: 64,
+                          color: theme.colorScheme.error,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Please check your internet connection or try again.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _initController,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Could not load ${widget.title}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please check your internet connection or try again.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _initController,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

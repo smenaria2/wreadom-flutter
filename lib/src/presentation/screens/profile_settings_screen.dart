@@ -6,6 +6,8 @@ import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -37,8 +39,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final userAsync = ref.watch(currentUserProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileSettings)),
+    return GlassScaffold(
+      appBar: glassAppBar(title: Text(l10n.profileSettings)),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -62,36 +64,50 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              TextField(
-                controller: _displayNameController,
-                decoration: InputDecoration(labelText: l10n.displayName),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _penNameController,
-                decoration: InputDecoration(labelText: l10n.penName),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _bioController,
-                maxLines: 4,
-                decoration: InputDecoration(labelText: l10n.bio),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _privacy,
-                decoration: InputDecoration(labelText: l10n.privacy),
-                items: [
-                  DropdownMenuItem(value: 'public', child: Text(l10n.public)),
-                  DropdownMenuItem(
-                    value: 'followers',
-                    child: Text(l10n.followersOnly),
-                  ),
-                  DropdownMenuItem(value: 'private', child: Text(l10n.private)),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _privacy = value);
-                },
+              GlassSurface(
+                strong: true,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _displayNameController,
+                      decoration: InputDecoration(labelText: l10n.displayName),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _penNameController,
+                      decoration: InputDecoration(labelText: l10n.penName),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _bioController,
+                      maxLines: 4,
+                      decoration: InputDecoration(labelText: l10n.bio),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _privacy,
+                      decoration: InputDecoration(labelText: l10n.privacy),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'public',
+                          child: Text(l10n.public),
+                        ),
+                        DropdownMenuItem(
+                          value: 'followers',
+                          child: Text(l10n.followersOnly),
+                        ),
+                        DropdownMenuItem(
+                          value: 'private',
+                          child: Text(l10n.private),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setState(() => _privacy = value);
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
               if (notificationSettings != null) ...[
@@ -313,15 +329,9 @@ class _NotificationPreferencesSectionState
         .where((spec) => widget.values[spec.key] ?? true)
         .length;
 
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return GlassSurface(
+      strong: true,
+      borderRadius: BorderRadius.circular(18),
       child: ExpansionTile(
         initiallyExpanded: false,
         onExpansionChanged: (expanded) {
@@ -348,7 +358,7 @@ class _NotificationPreferencesSectionState
             const SizedBox(width: 8),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
+                color: colorScheme.primaryContainer.withValues(alpha: 0.74),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Padding(
@@ -449,8 +459,8 @@ class _NotificationPreferenceRow extends StatelessWidget {
       leading: DecoratedBox(
         decoration: BoxDecoration(
           color: value
-              ? colorScheme.primaryContainer
-              : colorScheme.surfaceContainerHigh,
+              ? colorScheme.primaryContainer.withValues(alpha: 0.74)
+              : colorScheme.surfaceContainerHigh.withValues(alpha: 0.42),
           borderRadius: BorderRadius.circular(8),
         ),
         child: SizedBox.square(

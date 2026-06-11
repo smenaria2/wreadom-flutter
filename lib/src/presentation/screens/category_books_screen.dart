@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../components/book_card.dart';
 import '../providers/homepage_providers.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class CategoryBooksArguments {
   const CategoryBooksArguments({required this.category, this.displayName});
@@ -50,8 +52,8 @@ class CategoryBooksScreen extends ConsumerWidget {
       _ => ref.watch(homepageGenreProvider(category)),
     };
 
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      appBar: glassAppBar(
         title: Text(displayName ?? category),
         actions: [
           IconButton(
@@ -70,8 +72,9 @@ class CategoryBooksScreen extends ConsumerWidget {
                 children: [
                   SizedBox(
                     height: MediaQuery.sizeOf(context).height * 0.65,
-                    child: Center(
-                      child: Text(l10n.noBooksFoundIn(displayName ?? category)),
+                    child: _CategoryMessage(
+                      icon: Icons.auto_stories_outlined,
+                      message: l10n.noBooksFoundIn(displayName ?? category),
                     ),
                   ),
                 ],
@@ -95,10 +98,44 @@ class CategoryBooksScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(l10n.errorWithDetails(error.toString())),
+        error: (error, _) => _CategoryMessage(
+          icon: Icons.error_outline_rounded,
+          message: l10n.errorWithDetails(error.toString()),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryMessage extends StatelessWidget {
+  const _CategoryMessage({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: GlassSurface(
+          strong: true,
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 42, color: theme.colorScheme.primary),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ),

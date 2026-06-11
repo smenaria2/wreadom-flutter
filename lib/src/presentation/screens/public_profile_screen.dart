@@ -40,166 +40,62 @@ class PublicProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          const AppBackground(),
+          const Positioned.fill(child: AppBackground()),
           profileAsync.when(
-        data: (user) {
-          if (user == null) {
-            return Center(child: Text(l10n.userNotFound));
-          }
-          final theme = Theme.of(context);
-          final worksCount = ref
-              .watch(userBooksProvider(user.id))
-              .maybeWhen(
-                data: (books) => books.length,
-                orElse: () => user.pinnedWorks?.length ?? 0,
-              );
-          final followersCount = ref
-              .watch(userFollowersListProvider(user.id))
-              .maybeWhen(
-                data: (followers) => followers.length,
-                orElse: () => user.followersCount ?? 0,
-              );
-          final followingCount = ref
-              .watch(userFollowingListProvider(user.id))
-              .maybeWhen(
-                data: (following) => following.length,
-                orElse: () => user.followingCount ?? 0,
-              );
-          final level = (user.privacyLevel ?? 'public').toLowerCase();
-          final followersOnly =
-              level == 'followers' ||
-              level == 'followersonly' ||
-              level == 'followers_only';
+            data: (user) {
+              if (user == null) {
+                return Center(child: Text(l10n.userNotFound));
+              }
+              final theme = Theme.of(context);
+              final worksCount = ref
+                  .watch(userBooksProvider(user.id))
+                  .maybeWhen(
+                    data: (books) => books.length,
+                    orElse: () => user.pinnedWorks?.length ?? 0,
+                  );
+              final followersCount = ref
+                  .watch(userFollowersListProvider(user.id))
+                  .maybeWhen(
+                    data: (followers) => followers.length,
+                    orElse: () => user.followersCount ?? 0,
+                  );
+              final followingCount = ref
+                  .watch(userFollowingListProvider(user.id))
+                  .maybeWhen(
+                    data: (following) => following.length,
+                    orElse: () => user.followingCount ?? 0,
+                  );
+              final level = (user.privacyLevel ?? 'public').toLowerCase();
+              final followersOnly =
+                  level == 'followers' ||
+                  level == 'followersonly' ||
+                  level == 'followers_only';
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 220,
-                pinned: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                foregroundColor: theme.colorScheme.onSurface,
-                iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-                actions: [
-                  IconButton(
-                    tooltip: l10n.shareProfile,
-                    icon: const Icon(Icons.share_outlined),
-                    onPressed: () => _shareProfile(context, user, worksCount),
-                  ),
-                  if (!isSelf) ...[
-                    FollowButton(targetUserId: userId, compact: true),
-                    followingAsync.when(
-                      data: (isFollowing) {
-                        if (isFollowing) {
-                          return _PublicProfileMessageAction(user: user);
-                        }
-                        return const SizedBox.shrink();
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, _) => const SizedBox.shrink(),
+              return CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    expandedHeight: 220,
+                    pinned: true,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                    foregroundColor: theme.colorScheme.onSurface,
+                    iconTheme: IconThemeData(
+                      color: theme.colorScheme.onSurface,
                     ),
-                  ],
-                ],
-                flexibleSpace: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const GlassSurface(
-                      strong: true,
-                      borderRadius: BorderRadius.zero,
-                      child: SizedBox.expand(),
-                    ),
-                    FlexibleSpaceBar(
-                      centerTitle: false,
-                      titlePadding: const EdgeInsetsDirectional.only(
-                        start: 56,
-                        bottom: 16,
-                      ),
-                      title: _ProfileAppBarTitle(
-                        displayName: _safePublicProfileDisplayName(user),
-                        rightPaddingMax: isSelf
-                            ? 56.0
-                            : ((followingAsync.value ?? false) ? 152.0 : 104.0),
-                      ),
-                      background: _PublicProfileHeader(user: user),
-                    ),
-                  ],
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if ((user.penName ?? '').isNotEmpty) ...[
-                        Text(l10n.penNameValue(user.penName!)),
-                      ],
-                      if ((user.bio ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          user.bio!,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(height: 1.5),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatChip(
-                              label: l10n.followers,
-                              value: '$followersCount',
-                              onTap: () => Navigator.of(context).pushNamed(
-                                AppRoutes.followList,
-                                arguments: FollowListArguments(
-                                  userId: userId,
-                                  mode: FollowListMode.followers,
-                                  title: l10n.followers,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _StatChip(
-                              label: l10n.following,
-                              value: '$followingCount',
-                              onTap: () => Navigator.of(context).pushNamed(
-                                AppRoutes.followList,
-                                arguments: FollowListArguments(
-                                  userId: userId,
-                                  mode: FollowListMode.following,
-                                  title: l10n.following,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _StatChip(
-                              label: l10n.works,
-                              value: '$worksCount',
-                            ),
-                          ),
-                        ],
+                    actions: [
+                      IconButton(
+                        tooltip: l10n.shareProfile,
+                        icon: const Icon(Icons.share_outlined),
+                        onPressed: () =>
+                            _shareProfile(context, user, worksCount),
                       ),
                       if (!isSelf) ...[
-                        const SizedBox(height: 16),
+                        FollowButton(targetUserId: userId, compact: true),
                         followingAsync.when(
                           data: (isFollowing) {
-                            if (level == 'private') {
-                              return _PrivacyNoticeCard(
-                                message: l10n.privateAccountNotice,
-                                icon: Icons.lock_outline,
-                              );
-                            }
-                            if (followersOnly && !isFollowing) {
-                              return _PrivacyNoticeCard(
-                                message: l10n.followToSeeFullProfile,
-                                icon: Icons.people_outline,
-                              );
+                            if (isFollowing) {
+                              return _PublicProfileMessageAction(user: user);
                             }
                             return const SizedBox.shrink();
                           },
@@ -207,35 +103,147 @@ class PublicProfileScreen extends ConsumerWidget {
                           error: (_, _) => const SizedBox.shrink(),
                         ),
                       ],
-                      const SizedBox(height: 20),
-                      if (isSelf || level == 'public') ...[
-                        const SizedBox(height: 28),
-                        _PublicProfileContentTabs(userId: userId),
-                      ] else if (followersOnly)
-                        followingAsync.maybeWhen(
-                          data: (isFollowing) => isFollowing
-                              ? const Column(children: [SizedBox(height: 28)])
-                              : const SizedBox.shrink(),
-                          orElse: () => const SizedBox.shrink(),
-                        ),
-                      if (followersOnly)
-                        followingAsync.maybeWhen(
-                          data: (isFollowing) => isFollowing
-                              ? _PublicProfileContentTabs(userId: userId)
-                              : const SizedBox.shrink(),
-                          orElse: () => const SizedBox.shrink(),
-                        ),
                     ],
+                    flexibleSpace: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        const GlassSurface(
+                          strong: true,
+                          borderRadius: BorderRadius.zero,
+                          child: SizedBox.expand(),
+                        ),
+                        FlexibleSpaceBar(
+                          centerTitle: false,
+                          titlePadding: const EdgeInsetsDirectional.only(
+                            start: 56,
+                            bottom: 16,
+                          ),
+                          title: _ProfileAppBarTitle(
+                            displayName: _safePublicProfileDisplayName(user),
+                            rightPaddingMax: isSelf
+                                ? 56.0
+                                : ((followingAsync.value ?? false)
+                                      ? 152.0
+                                      : 104.0),
+                          ),
+                          background: _PublicProfileHeader(user: user),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
-      ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if ((user.penName ?? '').isNotEmpty) ...[
+                            Text(l10n.penNameValue(user.penName!)),
+                          ],
+                          if ((user.bio ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              user.bio!,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.copyWith(height: 1.5),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _StatChip(
+                                  label: l10n.followers,
+                                  value: '$followersCount',
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.followList,
+                                    arguments: FollowListArguments(
+                                      userId: userId,
+                                      mode: FollowListMode.followers,
+                                      title: l10n.followers,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _StatChip(
+                                  label: l10n.following,
+                                  value: '$followingCount',
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.followList,
+                                    arguments: FollowListArguments(
+                                      userId: userId,
+                                      mode: FollowListMode.following,
+                                      title: l10n.following,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _StatChip(
+                                  label: l10n.works,
+                                  value: '$worksCount',
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!isSelf) ...[
+                            const SizedBox(height: 16),
+                            followingAsync.when(
+                              data: (isFollowing) {
+                                if (level == 'private') {
+                                  return _PrivacyNoticeCard(
+                                    message: l10n.privateAccountNotice,
+                                    icon: Icons.lock_outline,
+                                  );
+                                }
+                                if (followersOnly && !isFollowing) {
+                                  return _PrivacyNoticeCard(
+                                    message: l10n.followToSeeFullProfile,
+                                    icon: Icons.people_outline,
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, _) => const SizedBox.shrink(),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          if (isSelf || level == 'public') ...[
+                            const SizedBox(height: 28),
+                            _PublicProfileContentTabs(userId: userId),
+                          ] else if (followersOnly)
+                            followingAsync.maybeWhen(
+                              data: (isFollowing) => isFollowing
+                                  ? const Column(
+                                      children: [SizedBox(height: 28)],
+                                    )
+                                  : const SizedBox.shrink(),
+                              orElse: () => const SizedBox.shrink(),
+                            ),
+                          if (followersOnly)
+                            followingAsync.maybeWhen(
+                              data: (isFollowing) => isFollowing
+                                  ? _PublicProfileContentTabs(userId: userId)
+                                  : const SizedBox.shrink(),
+                              orElse: () => const SizedBox.shrink(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(
+              child: Text(l10n.failedToLoadWithError(error.toString())),
+            ),
+          ),
         ],
       ),
     );
@@ -247,7 +255,8 @@ class PublicProfileScreen extends ConsumerWidget {
       context,
       user: user,
       worksCount: worksCount,
-      fallbackText: 'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
+      fallbackText:
+          'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
     );
   }
 }
@@ -274,9 +283,9 @@ class _PublicProfileMessageActionState
       final currentUser = await ref.read(currentUserProvider.future);
       if (currentUser == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.signInToContinueAction)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.signInToContinueAction)));
         return;
       }
       final conversationId = await ref
@@ -368,12 +377,33 @@ class _PublicProfileContentTabsState extends State<_PublicProfileContentTabs>
     final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
-        TabBar(
-          controller: _controller,
-          tabs: [
-            Tab(text: l10n.books),
-            Tab(text: l10n.posts),
-          ],
+        GlassControlSurface(
+          padding: const EdgeInsets.all(4),
+          borderRadius: BorderRadius.circular(28),
+          child: TabBar(
+            controller: _controller,
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.86),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.22),
+              ),
+            ),
+            labelColor: Theme.of(context).colorScheme.onPrimaryContainer,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
+            tabs: [
+              Tab(text: l10n.books),
+              Tab(text: l10n.posts),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         if (_index == 0)
@@ -426,8 +456,8 @@ class _ProfileAppBarTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final settings =
-        context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
 
     double opacity = 0.0;
     double rightPadding = 0.0;
@@ -474,8 +504,8 @@ class _PublicProfileHeader extends StatelessWidget {
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
     final displayName = _safePublicProfileDisplayName(user);
 
-    final settings =
-        context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
     double opacity = 1.0;
     if (settings != null) {
       final delta = settings.maxExtent - settings.minExtent;
@@ -547,7 +577,9 @@ class _PublicProfileHeader extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: hasCover ? Colors.white : theme.colorScheme.onSurface,
+                      color: hasCover
+                          ? Colors.white
+                          : theme.colorScheme.onSurface,
                       shadows: hasCover
                           ? [
                               const Shadow(

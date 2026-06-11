@@ -8,6 +8,7 @@ import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
 import '../../utils/book_author_utils.dart';
 import '../../utils/error_message_utils.dart';
+import '../../widgets/glass_surface.dart';
 
 /// Shows a sheet for writing a book review.
 void showReviewSheet(BuildContext context, Book book) {
@@ -15,10 +16,15 @@ void showReviewSheet(BuildContext context, Book book) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: Colors.transparent,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => _ReviewSheet(book: book),
+    builder: (_) => GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: _ReviewSheet(book: book),
+    ),
   );
 }
 
@@ -97,23 +103,17 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.reviewShared),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.reviewShared)));
       }
     } catch (e, stackTrace) {
       logUiError('Review submit failed', e, stackTrace);
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.somethingWentWrong),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
       }
     }
   }
@@ -174,7 +174,11 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                 iconSize: 32,
                 icon: Icon(
                   active ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: active ? Colors.amber : Colors.grey[400],
+                  color: active
+                      ? Colors.amber
+                      : theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.56,
+                        ),
                 ),
                 onPressed: () => setState(() => _rating = index + 1),
               );
@@ -187,19 +191,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
             maxLines: 5,
             minLines: 3,
             autofocus: true,
-            decoration: InputDecoration(
-              hintText: l10n.reviewHint,
-              filled: true,
-              fillColor: Colors.grey[50],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey[200]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
+            decoration: InputDecoration(hintText: l10n.reviewHint),
           ),
           const SizedBox(height: 12),
         ],

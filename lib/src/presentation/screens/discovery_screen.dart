@@ -13,6 +13,8 @@ import '../providers/discovery_providers.dart';
 import '../components/generated_book_cover.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 import 'book_detail_screen.dart';
 import '../../utils/map_utils.dart';
 
@@ -89,10 +91,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final searchAsync = ref.watch(discoverySearchProvider(queryForProvider));
     final defaultAsync = ref.watch(discoveryDefaultBooksProvider);
 
-    return Scaffold(
+    return GlassScaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
+          glassSliverAppBar(
             floating: true,
             snap: true,
             title: Text(
@@ -138,7 +140,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         : null,
                     filled: true,
                     fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
+                        .withValues(alpha: 0.34),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -374,7 +376,6 @@ class _AuthorProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final displayName = author.displayName ?? author.penName ?? author.username;
     final initial = displayName.trim().isNotEmpty
         ? displayName.trim().characters.first.toUpperCase()
@@ -382,48 +383,40 @@ class _AuthorProfileCard extends StatelessWidget {
 
     return SizedBox(
       width: 128,
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 0,
-        color: theme.colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: theme.colorScheme.outlineVariant),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.of(context).pushNamed(
+          AppRoutes.publicProfile,
+          arguments: PublicProfileArguments(userId: author.id),
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.of(context).pushNamed(
-            AppRoutes.publicProfile,
-            arguments: PublicProfileArguments(userId: author.id),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage:
-                      author.photoURL != null && author.photoURL!.isNotEmpty
-                      ? CachedNetworkImageProvider(author.photoURL!)
-                      : null,
-                  child: author.photoURL == null || author.photoURL!.isEmpty
-                      ? Text(initial)
-                      : null,
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundImage:
+                    author.photoURL != null && author.photoURL!.isNotEmpty
+                    ? CachedNetworkImageProvider(author.photoURL!)
+                    : null,
+                child: author.photoURL == null || author.photoURL!.isEmpty
+                    ? Text(initial)
+                    : null,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -438,89 +431,81 @@ class _SearchResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return GlassSurface(
       margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              BookDetailScreen(bookId: book.id, preloadedBook: book),
+        ),
       ),
+      semanticButton: true,
       child: Semantics(
         button: true,
         label:
             '${book.title} ${AppLocalizations.of(context)!.about} ${book.authors.isNotEmpty ? book.authors.map((a) => a.name).join(', ') : AppLocalizations.of(context)!.unknownAuthor}',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  BookDetailScreen(bookId: book.id, preloadedBook: book),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: book.coverUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: book.coverUrl!,
-                          width: 56,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, _, _) =>
-                              _MiniPlaceholder(book: book),
-                        )
-                      : _MiniPlaceholder(book: book),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        book.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: book.coverUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: book.coverUrl!,
+                        width: 56,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => _MiniPlaceholder(book: book),
+                      )
+                    : _MiniPlaceholder(book: book),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                      const SizedBox(height: 4),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      book.authors.isNotEmpty
+                          ? book.authors.map((a) => a.name).join(', ')
+                          : AppLocalizations.of(context)!.unknownAuthor,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (book.source == 'archive') ...[
+                      const SizedBox(height: 6),
                       Text(
-                        book.authors.isNotEmpty
-                            ? book.authors.map((a) => a.name).join(', ')
-                            : AppLocalizations.of(context)!.unknownAuthor,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        AppLocalizations.of(context)!.internetArchive,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (book.source == 'archive') ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          AppLocalizations.of(context)!.internetArchive,
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
       ),

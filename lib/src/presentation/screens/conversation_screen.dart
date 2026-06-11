@@ -12,6 +12,8 @@ import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -108,8 +110,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         conversation.createdBy == currentUser.id &&
         conversation.firstMessageSenderId == null;
 
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      appBar: glassAppBar(
         title: _ConversationTitle(
           title: widget.title,
           subtitle: widget.subtitle,
@@ -255,13 +257,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Container(
-                  width: double.infinity,
+                child: GlassSurface(
+                  strong: true,
                   padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  borderRadius: BorderRadius.circular(16),
                   child: Text(
                     isBlocked
                         ? l10n.cannotSendMessages
@@ -277,59 +276,58 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (newDirectThread) ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                child: GlassSurface(
+                  strong: true,
+                  padding: const EdgeInsets.all(10),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (newDirectThread) ...[
+                        GlassSurface(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Text(
+                            l10n.oneMessageAllowed,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          l10n.oneMessageAllowed,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            decoration: InputDecoration(
-                              hintText: l10n.messageHint,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              decoration: InputDecoration(
+                                hintText: l10n.messageHint,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: _sending
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.send),
-                          onPressed: _sending ? null : _sendMessage,
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            icon: _sending
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.send_rounded),
+                            onPressed: _sending ? null : _sendMessage,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -632,38 +630,42 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = isMine
-        ? theme.colorScheme.primaryContainer
-        : theme.colorScheme.surfaceContainerHigh;
+        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.78)
+        : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.72);
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 280),
+    return GlassSurface(
       margin: EdgeInsets.only(bottom: bottomMargin),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showSender) ...[
-            _MessageSender(message: message),
-            const SizedBox(height: 6),
-          ],
-          if (message.type == 'story' && message.storyData != null)
-            _StoryMessageCard(story: message.storyData!)
-          else
-            Text(message.text ?? ''),
-          const SizedBox(height: 5),
-          Text(
-            FormatUtils.relativeTime(message.timestamp),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 11,
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 280),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showSender) ...[
+              _MessageSender(message: message),
+              const SizedBox(height: 6),
+            ],
+            if (message.type == 'story' && message.storyData != null)
+              _StoryMessageCard(story: message.storyData!)
+            else
+              Text(message.text ?? ''),
+            const SizedBox(height: 5),
+            Text(
+              FormatUtils.relativeTime(message.timestamp),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 11,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
