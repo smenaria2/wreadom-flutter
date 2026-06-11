@@ -11,6 +11,7 @@ import '../../../domain/models/comment.dart';
 import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
+import '../../widgets/glass_surface.dart';
 
 class CommentReplySheet extends ConsumerStatefulWidget {
   const CommentReplySheet({
@@ -219,9 +220,12 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
-      child: Column(
+    return GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -234,34 +238,38 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _controller.value,
-            autofocus: true,
-            minLines: 2,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: l10n.addAReply,
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                tooltip: _isRecording ? 'Stop recording' : 'Record audio',
-                onPressed: _submitting
-                    ? null
-                    : () async {
-                        if (_isRecording) {
-                          await _stopRecording();
-                        } else {
-                          await _startRecording();
-                        }
-                      },
-                icon: Icon(
-                  _isRecording
-                      ? Icons.stop_circle_outlined
-                      : Icons.mic_none_rounded,
-                  color: _isRecording ? Colors.red : null,
+          GlassSurface(
+            borderRadius: BorderRadius.circular(18),
+            child: TextField(
+              controller: _controller.value,
+              autofocus: true,
+              minLines: 2,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: l10n.addAReply,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+                suffixIcon: IconButton(
+                  tooltip: _isRecording ? 'Stop recording' : 'Record audio',
+                  onPressed: _submitting
+                      ? null
+                      : () async {
+                          if (_isRecording) {
+                            await _stopRecording();
+                          } else {
+                            await _startRecording();
+                          }
+                        },
+                  icon: Icon(
+                    _isRecording
+                        ? Icons.stop_circle_outlined
+                        : Icons.mic_none_rounded,
+                    color: _isRecording ? Colors.red : null,
+                  ),
                 ),
               ),
+              onChanged: (_) => _refreshComposer(),
             ),
-            onChanged: (_) => _refreshComposer(),
           ),
           if (_isRecording || _pendingAudioPath != null) ...[
             const SizedBox(height: 8),
@@ -275,18 +283,28 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: _submitting || !_canSubmit ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.reply),
+            child: GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.circular(18),
+              onTap: _submitting || !_canSubmit ? null : _submit,
+              semanticButton: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.reply),
+              ),
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -308,16 +326,8 @@ class _ReplyAudioComposerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isRecording
-              ? Colors.red.withValues(alpha: 0.55)
-              : theme.colorScheme.outlineVariant,
-        ),
-      ),
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Row(

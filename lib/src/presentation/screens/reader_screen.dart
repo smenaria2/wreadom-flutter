@@ -36,6 +36,7 @@ import '../utils/error_message_utils.dart';
 import '../utils/share_text_helper.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -2721,13 +2722,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _getBackgroundColor(),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-            ),
+          child: GlassSurface(
+            strong: true,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             child: Column(
               children: [
                 Padding(
@@ -2767,24 +2764,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (_selectedQuote != null)
-                                Container(
+                                GlassSurface(
+                                  borderRadius: BorderRadius.circular(14),
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        width: 4,
-                                      ),
-                                    ),
-                                  ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -3598,123 +3581,132 @@ class _ChapterDrawer extends StatelessWidget {
       backgroundColor.withValues(alpha: 0.55),
       scheme.surface,
     );
-    final headerSurface = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.08),
-      surfaceColor,
-    );
     final selectedSurface = Color.alphaBlend(
       accentColor.withValues(alpha: 0.14),
       surfaceColor,
     );
     return Drawer(
-      backgroundColor: surfaceColor,
-      child: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: IconButton.filledTonal(
-                  onPressed: onBack,
-                  tooltip: AppLocalizations.of(context)!.back,
-                  style: IconButton.styleFrom(
-                    foregroundColor: textColor,
-                    backgroundColor: surfaceColor.withValues(alpha: 0.7),
+      backgroundColor: Colors.transparent,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(28)),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: IconButton.filledTonal(
+                    onPressed: onBack,
+                    tooltip: AppLocalizations.of(context)!.back,
+                    style: IconButton.styleFrom(
+                      foregroundColor: textColor,
+                      backgroundColor: surfaceColor.withValues(alpha: 0.7),
+                    ),
+                    icon: const Icon(Icons.arrow_back_rounded),
                   ),
-                  icon: const Icon(Icons.arrow_back_rounded),
                 ),
               ),
             ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
-            decoration: BoxDecoration(
-              color: headerSurface,
-              border: Border(
-                bottom: BorderSide(color: headerColor.withValues(alpha: 0.18)),
-              ),
-            ),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(
-                AppLocalizations.of(context)!.chaptersTitle,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: chapters.length,
-              itemBuilder: (context, index) {
-                final isSelected = index == currentIndex;
-                final isComplete = completedChapterIndexes.contains(index);
-                final commentCount = commentCounts[index] ?? 0;
-                return ListTile(
-                  selectedTileColor: selectedSurface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: isComplete
-                        ? Colors.green
-                        : isSelected
-                        ? accentColor
-                        : secondaryTextColor.withValues(alpha: 0.14),
-                    child: isComplete
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          )
-                        : Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : secondaryTextColor,
-                            ),
-                          ),
-                  ),
-                  title: Text(
-                    chapters[index].title.trim().isNotEmpty
-                        ? chapters[index].title
-                        : 'Chapter ${index + 1}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            GlassSurface(
+              strong: true,
+              margin: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+              child: SizedBox(
+                width: double.infinity,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    AppLocalizations.of(context)!.chaptersTitle,
                     style: TextStyle(
                       color: textColor,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  trailing: commentCount > 0
-                      ? IconButton(
-                          tooltip: _viewChapterCommentsLabel(context),
-                          icon: Badge(
-                            label: Text('$commentCount'),
-                            child: const Icon(
-                              Icons.chat_bubble_outline_rounded,
-                            ),
-                          ),
-                          color: secondaryTextColor,
-                          onPressed: () => onOpenComments(index),
-                        )
-                      : null,
-                  selected: isSelected,
-                  onTap: () => onSelect(index),
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView.builder(
+                itemCount: chapters.length,
+                itemBuilder: (context, index) {
+                  final isSelected = index == currentIndex;
+                  final isComplete = completedChapterIndexes.contains(index);
+                  final commentCount = commentCounts[index] ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: GlassSurface(
+                      strong: isSelected,
+                      borderRadius: BorderRadius.circular(18),
+                      child: ListTile(
+                        selectedTileColor: selectedSurface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: isComplete
+                              ? Colors.green
+                              : isSelected
+                              ? accentColor
+                              : secondaryTextColor.withValues(alpha: 0.14),
+                          child: isComplete
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                )
+                              : Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : secondaryTextColor,
+                                  ),
+                                ),
+                        ),
+                        title: Text(
+                          chapters[index].title.trim().isNotEmpty
+                              ? chapters[index].title
+                              : 'Chapter ${index + 1}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: commentCount > 0
+                            ? IconButton(
+                                tooltip: _viewChapterCommentsLabel(context),
+                                icon: Badge(
+                                  label: Text('$commentCount'),
+                                  child: const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                  ),
+                                ),
+                                color: secondaryTextColor,
+                                onPressed: () => onOpenComments(index),
+                              )
+                            : null,
+                        selected: isSelected,
+                        onTap: () => onSelect(index),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3978,6 +3970,7 @@ class _ThemeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -3990,21 +3983,21 @@ class _ThemeOption extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(
                 color: selected
-                    ? Colors.blue
+                    ? accent
                     : Colors.grey.withValues(alpha: 0.5),
                 width: selected ? 3 : 1,
               ),
               boxShadow: [
                 if (selected)
                   BoxShadow(
-                    color: Colors.blue.withValues(alpha: 0.3),
+                    color: accent.withValues(alpha: 0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
               ],
             ),
             child: selected
-                ? const Icon(Icons.check, color: Colors.blue)
+                ? Icon(Icons.check, color: accent)
                 : (icon != null
                       ? Icon(icon, color: textColor ?? Colors.grey)
                       : null),

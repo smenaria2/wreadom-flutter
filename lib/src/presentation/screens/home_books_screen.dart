@@ -20,6 +20,7 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
+import '../widgets/glass_surface.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -113,14 +114,14 @@ class HomeBooksScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           l10n.appTitle,
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             fontSize: 24,
-            letterSpacing: -0.5,
+            letterSpacing: 0,
           ),
         ),
         elevation: 0,
@@ -1512,234 +1513,231 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
         final authorName = _authorName(author);
         final authorInitial = _initialForName(authorName);
 
-        return Container(
+        return GlassSurface(
+          strong: true,
           margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF0A0A0F),
-                const Color(0xFF16131D),
-                const Color(0xFF241D16),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF0A0A0F).withValues(alpha: 0.72),
+                  const Color(0xFF16131D).withValues(alpha: 0.58),
+                  const Color(0xFF2C2115).withValues(alpha: 0.48),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                top: -20,
-                child: Icon(
-                  Icons.star_rounded,
-                  size: 120,
-                  color: const Color(0xFFFFD166).withValues(alpha: 0.08),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -20,
+                  top: -20,
+                  child: Icon(
+                    Icons.star_rounded,
+                    size: 120,
+                    color: const Color(0xFFFFD166).withValues(alpha: 0.08),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => _openAuthorProfile(context, author),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFFFD166),
-                                width: 2,
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => _openAuthorProfile(context, author),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFFFD166),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFFFD166,
+                                    ).withValues(alpha: 0.22),
+                                    blurRadius: 18,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFFFD166,
-                                  ).withValues(alpha: 0.22),
-                                  blurRadius: 18,
-                                  spreadRadius: 1,
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: const Color(0xFF2D2A35),
+                                backgroundImage:
+                                    author.photoURL != null &&
+                                        author.photoURL!.isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                        author.photoURL!,
+                                      )
+                                    : null,
+                                child:
+                                    (author.photoURL == null ||
+                                        author.photoURL!.isEmpty)
+                                    ? authorInitial != null
+                                          ? Text(
+                                              authorInitial,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFFFD166),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.person_rounded,
+                                              color: Color(0xFFFFD166),
+                                            )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () =>
+                                      _openAuthorProfile(context, author),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2,
+                                    ),
+                                    child: Text(
+                                      authorName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFD166),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  author.bio ?? l10n.featuredWreadomAuthor,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    fontSize: 14,
+                                    height: 1.3,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: CircleAvatar(
-                              radius: 30,
-                              backgroundColor: const Color(0xFF2D2A35),
-                              backgroundImage:
-                                  author.photoURL != null &&
-                                      author.photoURL!.isNotEmpty
-                                  ? CachedNetworkImageProvider(author.photoURL!)
-                                  : null,
-                              child:
-                                  (author.photoURL == null ||
-                                      author.photoURL!.isEmpty)
-                                  ? authorInitial != null
-                                        ? Text(
-                                            authorInitial,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFFFFD166),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      authorBooksAsync.when(
+                        data: (books) {
+                          if (books.isEmpty) return const SizedBox.shrink();
+                          // Only show first 5 books
+                          final displayBooks = books.take(5).toList();
+                          return SizedBox(
+                            height: 132,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: displayBooks.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final book = displayBooks[index];
+                                return GestureDetector(
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => BookDetailScreen(
+                                        bookId: book.id,
+                                        preloadedBook: book,
+                                      ),
+                                    ),
+                                  ),
+                                  child: SizedBox(
+                                    width: 76,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.28),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
                                             ),
-                                          )
-                                        : const Icon(
-                                            Icons.person_rounded,
-                                            color: Color(0xFFFFD166),
-                                          )
-                                  : null,
+                                            clipBehavior: Clip.antiAlias,
+                                            child:
+                                                book.coverUrl != null &&
+                                                    book.coverUrl!.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl: book.coverUrl!,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    memCacheWidth: 220,
+                                                    memCacheHeight: 330,
+                                                    errorWidget: (_, _, _) =>
+                                                        _CoverPlaceholder(
+                                                          book: book,
+                                                        ),
+                                                  )
+                                                : _CoverPlaceholder(book: book),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          book.title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.92,
+                                            ),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.15,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(
+                          height: 100,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InkWell(
-                                borderRadius: BorderRadius.circular(8),
-                                onTap: () =>
-                                    _openAuthorProfile(context, author),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                  ),
-                                  child: Text(
-                                    authorName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFD166),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                author.bio ?? l10n.featuredWreadomAuthor,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.88),
-                                  fontSize: 14,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    authorBooksAsync.when(
-                      data: (books) {
-                        if (books.isEmpty) return const SizedBox.shrink();
-                        // Only show first 5 books
-                        final displayBooks = books.take(5).toList();
-                        return SizedBox(
-                          height: 132,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: displayBooks.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final book = displayBooks[index];
-                              return GestureDetector(
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => BookDetailScreen(
-                                      bookId: book.id,
-                                      preloadedBook: book,
-                                    ),
-                                  ),
-                                ),
-                                child: SizedBox(
-                                  width: 76,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.28,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          clipBehavior: Clip.antiAlias,
-                                          child:
-                                              book.coverUrl != null &&
-                                                  book.coverUrl!.isNotEmpty
-                                              ? CachedNetworkImage(
-                                                  imageUrl: book.coverUrl!,
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                  memCacheWidth: 220,
-                                                  memCacheHeight: 330,
-                                                  errorWidget: (_, _, _) =>
-                                                      _CoverPlaceholder(
-                                                        book: book,
-                                                      ),
-                                                )
-                                              : _CoverPlaceholder(book: book),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        book.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.92,
-                                          ),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.15,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      loading: () => const SizedBox(
-                        height: 100,
-                        child: Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
-                      error: (_, _) => const SizedBox.shrink(),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

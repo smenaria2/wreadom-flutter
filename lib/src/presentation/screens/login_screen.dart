@@ -14,6 +14,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/auth_text_field.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/primary_button.dart';
 
@@ -426,14 +427,8 @@ class _LoginMenuButton<T> extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Tooltip(
       message: tooltip,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-          ),
-        ),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(14),
         child: PopupMenuButton<T>(
           tooltip: tooltip,
           initialValue: value,

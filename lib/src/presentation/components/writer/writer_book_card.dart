@@ -5,6 +5,7 @@ import '../../../domain/models/book.dart';
 import '../../../utils/book_collaboration_utils.dart';
 import '../../../utils/book_publication_date.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/glass_surface.dart';
 
 class WriterBookCard extends StatelessWidget {
   final Book book;
@@ -42,14 +43,9 @@ class WriterBookCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${book.title}, ${isPublished ? publishedLabel : draftLabel}',
-      child: Card(
+      child: GlassSurface(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: 0,
-        color: colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: colorScheme.outlineVariant),
-        ),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),

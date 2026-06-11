@@ -39,6 +39,7 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
   flutter_screenutil: ^5.9.3
+  flutter_glass_morphism: ^1.0.2
   google_fonts: ^8.0.2
   firebase_core: ^4.6.0
   cloud_firestore: ^6.2.0

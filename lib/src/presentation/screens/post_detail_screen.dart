@@ -14,7 +14,9 @@ import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../routing/app_routes.dart';
 import '../widgets/adaptive_banner_ad.dart';
+import '../widgets/app_background.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/glass_surface.dart';
 import 'static_info_screen.dart';
 
 const _postCommentsBannerAdUnitId = 'ca-app-pub-7031076798250177/8829012161';
@@ -39,7 +41,10 @@ class PostDetailScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         title: Text(l10n.post),
         actions: [
           IconButton(
@@ -54,64 +59,78 @@ class PostDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: postAsync.when(
-        data: (post) {
-          final effectivePost = post ?? preloadedPost;
-          if (effectivePost == null) {
-            return StaticInfoScreen(
-              title: 'Content Not Found',
-              body: l10n.postNotFoundOrDeleted,
-              actionLabel: l10n.searchBooks,
-              onAction: () => Navigator.of(
-                context,
-              ).pushNamed(AppRoutes.discovery, arguments: {'query': postId}),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(liveSinglePostProvider(postId));
-              ref.invalidate(liveFeedPostCommentsProvider(postId));
-            },
-            child: ListView(
-              children: [
-                FeedPostCard(post: effectivePost, openOnTap: false),
-                _InlineComments(
-                  post: effectivePost,
-                  targetCommentId: targetCommentId,
-                  targetReplyId: targetReplyId,
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: AdaptiveBannerAd(
-                    adUnitId: _postCommentsBannerAdUnitId,
-                    horizontalInset: 32,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackground()),
+          postAsync.when(
+            data: (post) {
+              final effectivePost = post ?? preloadedPost;
+              if (effectivePost == null) {
+                return StaticInfoScreen(
+                  title: 'Content Not Found',
+                  body: l10n.postNotFoundOrDeleted,
+                  actionLabel: l10n.searchBooks,
+                  onAction: () => Navigator.of(context).pushNamed(
+                    AppRoutes.discovery,
+                    arguments: {'query': postId},
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-        loading: () => preloadedPost != null
-            ? ListView(
-                children: [
-                  FeedPostCard(post: preloadedPost!, openOnTap: false),
-                  _InlineComments(
-                    post: preloadedPost!,
-                    targetCommentId: targetCommentId,
-                    targetReplyId: targetReplyId,
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    child: AdaptiveBannerAd(
-                      adUnitId: _postCommentsBannerAdUnitId,
-                      horizontalInset: 32,
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(liveSinglePostProvider(postId));
+                  ref.invalidate(liveFeedPostCommentsProvider(postId));
+                },
+                child: ListView(
+                  children: [
+                    FeedPostCard(post: effectivePost, openOnTap: false),
+                    GlassSurface(
+                      margin: const EdgeInsets.fromLTRB(12, 6, 12, 18),
+                      borderRadius: BorderRadius.circular(20),
+                      child: _InlineComments(
+                        post: effectivePost,
+                        targetCommentId: targetCommentId,
+                        targetReplyId: targetReplyId,
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : const _PostDetailSkeleton(),
-        error: (err, _) =>
-            Center(child: Text(l10n.failedToLoadPost(err.toString()))),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      child: AdaptiveBannerAd(
+                        adUnitId: _postCommentsBannerAdUnitId,
+                        horizontalInset: 32,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loading: () => preloadedPost != null
+                ? ListView(
+                    children: [
+                      FeedPostCard(post: preloadedPost!, openOnTap: false),
+                      GlassSurface(
+                        margin: const EdgeInsets.fromLTRB(12, 6, 12, 18),
+                        borderRadius: BorderRadius.circular(20),
+                        child: _InlineComments(
+                          post: preloadedPost!,
+                          targetCommentId: targetCommentId,
+                          targetReplyId: targetReplyId,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        child: AdaptiveBannerAd(
+                          adUnitId: _postCommentsBannerAdUnitId,
+                          horizontalInset: 32,
+                        ),
+                      ),
+                    ],
+                  )
+                : const _PostDetailSkeleton(),
+            error: (err, _) =>
+                Center(child: Text(l10n.failedToLoadPost(err.toString()))),
+          ),
+        ],
       ),
     );
   }
@@ -297,7 +316,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
     final commentsAsync = ref.watch(liveFeedPostCommentsProvider(postId));
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -403,15 +422,21 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filled(
-                onPressed: _submitting ? null : _submit,
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+              GlassSurface(
+                strong: true,
+                borderRadius: BorderRadius.circular(24),
+                onTap: _submitting ? null : _submit,
+                semanticButton: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.send_rounded),
+                      : const Icon(Icons.send_rounded),
+                ),
               ),
             ],
           ),

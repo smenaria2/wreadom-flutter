@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'glass_surface.dart';
+
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -15,51 +17,56 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return SizedBox(
       width: double.infinity,
       height: 56.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      child: GlassSurface(
+        strong: true,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        onTap: isLoading ? null : onPressed,
+        semanticButton: true,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.secondary, scheme.tertiary],
+              stops: const [0, 0.58, 1],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.32),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(16.r),
           child: Center(
-            child: isLoading
-                ? SizedBox(
-                    height: 24.h,
-                    width: 24.h,
-                    child: const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: isLoading
+                  ? SizedBox(
+                      key: const ValueKey('loading'),
+                      height: 24.h,
+                      width: 24.h,
+                      child: CircularProgressIndicator(
+                        color: scheme.onPrimary,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      text,
+                      key: const ValueKey('label'),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: scheme.onPrimary,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  )
-                : Text(
-                    text,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
+            ),
           ),
         ),
       ),

@@ -23,6 +23,7 @@ import '../providers/shake_report_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/share_app_dialog.dart';
 import '../widgets/social_links_menu.dart';
 import '../../utils/format_utils.dart';
@@ -63,6 +64,7 @@ class ProfileScreen extends ConsumerWidget {
         return DefaultTabController(
           length: 5,
           child: Scaffold(
+            backgroundColor: Colors.transparent,
             endDrawer: const _ProfileSideMenu(),
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -73,8 +75,9 @@ class ProfileScreen extends ConsumerWidget {
                     pinned: true,
                     stretch: true,
                     elevation: 0,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    backgroundColor: Colors.transparent,
                     foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    surfaceTintColor: Colors.transparent,
                     iconTheme: IconThemeData(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -88,7 +91,7 @@ class ProfileScreen extends ConsumerWidget {
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -116,44 +119,49 @@ class ProfileScreen extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: Wrap(
-                        alignment: WrapAlignment.spaceAround,
-                        spacing: 16,
-                        runSpacing: 12,
-                        children: [
-                          _StatItem(
-                            label: l10n.followers,
-                            value: FormatUtils.formatNumber(
-                              user.followersCount ?? 0,
-                            ),
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.followList,
-                              arguments: FollowListArguments(
-                                userId: user.id,
-                                mode: FollowListMode.followers,
-                                title: l10n.followers,
+                      child: GlassControlSurface(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _StatItem(
+                              label: l10n.followers,
+                              value: FormatUtils.formatNumber(
+                                user.followersCount ?? 0,
+                              ),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                AppRoutes.followList,
+                                arguments: FollowListArguments(
+                                  userId: user.id,
+                                  mode: FollowListMode.followers,
+                                  title: l10n.followers,
+                                ),
                               ),
                             ),
-                          ),
-                          _StatItem(
-                            label: l10n.following,
-                            value: FormatUtils.formatNumber(
-                              user.followingCount ?? 0,
-                            ),
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.followList,
-                              arguments: FollowListArguments(
-                                userId: user.id,
-                                mode: FollowListMode.following,
-                                title: l10n.following,
+                            _StatItem(
+                              label: l10n.following,
+                              value: FormatUtils.formatNumber(
+                                user.followingCount ?? 0,
+                              ),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                AppRoutes.followList,
+                                arguments: FollowListArguments(
+                                  userId: user.id,
+                                  mode: FollowListMode.following,
+                                  title: l10n.following,
+                                ),
                               ),
                             ),
-                          ),
-                          _StatItem(
-                            label: l10n.works,
-                            value: FormatUtils.formatNumber(worksCount),
-                          ),
-                        ],
+                            _StatItem(
+                              label: l10n.works,
+                              value: FormatUtils.formatNumber(worksCount),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -162,35 +170,58 @@ class ProfileScreen extends ConsumerWidget {
                   SliverPersistentHeader(
                     pinned: true,
                     delegate: _SliverAppBarDelegate(
-                      TabBar(
-                        isScrollable: true,
-                        tabAlignment: TabAlignment.start,
-                        labelPadding: const EdgeInsets.symmetric(
-                          horizontal: 18,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                        child: GlassControlSurface(
+                          padding: const EdgeInsets.all(4),
+                          borderRadius: BorderRadius.circular(30),
+                          child: TabBar(
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                            ),
+                            labelColor: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer,
+                            unselectedLabelColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            dividerColor: Colors.transparent,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            indicator: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.90),
+                              borderRadius: BorderRadius.circular(26),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary
+                                    .withValues(alpha: 0.22),
+                              ),
+                            ),
+                            tabs: [
+                              Tab(text: l10n.about),
+                              Tab(text: l10n.posts),
+                              Tab(text: l10n.history),
+                              Tab(text: l10n.saved),
+                              Tab(text: l10n.downloaded),
+                            ],
+                          ),
                         ),
-                        labelColor: Theme.of(context).colorScheme.primary,
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: Theme.of(context).colorScheme.primary,
-                        indicatorSize: TabBarIndicatorSize.label,
-                        tabs: [
-                          Tab(text: l10n.about),
-                          Tab(text: l10n.posts),
-                          Tab(text: l10n.history),
-                          Tab(text: l10n.saved),
-                          Tab(text: l10n.downloaded),
-                        ],
                       ),
+                      height: 78,
                     ),
                   ),
                 ];
               },
               body: TabBarView(
                 children: [
-                  UserAboutTab(user: user),
-                  UserPostsTab(userId: user.id),
-                  const UserHistoryTab(),
-                  const UserSavedTab(),
-                  const UserDownloadedTab(),
+                  _ProfileTabBody(child: UserAboutTab(user: user)),
+                  _ProfileTabBody(child: UserPostsTab(userId: user.id)),
+                  const _ProfileTabBody(child: UserHistoryTab()),
+                  const _ProfileTabBody(child: UserSavedTab()),
+                  const _ProfileTabBody(child: UserDownloadedTab()),
                 ],
               ),
             ),
@@ -215,6 +246,20 @@ class ProfileScreen extends ConsumerWidget {
       worksCount: worksCount,
       fallbackText:
           'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
+    );
+  }
+}
+
+class _ProfileTabBody extends StatelessWidget {
+  const _ProfileTabBody({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: child,
     );
   }
 }
@@ -343,121 +388,126 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
     final displayName = _safeProfileDisplayName(user);
     final initial = _safeProfileInitial(displayName);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (hasCover)
-          ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
-            child: CachedNetworkImage(
-              imageUrl: coverUrl,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.high,
-            ),
-          )
-        else
-          ColoredBox(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.3,
-            ),
-          ),
-        if (hasCover)
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.42),
-            ),
-          ),
-        Positioned(
-          right: 16,
-          bottom: 18,
-          child: IconButton.filledTonal(
-            tooltip: l10n.changeCoverPicture,
-            onPressed: _uploadingCover ? null : _changeCoverPicture,
-            icon: _uploadingCover
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.photo_camera_outlined),
-          ),
-        ),
-        SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CircleAvatar(
-                    radius: 44,
-                    backgroundColor: theme.colorScheme.surface,
-                    child: CircleAvatar(
-                      radius: 42,
-                      backgroundColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.1,
-                      ),
-                      backgroundImage: user.photoURL != null
-                          ? CachedNetworkImageProvider(user.photoURL!)
-                          : null,
-                      child: user.photoURL == null
-                          ? Text(
-                              initial,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                  Positioned(
-                    right: -8,
-                    bottom: -4,
-                    child: IconButton.filled(
-                      tooltip: l10n.changeProfilePicture,
-                      onPressed: _uploadingAvatar
-                          ? null
-                          : _changeProfilePicture,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 36,
-                        height: 36,
-                      ),
-                      padding: EdgeInsets.zero,
-                      iconSize: 18,
-                      icon: _uploadingAvatar
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.photo_camera_outlined),
-                    ),
-                  ),
-                ],
+    return GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (hasCover)
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 1.2, sigmaY: 1.2),
+              child: CachedNetworkImage(
+                imageUrl: coverUrl,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
               ),
-              const SizedBox(height: 12),
-              Text(
-                displayName,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  shadows: hasCover
-                      ? [
-                          Shadow(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: 0.8,
-                            ),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
+            )
+          else
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primary.withValues(alpha: 0.10),
+                    theme.colorScheme.secondary.withValues(alpha: 0.08),
+                    theme.colorScheme.tertiary.withValues(alpha: 0.08),
+                  ],
                 ),
               ),
-            ],
+            ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(
+                alpha: hasCover ? 0.48 : 0.08,
+              ),
+            ),
           ),
-        ),
-      ],
+          Positioned(
+            right: 16,
+            bottom: 18,
+            child: IconButton.filledTonal(
+              tooltip: l10n.changeCoverPicture,
+              onPressed: _uploadingCover ? null : _changeCoverPicture,
+              icon: _uploadingCover
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.photo_camera_outlined),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 44,
+                      backgroundColor: theme.colorScheme.surface,
+                      child: CircleAvatar(
+                        radius: 42,
+                        backgroundColor: theme.colorScheme.primary.withValues(
+                          alpha: 0.1,
+                        ),
+                        backgroundImage: user.photoURL != null
+                            ? CachedNetworkImageProvider(user.photoURL!)
+                            : null,
+                        child: user.photoURL == null
+                            ? Text(
+                                initial,
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    Positioned(
+                      right: -8,
+                      bottom: -4,
+                      child: IconButton.filled(
+                        tooltip: l10n.changeProfilePicture,
+                        onPressed: _uploadingAvatar
+                            ? null
+                            : _changeProfilePicture,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        padding: EdgeInsets.zero,
+                        iconSize: 18,
+                        icon: _uploadingAvatar
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.photo_camera_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  displayName,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -473,7 +523,11 @@ class _ProfileSideMenu extends ConsumerWidget {
     final currentLocale = ref.watch(localeControllerProvider);
 
     return Drawer(
-      child: SafeArea(
+      backgroundColor: Colors.transparent,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(28)),
+        child: SafeArea(
         child: Column(
           children: [
             SizedBox(
@@ -520,18 +574,10 @@ class _ProfileSideMenu extends ConsumerWidget {
                         : l10n.light,
                     onTap: () => _showThemePicker(context, ref),
                   ),
-                  SwitchListTile.adaptive(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    secondary: const Icon(Icons.touch_app_outlined, size: 20),
-                    title: Text(
-                      l10n.hapticFeedback,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      l10n.hapticFeedbackSubtitle,
-                      style: const TextStyle(fontSize: 11),
-                    ),
+                  _GlassSwitchTile(
+                    icon: Icons.touch_app_outlined,
+                    title: l10n.hapticFeedback,
+                    subtitle: l10n.hapticFeedbackSubtitle,
                     value: ref.watch(hapticsEnabledProvider),
                     onChanged: (enabled) => ref
                         .read(hapticsEnabledProvider.notifier)
@@ -545,18 +591,10 @@ class _ProfileSideMenu extends ConsumerWidget {
                     title: l10n.submitError,
                     onTap: () => _showErrorReportDialog(context, ref),
                   ),
-                  SwitchListTile.adaptive(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    secondary: const Icon(Icons.vibration_rounded, size: 20),
-                    title: Text(
-                      l10n.shakeToReport,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      l10n.shakeToReportSubtitle,
-                      style: const TextStyle(fontSize: 11),
-                    ),
+                  _GlassSwitchTile(
+                    icon: Icons.vibration_rounded,
+                    title: l10n.shakeToReport,
+                    subtitle: l10n.shakeToReportSubtitle,
                     value: ref.watch(shakeToReportEnabledProvider),
                     onChanged: (enabled) => ref
                         .read(shakeToReportEnabledProvider.notifier)
@@ -601,6 +639,7 @@ class _ProfileSideMenu extends ConsumerWidget {
               },
             ),
           ],
+        ),
         ),
       ),
     );
@@ -1055,15 +1094,103 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      leading: _MenuTileIcon(icon: icon, showBadge: showBadge),
-      title: Text(title, style: const TextStyle(fontSize: 13.5)),
-      subtitle: subtitle == null
-          ? null
-          : Text(subtitle!, style: const TextStyle(fontSize: 11.5)),
-      onTap: onTap,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              _MenuTileIcon(icon: icon, showBadge: showBadge),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassSwitchTile extends StatelessWidget {
+  const _GlassSwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: scheme.primary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1114,20 +1241,28 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             Text(
               label,
-              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -1137,14 +1272,15 @@ class _StatItem extends StatelessWidget {
 }
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate(this._tabBar);
+  _SliverAppBarDelegate(this._child, {required this.height});
 
-  final TabBar _tabBar;
+  final Widget _child;
+  final double height;
 
   @override
-  double get minExtent => _tabBar.preferredSize.height;
+  double get minExtent => height;
   @override
-  double get maxExtent => _tabBar.preferredSize.height;
+  double get maxExtent => height;
 
   @override
   Widget build(
@@ -1152,9 +1288,11 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: _tabBar,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
+      ),
+      child: _child,
     );
   }
 

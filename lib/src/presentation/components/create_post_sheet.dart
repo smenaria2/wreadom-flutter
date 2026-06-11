@@ -12,17 +12,22 @@ import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_surface.dart';
 
 void showCreatePostSheet(BuildContext context, {String? initialQuestion}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
+    backgroundColor: Colors.transparent,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
-    builder: (_) => _CreatePostSheet(initialQuestion: initialQuestion),
+    builder: (_) => GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: _CreatePostSheet(initialQuestion: initialQuestion),
+    ),
   );
 }
 
@@ -94,7 +99,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final text = _textController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.writeSomethingFirst)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.writeSomethingFirst),
+        ),
       );
       return;
     }
@@ -159,7 +166,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorWithDetails(e.toString())),
+            content: Text(
+              AppLocalizations.of(context)!.errorWithDetails(e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -175,7 +184,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final user = currentUserAsync.asData?.value;
     final photoUrl = user?.photoURL;
-    final name = user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
+    final name =
+        user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
     final username = user?.username ?? 'reader';
 
     // Loading state
@@ -199,7 +209,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
               children: [
                 Text(
                   l10n.shareAnUpdate,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
@@ -237,30 +249,45 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
               children: [
                 Text(
                   l10n.shareAnUpdate,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20),
                   tooltip: l10n.close,
                   visualDensity: VisualDensity.compact,
-                  onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 4),
                 FilledButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   child: _isSubmitting
                       ? const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(l10n.postBtn),
                 ),
@@ -269,69 +296,80 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             const SizedBox(height: 10),
 
             // Main card
-            Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
+            GlassSurface(
+              borderRadius: BorderRadius.circular(18),
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Question prompt card
                   if (_currentQuestion != null) ...[
-                    Container(
+                    GlassSurface(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.fromLTRB(10, 7, 10, 5),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border(
-                          left: BorderSide(color: theme.colorScheme.primary, width: 3),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _currentQuestion!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              height: 1.3,
-                              color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 3,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _currentQuestion!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      height: 1.3,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _QuestionActionChip(
-                                icon: Icons.refresh_rounded,
-                                isLoading: _isChangingQuestion,
-                                label: 'Change',
-                                color: theme.colorScheme.primary,
-                                onTap: _isChangingQuestion ? null : _changeQuestion,
-                              ),
-                              Container(
-                                width: 1,
-                                height: 10,
-                                margin: const EdgeInsets.symmetric(horizontal: 5),
-                                color: theme.colorScheme.outlineVariant,
-                              ),
-                              _QuestionActionChip(
-                                icon: Icons.close_rounded,
-                                label: 'Remove',
-                                color: theme.colorScheme.onSurfaceVariant,
-                                onTap: _removeQuestion,
-                              ),
-                            ],
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _QuestionActionChip(
+                                  icon: Icons.refresh_rounded,
+                                  isLoading: _isChangingQuestion,
+                                  label: 'Change',
+                                  color: theme.colorScheme.primary,
+                                  onTap: _isChangingQuestion
+                                      ? null
+                                      : _changeQuestion,
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 10,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                  ),
+                                  color: theme.colorScheme.outlineVariant,
+                                ),
+                                _QuestionActionChip(
+                                  icon: Icons.close_rounded,
+                                  label: 'Remove',
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  onTap: _removeQuestion,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -348,7 +386,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         child: photoUrl == null || photoUrl.isEmpty
                             ? Text(
                                 name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               )
                             : null,
                       ),
@@ -361,7 +402,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                               name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
                             ),
                             Text(
                               '@$username',
@@ -424,7 +468,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                               }
                               return const SizedBox(
                                 height: 160,
-                                child: Center(child: CircularProgressIndicator()),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               );
                             },
                           ),
@@ -462,12 +508,17 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         tooltip: l10n.addImage,
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          _pickedImage == null ? l10n.addImage : _pickedImage!.name,
+                          _pickedImage == null
+                              ? l10n.addImage
+                              : _pickedImage!.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -522,7 +573,11 @@ class _QuestionActionChip extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),

@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_update_provider.dart';
 import '../providers/navigation_providers.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_surface.dart';
 import 'messages_screen.dart';
 import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
@@ -102,44 +104,56 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     }
 
     return Scaffold(
-      body: IndexedStack(index: selectedIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) =>
-            ref.read(selectedTabProvider.notifier).setTab(index),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.book_outlined),
-            selectedIcon: const Icon(Icons.book),
-            label: l10n.home,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.feed_outlined),
-            selectedIcon: const Icon(Icons.feed),
-            label: l10n.feed,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.edit_note_outlined),
-            selectedIcon: const Icon(Icons.edit_note),
-            label: l10n.writer,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.chat_bubble_outline),
-            selectedIcon: const Icon(Icons.chat_bubble),
-            label: l10n.messages,
-          ),
-          NavigationDestination(
-            icon: _UpdateBadgeIcon(
-              icon: Icons.person_outline,
-              showBadge: hasUpdate,
-            ),
-            selectedIcon: _UpdateBadgeIcon(
-              icon: Icons.person,
-              showBadge: hasUpdate,
-            ),
-            label: l10n.profile,
-          ),
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackground()),
+          IndexedStack(index: selectedIndex, children: _screens),
         ],
+      ),
+      bottomNavigationBar: GlassSurface(
+        strong: true,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: NavigationBar(
+          backgroundColor: Colors.transparent,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) =>
+              ref.read(selectedTabProvider.notifier).setTab(index),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.book_outlined),
+              selectedIcon: const Icon(Icons.book),
+              label: l10n.home,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.feed_outlined),
+              selectedIcon: const Icon(Icons.feed),
+              label: l10n.feed,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.edit_note_outlined),
+              selectedIcon: const Icon(Icons.edit_note),
+              label: l10n.writer,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.chat_bubble_outline),
+              selectedIcon: const Icon(Icons.chat_bubble),
+              label: l10n.messages,
+            ),
+            NavigationDestination(
+              icon: _UpdateBadgeIcon(
+                icon: Icons.person_outline,
+                showBadge: hasUpdate,
+              ),
+              selectedIcon: _UpdateBadgeIcon(
+                icon: Icons.person,
+                showBadge: hasUpdate,
+              ),
+              label: l10n.profile,
+            ),
+          ],
+        ),
       ),
     );
   }

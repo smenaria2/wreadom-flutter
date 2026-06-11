@@ -5,6 +5,7 @@ import '../../utils/book_collaboration_utils.dart';
 import '../utils/book_author_utils.dart';
 import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
+import '../widgets/glass_surface.dart';
 
 class BookCard extends StatelessWidget {
   final Book book;
@@ -16,73 +17,83 @@ class BookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
-      child: InkWell(
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) =>
                 BookDetailScreen(bookId: book.id, preloadedBook: book),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 2 / 3,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: book.coverUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: book.coverUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          child: const Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 2 / 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: book.coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: book.coverUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.3),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) =>
-                            _GeneratedCover(book: book, borderRadius: 8),
-                      )
-                    : _GeneratedCover(book: book, borderRadius: 8),
+                          errorWidget: (context, url, error) =>
+                              _GeneratedCover(book: book, borderRadius: 12),
+                        )
+                      : _GeneratedCover(book: book, borderRadius: 12),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    bookAuthorName(book).isNotEmpty
-                        ? bookAuthorName(book)
-                        : 'Unknown',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
+              const SizedBox(height: 8),
+              Text(
+                book.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      bookAuthorName(book).isNotEmpty
+                          ? bookAuthorName(book)
+                          : 'Unknown',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
-                ),
-                if (isAcceptedCollaboration(book)) ...[
-                  const SizedBox(width: 4),
-                  const _TinyCollabTag(),
+                  if (isAcceptedCollaboration(book)) ...[
+                    const SizedBox(width: 4),
+                    const _TinyCollabTag(),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

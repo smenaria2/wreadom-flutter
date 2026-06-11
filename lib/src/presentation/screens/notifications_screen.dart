@@ -12,6 +12,8 @@ import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
 import '../../utils/notification_target_resolver.dart';
 import '../../utils/format_utils.dart';
@@ -147,7 +149,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         title: Text(l10n.notifications),
         actions: [
           if (currentUser != null)
@@ -162,11 +167,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
         ],
       ),
-      body: currentUserAsync.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : currentUser == null
-          ? const AuthRequiredView(icon: Icons.notifications_none_rounded)
-          : RefreshIndicator(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackground()),
+          currentUserAsync.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : currentUser == null
+              ? const AuthRequiredView(icon: Icons.notifications_none_rounded)
+              : RefreshIndicator(
               onRefresh: notificationsController.refresh,
               child: Builder(
                 builder: (context) {
@@ -222,7 +230,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                   filteredItems.length +
                                   (notificationsState.hasMore ? 1 : 0),
                               separatorBuilder: (_, _) =>
-                                  const Divider(height: 1),
+                                  const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 if (index == filteredItems.length &&
                                     notificationsState.hasMore) {
@@ -258,53 +266,63 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 );
                                 final isOpening =
                                     _openingNotificationKey == openKey;
-                                return ListTile(
-                                  enabled: !isOpening,
-                                  leading: CircleAvatar(
-                                    backgroundImage: item.actorPhotoURL != null
-                                        ? CachedNetworkImageProvider(
-                                            item.actorPhotoURL!,
-                                          )
-                                        : null,
-                                    child: item.actorPhotoURL == null
-                                        ? Text(
-                                            item.actorName.isEmpty
-                                                ? '?'
-                                                : item.actorName[0]
-                                                      .toUpperCase(),
-                                          )
-                                        : null,
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
                                   ),
-                                  title: Text(item.actorName),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(displayItem.subtitle(l10n)),
-                                      Text(
-                                        FormatUtils.relativeTime(
-                                          item.timestamp,
-                                        ),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              fontSize: 12,
+                                  child: GlassSurface(
+                                    strong: !displayItem.isRead,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: ListTile(
+                                      enabled: !isOpening,
+                                      leading: CircleAvatar(
+                                        backgroundImage:
+                                            item.actorPhotoURL != null
+                                            ? CachedNetworkImageProvider(
+                                                item.actorPhotoURL!,
+                                              )
+                                            : null,
+                                        child: item.actorPhotoURL == null
+                                            ? Text(
+                                                item.actorName.isEmpty
+                                                    ? '?'
+                                                    : item.actorName[0]
+                                                          .toUpperCase(),
+                                              )
+                                            : null,
+                                      ),
+                                      title: Text(item.actorName),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(displayItem.subtitle(l10n)),
+                                          Text(
+                                            FormatUtils.relativeTime(
+                                              item.timestamp,
+                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      trailing: displayItem.isRead
+                                          ? null
+                                          : Icon(
+                                              Icons.circle,
+                                              size: 10,
                                               color: Theme.of(
                                                 context,
-                                              ).colorScheme.onSurfaceVariant,
+                                              ).colorScheme.primary,
                                             ),
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: displayItem.isRead
-                                      ? null
-                                      : const Icon(
-                                          Icons.circle,
-                                          size: 10,
-                                          color: Colors.blue,
-                                        ),
-                                  onTap: isOpening
+                                      onTap: isOpening
                                       ? null
                                       : () async {
                                           setState(() {
@@ -396,6 +414,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                             }
                                           }
                                         },
+                                    ),
+                                  ),
                                 );
                               },
                             );
@@ -407,6 +427,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 },
               ),
             ),
+        ],
+      ),
     );
   }
 
@@ -804,7 +826,7 @@ class _NotificationFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return SizedBox(
-      height: 56,
+      height: 68,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         scrollDirection: Axis.horizontal,
@@ -812,11 +834,32 @@ class _NotificationFilterBar extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final filter = _NotificationFilter.values[index];
-          return FilterChip(
-            label: Text(filter.label(l10n)),
-            selected: selected == filter,
-            showCheckmark: false,
-            onSelected: (_) => onSelected(filter),
+          final isSelected = selected == filter;
+          final scheme = Theme.of(context).colorScheme;
+          return GlassSurface(
+            strong: isSelected,
+            borderRadius: BorderRadius.circular(24),
+            onTap: () => onSelected(filter),
+            semanticButton: true,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? scheme.primaryContainer.withValues(alpha: 0.86)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                filter.label(l10n),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: isSelected
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           );
         },
       ),

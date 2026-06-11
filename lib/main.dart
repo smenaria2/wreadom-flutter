@@ -14,7 +14,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_glass_morphism/flutter_glass_morphism.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/presentation/providers/auth_providers.dart';
@@ -27,6 +27,7 @@ import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/screens/email_verification_screen.dart';
+import 'src/presentation/theme/app_theme.dart';
 import 'src/presentation/providers/email_verification_provider.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/analytics_service.dart';
@@ -448,77 +449,57 @@ class _MyAppState extends ConsumerState<MyApp> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return MaterialApp(
-          navigatorKey: _navigatorKey,
-          restorationScopeId: 'wreadom_app',
-          title: 'Wreadom',
-          debugShowCheckedModeBanner: false,
-          locale: locale,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            FlutterQuillLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6200EE),
-              brightness: Brightness.light,
+        return GlassMorphismThemeProvider(
+          data: const GlassMorphismThemeData(
+            defaultGlassColor: Color(0x88FFFFFF),
+            lightGlassColor: Color(0xCCFFFFFF),
+            darkGlassColor: Color(0xCC182033),
+            defaultBlurIntensity: 24,
+            defaultOpacity: 0.28,
+            defaultBorderRadius: BorderRadius.all(Radius.circular(20)),
+            enableSpecularHighlights: true,
+            adaptiveColoring: false,
+            cardTheme: GlassMorphismCardThemeData(
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+              blurIntensity: 26,
+              opacity: 0.24,
             ),
-            useMaterial3: true,
-            textTheme: GoogleFonts.interTextTheme(),
-            pageTransitionsTheme: _reducedPageTransitions,
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6200EE),
-              brightness: Brightness.dark,
+            buttonTheme: GlassMorphismButtonThemeData(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              blurIntensity: 18,
+              opacity: 0.28,
             ),
-            useMaterial3: true,
-            textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-            pageTransitionsTheme: _reducedPageTransitions,
           ),
-          themeMode: themeMode,
-          navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
-          onGenerateRoute: AppRouter.onGenerateRoute,
-          home: ShakeToReportListener(
+          child: MaterialApp(
             navigatorKey: _navigatorKey,
-            child: AuthWrapper(
-              firebaseReady: _firebaseReady,
-              onAuthenticated: _drainPendingDeepLinkTarget,
+            restorationScopeId: 'wreadom_app',
+            title: 'Wreadom',
+            debugShowCheckedModeBanner: false,
+            locale: locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              FlutterQuillLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeMode,
+            navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
+            onGenerateRoute: AppRouter.onGenerateRoute,
+            home: ShakeToReportListener(
+              navigatorKey: _navigatorKey,
+              child: AuthWrapper(
+                firebaseReady: _firebaseReady,
+                onAuthenticated: _drainPendingDeepLinkTarget,
+              ),
             ),
           ),
         );
       },
     );
-  }
-}
-
-const _reducedPageTransitions = PageTransitionsTheme(
-  builders: {
-    TargetPlatform.android: _NoPageTransitionsBuilder(),
-    TargetPlatform.iOS: _NoPageTransitionsBuilder(),
-    TargetPlatform.macOS: _NoPageTransitionsBuilder(),
-    TargetPlatform.windows: _NoPageTransitionsBuilder(),
-    TargetPlatform.linux: _NoPageTransitionsBuilder(),
-    TargetPlatform.fuchsia: _NoPageTransitionsBuilder(),
-  },
-);
-
-class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
-  const _NoPageTransitionsBuilder();
-
-  @override
-  Widget buildTransitions<T>(
-    PageRoute<T> route,
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    return child;
   }
 }
 

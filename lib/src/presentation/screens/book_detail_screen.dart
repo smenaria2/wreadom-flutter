@@ -33,7 +33,9 @@ import '../utils/book_author_utils.dart';
 import '../utils/share_text_helper.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/adaptive_banner_ad.dart';
+import '../widgets/app_background.dart';
 import '../widgets/comment_widgets.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
@@ -388,14 +390,19 @@ class _BookDetailBody extends ConsumerWidget {
       ]);
     }
 
-    return RefreshIndicator(
-      onRefresh: refresh,
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
+    return Stack(
+      children: [
+        const Positioned.fill(child: AppBackground()),
+        RefreshIndicator(
+          onRefresh: refresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
           SliverAppBar(
             expandedHeight: 330,
             pinned: true,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
             actions: [
               if (canEdit)
                 IconButton(
@@ -443,8 +450,9 @@ class _BookDetailBody extends ConsumerWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.8),
-                          theme.colorScheme.surface,
+                          theme.colorScheme.primary.withValues(alpha: 0.20),
+                          theme.colorScheme.secondary.withValues(alpha: 0.10),
+                          theme.colorScheme.surface.withValues(alpha: 0.10),
                         ],
                       ),
                     ),
@@ -496,21 +504,27 @@ class _BookDetailBody extends ConsumerWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: book.subjects.take(5).map((subject) {
-                      return ActionChip(
-                        label: Text(
-                          subject,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor: theme.colorScheme.primaryContainer
-                            .withValues(alpha: 0.5),
-                        side: BorderSide.none,
-                        onPressed: () => Navigator.of(context).pushNamed(
+                      return GlassSurface(
+                        borderRadius: BorderRadius.circular(22),
+                        onTap: () => Navigator.of(context).pushNamed(
                           AppRoutes.discovery,
                           arguments: {
                             'query': 'topic:$subject',
                             'language': book.languages.firstOrNull,
                           },
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            subject,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -520,37 +534,50 @@ class _BookDetailBody extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.menu_book_rounded),
-                        label: Text(
-                          _hasProgress(userAsync, book.id)
-                              ? AppLocalizations.of(context)!.continueReading
-                              : AppLocalizations.of(context)!.startReading,
-                        ),
-                        style: FilledButton.styleFrom(
+                      child: GlassSurface(
+                        strong: true,
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () => _openReader(context, ref, userAsync),
+                        semanticButton: true,
+                        child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.menu_book_rounded,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _hasProgress(userAsync, book.id)
+                                    ? AppLocalizations.of(
+                                        context,
+                                      )!.continueReading
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.startReading,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        onPressed: () => _openReader(context, ref, userAsync),
                       ),
                     ),
                     const SizedBox(width: 8),
                     _SaveDownloadButton(book: book),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    GlassSurface(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => _showSendToChatSheet(context, ref, book),
+                      semanticButton: true,
+                      child: const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: Icon(Icons.send_rounded),
                       ),
-                      onPressed: () => _showSendToChatSheet(context, ref, book),
-                      child: const Icon(Icons.send_rounded),
                     ),
                   ],
                 ),
@@ -590,6 +617,8 @@ class _BookDetailBody extends ConsumerWidget {
           ),
         ],
       ),
+          ),
+      ],
     );
   }
 
@@ -645,10 +674,14 @@ class _BookDetailBody extends ConsumerWidget {
 
     await showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
       showDragHandle: true,
       builder: (sheetContext) {
-        return Consumer(
-          builder: (context, ref, _) {
+        return GlassSurface(
+          strong: true,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          child: Consumer(
+            builder: (context, ref, _) {
             final conversationsAsync = ref.watch(conversationsProvider);
             final currentUser = ref.watch(currentUserProvider).value;
 
@@ -819,7 +852,8 @@ class _BookDetailBody extends ConsumerWidget {
                 ),
               ),
             );
-          },
+            },
+          ),
         );
       },
     );
@@ -1171,9 +1205,7 @@ class _LatestDiscussionSectionState
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) =>
           CommentReplySheet(comment: comment, bookId: widget.book.id),
     );
@@ -1504,17 +1536,24 @@ class _DetailCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: book.coverUrl != null
-          ? Image(
-              image: CachedNetworkImageProvider(book.coverUrl!),
-              height: 220,
-              width: 150,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
-            )
-          : _PlaceholderCover(book: book),
+    return GlassSurface(
+      strong: true,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: book.coverUrl != null
+              ? Image(
+                  image: CachedNetworkImageProvider(book.coverUrl!),
+                  height: 220,
+                  width: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
+                )
+              : _PlaceholderCover(book: book),
+        ),
+      ),
     );
   }
 }

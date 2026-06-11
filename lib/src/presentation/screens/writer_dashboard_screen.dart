@@ -10,6 +10,7 @@ import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_surface.dart';
 
 class WriterDashboardScreen extends ConsumerWidget {
   const WriterDashboardScreen({super.key});
@@ -46,7 +47,7 @@ class WriterDashboardScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(filteredMyBooksProvider.future),
         child: CustomScrollView(
@@ -56,38 +57,80 @@ class WriterDashboardScreen extends ConsumerWidget {
               floating: true,
               pinned: true,
               elevation: 0,
-              backgroundColor: theme.primaryColor,
+              backgroundColor: Colors.transparent,
               title: Text(
                 l10n.writerDashboard,
                 style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             const SliverToBoxAdapter(child: WriterDashboardHeader()),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(
-                      value: 'published',
-                      label: Text(l10n.published),
-                      icon: const Icon(Icons.public_rounded),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                child: Column(
+                  children: [
+                    GlassControlSurface(
+                      borderRadius: BorderRadius.circular(26),
+                      child: SegmentedButton<String>(
+                        segments: [
+                          ButtonSegment(
+                            value: 'published',
+                            label: Text(l10n.published),
+                            icon: const Icon(Icons.public_rounded),
+                          ),
+                          ButtonSegment(
+                            value: 'draft',
+                            label: Text(l10n.drafts),
+                            icon: const Icon(Icons.edit_note_rounded),
+                          ),
+                        ],
+                        selected: {activeTab},
+                        onSelectionChanged: (selection) {
+                          ref
+                              .read(writerDashboardTabProvider.notifier)
+                              .setTab(selection.first);
+                        },
+                      ),
                     ),
-                    ButtonSegment(
-                      value: 'draft',
-                      label: Text(l10n.drafts),
-                      icon: const Icon(Icons.edit_note_rounded),
+                    const SizedBox(height: 12),
+                    GlassSurface(
+                      strong: true,
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.writerPad,
+                          arguments: const WriterPadArguments(),
+                        );
+                      },
+                      semanticButton: true,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_circle_outline_rounded,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              l10n.createContent,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
-                  selected: {activeTab},
-                  onSelectionChanged: (selection) {
-                    ref
-                        .read(writerDashboardTabProvider.notifier)
-                        .setTab(selection.first);
-                  },
                 ),
               ),
             ),
@@ -181,24 +224,6 @@ class WriterDashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'writer-dashboard-create-content-fab',
-        onPressed: () {
-          Navigator.of(context).pushNamed(
-            AppRoutes.writerPad,
-            arguments: const WriterPadArguments(),
-          );
-        },
-        icon: const Icon(Icons.edit_note, color: Colors.white),
-        label: Text(
-          l10n.createContent,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primaryColor,
       ),
     );
   }

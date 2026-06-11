@@ -17,6 +17,7 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 /// Maps post type → accent colour
@@ -29,7 +30,7 @@ Color _typeColor(String type) {
     case 'testimony':
       return Colors.pink;
     default:
-      return Colors.blue;
+      return const Color(0xFF7C3AED);
   }
 }
 
@@ -396,14 +397,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ) ??
               '';
 
-    final card = Card(
+    final card = GlassSurface(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 0,
-      color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant),
-      ),
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -670,52 +666,53 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             // ─── Question prompt (if present) ─────────────────
             if (post.question != null && post.question!.isNotEmpty) ...[
-              Container(
+              GlassSurface(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border(
-                    left: BorderSide(
-                      color: colorScheme.primary,
-                      width: 3,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        post.question!,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 36,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(
                           color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(99),
                         ),
                       ),
-                    ),
-                    if (currentUser != null && widget.onReplyToQuestion != null) ...[
-                      const SizedBox(width: 8),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
+                      Expanded(
+                        child: Text(
+                          post.question!,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      if (currentUser != null &&
+                          widget.onReplyToQuestion != null) ...[
+                        const SizedBox(width: 8),
+                        GlassSurface(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () => widget.onReplyToQuestion!(post.question!),
+                          onTap: () =>
+                              widget.onReplyToQuestion!(post.question!),
+                          semanticButton: true,
                           child: Padding(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(6),
                             child: Icon(
                               Icons.reply_rounded,
-                              size: 20,
+                              size: 18,
                               color: colorScheme.primary,
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ],

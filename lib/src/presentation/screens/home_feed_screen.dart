@@ -7,6 +7,7 @@ import '../providers/notification_providers.dart';
 import '../components/feed_post_card.dart';
 import '../components/create_post_sheet.dart';
 import '../routing/app_routes.dart';
+import '../widgets/glass_surface.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
   const HomeFeedScreen({super.key});
@@ -43,10 +44,11 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -56,9 +58,9 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
             title: Text(
               l10n.feed,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 fontSize: 24,
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
             actions: [
@@ -89,28 +91,31 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: SegmentedButton<FeedFilter>(
-                segments: [
-                  ButtonSegment(
-                    value: FeedFilter.following,
-                    label: Text(l10n.following),
-                    icon: const Icon(Icons.people_outline_rounded),
-                  ),
-                  ButtonSegment(
-                    value: FeedFilter.public,
-                    label: Text(l10n.public),
-                    icon: const Icon(Icons.public_rounded),
-                  ),
-                  ButtonSegment(
-                    value: FeedFilter.mine,
-                    label: Text(l10n.mine),
-                    icon: const Icon(Icons.person_outline_rounded),
-                  ),
-                ],
-                selected: {_selectedFilter},
-                onSelectionChanged: (selection) {
-                  _selectFilter(selection.first);
-                },
+              child: GlassControlSurface(
+                borderRadius: BorderRadius.circular(26),
+                child: SegmentedButton<FeedFilter>(
+                  segments: [
+                    ButtonSegment(
+                      value: FeedFilter.following,
+                      label: Text(l10n.following),
+                      icon: const Icon(Icons.people_outline_rounded),
+                    ),
+                    ButtonSegment(
+                      value: FeedFilter.public,
+                      label: Text(l10n.public),
+                      icon: const Icon(Icons.public_rounded),
+                    ),
+                    ButtonSegment(
+                      value: FeedFilter.mine,
+                      label: Text(l10n.mine),
+                      icon: const Icon(Icons.person_outline_rounded),
+                    ),
+                  ],
+                  selected: {_selectedFilter},
+                  onSelectionChanged: (selection) {
+                    _selectFilter(selection.first);
+                  },
+                ),
               ),
             ),
           ),
@@ -130,9 +135,10 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'home-feed-create-post-fab',
-        onPressed: () async {
+      floatingActionButton: GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.circular(24),
+        onTap: () async {
           // Pick a random active question to prompt the user
           String? question;
           try {
@@ -148,8 +154,24 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
             showCreatePostSheet(context, initialQuestion: question);
           }
         },
-        icon: const Icon(Icons.edit_rounded),
-        label: Text(l10n.post),
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                l10n.post,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -449,33 +471,43 @@ class _TypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return FilterChip(
-      showCheckmark: false,
-      avatar: Icon(
-        icon,
-        size: 16,
-        color: selected
-            ? theme.colorScheme.onPrimary
-            : theme.colorScheme.onSurfaceVariant,
-      ),
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onSelected(),
-      selectedColor: theme.colorScheme.primary,
-      backgroundColor: theme.colorScheme.surfaceContainerLow,
-      labelStyle: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: selected
-            ? theme.colorScheme.onPrimary
-            : theme.colorScheme.onSurfaceVariant,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
+    final scheme = theme.colorScheme;
+
+    return GlassSurface(
+      strong: selected,
+      borderRadius: BorderRadius.circular(24),
+      onTap: onSelected,
+      semanticButton: true,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
           color: selected
-              ? Colors.transparent
-              : theme.colorScheme.outlineVariant,
+              ? scheme.primaryContainer.withValues(alpha: 0.82)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 17,
+              color: selected
+                  ? scheme.onPrimaryContainer
+                  : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ),
     );

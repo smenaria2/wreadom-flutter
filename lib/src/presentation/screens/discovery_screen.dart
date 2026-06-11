@@ -82,7 +82,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final genreAsync = hasGenre
         ? ref.watch(booksByGenreProvider(_activeGenre!))
         : null;
-    final String queryForProvider = _searchLanguage != null && _searchLanguage!.isNotEmpty
+    final String queryForProvider =
+        _searchLanguage != null && _searchLanguage!.isNotEmpty
         ? '$_query|lang:$_searchLanguage'
         : _query;
     final searchAsync = ref.watch(discoverySearchProvider(queryForProvider));
@@ -97,8 +98,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             title: Text(
               AppLocalizations.of(context)!.discover,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0,
               ),
             ),
             bottom: PreferredSize(
@@ -114,7 +115,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       final nextQuery = value.trim();
                       setState(() {
                         _query = nextQuery;
-                        _searchLanguage = null; // Clear tag source language on typing new query
+                        _searchLanguage =
+                            null; // Clear tag source language on typing new query
                         if (_query.isNotEmpty) _activeGenre = null;
                       });
                       AnalyticsService.logSearch(nextQuery);

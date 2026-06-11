@@ -84,30 +84,7 @@ class PublicProfileScreen extends ConsumerWidget {
                     followingAsync.when(
                       data: (isFollowing) {
                         if (isFollowing) {
-                          return IconButton(
-                            icon: const Icon(Icons.chat_bubble_outline),
-                            onPressed: () async {
-                              final currentUser = await ref.read(
-                                currentUserProvider.future,
-                              );
-                              if (currentUser == null) return;
-                              final conversationId = await ref
-                                  .read(messageRepositoryProvider)
-                                  .getOrCreateDirectConversation(
-                                    currentUser: currentUser,
-                                    otherUser: user,
-                                  );
-                              if (context.mounted) {
-                                Navigator.of(context).pushNamed(
-                                  AppRoutes.conversation,
-                                  arguments: ConversationArguments(
-                                    conversationId: conversationId,
-                                    title: _safePublicProfileDisplayName(user),
-                                  ),
-                                );
-                              }
-                            },
-                          );
+                          return _PublicProfileMessageAction(user: user);
                         }
                         return const SizedBox.shrink();
                       },
@@ -251,6 +228,72 @@ class PublicProfileScreen extends ConsumerWidget {
       user: user,
       worksCount: worksCount,
       fallbackText: 'Follow $name on Wreadom.  Read and listen hundred of stories on Wreadom.\n\n${AppLinkHelper.user(user.id)}',
+    );
+  }
+}
+
+class _PublicProfileMessageAction extends ConsumerStatefulWidget {
+  const _PublicProfileMessageAction({required this.user});
+
+  final UserModel user;
+
+  @override
+  ConsumerState<_PublicProfileMessageAction> createState() =>
+      _PublicProfileMessageActionState();
+}
+
+class _PublicProfileMessageActionState
+    extends ConsumerState<_PublicProfileMessageAction> {
+  bool _opening = false;
+
+  Future<void> _openConversation() async {
+    if (_opening) return;
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _opening = true);
+    try {
+      final currentUser = await ref.read(currentUserProvider.future);
+      if (currentUser == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.signInToContinueAction)),
+        );
+        return;
+      }
+      final conversationId = await ref
+          .read(messageRepositoryProvider)
+          .getOrCreateDirectConversation(
+            currentUser: currentUser,
+            otherUser: widget.user,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pushNamed(
+        AppRoutes.conversation,
+        arguments: ConversationArguments(
+          conversationId: conversationId,
+          title: _safePublicProfileDisplayName(widget.user),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.failedToLoadChats(error.toString()))),
+      );
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context)!.messages,
+      icon: _opening
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.chat_bubble_outline),
+      onPressed: _opening ? null : _openConversation,
     );
   }
 }
