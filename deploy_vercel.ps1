@@ -1,7 +1,7 @@
 # deploy_vercel.ps1
 # Script to build Flutter Web and deploy to Vercel with correct environment variables / dart defines.
 # Usage:
-#   .\deploy_vercel.ps1             - Deploys a Preview version
+#   .\deploy_vercel.ps1             - Deploys a Production version
 #   .\deploy_vercel.ps1 -Production - Deploys a Production version
 
 param (
@@ -9,6 +9,7 @@ param (
 )
 
 $ErrorActionPreference = "Stop"
+$Production = $true
 
 # Determine target environments
 $targetEnv = "preview"
