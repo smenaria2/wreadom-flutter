@@ -55,6 +55,14 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           SliverAppBar(
             floating: true,
             snap: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            flexibleSpace: const GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: SizedBox.expand(),
+            ),
             title: Text(
               l10n.feed,
               style: const TextStyle(
@@ -191,7 +199,8 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final feedState = ref.watch(pagedFeedPostsProvider(widget.filter));
     final feedController = ref.read(
       pagedFeedPostsProvider(widget.filter).notifier,
@@ -366,10 +375,27 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               ),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              icon: const Icon(Icons.edit_rounded),
-              label: Text(l10n.createAPost),
-              onPressed: () => showCreatePostSheet(context),
+            GlassSurface(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => showCreatePostSheet(context),
+              semanticButton: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit_rounded, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.createAPost,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

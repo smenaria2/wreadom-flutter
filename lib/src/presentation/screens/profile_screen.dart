@@ -427,15 +427,28 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
           Positioned(
             right: 16,
             bottom: 18,
-            child: IconButton.filledTonal(
-              tooltip: l10n.changeCoverPicture,
-              onPressed: _uploadingCover ? null : _changeCoverPicture,
-              icon: _uploadingCover
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.photo_camera_outlined),
+            child: Tooltip(
+              message: l10n.changeCoverPicture,
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(20),
+                onTap: _uploadingCover ? null : _changeCoverPicture,
+                semanticButton: true,
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(
+                    child: _uploadingCover
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            Icons.photo_camera_outlined,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                  ),
+                ),
+              ),
             ),
           ),
           SafeArea(
@@ -471,25 +484,31 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                     Positioned(
                       right: -8,
                       bottom: -4,
-                      child: IconButton.filled(
-                        tooltip: l10n.changeProfilePicture,
-                        onPressed: _uploadingAvatar
-                            ? null
-                            : _changeProfilePicture,
-                        constraints: const BoxConstraints.tightFor(
-                          width: 36,
-                          height: 36,
+                      child: Tooltip(
+                        message: l10n.changeProfilePicture,
+                        child: GlassSurface(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: _uploadingAvatar ? null : _changeProfilePicture,
+                          semanticButton: true,
+                          child: SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: Center(
+                              child: _uploadingAvatar
+                                  ? const SizedBox.square(
+                                      dimension: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 18,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                            ),
+                          ),
                         ),
-                        padding: EdgeInsets.zero,
-                        iconSize: 18,
-                        icon: _uploadingAvatar
-                            ? const SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.photo_camera_outlined),
                       ),
                     ),
                   ],

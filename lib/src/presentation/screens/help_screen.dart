@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/widgets/submit_error_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/glass_surface.dart';
+import '../widgets/app_background.dart';
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -180,42 +182,49 @@ class _HelpScreenState extends State<HelpScreen> {
     final l10n = AppLocalizations.of(context)!;
     final filtered = _filteredCategories(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.helpTitle), centerTitle: true),
-      body: Column(
-        children: [
-          _buildSearchHeader(theme, l10n),
-          Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState(l10n)
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final category = filtered[index];
-                      return _buildCategorySection(context, category, theme);
-                    },
-                  ),
+    return Stack(
+      children: [
+        const Positioned.fill(child: AppBackground()),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            flexibleSpace: const GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: SizedBox.expand(),
+            ),
+            title: Text(l10n.helpTitle),
+            centerTitle: true,
           ),
-          _buildSupportFooter(theme, l10n),
-        ],
-      ),
+          body: Column(
+            children: [
+              _buildSearchHeader(theme, l10n),
+              Expanded(
+                child: filtered.isEmpty
+                    ? _buildEmptyState(l10n)
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final category = filtered[index];
+                          return _buildCategorySection(context, category, theme);
+                        },
+                      ),
+              ),
+              _buildSupportFooter(theme, l10n),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSearchHeader(ThemeData theme, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: TextField(
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value),
@@ -231,15 +240,6 @@ class _HelpScreenState extends State<HelpScreen> {
                   },
                 )
               : null,
-          filled: true,
-          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.4,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
         ),
       ),
     );
@@ -275,15 +275,9 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 
   Widget _buildFAQTile(_FAQ faq, ThemeData theme) {
-    return Card(
-      elevation: 0,
+    return GlassSurface(
       margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
+      borderRadius: BorderRadius.circular(16),
       child: ExpansionTile(
         title: Text(
           faq.question,
@@ -309,62 +303,59 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 
   Widget _buildSupportFooter(ThemeData theme, AppLocalizations l10n) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          border: Border(
-            top: BorderSide(color: theme.colorScheme.outlineVariant),
-          ),
-        ),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+    return GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.stillNeedHelp,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      l10n.communitySupportAssist,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    l10n.stillNeedHelp,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (context) => const SubmitErrorDialog(),
+                      );
+                    },
+                    icon: const Icon(Icons.bug_report_outlined, size: 18),
+                    label: Text(l10n.submitError),
                   ),
-                  Text(
-                    l10n.communitySupportAssist,
-                    style: theme.textTheme.bodySmall,
+                  FilledButton.icon(
+                    onPressed: () => _emailSupport(context, l10n),
+                    icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                    label: Text(l10n.emailSupport),
                   ),
                 ],
               ),
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    showDialog<void>(
-                      context: context,
-                      builder: (context) => const SubmitErrorDialog(),
-                    );
-                  },
-                  icon: const Icon(Icons.bug_report_outlined, size: 18),
-                  label: Text(l10n.submitError),
-                ),
-                FilledButton.icon(
-                  onPressed: () => _emailSupport(context, l10n),
-                  icon: const Icon(Icons.mail_outline_rounded, size: 18),
-                  label: Text(l10n.emailSupport),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

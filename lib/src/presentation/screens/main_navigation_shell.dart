@@ -115,44 +115,90 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       bottomNavigationBar: GlassSurface(
         strong: true,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        child: NavigationBar(
-          backgroundColor: Colors.transparent,
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) =>
-              ref.read(selectedTabProvider.notifier).setTab(index),
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.book_outlined),
-              selectedIcon: const Icon(Icons.book),
-              label: l10n.home,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.book_outlined, Icons.book, l10n.home, selectedIndex),
+                _buildNavItem(1, Icons.feed_outlined, Icons.feed, l10n.feed, selectedIndex),
+                _buildNavItem(2, Icons.edit_note_outlined, Icons.edit_note, l10n.writer, selectedIndex),
+                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, l10n.messages, selectedIndex),
+                _buildNavItem(4, Icons.person_outline, Icons.person, l10n.profile, selectedIndex, badge: hasUpdate),
+              ],
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.feed_outlined),
-              selectedIcon: const Icon(Icons.feed),
-              label: l10n.feed,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    IconData selectedIcon,
+    String label,
+    int selectedIndex, {
+    bool badge = false,
+  }) {
+    final theme = Theme.of(context);
+    final isSelected = selectedIndex == index;
+
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => ref.read(selectedTabProvider.notifier).setTab(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: isSelected
+                ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            border: Border.all(
+              color: isSelected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                  : Colors.transparent,
+              width: 1.5,
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.edit_note_outlined),
-              selectedIcon: const Icon(Icons.edit_note),
-              label: l10n.writer,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.chat_bubble_outline),
-              selectedIcon: const Icon(Icons.chat_bubble),
-              label: l10n.messages,
-            ),
-            NavigationDestination(
-              icon: _UpdateBadgeIcon(
-                icon: Icons.person_outline,
-                showBadge: hasUpdate,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedScale(
+                duration: const Duration(milliseconds: 200),
+                scale: isSelected ? 1.1 : 1.0,
+                child: _UpdateBadgeIcon(
+                  icon: isSelected ? selectedIcon : icon,
+                  showBadge: badge,
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
               ),
-              selectedIcon: _UpdateBadgeIcon(
-                icon: Icons.person,
-                showBadge: hasUpdate,
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: theme.textTheme.labelMedium!.copyWith(
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                  fontSize: 11,
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              label: l10n.profile,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -205,19 +251,20 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 }
 
 class _UpdateBadgeIcon extends StatelessWidget {
-  const _UpdateBadgeIcon({required this.icon, required this.showBadge});
+  const _UpdateBadgeIcon({required this.icon, required this.showBadge, this.color});
 
   final IconData icon;
   final bool showBadge;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    if (!showBadge) return Icon(icon);
+    if (!showBadge) return Icon(icon, color: color);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Icon(icon),
+        Icon(icon, color: color),
         const Positioned(top: -2, right: -4, child: _UpdateRedDot(size: 9)),
       ],
     );

@@ -48,7 +48,7 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.44,
+                  childAspectRatio: 0.54,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 28,
                 ),

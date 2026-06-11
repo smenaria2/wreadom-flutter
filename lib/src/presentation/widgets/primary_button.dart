@@ -31,18 +31,15 @@ class PrimaryButton extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [scheme.primary, scheme.secondary, scheme.tertiary],
+              colors: [
+                scheme.primary.withValues(alpha: 0.24),
+                scheme.secondary.withValues(alpha: 0.16),
+                scheme.tertiary.withValues(alpha: 0.12),
+              ],
               stops: const [0, 0.58, 1],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withValues(alpha: 0.32),
-                blurRadius: 18,
-                offset: const Offset(0, 9),
-              ),
-            ],
           ),
           child: Center(
             child: AnimatedSwitcher(
@@ -53,7 +50,7 @@ class PrimaryButton extends StatelessWidget {
                       height: 24.h,
                       width: 24.h,
                       child: CircularProgressIndicator(
-                        color: scheme.onPrimary,
+                        color: scheme.primary,
                         strokeWidth: 2,
                       ),
                     )
@@ -61,7 +58,7 @@ class PrimaryButton extends StatelessWidget {
                       text,
                       key: const ValueKey('label'),
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onPrimary,
+                        color: scheme.primary,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
                       ),

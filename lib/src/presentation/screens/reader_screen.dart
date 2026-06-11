@@ -917,11 +917,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         currentIndex: _chapterIndex,
         completedChapterIndexes: completedChapterIndexes,
         commentCounts: commentCounts,
-        backgroundColor: _getBackgroundColor(),
-        headerColor: _getAppBarBackgroundColor(),
-        textColor: _getTextColor(),
-        secondaryTextColor: _getSecondaryTextColor(),
-        accentColor: _getReaderActionColor(),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        headerColor: Theme.of(context).colorScheme.surface,
+        textColor: Theme.of(context).colorScheme.onSurface,
+        secondaryTextColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        accentColor: Theme.of(context).colorScheme.primary,
         onSelect: (index) {
           _goToChapter(index);
           Navigator.of(context).pop();
@@ -2718,10 +2718,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         initialChildSize: focusComposer ? 0.88 : 0.68,
         minChildSize: 0.4,
         maxChildSize: 0.98,
-        builder: (context, scrollController) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+        builder: (context, scrollController) {
+          final theme = Theme.of(context);
+          final colorScheme = theme.colorScheme;
+          // ignore: no_leading_underscores_for_local_identifiers
+          Color _getTextColor() => colorScheme.onSurface;
+          // ignore: no_leading_underscores_for_local_identifiers
+          Color _getSecondaryTextColor() => colorScheme.onSurfaceVariant;
+          // ignore: no_leading_underscores_for_local_identifiers
+          Color _getReaderActionColor() => colorScheme.primary;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
           child: GlassSurface(
             strong: true,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -2957,11 +2967,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                   hintStyle: TextStyle(
                                     color: _getSecondaryTextColor(),
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: _getInputFillColor(),
                                   suffixIcon: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -3216,8 +3221,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
+    ),
     ).whenComplete(() {
       _isDiscussionOpen = false;
       _commentFocusNode.unfocus();
@@ -3423,6 +3429,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  // ignore: unused_element
   Color _getInputFillColor() {
     switch (_getEffectiveTheme()) {
       case ReaderTheme.light:
@@ -3898,55 +3905,168 @@ class _ChapterEndActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final outlineStyle = OutlinedButton.styleFrom(
-      foregroundColor: actionColor,
-      side: BorderSide(color: actionColor.withValues(alpha: 0.55)),
-      disabledForegroundColor: actionColor.withValues(alpha: 0.38),
-    );
-    return Column(
-      children: [
-        Row(
-          children: [
-            if (hasNextChapter) ...[
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    if (hasNextChapter) {
+      return Column(
+        children: [
+          GlassSurface(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onNextChapter,
+            semanticButton: true,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primary.withValues(alpha: 0.8),
+                  ],
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.navigate_next_rounded, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.nextChapter,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.navigate_next_rounded),
-                  label: Text(AppLocalizations.of(context)!.nextChapter),
-                  onPressed: onNextChapter,
+                child: GlassSurface(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: onViewComments,
+                  semanticButton: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          hasComments
+                              ? Icons.chat_bubble_outline_rounded
+                              : Icons.rate_review_outlined,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            hasComments ? l10n.viewComments : l10n.writeReview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
+              Expanded(
+                child: GlassSurface(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: onShare,
+                  semanticButton: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.share_rounded, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            l10n.shareChapter,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
-            Expanded(
-              child: OutlinedButton.icon(
-                style: outlineStyle,
-                icon: Icon(
-                  hasComments
-                      ? Icons.chat_bubble_outline_rounded
-                      : Icons.rate_review_outlined,
-                ),
-                label: Text(
-                  hasComments
-                      ? AppLocalizations.of(context)!.viewComments
-                      : AppLocalizations.of(context)!.writeReview,
-                ),
-                onPressed: onViewComments,
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          GlassSurface(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onViewComments,
+            semanticButton: true,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    hasComments
+                        ? Icons.chat_bubble_outline_rounded
+                        : Icons.rate_review_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    hasComments ? l10n.viewComments : l10n.writeReview,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            style: outlineStyle,
-            icon: const Icon(Icons.share_rounded),
-            label: Text(AppLocalizations.of(context)!.shareChapter),
-            onPressed: onShare,
           ),
-        ),
-      ],
-    );
+          const SizedBox(height: 12),
+          GlassSurface(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onShare,
+            semanticButton: true,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.share_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.shareChapter,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
   }
 }
 
@@ -4151,9 +4271,9 @@ class _ReaderTopBar extends StatelessWidget {
           duration: _readerChromeAnimationDuration,
           curve: Curves.easeOut,
           opacity: visible ? 1 : 0,
-          child: Material(
-            color: backgroundColor,
-            elevation: 1,
+          child: GlassSurface(
+            strong: true,
+            borderRadius: BorderRadius.zero,
             child: SafeArea(
               bottom: false,
               child: SizedBox(
@@ -4267,26 +4387,11 @@ class _ReaderBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = switch (theme) {
-      ReaderTheme.dark => const Color(0xFF1E1E1E),
-      ReaderTheme.sepia => const Color(0xFFE9DCC0),
-      ReaderTheme.light || ReaderTheme.system => Colors.white,
-    };
-    final textColor = switch (theme) {
-      ReaderTheme.dark => Colors.white70,
-      ReaderTheme.sepia => const Color(0xFF5F5447),
-      ReaderTheme.light || ReaderTheme.system => Colors.black54,
-    };
-    final progressColor = switch (theme) {
-      ReaderTheme.sepia => const Color(0xFF8A5A2B),
-      ReaderTheme.dark => Theme.of(context).colorScheme.primary,
-      ReaderTheme.light ||
-      ReaderTheme.system => Theme.of(context).colorScheme.primary,
-    };
-    final progressBackground = switch (theme) {
-      ReaderTheme.sepia => const Color(0xFFD8C59E),
-      _ => textColor.withValues(alpha: 0.1),
-    };
+    final appTheme = Theme.of(context);
+    final appColorScheme = appTheme.colorScheme;
+    final textColor = appColorScheme.onSurface;
+    final progressColor = appColorScheme.primary;
+    final progressBackground = appColorScheme.onSurface.withValues(alpha: 0.1);
 
     return AnimatedContainer(
       duration: _readerChromeAnimationDuration,
@@ -4301,17 +4406,9 @@ class _ReaderBottomBar extends StatelessWidget {
             }
           },
           onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              color: bgColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
+          child: GlassSurface(
+            strong: true,
+            borderRadius: BorderRadius.zero,
             child: Column(
               children: [
                 LinearProgressIndicator(

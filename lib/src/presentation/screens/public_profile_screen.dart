@@ -20,6 +20,8 @@ import '../components/feed_post_card.dart';
 import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_surface.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
   const PublicProfileScreen({super.key, required this.userId});
@@ -35,7 +37,11 @@ class PublicProfileScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: profileAsync.when(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const AppBackground(),
+          profileAsync.when(
         data: (user) {
           if (user == null) {
             return Center(child: Text(l10n.userNotFound));
@@ -70,7 +76,9 @@ class PublicProfileScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 220,
                 pinned: true,
-                backgroundColor: theme.colorScheme.surface,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
                 foregroundColor: theme.colorScheme.onSurface,
                 iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
                 actions: [
@@ -93,19 +101,29 @@ class PublicProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ],
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: false,
-                  titlePadding: const EdgeInsetsDirectional.only(
-                    start: 56,
-                    bottom: 16,
-                  ),
-                  title: _ProfileAppBarTitle(
-                    displayName: _safePublicProfileDisplayName(user),
-                    rightPaddingMax: isSelf
-                        ? 56.0
-                        : ((followingAsync.value ?? false) ? 152.0 : 104.0),
-                  ),
-                  background: _PublicProfileHeader(user: user),
+                flexibleSpace: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const GlassSurface(
+                      strong: true,
+                      borderRadius: BorderRadius.zero,
+                      child: SizedBox.expand(),
+                    ),
+                    FlexibleSpaceBar(
+                      centerTitle: false,
+                      titlePadding: const EdgeInsetsDirectional.only(
+                        start: 56,
+                        bottom: 16,
+                      ),
+                      title: _ProfileAppBarTitle(
+                        displayName: _safePublicProfileDisplayName(user),
+                        rightPaddingMax: isSelf
+                            ? 56.0
+                            : ((followingAsync.value ?? false) ? 152.0 : 104.0),
+                      ),
+                      background: _PublicProfileHeader(user: user),
+                    ),
+                  ],
                 ),
               ),
               SliverToBoxAdapter(
@@ -217,6 +235,8 @@ class PublicProfileScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             Center(child: Text(l10n.failedToLoadWithError(error.toString()))),
+      ),
+        ],
       ),
     );
   }
@@ -373,9 +393,8 @@ class _PrivacyNoticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -560,15 +579,12 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
+    return GlassSurface(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
-      child: Container(
+      semanticButton: onTap != null,
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -578,7 +594,7 @@ class _StatChip extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: theme.colorScheme.onPrimaryContainer,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 2),
@@ -587,7 +603,7 @@ class _StatChip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],

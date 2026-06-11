@@ -35,6 +35,7 @@ import '../utils/error_message_utils.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/app_background.dart';
 import '../widgets/comment_widgets.dart';
+import '../theme/app_theme.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
@@ -753,14 +754,33 @@ class _BookDetailBody extends ConsumerWidget {
                                 maxLines: 3,
                                 decoration: InputDecoration(
                                   labelText: l10n.shareToFeed,
-                                  border: const OutlineInputBorder(),
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              FilledButton.icon(
-                                onPressed: shareToFeed,
-                                icon: const Icon(Icons.dynamic_feed_outlined),
-                                label: Text(l10n.shareToFeed),
+                              GlassSurface(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: shareToFeed,
+                                semanticButton: true,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.dynamic_feed_outlined,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.shareToFeed,
+                                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -1302,7 +1322,8 @@ class _StatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textColor = Colors.grey[600];
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurfaceVariant;
     final commentsAsync = ref.watch(liveBookCommentsProvider(book.id));
     final rating = commentsAsync.maybeWhen(
       data: (comments) => _ratingSummary(book, comments),
@@ -1386,7 +1407,8 @@ class _PublicationDateRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final timestamp = publicationTimestamp(book);
     if (timestamp == null) return const SizedBox.shrink();
-    final color = Colors.grey[600];
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1536,23 +1558,36 @@ class _DetailCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassSurface(
-      strong: true,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: book.coverUrl != null
-              ? Image(
-                  image: CachedNetworkImageProvider(book.coverUrl!),
-                  height: 220,
-                  width: 150,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
-                )
-              : _PlaceholderCover(book: book),
-        ),
+    final theme = Theme.of(context);
+    final tokens = theme.extension<GlassTokens>() ?? GlassTokens.dark;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: tokens.shadowColor.withValues(alpha: 0.45),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            blurRadius: 20,
+            spreadRadius: -4,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: book.coverUrl != null
+            ? Image(
+                image: CachedNetworkImageProvider(book.coverUrl!),
+                height: 220,
+                width: 150,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
+              )
+            : _PlaceholderCover(book: book),
       ),
     );
   }
@@ -1758,29 +1793,28 @@ class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: _isDownloaded
-            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
-            : null,
+    final theme = Theme.of(context);
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(18),
+      onTap: _isDownloading ? null : _handleSaveDownload,
+      semanticButton: true,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: _isDownloading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                _isDownloaded
+                    ? Icons.bookmark_added_rounded
+                    : Icons.bookmark_add_outlined,
+                color: _isDownloaded
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
+              ),
       ),
-      onPressed: _isDownloading ? null : _handleSaveDownload,
-      child: _isDownloading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              _isDownloaded
-                  ? Icons.bookmark_added_rounded
-                  : Icons.bookmark_add_outlined,
-              color: _isDownloaded
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
-            ),
     );
   }
 }

@@ -17,6 +17,7 @@ import '../widgets/auth_text_field.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/app_background.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -113,20 +114,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final locale = ref.watch(localeControllerProvider);
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withValues(alpha: 0.2),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const AppBackground(),
+          SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -402,6 +394,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
         ),
+      ],
       ),
     );
   }

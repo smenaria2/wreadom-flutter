@@ -116,6 +116,14 @@ class HomeBooksScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: const GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.zero,
+          child: SizedBox.expand(),
+        ),
         title: Text(
           l10n.appTitle,
           style: const TextStyle(
@@ -124,8 +132,6 @@ class HomeBooksScreen extends ConsumerWidget {
             letterSpacing: 0,
           ),
         ),
-        elevation: 0,
-        scrolledUnderElevation: 1,
         actions: [
           Builder(
             builder: (context) {
