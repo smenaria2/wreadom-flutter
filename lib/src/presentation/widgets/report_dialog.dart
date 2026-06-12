@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../domain/models/report.dart';
 import '../providers/report_providers.dart';
 import '../providers/auth_providers.dart';
+import 'glass_surface.dart';
 
 class ReportDialog extends ConsumerStatefulWidget {
   final String targetId;
@@ -94,69 +95,99 @@ class _ReportDialogState extends ConsumerState<ReportDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(l10n.reportTarget(widget.targetType)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.whyReportContent),
-            const SizedBox(height: 12),
-            RadioGroup<String>(
-              groupValue: _selectedReason,
-              onChanged: (val) => setState(() => _selectedReason = val),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ..._reasons.map(
-                    (reason) => RadioListTile<String>(
-                      title: Text(_reasonLabel(l10n, reason)),
-                      value: reason,
-                      selected: reason == _selectedReason,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.circular(28),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.reportTarget(widget.targetType),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                l10n.whyReportContent,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: SingleChildScrollView(
+                  child: RadioGroup<String>(
+                    groupValue: _selectedReason,
+                    onChanged: (val) => setState(() => _selectedReason = val),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ..._reasons.map(
+                          (reason) => RadioListTile<String>(
+                            title: Text(_reasonLabel(l10n, reason)),
+                            value: reason,
+                            selected: reason == _selectedReason,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            activeColor: scheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _detailsController,
+                decoration: InputDecoration(
+                  labelText: l10n.additionalDetailsOptional,
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: _selectedReason == null || _submitting
+                        ? null
+                        : _submit,
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.submitReport),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _detailsController,
-              decoration: InputDecoration(
-                labelText: l10n.additionalDetailsOptional,
-                border: const OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 3,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        ElevatedButton(
-          onPressed: _selectedReason == null || _submitting ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          ),
-          child: _submitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(l10n.submitReport),
-        ),
-      ],
     );
   }
 

@@ -28,6 +28,7 @@ import '../widgets/share_app_dialog.dart';
 import '../widgets/social_links_menu.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_log_collector.dart';
+import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
@@ -168,7 +169,7 @@ class ProfileScreen extends ConsumerWidget {
 
                   // ─── Tab Bar ───────────────────────────────────
                   SliverPersistentHeader(
-                    pinned: true,
+                    pinned: false,
                     delegate: _SliverAppBarDelegate(
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -196,8 +197,9 @@ class ProfileScreen extends ConsumerWidget {
                                   .withValues(alpha: 0.90),
                               borderRadius: BorderRadius.circular(26),
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.primary
-                                    .withValues(alpha: 0.22),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.22),
                               ),
                             ),
                             tabs: [
@@ -257,10 +259,7 @@ class _ProfileTabBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: child,
-    );
+    return Padding(padding: const EdgeInsets.only(top: 14), child: child);
   }
 }
 
@@ -387,6 +386,11 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
     final displayName = _safeProfileDisplayName(user);
     final initial = _safeProfileInitial(displayName);
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final collapseProgress = _profileCollapseProgress(settings);
+    final expandedOpacity = (1.0 - collapseProgress / 0.66).clamp(0.0, 1.0);
+    final coverBlur = 1.2 + (collapseProgress * 16);
 
     return GlassSurface(
       strong: true,
@@ -396,7 +400,10 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
         children: [
           if (hasCover)
             ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 1.2, sigmaY: 1.2),
+              imageFilter: ImageFilter.blur(
+                sigmaX: coverBlur,
+                sigmaY: coverBlur,
+              ),
               child: CachedNetworkImage(
                 imageUrl: coverUrl,
                 fit: BoxFit.cover,
@@ -420,8 +427,18 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
           DecoratedBox(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface.withValues(
-                alpha: hasCover ? 0.48 : 0.08,
+                alpha: hasCover
+                    ? 0.36 + collapseProgress * 0.30
+                    : 0.08 + collapseProgress * 0.22,
               ),
+            ),
+          ),
+          Opacity(
+            opacity: collapseProgress,
+            child: const GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: SizedBox.expand(),
             ),
           ),
           Positioned(
@@ -451,78 +468,85 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
               ),
             ),
           ),
-          SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
+          Opacity(
+            opacity: expandedOpacity,
+            child: Transform.scale(
+              scale: 1 - collapseProgress * 0.08,
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: theme.colorScheme.surface,
-                      child: CircleAvatar(
-                        radius: 42,
-                        backgroundColor: theme.colorScheme.primary.withValues(
-                          alpha: 0.1,
-                        ),
-                        backgroundImage: user.photoURL != null
-                            ? CachedNetworkImageProvider(user.photoURL!)
-                            : null,
-                        child: user.photoURL == null
-                            ? Text(
-                                initial,
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-                    Positioned(
-                      right: -8,
-                      bottom: -4,
-                      child: Tooltip(
-                        message: l10n.changeProfilePicture,
-                        child: GlassSurface(
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: _uploadingAvatar ? null : _changeProfilePicture,
-                          semanticButton: true,
-                          child: SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Center(
-                              child: _uploadingAvatar
-                                  ? const SizedBox.square(
-                                      dimension: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.photo_camera_outlined,
-                                      size: 18,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: theme.colorScheme.surface,
+                          child: CircleAvatar(
+                            radius: 42,
+                            backgroundColor: theme.colorScheme.primary
+                                .withValues(alpha: 0.1),
+                            backgroundImage: user.photoURL != null
+                                ? CachedNetworkImageProvider(user.photoURL!)
+                                : null,
+                            child: user.photoURL == null
+                                ? Text(
+                                    initial,
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
                                       color: theme.colorScheme.primary,
                                     ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          right: -8,
+                          bottom: -4,
+                          child: Tooltip(
+                            message: l10n.changeProfilePicture,
+                            child: GlassSurface(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: _uploadingAvatar
+                                  ? null
+                                  : _changeProfilePicture,
+                              semanticButton: true,
+                              child: SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: Center(
+                                  child: _uploadingAvatar
+                                      ? const SizedBox.square(
+                                          dimension: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.photo_camera_outlined,
+                                          size: 18,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      displayName,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  displayName,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -547,118 +571,118 @@ class _ProfileSideMenu extends ConsumerWidget {
         strong: true,
         borderRadius: const BorderRadius.horizontal(right: Radius.circular(28)),
         child: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(
-              height: 64,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Wreadom',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 64,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Wreadom',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  _MenuSectionLabel(label: l10n.account),
-                  _MenuTile(
-                    icon: Icons.manage_accounts_outlined,
-                    title: l10n.editProfile,
-                    onTap: () => _go(context, AppRoutes.profileSettings),
-                  ),
-                  const Divider(),
-                  _MenuSectionLabel(label: l10n.preferences),
-                  _MenuTile(
-                    icon: Icons.language_outlined,
-                    title: l10n.language,
-                    subtitle: currentLocale.languageCode == 'hi'
-                        ? l10n.hindi
-                        : l10n.english,
-                    onTap: () => _go(context, AppRoutes.languageSettings),
-                  ),
-                  _MenuTile(
-                    icon: Icons.brightness_6_outlined,
-                    title: l10n.theme,
-                    subtitle: themeMode == ThemeMode.dark
-                        ? l10n.dark
-                        : l10n.light,
-                    onTap: () => _showThemePicker(context, ref),
-                  ),
-                  _GlassSwitchTile(
-                    icon: Icons.touch_app_outlined,
-                    title: l10n.hapticFeedback,
-                    subtitle: l10n.hapticFeedbackSubtitle,
-                    value: ref.watch(hapticsEnabledProvider),
-                    onChanged: (enabled) => ref
-                        .read(hapticsEnabledProvider.notifier)
-                        .setEnabled(enabled),
-                  ),
-                  const Divider(),
-                  _MenuSectionLabel(label: l10n.support),
-                  const _AppUpdateTile(),
-                  _MenuTile(
-                    icon: Icons.bug_report_outlined,
-                    title: l10n.submitError,
-                    onTap: () => _showErrorReportDialog(context, ref),
-                  ),
-                  _GlassSwitchTile(
-                    icon: Icons.vibration_rounded,
-                    title: l10n.shakeToReport,
-                    subtitle: l10n.shakeToReportSubtitle,
-                    value: ref.watch(shakeToReportEnabledProvider),
-                    onChanged: (enabled) => ref
-                        .read(shakeToReportEnabledProvider.notifier)
-                        .setEnabled(enabled),
-                  ),
-                  _MenuTile(
-                    icon: Icons.help_outline_rounded,
-                    title: l10n.help,
-                    onTap: () => _go(context, AppRoutes.help),
-                  ),
-                  _MenuTile(
-                    icon: Icons.share_rounded,
-                    title: 'Share & Review App',
-                    onTap: () => ShareAppDialog.show(context),
-                  ),
-                  const Divider(),
-                  _MenuSectionLabel(label: l10n.legal),
-                  _MenuTile(
-                    icon: Icons.privacy_tip_outlined,
-                    title: l10n.privacyPolicy,
-                    onTap: () => _go(context, AppRoutes.privacy),
-                  ),
-                  _MenuTile(
-                    icon: Icons.description_outlined,
-                    title: l10n.termsOfUse,
-                    onTap: () => _go(context, AppRoutes.terms),
-                  ),
-                  const Divider(),
-                  const _MenuSectionLabel(label: 'Social'),
-                  const SocialLinksMenu(),
-                  const _AppVersionTile(),
-                ],
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _MenuSectionLabel(label: l10n.account),
+                    _MenuTile(
+                      icon: Icons.manage_accounts_outlined,
+                      title: l10n.editProfile,
+                      onTap: () => _go(context, AppRoutes.profileSettings),
+                    ),
+                    const Divider(),
+                    _MenuSectionLabel(label: l10n.preferences),
+                    _MenuTile(
+                      icon: Icons.language_outlined,
+                      title: l10n.language,
+                      subtitle: currentLocale.languageCode == 'hi'
+                          ? l10n.hindi
+                          : l10n.english,
+                      onTap: () => _go(context, AppRoutes.languageSettings),
+                    ),
+                    _MenuTile(
+                      icon: Icons.brightness_6_outlined,
+                      title: l10n.theme,
+                      subtitle: themeMode == ThemeMode.dark
+                          ? l10n.dark
+                          : l10n.light,
+                      onTap: () => _showThemePicker(context, ref),
+                    ),
+                    _GlassSwitchTile(
+                      icon: Icons.touch_app_outlined,
+                      title: l10n.hapticFeedback,
+                      subtitle: l10n.hapticFeedbackSubtitle,
+                      value: ref.watch(hapticsEnabledProvider),
+                      onChanged: (enabled) => ref
+                          .read(hapticsEnabledProvider.notifier)
+                          .setEnabled(enabled),
+                    ),
+                    const Divider(),
+                    _MenuSectionLabel(label: l10n.support),
+                    const _AppUpdateTile(),
+                    _MenuTile(
+                      icon: Icons.bug_report_outlined,
+                      title: l10n.submitError,
+                      onTap: () => _showErrorReportDialog(context, ref),
+                    ),
+                    _GlassSwitchTile(
+                      icon: Icons.vibration_rounded,
+                      title: l10n.shakeToReport,
+                      subtitle: l10n.shakeToReportSubtitle,
+                      value: ref.watch(shakeToReportEnabledProvider),
+                      onChanged: (enabled) => ref
+                          .read(shakeToReportEnabledProvider.notifier)
+                          .setEnabled(enabled),
+                    ),
+                    _MenuTile(
+                      icon: Icons.help_outline_rounded,
+                      title: l10n.help,
+                      onTap: () => _go(context, AppRoutes.help),
+                    ),
+                    _MenuTile(
+                      icon: Icons.share_rounded,
+                      title: 'Share & Review App',
+                      onTap: () => ShareAppDialog.show(context),
+                    ),
+                    const Divider(),
+                    _MenuSectionLabel(label: l10n.legal),
+                    _MenuTile(
+                      icon: Icons.privacy_tip_outlined,
+                      title: l10n.privacyPolicy,
+                      onTap: () => _openPolicy(context, AppRoutes.privacy),
+                    ),
+                    _MenuTile(
+                      icon: Icons.description_outlined,
+                      title: l10n.termsOfUse,
+                      onTap: () => _openPolicy(context, AppRoutes.terms),
+                    ),
+                    const Divider(),
+                    const _MenuSectionLabel(label: 'Social'),
+                    const SocialLinksMenu(),
+                    const _AppVersionTile(),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            _MenuTile(
-              icon: Icons.logout,
-              title: l10n.logout,
-              onTap: () async {
-                Navigator.of(context).pop();
-                await ref.read(authControllerProvider.notifier).logout();
-              },
-            ),
-          ],
-        ),
+              const Divider(height: 1),
+              _MenuTile(
+                icon: Icons.logout,
+                title: l10n.logout,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await ref.read(authControllerProvider.notifier).logout();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -667,6 +691,11 @@ class _ProfileSideMenu extends ConsumerWidget {
   void _go(BuildContext context, String route) {
     Navigator.of(context).pop();
     Navigator.of(context).pushNamed(route);
+  }
+
+  Future<void> _openPolicy(BuildContext context, String route) async {
+    Navigator.of(context).pop();
+    await AppRouter.openExternalPolicy(context, route);
   }
 
   Future<void> _showErrorReportDialog(
@@ -906,82 +935,101 @@ class _SubmitErrorDialogState extends ConsumerState<_SubmitErrorDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(l10n.submitError),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: _type,
-              decoration: InputDecoration(
-                labelText: l10n.errorType,
-                border: const OutlineInputBorder(),
+    final theme = Theme.of(context);
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.circular(28),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.submitError,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              items: _types
-                  .map(
-                    (type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(_titleCase(type)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _submitting
-                  ? null
-                  : (value) => setState(() => _type = value ?? _type),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _detailsController,
-              minLines: 5,
-              maxLines: 8,
-              decoration: InputDecoration(
-                labelText: l10n.whatWentWrong,
-                hintText: l10n.describeIssueHint,
-                border: const OutlineInputBorder(),
-                alignLabelWithHint: true,
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: _type,
+                decoration: InputDecoration(labelText: l10n.errorType),
+                items: _types
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(_titleCase(type)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _submitting
+                    ? null
+                    : (value) => setState(() => _type = value ?? _type),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.deviceLogsIncluded,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 14),
+              TextField(
+                controller: _detailsController,
+                minLines: 5,
+                maxLines: 8,
+                decoration: InputDecoration(
+                  labelText: l10n.whatWentWrong,
+                  hintText: l10n.describeIssueHint,
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.deviceLogsIncluded,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: l10n.viewCollectedLogs,
-                  visualDensity: VisualDensity.compact,
-                  iconSize: 18,
-                  onPressed: _showCollectedLogs,
-                  icon: const Icon(Icons.info_outline),
-                ),
-              ],
-            ),
-          ],
+                  IconButton(
+                    tooltip: l10n.viewCollectedLogs,
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 18,
+                    onPressed: _showCollectedLogs,
+                    icon: const Icon(Icons.info_outline),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: _submitting ? null : _submit,
+                    child: _submitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.submit),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l10n.submit),
-        ),
-      ],
     );
   }
 
@@ -1307,10 +1355,9 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
-      ),
+    return GlassSurface(
+      strong: true,
+      borderRadius: BorderRadius.zero,
       child: _child,
     );
   }
@@ -1319,4 +1366,14 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return false;
   }
+}
+
+double _profileCollapseProgress(FlexibleSpaceBarSettings? settings) {
+  if (settings == null) return 0;
+  final delta = settings.maxExtent - settings.minExtent;
+  if (delta <= 0) return 1;
+  return ((settings.maxExtent - settings.currentExtent) / delta).clamp(
+    0.0,
+    1.0,
+  );
 }

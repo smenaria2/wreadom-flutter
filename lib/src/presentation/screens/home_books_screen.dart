@@ -20,6 +20,7 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
+import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
 
 enum _HomeShelfDestination {
@@ -403,7 +404,45 @@ class _HomeBannerStrip extends StatelessWidget {
           ),
         );
       },
+      loading: () => const _HomeBannerFogPlaceholder(),
       orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _HomeBannerFogPlaceholder extends StatelessWidget {
+  const _HomeBannerFogPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        height: 88,
+        child: FogReveal(
+          revealed: false,
+          strong: true,
+          borderRadius: BorderRadius.circular(16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _FogLine(width: 150, height: 14),
+                  SizedBox(height: 10),
+                  _FogLine(width: 230, height: 10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -483,7 +522,7 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
           final height = (constraints.maxWidth * 0.46).clamp(160.0, 220.0);
           return SizedBox(
             height: height,
-            child: const Center(child: CircularProgressIndicator()),
+            child: const _HeroBannerFogPlaceholder(),
           );
         },
       ),
@@ -583,6 +622,43 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeroBannerFogPlaceholder extends StatelessWidget {
+  const _HeroBannerFogPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: FogReveal(
+        revealed: false,
+        strong: true,
+        borderRadius: BorderRadius.circular(24),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                _FogLine(width: 180, height: 24),
+                SizedBox(height: 12),
+                _FogLine(width: double.infinity, height: 12),
+                SizedBox(height: 8),
+                _FogLine(width: 220, height: 12),
+                Spacer(),
+                _FogLine(width: 112, height: 38, radius: 12),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -736,7 +812,12 @@ class _LazyGenreSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => Column(
+        children: [
+          _BookshelfLoadingPlaceholder(title: title),
+          const SizedBox(height: 28),
+        ],
+      ),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
@@ -791,7 +872,7 @@ class _ContinueReadingSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => _ContinueReadingFogSection(title: l10n.continueReading),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
@@ -805,6 +886,81 @@ class _ContinueReadingSection extends ConsumerWidget {
       position: ((progress['position'] as num?)?.toDouble() ?? 0)
           .clamp(0.0, 1.0)
           .toDouble(),
+    );
+  }
+}
+
+class _ContinueReadingFogSection extends StatelessWidget {
+  const _ContinueReadingFogSection({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitleFog(title: title),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 150,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: 3,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (_, _) => const _ContinueReadingCardFog(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContinueReadingCardFog extends StatelessWidget {
+  const _ContinueReadingCardFog();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 260,
+      child: FogReveal(
+        revealed: false,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _FogBlock(
+                width: 82,
+                height: 124,
+                radius: 10,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _FogLine(width: double.infinity, height: 14),
+                    SizedBox(height: 6),
+                    _FogLine(width: 96, height: 14),
+                    SizedBox(height: 8),
+                    _FogLine(width: 116, height: 11),
+                    Spacer(),
+                    _FogLine(width: 92, height: 11),
+                    SizedBox(height: 8),
+                    _FogLine(width: double.infinity, height: 4, radius: 2),
+                    SizedBox(height: 8),
+                    _FogLine(width: 78, height: 10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -955,7 +1111,7 @@ class _SavedBooksSection extends ConsumerWidget {
           },
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => _BookshelfLoadingPlaceholder(title: l10n.yourShelf),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
@@ -1149,8 +1305,59 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
           ],
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => _AuthorsFogSection(title: l10n.authorsToFollow),
       error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _AuthorsFogSection extends StatelessWidget {
+  const _AuthorsFogSection({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitleFog(title: title, trailingWidth: 132),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 146,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: 5,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: (_, _) => const _AuthorFogCard(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthorFogCard extends StatelessWidget {
+  const _AuthorFogCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      child: FogReveal(
+        revealed: false,
+        borderRadius: BorderRadius.circular(12),
+        child: const Column(
+          children: [
+            _FogCircle(size: 60),
+            SizedBox(height: 8),
+            _FogLine(width: 78, height: 11),
+            SizedBox(height: 6),
+            _FogLine(width: 54, height: 10),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1187,7 +1394,8 @@ class _BookshelfSection extends StatelessWidget {
 
         return _buildShelf(context, books, shelfHeight);
       },
-      loading: () => _TimedBookshelfSkeleton(shelfHeight: shelfHeight),
+      loading: () =>
+          _BookshelfLoadingPlaceholder(title: title, shelfHeight: shelfHeight),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
@@ -1256,47 +1464,25 @@ class _BookshelfSection extends StatelessWidget {
   }
 }
 
-class _TimedBookshelfSkeleton extends StatefulWidget {
-  const _TimedBookshelfSkeleton({required this.shelfHeight});
+class _BookshelfLoadingPlaceholder extends StatelessWidget {
+  const _BookshelfLoadingPlaceholder({required this.title, this.shelfHeight});
 
-  final double shelfHeight;
-
-  @override
-  State<_TimedBookshelfSkeleton> createState() =>
-      _TimedBookshelfSkeletonState();
-}
-
-class _TimedBookshelfSkeletonState extends State<_TimedBookshelfSkeleton> {
-  var _showSkeleton = true;
-
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(const Duration(seconds: 5), () {
-      if (mounted) setState(() => _showSkeleton = false);
-    });
-  }
+  final String title;
+  final double? shelfHeight;
 
   @override
   Widget build(BuildContext context) {
-    if (!_showSkeleton) return const SizedBox.shrink();
+    final height =
+        shelfHeight ??
+        (MediaQuery.sizeOf(context).width * 0.54).clamp(190.0, 232.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            height: 24,
-            width: 140,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
+        _SectionTitleFog(title: title, trailingWidth: 58),
+        const SizedBox(height: 8),
         SizedBox(
-          height: widget.shelfHeight,
+          key: const ValueKey('bookshelf-loading-placeholder'),
+          height: height,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -1311,10 +1497,43 @@ class _TimedBookshelfSkeletonState extends State<_TimedBookshelfSkeleton> {
 }
 
 // Book Card
-class _BookCard extends StatelessWidget {
+class _BookCard extends StatefulWidget {
   final Book book;
   final String heroTag;
   const _BookCard({required this.book, required this.heroTag});
+
+  @override
+  State<_BookCard> createState() => _BookCardState();
+}
+
+class _BookCardState extends State<_BookCard> {
+  late bool _revealed;
+
+  bool get _hasNetworkCover =>
+      widget.book.coverUrl != null && widget.book.coverUrl!.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _revealed = !_hasNetworkCover;
+  }
+
+  @override
+  void didUpdateWidget(covariant _BookCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final coverChanged = oldWidget.book.coverUrl != widget.book.coverUrl;
+    final bookChanged = oldWidget.book.id != widget.book.id;
+    if (coverChanged || bookChanged) {
+      _revealed = !_hasNetworkCover;
+    }
+  }
+
+  void _markRevealed() {
+    if (_revealed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_revealed) setState(() => _revealed = true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1322,84 +1541,94 @@ class _BookCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: l10n.bookByAuthor(
-        book.title,
-        book.authors.isNotEmpty ? book.authors.first.name : l10n.unknownAuthor,
+        widget.book.title,
+        widget.book.authors.isNotEmpty
+            ? widget.book.authors.first.name
+            : l10n.unknownAuthor,
       ),
       child: GestureDetector(
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => BookDetailScreen(
-                bookId: book.id,
-                preloadedBook: book,
-                heroTag: heroTag,
+                bookId: widget.book.id,
+                preloadedBook: widget.book,
+                heroTag: widget.heroTag,
               ),
             ),
           );
         },
         child: SizedBox(
           width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: book.coverUrl != null
-                      ? Hero(
-                          tag: heroTag,
-                          child: CachedNetworkImage(
-                            imageUrl: book.coverUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            memCacheWidth: 240,
-                            memCacheHeight: 360,
-                            placeholder: (context, url) => Container(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
+          child: FogReveal(
+            revealed: _revealed,
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Cover
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _hasNetworkCover
+                        ? Hero(
+                            tag: widget.heroTag,
+                            child: CachedNetworkImage(
+                              imageUrl: widget.book.coverUrl!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              memCacheWidth: 240,
+                              memCacheHeight: 360,
+                              imageBuilder: (context, imageProvider) {
+                                _markRevealed();
+                                return Image(
+                                  image: imageProvider,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                );
+                              },
+                              placeholder: (context, url) => _FogBlock(
+                                width: double.infinity,
+                                height: double.infinity,
+                                radius: 12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                               ),
+                              errorWidget: (context, url, error) {
+                                _markRevealed();
+                                return _CoverPlaceholder(book: widget.book);
+                              },
                             ),
-                            errorWidget: (context, url, error) =>
-                                _CoverPlaceholder(book: book),
-                          ),
-                        )
-                      : _CoverPlaceholder(book: book),
+                          )
+                        : _CoverPlaceholder(book: widget.book),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              // Title
-              Text(
-                book.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                const SizedBox(height: 8),
+                // Title
+                Text(
+                  widget.book.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              // Author
-              Text(
-                book.authors.isNotEmpty
-                    ? book.authors.first.name
-                    : AppLocalizations.of(context)!.unknownAuthor,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 11,
+                // Author
+                Text(
+                  widget.book.authors.isNotEmpty
+                      ? widget.book.authors.first.name
+                      : AppLocalizations.of(context)!.unknownAuthor,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1433,30 +1662,127 @@ class _BookCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 120,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+      child: FogReveal(
+        revealed: false,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 12,
-            width: 100,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-          const SizedBox(height: 4),
-          Container(
-            height: 10,
-            width: 70,
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          ),
+            const SizedBox(height: 8),
+            _FogLine(
+              height: 12,
+              width: 100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            const SizedBox(height: 4),
+            _FogLine(
+              height: 10,
+              width: 70,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitleFog extends StatelessWidget {
+  const _SectionTitleFog({required this.title, this.trailingWidth});
+
+  final String title;
+  final double? trailingWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleWidth = math
+        .min(220.0, math.max(96.0, title.characters.length * 8.0))
+        .toDouble();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _FogLine(width: titleWidth, height: 20),
+          const Spacer(),
+          if (trailingWidth != null)
+            _FogLine(width: trailingWidth!, height: 18, radius: 9),
         ],
+      ),
+    );
+  }
+}
+
+class _FogLine extends StatelessWidget {
+  const _FogLine({
+    required this.width,
+    required this.height,
+    this.radius = 4,
+    this.color,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return _FogBlock(
+      width: width,
+      height: height,
+      radius: radius,
+      color: color ?? Theme.of(context).colorScheme.surfaceContainerHighest,
+    );
+  }
+}
+
+class _FogCircle extends StatelessWidget {
+  const _FogCircle({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: _FogBlock(
+        width: size,
+        height: size,
+        radius: size / 2,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+    );
+  }
+}
+
+class _FogBlock extends StatelessWidget {
+  const _FogBlock({
+    required this.width,
+    required this.height,
+    required this.radius,
+    required this.color,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
@@ -1729,14 +2055,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                             ),
                           );
                         },
-                        loading: () => const SizedBox(
-                          height: 100,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                        loading: () => const _SpotlightBooksFog(),
                         error: (_, _) => const SizedBox.shrink(),
                       ),
                     ],
@@ -1747,8 +2066,97 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => const _AuthorSpotlightFog(),
       error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _AuthorSpotlightFog extends StatelessWidget {
+  const _AuthorSpotlightFog();
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassSurface(
+      strong: true,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      borderRadius: BorderRadius.circular(18),
+      child: FogReveal(
+        revealed: false,
+        strong: true,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Row(
+                children: [
+                  _FogCircle(size: 60),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _FogLine(width: 116, height: 12),
+                        SizedBox(height: 8),
+                        _FogLine(width: double.infinity, height: 14),
+                        SizedBox(height: 6),
+                        _FogLine(width: 180, height: 14),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              _SpotlightBooksFog(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SpotlightBooksFog extends StatelessWidget {
+  const _SpotlightBooksFog();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 132,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 5,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (_, _) => SizedBox(
+          width: 76,
+          child: FogReveal(
+            revealed: false,
+            borderRadius: BorderRadius.circular(8),
+            strong: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _FogBlock(
+                    width: double.infinity,
+                    height: double.infinity,
+                    radius: 8,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const _FogLine(width: 68, height: 10),
+                const SizedBox(height: 5),
+                const _FogLine(width: 46, height: 10),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

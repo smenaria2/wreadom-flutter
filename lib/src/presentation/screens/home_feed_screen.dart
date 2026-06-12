@@ -380,7 +380,10 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               onTap: () => showCreatePostSheet(context),
               semanticButton: true,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

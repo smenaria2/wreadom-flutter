@@ -1152,6 +1152,20 @@
   "faqProfilePicturesA": "Visit your profile and tap on the camera icons on your avatar or cover photo to upload new images from your device.",
   "stillNeedHelp": "Still need help?",
   "communitySupportAssist": "Our community team is here to assist.",
+  "shareReviewAppTitle": "Share & Review Wreadom",
+  "shareReviewAppBody": "Enjoying Wreadom? Help us grow by sharing it with others or rating us on the Play Store!",
+  "shareAppLink": "Share link",
+  "rateReviewApp": "Rate & review",
+  "copyAppLink": "Copy app link",
+  "appLinkCopied": "App link copied to clipboard!",
+  "shareAppMessage": "Read and listen to hundreds of stories on Wreadom. Download now: {link}",
+  "@shareAppMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
   "contactUs": "Contact Us",
   "emailSupport": "Email support",
   "noHelpTopicsFound": "No help topics found for \"{query}\"",

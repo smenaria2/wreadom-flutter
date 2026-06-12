@@ -30,7 +30,7 @@ final discoverySearchProvider =
           archiveBooks: [],
         );
       }
-      
+
       String cleanQuery = term;
       String? searchLanguage;
       if (term.contains('|lang:')) {

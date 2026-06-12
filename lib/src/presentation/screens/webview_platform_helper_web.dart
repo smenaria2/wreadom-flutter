@@ -10,5 +10,3 @@ void initializeWebViewPlatform() {
 WebViewController createWebViewController() {
   return WebViewController();
 }
-
-

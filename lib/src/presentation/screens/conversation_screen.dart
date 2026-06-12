@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/message.dart';
@@ -161,14 +162,26 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   );
                 }
                 if (messages.isEmpty) {
+                  if (newDirectThread) {
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _ConversationInfoMessage(text: l10n.oneMessageAllowed),
+                      ],
+                    );
+                  }
                   return Center(child: Text(l10n.noMessagesYet));
                 }
                 final hasLoader = messagesState.hasMore;
+                final hasWaitingNotice = waitingForReply;
                 return ListView.builder(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
-                  itemCount: messages.length + (hasLoader ? 1 : 0),
+                  itemCount:
+                      messages.length +
+                      (hasLoader ? 1 : 0) +
+                      (hasWaitingNotice ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (hasLoader && index == 0) {
                       return Padding(
@@ -192,7 +205,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ),
                       );
                     }
-                    final messageIndex = index - (hasLoader ? 1 : 0);
+                    final noticeIndex = hasLoader ? 1 : 0;
+                    if (hasWaitingNotice && index == noticeIndex) {
+                      return _ConversationInfoMessage(
+                        text: l10n.oneMessageAllowed,
+                      );
+                    }
+                    final messageIndex =
+                        index -
+                        (hasLoader ? 1 : 0) -
+                        (hasWaitingNotice ? 1 : 0);
                     final message = messages[messageIndex];
                     final isMine = message.senderId == currentUser?.id;
                     final canDeleteMessage =
@@ -252,7 +274,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               },
             ),
           ),
-          if (isBlocked || waitingForReply)
+          if (isBlocked)
             SafeArea(
               top: false,
               child: Padding(
@@ -262,15 +284,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   padding: const EdgeInsets.all(14),
                   borderRadius: BorderRadius.circular(16),
                   child: Text(
-                    isBlocked
-                        ? l10n.cannotSendMessages
-                        : l10n.oneMessageAllowed,
+                    l10n.cannotSendMessages,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
               ),
             )
+          else if (waitingForReply)
+            const SizedBox.shrink()
           else
             SafeArea(
               top: false,
@@ -283,21 +305,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (newDirectThread) ...[
-                        GlassSurface(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          child: Text(
-                            l10n.oneMessageAllowed,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
                       Row(
                         children: [
                           Expanded(
@@ -421,6 +428,50 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 }
 
+class _ConversationInfoMessage extends StatelessWidget {
+  const _ConversationInfoMessage({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Align(
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GlassSurface(
+          strong: true,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          borderRadius: BorderRadius.circular(18),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 16,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ConversationTitle extends StatelessWidget {
   const _ConversationTitle({
     required this.title,
@@ -443,7 +494,7 @@ class _ConversationTitle extends StatelessWidget {
           CircleAvatar(
             radius: 17,
             backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
-                ? NetworkImage(photoUrl!)
+                ? CachedNetworkImageProvider(photoUrl!)
                 : null,
             child: photoUrl == null || photoUrl!.isEmpty
                 ? Text(title.characters.first.toUpperCase())
@@ -691,7 +742,7 @@ class _MessageSender extends StatelessWidget {
           CircleAvatar(
             radius: 11,
             backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                ? NetworkImage(photoUrl)
+                ? CachedNetworkImageProvider(photoUrl)
                 : null,
             child: photoUrl == null || photoUrl.isEmpty
                 ? Text(

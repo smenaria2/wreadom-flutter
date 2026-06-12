@@ -34,6 +34,11 @@ class EnvConfig {
     defaultValue: false,
   );
 
+  static const bool enableAppCheck = bool.fromEnvironment(
+    'ENABLE_APPCHECK',
+    defaultValue: true,
+  );
+
   static const String unsplashAccessKey = String.fromEnvironment(
     'UNSPLASH_ACCESS_KEY',
     defaultValue: '',

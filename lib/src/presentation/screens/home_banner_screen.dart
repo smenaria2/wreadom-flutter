@@ -122,7 +122,7 @@ class HomeBannerScreen extends StatelessWidget {
                         const SizedBox(height: 24),
                         FilledButton(
                           onPressed: () =>
-                              _openLink(context, banner.buttonLink),
+                              _openAnyLink(context, banner.buttonLink),
                           child: Text(banner.buttonText),
                         ),
                       ],
@@ -138,6 +138,10 @@ class HomeBannerScreen extends StatelessWidget {
   }
 
   Future<bool> _openHtmlLink(BuildContext context, String link) async {
+    return _openAnyLink(context, link);
+  }
+
+  Future<bool> _openAnyLink(BuildContext context, String link) async {
     if (_openLink(context, link)) return true;
     final uri = Uri.tryParse(link.trim());
     if (uri == null || !uri.hasScheme) return false;

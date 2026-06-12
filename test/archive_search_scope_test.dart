@@ -29,11 +29,23 @@ void main() {
     });
 
     test('language parameter maps Hindi and English correctly', () {
-      final queryHindi = ArchiveBookService.buildSearchQuery(query: 'ramayana', language: 'Hindi');
-      expect(queryHindi, contains('(language:hi OR language:hin OR language:hindi)'));
+      final queryHindi = ArchiveBookService.buildSearchQuery(
+        query: 'ramayana',
+        language: 'Hindi',
+      );
+      expect(
+        queryHindi,
+        contains('(language:hi OR language:hin OR language:hindi)'),
+      );
 
-      final queryEnglish = ArchiveBookService.buildSearchQuery(query: 'ramayana', language: 'en');
-      expect(queryEnglish, contains('(language:en OR language:eng OR language:english)'));
+      final queryEnglish = ArchiveBookService.buildSearchQuery(
+        query: 'ramayana',
+        language: 'en',
+      );
+      expect(
+        queryEnglish,
+        contains('(language:en OR language:eng OR language:english)'),
+      );
     });
 
     test(

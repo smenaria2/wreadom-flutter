@@ -5,7 +5,6 @@ import 'package:librebook_flutter/src/data/services/legal_document_service.dart'
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/screens/daily_topic_screen.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
   Future<void> pumpGeneratedRoute(
@@ -179,7 +178,7 @@ void main() {
       expect(settings, isNull);
     });
 
-    testWidgets('direct privacy route shows in-app legal content', (
+    testWidgets('direct privacy route opens in-app legal browser', (
       tester,
     ) async {
       await pumpGeneratedRoute(
@@ -189,11 +188,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.byType(WebViewWidget), findsOneWidget);
       expect(find.text('Open'), findsNothing);
     });
 
-    testWidgets('direct terms route shows in-app legal content', (
+    testWidgets('direct terms route opens in-app legal browser', (
       tester,
     ) async {
       await pumpGeneratedRoute(
@@ -203,11 +201,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Terms of Use'), findsOneWidget);
-      expect(find.byType(WebViewWidget), findsOneWidget);
       expect(find.text('Open'), findsNothing);
     });
 
-    testWidgets('intercepted browser legal links open in-app legal screens', (
+    testWidgets('intercepted browser legal links open in-app legal browser', (
       tester,
     ) async {
       await pumpGeneratedRoute(
@@ -217,7 +214,6 @@ void main() {
       await tester.pump();
 
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.byType(WebViewWidget), findsOneWidget);
 
       await pumpGeneratedRoute(
         tester,
@@ -226,7 +222,6 @@ void main() {
       await tester.pump();
 
       expect(find.text('Terms of Use'), findsOneWidget);
-      expect(find.byType(WebViewWidget), findsOneWidget);
     });
   });
 }

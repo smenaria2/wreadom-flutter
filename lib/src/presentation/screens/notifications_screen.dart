@@ -106,6 +106,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _NotificationFilter _filter = _NotificationFilter.all;
   String? _openingNotificationKey;
+  bool _markingAllRead = false;
   late final PageController _pageController;
   late final _LifecycleRefreshObserver _lifecycleRefreshObserver;
 
@@ -180,20 +181,44 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         actions: [
           if (currentUser != null)
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: scheme.primary,
-                textStyle: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    textStyle: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  onPressed: _markingAllRead
+                      ? null
+                      : () async {
+                          setState(() => _markingAllRead = true);
+                          try {
+                            await ref
+                                .read(notificationRepositoryProvider)
+                                .markAllAsRead(currentUser.id);
+                            await notificationsController.refresh();
+                          } finally {
+                            if (mounted) {
+                              setState(() => _markingAllRead = false);
+                            }
+                          }
+                        },
+                  icon: _markingAllRead
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.done_all_rounded, size: 18),
+                  label: Text(l10n.markAllRead),
                 ),
               ),
-              onPressed: () async {
-                await ref
-                    .read(notificationRepositoryProvider)
-                    .markAllAsRead(currentUser.id);
-                await notificationsController.refresh();
-              },
-              child: Text(l10n.markAllRead),
             ),
         ],
       ),
@@ -898,22 +923,28 @@ class _NotificationFilterBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             onTap: () => onSelected(filter),
             semanticButton: true,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? scheme.primaryContainer.withValues(alpha: 0.86)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Text(
-                filter.label(l10n),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            child: SizedBox(
+              height: 44,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
                   color: isSelected
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
+                      ? scheme.primaryContainer.withValues(alpha: 0.72)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Text(
+                  filter.label(l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: isSelected
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

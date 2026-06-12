@@ -97,7 +97,9 @@ class OfflineService {
               downloadedAt: downloadedAtMs == null
                   ? null
                   : DateTime.fromMillisecondsSinceEpoch(downloadedAtMs),
-              sizeBytes: _estimatedSizeBytes(rawBook) + _estimatedSizeBytes(rawChapters),
+              sizeBytes:
+                  _estimatedSizeBytes(rawBook) +
+                  _estimatedSizeBytes(rawChapters),
             );
           } catch (error) {
             debugPrint(

@@ -11,9 +11,7 @@ String formatShareDescription(String? description) {
   if (description == null || description.trim().isEmpty) return '';
 
   // Collapse whitespace/newlines for sharing message
-  var cleaned = description
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  var cleaned = description.replaceAll(RegExp(r'\s+'), ' ').trim();
 
   // Strip simple HTML tags if any exist (e.g., <p>, <br>, etc.)
   cleaned = cleaned.replaceAll(RegExp(r'<[^>]*>'), '');
@@ -32,6 +30,7 @@ String getShareContentTypeLabel(String? contentType, {required bool isHindi}) {
   if (lower == 'article') return isHindi ? 'लेख' : 'article';
   return isHindi ? 'कहानी' : 'story'; // Default if null/empty or unrecognized
 }
+
 String _getFormattedAuthor(Book book, {required bool isHindi}) {
   final name = bookAuthorName(book);
   if (isHindi) {
@@ -40,10 +39,7 @@ String _getFormattedAuthor(Book book, {required bool isHindi}) {
   return name;
 }
 
-String generateBookShareText({
-  required Book book,
-  required String link,
-}) {
+String generateBookShareText({required Book book, required String link}) {
   final isHindi = isBookHindi(book);
   final type = getShareContentTypeLabel(book.contentType, isHindi: isHindi);
   final author = _getFormattedAuthor(book, isHindi: isHindi);

@@ -38,7 +38,7 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
   }
 
   final host = _normalizedHost(uri);
-  if (_hostMatches(host, const ['youtube.com', 'youtu.be'])) {
+  if (_hostMatches(host, const ['youtube.com', 'youtu.be', 'youtube-nocookie.com'])) {
     final id = _youtubeId(uri);
     if (id != null) {
       return WriterMediaInfo(

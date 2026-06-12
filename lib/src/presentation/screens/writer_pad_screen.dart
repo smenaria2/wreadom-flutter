@@ -22,6 +22,8 @@ import '../utils/chapter_version_history.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_scaffold.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../data/services/cover_image_service.dart';
 
@@ -376,39 +378,23 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final currentUserAsync = ref.watch(currentUserProvider);
     final currentUser = currentUserAsync.asData?.value;
     final controller = _currentChapter.controller;
-    final chromeColor = _writerChromeColor(context);
-    final onChromeColor = _onWriterChromeColor(context);
 
     if (currentUserAsync.isLoading) {
-      return Scaffold(
-        backgroundColor: chromeColor,
-        appBar: AppBar(
-          backgroundColor: chromeColor,
-          foregroundColor: onChromeColor,
-          title: Text(l10n.writerWritingEditor),
-        ),
+      return GlassScaffold(
+        appBar: glassAppBar(title: Text(l10n.writerWritingEditor)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (currentUser == null) {
-      return Scaffold(
-        backgroundColor: chromeColor,
-        appBar: AppBar(
-          backgroundColor: chromeColor,
-          foregroundColor: onChromeColor,
-          title: Text(l10n.writerWritingEditor),
-        ),
+      return GlassScaffold(
+        appBar: glassAppBar(title: Text(l10n.writerWritingEditor)),
         body: const AuthRequiredView(icon: Icons.edit_note_outlined),
       );
     }
 
-    return Scaffold(
-      backgroundColor: chromeColor,
-      appBar: AppBar(
-        backgroundColor: chromeColor,
-        foregroundColor: onChromeColor,
-        elevation: 0,
+    return GlassScaffold(
+      appBar: glassAppBar(
         titleSpacing: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +406,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             Text(
               _isSaving ? l10n.writerSaving : _saveStatus,
               style: TextStyle(
-                color: onChromeColor.withValues(alpha: 0.58),
+                color: _onWriterChromeColor(context).withValues(alpha: 0.58),
                 fontSize: 12,
               ),
             ),
@@ -431,6 +417,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
           onPressed: _handleBack,
         ),
+        automaticallyImplyLeading: false,
         actions: [
           TextButton(
             onPressed: _isSaving ? null : () => _save(status: 'draft'),
@@ -685,19 +672,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         ? const Center(
                             child: SizedBox.square(
                               dimension: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           )
                         : (_coverUrl == null
-                            ? Icon(
-                                Icons.auto_stories_outlined,
-                                color: _onWriterSurfaceColor(
-                                  context,
-                                ).withValues(alpha: 0.42),
-                              )
-                            : null),
+                              ? Icon(
+                                  Icons.auto_stories_outlined,
+                                  color: _onWriterSurfaceColor(
+                                    context,
+                                  ).withValues(alpha: 0.42),
+                                )
+                              : null),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -735,12 +720,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             !_isFetchingAutoCover &&
                             _autoCoverFetched)
                           OutlinedButton.icon(
-                            onPressed: _isUploadingCover ? null : _retryAutoCoverFetch,
+                            onPressed: _isUploadingCover
+                                ? null
+                                : _retryAutoCoverFetch,
                             icon: const Icon(Icons.image_search_rounded),
                             label: const Text('Find Cover'),
                           ),
                         OutlinedButton.icon(
-                          onPressed: _coverUrl == null ||
+                          onPressed:
+                              _coverUrl == null ||
                                   _isUploadingCover ||
                                   _isFetchingAutoCover
                               ? null
@@ -853,11 +841,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Widget _buildToolbar(QuillController controller) {
     final l10n = AppLocalizations.of(context)!;
-    final toolbarColor = _writerToolbarColor(context);
     final onToolbarColor = _onWriterSurfaceColor(context);
     return SafeArea(
-      child: Container(
-        color: toolbarColor,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         child: Row(
           children: [
@@ -916,7 +904,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   showLink: false,
                   showSubscript: false,
                   showSuperscript: false,
-                  color: toolbarColor,
+                  color: Colors.transparent,
                   toolbarSectionSpacing: 2,
                 ),
               ),
@@ -929,18 +917,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   bool _useDarkWriterChrome(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;
-  }
-
-  Color _writerChromeColor(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return _useDarkWriterChrome(context) ? scheme.surface : scheme.surface;
-  }
-
-  Color _writerToolbarColor(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return _useDarkWriterChrome(context)
-        ? scheme.surfaceContainerLow
-        : scheme.surfaceContainer;
   }
 
   Color _writerSurfaceColor(BuildContext context) {
@@ -978,15 +954,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      strong: true,
+      borderRadius: BorderRadius.circular(16),
       padding: padding,
-      decoration: BoxDecoration(
-        color: _writerSurfaceColor(context),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
       child: child,
     );
   }
@@ -1072,149 +1043,170 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final sheetColor = _writerSurfaceColor(context);
         final onSheetColor = _onWriterSurfaceColor(context);
-        final outlineColor = Theme.of(context).colorScheme.outlineVariant;
         return SafeArea(
           child: StatefulBuilder(
             builder: (context, modalSetState) {
-              return Container(
+              return SizedBox(
                 height: MediaQuery.sizeOf(context).height * 0.9,
-                margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                decoration: BoxDecoration(
-                  color: sheetColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: outlineColor),
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.chapterOverview,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        color: onSheetColor,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  l10n.chapterCount(_chapters.length),
-                                  style: TextStyle(
-                                    color: onSheetColor.withValues(alpha: 0.62),
+                child: GlassSurface(
+                  strong: true,
+                  borderRadius: BorderRadius.circular(24),
+                  margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.chapterOverview,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: onSheetColor,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.chapterCount(_chapters.length),
+                                    style: TextStyle(
+                                      color: onSheetColor.withValues(
+                                        alpha: 0.62,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            tooltip: l10n.close,
-                            color: onSheetColor,
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
+                            IconButton(
+                              tooltip: l10n.close,
+                              color: onSheetColor,
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () async {
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                        child: GlassSurface(
+                          strong: true,
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () async {
                             final imported = await _showImportDraftsPicker();
                             if (imported && context.mounted) {
                               modalSetState(() {});
                             }
                           },
-                          icon: const Icon(Icons.file_download_outlined),
-                          label: Text(l10n.importFromDrafts),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: ReorderableListView.builder(
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                        itemCount: _chapters.length,
-                        proxyDecorator: (child, index, animation) => Material(
-                          color: Colors.transparent,
-                          child: ScaleTransition(
-                            scale: Tween<double>(begin: 1, end: 1.02).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
+                          semanticButton: true,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.file_download_outlined,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                            ),
-                            child: child,
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  l10n.importFromDrafts,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        onReorder: (oldIndex, newIndex) {
-                          setState(() => _reorderChapter(oldIndex, newIndex));
-                          unawaited(_syncDraftCheckpoint());
-                          modalSetState(() {});
-                        },
-                        itemBuilder: (context, i) {
-                          final chapter = _chapters[i];
-                          final isCurrent = i == _currentChapterIndex;
-                          return _ChapterOverviewCard(
-                            key: ValueKey(chapter.key),
-                            index: i,
-                            title: chapter.title.text.trim().isEmpty
-                                ? l10n.chapterNumber(i + 1)
-                                : chapter.title.text.trim(),
-                            preview: _chapterPreview(chapter),
-                            wordCount: chapter.wordCount,
-                            versionCount: chapter.versions.length,
-                            isCurrent: isCurrent,
-                            canDelete: _chapters.length > 1,
-                            textColor: onSheetColor,
-                            onTap: () {
-                              setState(() => _setCurrentChapterIndex(i));
-                              unawaited(_syncDraftCheckpoint());
-                              Navigator.of(context).pop();
-                            },
-                            onDelete: () async {
-                              final moved = await _confirmDeleteChapter(i);
-                              if (moved && context.mounted) {
-                                modalSetState(() {});
-                              }
-                            },
-                            onHistory: chapter.versions.isEmpty
-                                ? null
-                                : () {
-                                    setState(() => _setCurrentChapterIndex(i));
-                                    Navigator.of(context).pop();
-                                    _showVersionHistory(i);
-                                  },
-                          );
-                        },
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
-                        onTap: () {
-                          _addChapter();
-                          unawaited(_syncDraftCheckpoint());
-                          modalSetState(() {});
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: onSheetColor.withValues(alpha: 0.28),
+                      Expanded(
+                        child: ReorderableListView.builder(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                          itemCount: _chapters.length,
+                          proxyDecorator: (child, index, animation) => Material(
+                            color: Colors.transparent,
+                            child: ScaleTransition(
+                              scale: Tween<double>(begin: 1, end: 1.02).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOut,
+                                ),
+                              ),
+                              child: child,
                             ),
                           ),
+                          onReorder: (oldIndex, newIndex) {
+                            setState(() => _reorderChapter(oldIndex, newIndex));
+                            unawaited(_syncDraftCheckpoint());
+                            modalSetState(() {});
+                          },
+                          itemBuilder: (context, i) {
+                            final chapter = _chapters[i];
+                            final isCurrent = i == _currentChapterIndex;
+                            return _ChapterOverviewCard(
+                              key: ValueKey(chapter.key),
+                              index: i,
+                              title: chapter.title.text.trim().isEmpty
+                                  ? l10n.chapterNumber(i + 1)
+                                  : chapter.title.text.trim(),
+                              preview: _chapterPreview(chapter),
+                              wordCount: chapter.wordCount,
+                              versionCount: chapter.versions.length,
+                              isCurrent: isCurrent,
+                              canDelete: _chapters.length > 1,
+                              textColor: onSheetColor,
+                              onTap: () {
+                                setState(() => _setCurrentChapterIndex(i));
+                                unawaited(_syncDraftCheckpoint());
+                                Navigator.of(context).pop();
+                              },
+                              onDelete: () async {
+                                final moved = await _confirmDeleteChapter(i);
+                                if (moved && context.mounted) {
+                                  modalSetState(() {});
+                                }
+                              },
+                              onHistory: chapter.versions.isEmpty
+                                  ? null
+                                  : () {
+                                      setState(
+                                        () => _setCurrentChapterIndex(i),
+                                      );
+                                      Navigator.of(context).pop();
+                                      _showVersionHistory(i);
+                                    },
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                        child: GlassSurface(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () {
+                            _addChapter();
+                            unawaited(_syncDraftCheckpoint());
+                            modalSetState(() {});
+                          },
+                          semanticButton: true,
+                          padding: const EdgeInsets.all(16),
                           child: Row(
                             children: [
                               Icon(Icons.add_rounded, color: onSheetColor),
@@ -1230,8 +1222,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -2653,111 +2645,112 @@ class _ChapterOverviewCard extends StatelessWidget {
         : textColor.withValues(alpha: 0.18);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
+      child: GlassSurface(
+        strong: isCurrent,
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(14),
+        semanticButton: true,
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            color: textColor.withValues(alpha: isCurrent ? 0.12 : 0.07),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor, width: isCurrent ? 2 : 1),
+            color: textColor.withValues(alpha: isCurrent ? 0.08 : 0.03),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor, width: isCurrent ? 1.5 : 1),
           ),
-          child: Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child: Icon(
-                  Icons.drag_indicator_rounded,
-                  color: textColor.withValues(alpha: 0.62),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Icon(
+                    Icons.drag_indicator_rounded,
+                    color: textColor.withValues(alpha: 0.62),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: textColor,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        if (isCurrent)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
                             child: Text(
-                              l10n.editing,
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                                color: textColor,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      preview,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.66),
-                        height: 1.35,
+                          if (isCurrent)
+                            GlassSurface(
+                              borderRadius: BorderRadius.circular(8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              child: Text(
+                                l10n.editing,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.wordCountLabel(wordCount),
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.52),
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (versionCount > 0) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        l10n.versionCount(versionCount),
+                        preview,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          color: textColor.withValues(alpha: 0.66),
+                          height: 1.35,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.wordCountLabel(wordCount),
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.52),
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (versionCount > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.versionCount(versionCount),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (onHistory != null)
+                const SizedBox(width: 8),
+                if (onHistory != null)
+                  IconButton(
+                    tooltip: l10n.versionHistory,
+                    onPressed: onHistory,
+                    color: textColor.withValues(alpha: 0.74),
+                    icon: const Icon(Icons.history_rounded),
+                  ),
                 IconButton(
-                  tooltip: l10n.versionHistory,
-                  onPressed: onHistory,
+                  tooltip: l10n.moveToDrafts,
+                  onPressed: canDelete ? onDelete : null,
                   color: textColor.withValues(alpha: 0.74),
-                  icon: const Icon(Icons.history_rounded),
+                  icon: const Icon(Icons.file_upload_outlined),
                 ),
-              IconButton(
-                tooltip: l10n.moveToDrafts,
-                onPressed: canDelete ? onDelete : null,
-                color: textColor.withValues(alpha: 0.74),
-                icon: const Icon(Icons.file_upload_outlined),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

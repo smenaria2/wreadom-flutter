@@ -514,13 +514,15 @@ class _PublicProfileHeader extends StatelessWidget {
       // Fade out the expanded header completely by 60% of scroll progress
       opacity = (1.0 - collapseProgress / 0.6).clamp(0.0, 1.0);
     }
+    final collapseProgress = _publicProfileCollapseProgress(settings);
+    final blur = 2.5 + collapseProgress * 16;
 
     return Stack(
       fit: StackFit.expand,
       children: [
         if (hasCover)
           ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
             child: CachedNetworkImage(
               imageUrl: coverUrl,
               fit: BoxFit.cover,
@@ -536,69 +538,92 @@ class _PublicProfileHeader extends StatelessWidget {
         if (hasCover)
           DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.42),
+              color: theme.colorScheme.surface.withValues(
+                alpha: 0.34 + collapseProgress * 0.34,
+              ),
             ),
           ),
         Opacity(
+          opacity: collapseProgress,
+          child: const GlassSurface(
+            strong: true,
+            borderRadius: BorderRadius.zero,
+            child: SizedBox.expand(),
+          ),
+        ),
+        Opacity(
           opacity: opacity,
-          child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: theme.colorScheme.surface,
-                  child: CircleAvatar(
-                    radius: 42,
-                    backgroundColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.1,
-                    ),
-                    backgroundImage: user.photoURL != null
-                        ? CachedNetworkImageProvider(user.photoURL!)
-                        : null,
-                    child: user.photoURL == null
-                        ? Text(
-                            _safePublicProfileInitial(displayName),
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: hasCover
-                          ? Colors.white
-                          : theme.colorScheme.onSurface,
-                      shadows: hasCover
-                          ? [
-                              const Shadow(
-                                offset: Offset(0, 1),
-                                blurRadius: 4,
-                                color: Colors.black54,
+          child: Transform.scale(
+            scale: 1 - collapseProgress * 0.08,
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: theme.colorScheme.surface,
+                    child: CircleAvatar(
+                      radius: 42,
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      backgroundImage: user.photoURL != null
+                          ? CachedNetworkImageProvider(user.photoURL!)
+                          : null,
+                      child: user.photoURL == null
+                          ? Text(
+                              _safePublicProfileInitial(displayName),
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
                               ),
-                            ]
+                            )
                           : null,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: hasCover
+                            ? Colors.white
+                            : theme.colorScheme.onSurface,
+                        shadows: hasCover
+                            ? [
+                                const Shadow(
+                                  offset: Offset(0, 1),
+                                  blurRadius: 4,
+                                  color: Colors.black54,
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+double _publicProfileCollapseProgress(FlexibleSpaceBarSettings? settings) {
+  if (settings == null) return 0;
+  final delta = settings.maxExtent - settings.minExtent;
+  if (delta <= 0) return 1;
+  return ((settings.maxExtent - settings.currentExtent) / delta).clamp(
+    0.0,
+    1.0,
+  );
 }
 
 class _StatChip extends StatelessWidget {

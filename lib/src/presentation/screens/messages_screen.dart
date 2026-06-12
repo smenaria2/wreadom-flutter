@@ -55,10 +55,27 @@ class MessagesScreen extends ConsumerWidget {
                   if (conversations.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       children: [
                         SizedBox(
                           height: MediaQuery.sizeOf(context).height * 0.6,
-                          child: Center(child: Text(l10n.noConversationsYet)),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 360),
+                              child: Text(
+                                l10n.noConversationsYet,
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     );

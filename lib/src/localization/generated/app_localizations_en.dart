@@ -2082,6 +2082,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communitySupportAssist => 'Our community team is here to assist.';
 
   @override
+  String get shareReviewAppTitle => 'Share & Review Wreadom';
+
+  @override
+  String get shareReviewAppBody =>
+      'Enjoying Wreadom? Help us grow by sharing it with others or rating us on the Play Store!';
+
+  @override
+  String get shareAppLink => 'Share link';
+
+  @override
+  String get rateReviewApp => 'Rate & review';
+
+  @override
+  String get copyAppLink => 'Copy app link';
+
+  @override
+  String get appLinkCopied => 'App link copied to clipboard!';
+
+  @override
+  String shareAppMessage(String link) {
+    return 'Read and listen to hundreds of stories on Wreadom. Download now: $link';
+  }
+
+  @override
   String get contactUs => 'Contact Us';
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
@@ -131,7 +132,21 @@ class AppRouter {
     BuildContext context,
     String routeName,
   ) async {
-    await Navigator.of(context).pushNamed(routeName);
+    final url = switch (routeName) {
+      AppRoutes.privacy => AppLinkHelper.privacyPolicyUrl,
+      AppRoutes.terms => AppLinkHelper.termsUrl,
+      _ => null,
+    };
+    if (url == null) {
+      await Navigator.of(context).pushNamed(routeName);
+      return;
+    }
+
+    final uri = Uri.parse(url);
+    final opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    if (!opened && context.mounted) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   static RouteSettings? routeSettingsForAppLink(String rawLink) {

@@ -250,33 +250,48 @@ class FirebaseBookRepository implements BookRepository {
               .whereType<Book>()
               .toList();
         }
-      } catch (_) {}
+      } catch (e, stack) {
+        debugPrint(
+          '[FirebaseBookRepository] Error getting popular books by viewCount: $e',
+        );
+        debugPrint('$stack');
+      }
 
       // Fallback – download_count
-      final fallback = await _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'published')
-          .orderBy('download_count', descending: true)
-          .limit(limit)
-          .get();
+      try {
+        final fallback = await _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .orderBy('download_count', descending: true)
+            .limit(limit)
+            .get();
 
-      return fallback.docs
-          .map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<Book>()
-          .toList();
-    } catch (_) {
+        return fallback.docs
+            .map((doc) {
+              try {
+                final data = normalizeBookMapForModel(
+                  asStringMap(doc.data()),
+                  doc.id,
+                );
+                return Book.fromJson(data);
+              } catch (_) {
+                return null;
+              }
+            })
+            .whereType<Book>()
+            .toList();
+      } catch (e, stack) {
+        debugPrint(
+          '[FirebaseBookRepository] Error getting popular books by download_count: $e',
+        );
+        debugPrint('$stack');
+      }
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting popular books: $e');
+      debugPrint('$stack');
       return [];
     }
+    return [];
   }
 
   @override
@@ -303,7 +318,9 @@ class FirebaseBookRepository implements BookRepository {
           })
           .whereType<Book>()
           .toList();
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error getting recent books: $e');
+      debugPrint('$stack');
       return [];
     }
   }
@@ -438,8 +455,8 @@ class FirebaseBookRepository implements BookRepository {
     if (bookId.trim().isEmpty || normalizedViewerKey.isEmpty) return false;
     final normalizedChapterIndex = chapterIndex < 0 ? 0 : chapterIndex;
     final normalizedChapterId = chapterId?.trim();
-    final chapterKey = normalizedChapterId != null &&
-            normalizedChapterId.isNotEmpty
+    final chapterKey =
+        normalizedChapterId != null && normalizedChapterId.isNotEmpty
         ? 'id:$normalizedChapterId'
         : 'index:$normalizedChapterIndex';
 

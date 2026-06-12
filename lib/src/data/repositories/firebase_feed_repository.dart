@@ -617,7 +617,9 @@ class FirebaseFeedRepository implements FeedRepository {
           .where((text) => text.isNotEmpty)
           .toList();
     } catch (e) {
-      debugPrint('[FirebaseFeedRepository] Error fetching active questions: $e');
+      debugPrint(
+        '[FirebaseFeedRepository] Error fetching active questions: $e',
+      );
       return [];
     }
   }

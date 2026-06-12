@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -52,6 +53,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   void initState() {
     super.initState();
     _currentQuestion = widget.initialQuestion;
+    if (_currentQuestion == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_changeQuestion());
+      });
+    }
   }
 
   @override
@@ -263,33 +269,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                       : () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 4),
-                FilledButton(
+                _GlassPostButton(
+                  label: l10n.postBtn,
+                  isLoading: _isSubmitting,
                   onPressed: _isSubmitting ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(l10n.postBtn),
                 ),
               ],
             ),
@@ -611,18 +594,17 @@ class _VisibilitySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           iconSize: 16,
           isDense: true,
           borderRadius: BorderRadius.circular(12),
+          iconEnabledColor: theme.colorScheme.primary,
+          dropdownColor: theme.colorScheme.surfaceContainerHighest,
           style: TextStyle(
             fontSize: 12,
             color: theme.colorScheme.onSurface,
@@ -639,6 +621,58 @@ class _VisibilitySelector extends StatelessWidget {
             ),
           ],
           onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassPostButton extends StatelessWidget {
+  const _GlassPostButton({
+    required this.label,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final enabled = onPressed != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.58,
+      child: GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.circular(20),
+        onTap: onPressed,
+        semanticButton: true,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 52, minHeight: 20),
+          child: Center(
+            child: isLoading
+                ? SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.primary,
+                    ),
+                  )
+                : Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+          ),
         ),
       ),
     );

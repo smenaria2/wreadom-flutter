@@ -27,7 +27,7 @@ class MainRouteGate extends ConsumerWidget {
           if (!isVerified) {
             return EmailVerificationScreen(userId: user.uid);
           }
-          
+
           // Trigger post-auth actions when verified
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(warmUserHomepageCache(ref));
@@ -41,11 +41,8 @@ class MainRouteGate extends ConsumerWidget {
         }
         return const LoginScreen();
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => const LoginScreen(),
     );
   }

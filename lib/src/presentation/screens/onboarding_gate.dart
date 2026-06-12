@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/theme_provider.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 class OnboardingGate extends ConsumerStatefulWidget {
@@ -98,124 +100,125 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
     final isLast = _index == slides.length - 1;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF101828), Color(0xFF3D2C8D), Color(0xFF0F766E)],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/app_logo.png',
-                      width: 34,
-                      height: 34,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      l10n.appTitle,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/images/app_logo.png',
+                        width: 34,
+                        height: 34,
                       ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _closing ? null : _finish,
-                      child: Text(
-                        l10n.skip,
-                        style: const TextStyle(color: Colors.white70),
+                      const SizedBox(width: 10),
+                      Text(
+                        l10n.appTitle,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  itemCount: slides.length,
-                  onPageChanged: (value) => setState(() => _index = value),
-                  itemBuilder: (context, index) =>
-                      _SlideView(slide: slides[index]),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0; i < slides.length; i++)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: i == _index ? 22 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: i == _index
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.32),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _closing ? null : _finish,
+                        child: Text(
+                          l10n.skip,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _index == 0 || _closing
-                                ? null
-                                : () => _controller.previousPage(
-                                    duration: const Duration(milliseconds: 240),
-                                    curve: Curves.easeOut,
-                                  ),
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            label: Text(l10n.back),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.42),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _controller,
+                    itemCount: slides.length,
+                    onPageChanged: (value) => setState(() => _index = value),
+                    itemBuilder: (context, index) =>
+                        _SlideView(slide: slides[index]),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < slides.length; i++)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: i == _index ? 22 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: i == _index
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant
+                                          .withValues(alpha: 0.32),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _index == 0 || _closing
+                                  ? null
+                                  : () => _controller.previousPage(
+                                      duration: const Duration(
+                                        milliseconds: 240,
+                                      ),
+                                      curve: Curves.easeOut,
+                                    ),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: Text(l10n.back),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: _closing
-                                ? null
-                                : isLast
-                                ? _finish
-                                : () => _controller.nextPage(
-                                    duration: const Duration(milliseconds: 240),
-                                    curve: Curves.easeOut,
-                                  ),
-                            icon: Icon(
-                              isLast
-                                  ? Icons.check_rounded
-                                  : Icons.arrow_forward_rounded,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: _closing
+                                  ? null
+                                  : isLast
+                                  ? _finish
+                                  : () => _controller.nextPage(
+                                      duration: const Duration(
+                                        milliseconds: 240,
+                                      ),
+                                      curve: Curves.easeOut,
+                                    ),
+                              icon: Icon(
+                                isLast
+                                    ? Icons.check_rounded
+                                    : Icons.arrow_forward_rounded,
+                              ),
+                              label: Text(isLast ? l10n.done : l10n.next),
                             ),
-                            label: Text(isLast ? l10n.done : l10n.next),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -281,100 +284,116 @@ class _SlideView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 18, 28, 20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 136,
-            height: 136,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
-              boxShadow: [
-                BoxShadow(
-                  color: slide.accent.withValues(alpha: 0.34),
-                  blurRadius: 40,
-                  spreadRadius: 4,
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 560;
+        final circleSize = compact ? 104.0 : 128.0;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(28, compact ? 10 : 18, 28, 20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight > 30
+                  ? constraints.maxHeight - 30
+                  : 0,
             ),
-            child: slide.logoAsset == null
-                ? Icon(slide.icon, color: slide.accent, size: 64)
-                : Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Image.asset(slide.logoAsset!),
-                  ),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            slide.title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              height: 1.08,
-            ),
-          ),
-          if (slide.tagline != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              slide.tagline!,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: slide.accent,
-                fontWeight: FontWeight.w800,
-                height: 1.2,
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Text(
-            slide.body,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.82),
-              height: 1.45,
-            ),
-          ),
-          if (slide.bullets.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                children: [
-                  for (final bullet in slide.bullets)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            color: slide.accent,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              bullet,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.86),
-                                height: 1.32,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox.square(
+                  dimension: circleSize,
+                  child: ClipOval(
+                    child: GlassSurface(
+                      strong: true,
+                      borderRadius: BorderRadius.circular(circleSize / 2),
+                      child: Center(
+                        child: slide.logoAsset == null
+                            ? Icon(
+                                slide.icon,
+                                color: slide.accent,
+                                size: compact ? 50 : 60,
+                              )
+                            : Padding(
+                                padding: EdgeInsets.all(compact ? 18 : 22),
+                                child: Image.asset(
+                                  slide.logoAsset!,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
+                  ),
+                ),
+                SizedBox(height: compact ? 18 : 24),
+                Text(
+                  slide.title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                    height: 1.08,
+                  ),
+                ),
+                if (slide.tagline != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    slide.tagline!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: slide.accent,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
                 ],
-              ),
+                SizedBox(height: compact ? 10 : 14),
+                Text(
+                  slide.body,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.36,
+                  ),
+                ),
+                if (slide.bullets.isNotEmpty) ...[
+                  SizedBox(height: compact ? 14 : 20),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      children: [
+                        for (final bullet in slide.bullets)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: slide.accent,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    bullet,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      height: 1.25,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }

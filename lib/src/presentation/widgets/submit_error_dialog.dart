@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../utils/app_log_collector.dart';
 import '../providers/auth_providers.dart';
 import '../providers/report_providers.dart';
+import 'glass_surface.dart';
 
 class SubmitErrorDialog extends ConsumerStatefulWidget {
   const SubmitErrorDialog({super.key});
@@ -31,82 +32,118 @@ class _SubmitErrorDialogState extends ConsumerState<SubmitErrorDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(l10n.submitError),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: _type,
-              decoration: InputDecoration(
-                labelText: l10n.errorType,
-                border: const OutlineInputBorder(),
-              ),
-              items: _types
-                  .map(
-                    (type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(_titleCase(type)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _submitting
-                  ? null
-                  : (value) => setState(() => _type = value ?? _type),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _detailsController,
-              minLines: 5,
-              maxLines: 8,
-              decoration: InputDecoration(
-                labelText: l10n.whatWentWrong,
-                hintText: l10n.describeIssueHint,
-                border: const OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.deviceLogsIncluded,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final theme = Theme.of(context);
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final maxHeight =
+        (MediaQuery.sizeOf(context).height - viewInsets.vertical - 48)
+            .clamp(260.0, 640.0)
+            .toDouble();
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: viewInsets.bottom),
+        child: GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.circular(28),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 460, maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.submitError,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: l10n.viewCollectedLogs,
-                  visualDensity: VisualDensity.compact,
-                  iconSize: 18,
-                  onPressed: _showCollectedLogs,
-                  icon: const Icon(Icons.info_outline),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _type,
+                    decoration: InputDecoration(labelText: l10n.errorType),
+                    items: _types
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(_titleCase(type)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _submitting
+                        ? null
+                        : (value) => setState(() => _type = value ?? _type),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _detailsController,
+                    minLines: 4,
+                    maxLines: 7,
+                    decoration: InputDecoration(
+                      labelText: l10n.whatWentWrong,
+                      hintText: l10n.describeIssueHint,
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.deviceLogsIncluded,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: l10n.viewCollectedLogs,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        onPressed: _showCollectedLogs,
+                        icon: const Icon(Icons.info_outline),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _submitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: Text(l10n.cancel),
+                      ),
+                      const SizedBox(width: 10),
+                      FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.submit),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l10n.submit),
-        ),
-      ],
     );
   }
 

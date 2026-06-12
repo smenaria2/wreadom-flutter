@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +24,8 @@ const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageGenreBooksCacheKeyPrefix = 'homepage_genre_books_cache_v1_';
-const _homepageRequestTimeout = Duration(seconds: 8);
+const _homepageRequestTimeout = Duration(seconds: 20);
+const _homepageCacheTtl = Duration(hours: 6);
 bool _homepageBackgroundRefreshQueued = false;
 bool _publicHomepageWarmQueued = false;
 bool _userHomepageWarmQueued = false;
@@ -107,6 +109,16 @@ void _queueHomepageBackgroundRefresh(Ref ref) {
   });
 }
 
+/// Returns true when the last successful homepage cache write is older than
+/// [_homepageCacheTtl]. An absent timestamp is treated as stale so that a
+/// fresh network fetch is always triggered on first run.
+bool _isCacheStale(SharedPreferences prefs) {
+  final updatedAt = prefs.getInt(_homepageMetadataCacheUpdatedAtKey);
+  if (updatedAt == null) return true;
+  final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAt;
+  return ageMs > _homepageCacheTtl.inMilliseconds;
+}
+
 T? _readCachedValue<T>(
   SharedPreferences prefs,
   String key,
@@ -129,16 +141,26 @@ Future<void> _writeCachedValue(
   await prefs.setString(key, jsonEncode(json));
 }
 
-Future<List<Book>> _safeBookList(Future<List<Book>> request) async {
+Future<List<Book>> _safeBookList(
+  String label,
+  Future<List<Book>> request,
+) async {
   try {
-    return await request.timeout(_homepageRequestTimeout);
-  } catch (_) {
+    return await _withHomepageTimeout(request, label);
+  } catch (e, stack) {
+    debugPrint('[_safeBookList:$label] Error: $e\n$stack');
     return <Book>[];
   }
 }
 
-Future<T> _withHomepageTimeout<T>(Future<T> request) {
-  return request.timeout(_homepageRequestTimeout);
+Future<T> _withHomepageTimeout<T>(Future<T> request, String label) {
+  return request.timeout(
+    _homepageRequestTimeout,
+    onTimeout: () => throw TimeoutException(
+      '$label did not complete',
+      _homepageRequestTimeout,
+    ),
+  );
 }
 
 Future<bool> _refreshHomepageCachesInBackground(Ref ref) async {
@@ -153,7 +175,8 @@ Future<bool> _refreshHomepageCachesInBackground(Ref ref) async {
       _fetchAndCacheHomepageIABooks(prefs, recommendedBooks),
     ]);
     return true;
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[_refreshHomepageCachesInBackground] Error: $e\n$stack');
     return false;
   }
 }
@@ -168,13 +191,15 @@ Future<Map<String, BookRecommendationStats>> _fetchLiveRecommendationStats({
           .orderBy('upvotes', descending: true)
           .limit(limit)
           .get(),
+      'book_stats by upvotes',
     );
     return {
       for (final doc in snapshot.docs)
         if (_hasPositiveRecommendationStats(doc.data()))
           doc.id: _statsFromMap(doc.data()),
     };
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[_fetchLiveRecommendationStats] Error: $e\n$stack');
     return const <String, BookRecommendationStats>{};
   }
 }
@@ -206,6 +231,12 @@ Map<String, BookRecommendationStats> _mergeRecommendationStats(
   return {...cached, ...live};
 }
 
+bool _hasHomepageMetadataContent(HomepageMetadata metadata) {
+  return metadata.authors.isNotEmpty ||
+      metadata.recommendationStats.isNotEmpty ||
+      metadata.dailyTopics.isNotEmpty;
+}
+
 Future<HomepageMetadata> _fetchAndCacheHomepageMetadata(
   SharedPreferences prefs,
 ) async {
@@ -214,6 +245,7 @@ Future<HomepageMetadata> _fetchAndCacheHomepageMetadata(
         .collection('settings')
         .doc('homepage_metadata')
         .get(),
+    'settings/homepage_metadata',
   );
 
   final data = asStringMap(doc.data());
@@ -257,6 +289,7 @@ Future<List<HomeBanner>> _fetchAndCacheHomeBanners(
           .collection('settings')
           .doc('homepage_metadata')
           .get(),
+      'settings/homepage_metadata banners',
     );
     final rawBanners = asStringMap(metadataDoc.data())['homeBanners'];
     if (rawBanners is List) {
@@ -265,11 +298,14 @@ Future<List<HomeBanner>> _fetchAndCacheHomeBanners(
         if (banner.id.isNotEmpty) byId[banner.id] = banner;
       }
     }
-  } catch (_) {}
+  } catch (e, stack) {
+    debugPrint('[_fetchAndCacheHomeBanners:metadata] Error: $e\n$stack');
+  }
 
   try {
     final snapshot = await _withHomepageTimeout(
       FirebaseFirestore.instance.collection('home-banners').limit(10).get(),
+      'home-banners',
     );
     for (final doc in snapshot.docs) {
       final data = Map<String, dynamic>.from(doc.data());
@@ -277,7 +313,9 @@ Future<List<HomeBanner>> _fetchAndCacheHomeBanners(
       final banner = HomeBanner.fromJson(data);
       byId[banner.id] = banner;
     }
-  } catch (_) {}
+  } catch (e, stack) {
+    debugPrint('[_fetchAndCacheHomeBanners:collection] Error: $e\n$stack');
+  }
 
   final banners =
       byId.values
@@ -292,11 +330,13 @@ Future<List<HomeBanner>> _fetchAndCacheHomeBanners(
         .toList(),
   );
   if (banners.isEmpty && cached != null && cached.isNotEmpty) return cached;
-  await _writeCachedValue(
-    prefs,
-    _homepageBannersCacheKey,
-    banners.map((banner) => banner.toJson()).toList(),
-  );
+  if (banners.isNotEmpty) {
+    await _writeCachedValue(
+      prefs,
+      _homepageBannersCacheKey,
+      banners.map((banner) => banner.toJson()).toList(),
+    );
+  }
   return banners;
 }
 
@@ -308,6 +348,7 @@ Future<List<Book>> _fetchRecommendedBooks(
   final communityIds = _positiveRecommendationIds(metadata, limit: limit);
   if (communityIds.isEmpty) return Future.value(<Book>[]);
   return _safeBookList(
+    'recommended books by id',
     ref.read(bookRepositoryProvider).getBooksByIds(communityIds),
   );
 }
@@ -323,9 +364,9 @@ Future<List<Book>> _fetchAndCacheHomepageBooks(
   final recommendedBookIds = communityIds.toSet();
 
   final results = await Future.wait([
-    _safeBookList(repo.getOriginalBooks(limit: 120)),
+    _safeBookList('homepage original books', repo.getOriginalBooks(limit: 120)),
     _fetchRecommendedBooks(ref, metadata),
-    _safeBookList(repo.getPopularBooks(limit: 80)),
+    _safeBookList('homepage popular books', repo.getPopularBooks(limit: 80)),
   ]);
   final downloaded = ref.read(offlineServiceProvider).getDownloadedBooks();
 
@@ -382,11 +423,13 @@ Future<List<Book>> _fetchAndCacheHomepageBooks(
     return cached;
   }
 
-  await _writeCachedValue(
-    prefs,
-    _homepageBooksCacheKey,
-    combinedBooks.map((book) => book.toJson()).toList(),
-  );
+  if (combinedBooks.isNotEmpty) {
+    await _writeCachedValue(
+      prefs,
+      _homepageBooksCacheKey,
+      combinedBooks.map((book) => book.toJson()).toList(),
+    );
+  }
   return combinedBooks;
 }
 
@@ -395,7 +438,10 @@ Future<List<Book>> _fetchAndCacheHomepageAuthorWorks(
   SharedPreferences prefs,
 ) async {
   final repo = ref.read(bookRepositoryProvider);
-  final works = await _safeBookList(repo.getOriginalBooks(limit: 240));
+  final works = await _safeBookList(
+    'homepage author works',
+    repo.getOriginalBooks(limit: 240),
+  );
   final unique = <String, Book>{};
   for (final book in works.where(_isPublishedOriginal)) {
     unique[book.id] = book;
@@ -408,11 +454,13 @@ Future<List<Book>> _fetchAndCacheHomepageAuthorWorks(
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (result.isEmpty && cached != null && cached.isNotEmpty) return cached;
-  await _writeCachedValue(
-    prefs,
-    _homepageAuthorWorksCacheKey,
-    result.map((book) => book.toJson()).toList(),
-  );
+  if (result.isNotEmpty) {
+    await _writeCachedValue(
+      prefs,
+      _homepageAuthorWorksCacheKey,
+      result.map((book) => book.toJson()).toList(),
+    );
+  }
   return result;
 }
 
@@ -428,11 +476,13 @@ Future<List<Book>> _fetchAndCacheHomepageIABooks(
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
   if (result.isEmpty && cached != null && cached.isNotEmpty) return cached;
-  await _writeCachedValue(
-    prefs,
-    _homepageIABooksCacheKey,
-    result.map((book) => book.toJson()).toList(),
-  );
+  if (result.isNotEmpty) {
+    await _writeCachedValue(
+      prefs,
+      _homepageIABooksCacheKey,
+      result.map((book) => book.toJson()).toList(),
+    );
+  }
   return result;
 }
 
@@ -501,14 +551,15 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (cached != null) {
+  if (cached != null && _hasHomepageMetadataContent(cached) && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
   try {
     return _fetchAndCacheHomepageMetadata(prefs);
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[homepageMetadataProvider] Error: $e\n$stack');
     return const HomepageMetadata();
   }
 });
@@ -523,14 +574,15 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
         .map((raw) => HomeBanner.fromJson(asStringMap(raw)))
         .toList(),
   );
-  if (cached != null) {
+  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
   try {
     return _fetchAndCacheHomeBanners(prefs);
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[homeBannersProvider] Error: $e\n$stack');
     return const <HomeBanner>[];
   }
 });
@@ -583,7 +635,7 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null) {
+  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
@@ -591,7 +643,8 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
   try {
     final metadata = await ref.watch(homepageMetadataProvider.future);
     return _fetchAndCacheHomepageBooks(ref, prefs, metadata);
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[homepageBooksProvider] Error: $e\n$stack');
     return const <Book>[];
   }
 });
@@ -612,14 +665,15 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null) {
+  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
 
   try {
     return _fetchAndCacheHomepageAuthorWorks(ref, prefs);
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[homepageAuthorWorksProvider] Error: $e\n$stack');
     return const <Book>[];
   }
 });
@@ -789,7 +843,7 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null) {
+  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
@@ -797,7 +851,8 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
   try {
     final books = await ref.watch(homepageRecommendedBooksProvider.future);
     return _fetchAndCacheHomepageIABooks(prefs, books);
-  } catch (_) {
+  } catch (e, stack) {
+    debugPrint('[homepageIABooksProvider] Error: $e\n$stack');
     return const <Book>[];
   }
 });
@@ -867,7 +922,7 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null) {
+  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
@@ -887,8 +942,14 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
   }).toList();
 
   final remoteMatches = await Future.wait([
-    _safeBookList(repo.getBooksByGenre(normalized, limit: 36)),
-    _safeBookList(repo.getOriginalBooksByTopic(normalized, limit: 24)),
+    _safeBookList(
+      'homepage genre books: $normalized',
+      repo.getBooksByGenre(normalized, limit: 36),
+    ),
+    _safeBookList(
+      'homepage topic originals: $normalized',
+      repo.getOriginalBooksByTopic(normalized, limit: 24),
+    ),
   ]);
 
   final combined = _uniqueBooks(
@@ -904,10 +965,12 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
     ).compareTo(_bookPopularityScore(a, metadata.recommendationStats)),
   );
   final result = combined.take(36).toList();
-  await _writeCachedValue(
-    prefs,
-    cacheKey,
-    result.map((book) => book.toJson()).toList(),
-  );
+  if (result.isNotEmpty) {
+    await _writeCachedValue(
+      prefs,
+      cacheKey,
+      result.map((book) => book.toJson()).toList(),
+    );
+  }
   return result;
 });

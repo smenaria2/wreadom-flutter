@@ -3692,6 +3692,48 @@ abstract class AppLocalizations {
   /// **'Our community team is here to assist.'**
   String get communitySupportAssist;
 
+  /// No description provided for @shareReviewAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share & Review Wreadom'**
+  String get shareReviewAppTitle;
+
+  /// No description provided for @shareReviewAppBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoying Wreadom? Help us grow by sharing it with others or rating us on the Play Store!'**
+  String get shareReviewAppBody;
+
+  /// No description provided for @shareAppLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Share link'**
+  String get shareAppLink;
+
+  /// No description provided for @rateReviewApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate & review'**
+  String get rateReviewApp;
+
+  /// No description provided for @copyAppLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy app link'**
+  String get copyAppLink;
+
+  /// No description provided for @appLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'App link copied to clipboard!'**
+  String get appLinkCopied;
+
+  /// No description provided for @shareAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Read and listen to hundreds of stories on Wreadom. Download now: {link}'**
+  String shareAppMessage(String link);
+
   /// No description provided for @contactUs.
   ///
   /// In en, this message translates to:

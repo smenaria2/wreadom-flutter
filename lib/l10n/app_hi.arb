@@ -942,6 +942,20 @@
   "faqProfilePicturesA": "अपनी प्रोफ़ाइल पर जाएँ और अपनी फोटो बदलने के लिए कैमरा आइकन पर टैप करें।",
   "stillNeedHelp": "अभी भी मदद चाहिए?",
   "communitySupportAssist": "हमारी कम्युनिटी टीम आपकी सहायता के लिए यहाँ है।",
+  "shareReviewAppTitle": "Wreadom शेयर और रिव्यू करें",
+  "shareReviewAppBody": "Wreadom पसंद आ रहा है? इसे दूसरों के साथ शेयर करके या Play Store पर रेटिंग देकर हमें बढ़ने में मदद करें!",
+  "shareAppLink": "लिंक शेयर करें",
+  "rateReviewApp": "रेट और रिव्यू करें",
+  "copyAppLink": "ऐप लिंक कॉपी करें",
+  "appLinkCopied": "ऐप लिंक क्लिपबोर्ड पर कॉपी हो गया!",
+  "shareAppMessage": "Wreadom पर सैकड़ों कहानियाँ पढ़ें और सुनें। अभी डाउनलोड करें: {link}",
+  "@shareAppMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
   "contactUs": "हमसे संपर्क करें",
   "emailSupport": "ईमेल सहायता",
   "noHelpTopicsFound": "\"{query}\" के लिए कोई सहायता विषय नहीं मिला",

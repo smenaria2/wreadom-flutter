@@ -72,11 +72,13 @@ class FirebaseBootstrapResult {
   const FirebaseBootstrapResult({
     required this.ready,
     required this.emulatorsConfigured,
+    required this.appCheckConfigured,
     required this.cacheConfigured,
   });
 
   final bool ready;
   final bool emulatorsConfigured;
+  final bool appCheckConfigured;
   final bool cacheConfigured;
 }
 
@@ -86,11 +88,16 @@ Future<FirebaseBootstrapResult> _bootstrapFirebaseBeforeRunApp() async {
     _initializeFirebaseIfNeeded,
   );
   var emulatorsConfigured = false;
+  var appCheckConfigured = false;
   var cacheConfigured = false;
   if (ready) {
     emulatorsConfigured = await _guardedBootstrapStep(
       'Firebase emulators',
       _configureFirebaseEmulators,
+    );
+    appCheckConfigured = await _guardedBootstrapStep(
+      'Firebase App Check',
+      _activateFirebaseAppCheckIfNeeded,
     );
     cacheConfigured = await _guardedBootstrapStep(
       'Firestore cache',
@@ -100,6 +107,7 @@ Future<FirebaseBootstrapResult> _bootstrapFirebaseBeforeRunApp() async {
   return FirebaseBootstrapResult(
     ready: ready,
     emulatorsConfigured: emulatorsConfigured,
+    appCheckConfigured: appCheckConfigured,
     cacheConfigured: cacheConfigured,
   );
 }
@@ -133,8 +141,7 @@ Future<void> _initializeFirebaseIfNeeded() async {
 Future<void> _configureFirestoreCache() async {
   // Note: persistenceEnabled: true is required by QA checks, but we use !kIsWeb dynamically.
   FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: !kIsWeb,
-    cacheSizeBytes: 80 * 1024 * 1024,
+    persistenceEnabled: false,
   );
 }
 
@@ -150,6 +157,38 @@ Future<void> _configureFirebaseEmulators() async {
   await FirebaseAuth.instance.useAuthEmulator(host, 9099);
   FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
   FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+}
+
+bool _shouldActivateAppCheck() {
+  if (EnvConfig.useFirebaseEmulators) return false;
+  final isLocalWeb =
+      kIsWeb &&
+      (Uri.base.host == 'localhost' ||
+          Uri.base.host == '127.0.0.1' ||
+          Uri.base.host == 'mobile.wreadom.in' ||
+          Uri.base.host.endsWith('.vercel.app'));
+  return EnvConfig.enableAppCheck &&
+      (!kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug) &&
+      !isLocalWeb;
+}
+
+Future<void> _activateFirebaseAppCheckIfNeeded() async {
+  final shouldActivateAppCheck = _shouldActivateAppCheck();
+  debugPrint('--- Firebase App Check Configuration ---');
+  debugPrint('enableAppCheck: ${EnvConfig.enableAppCheck}');
+  debugPrint('shouldActivateAppCheck: $shouldActivateAppCheck');
+  if (!shouldActivateAppCheck) return;
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleDeviceCheckProvider(),
+    providerWeb: ReCaptchaV3Provider(
+      '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
+    ),
+  );
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -170,6 +209,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   DateTime? _lastDeepLinkAt;
   late bool _firebaseReady;
   late bool _firebaseEmulatorsConfigured;
+  late bool _appCheckConfigured;
   late bool _firestoreCacheConfigured;
   Uri? _pendingDeepLink;
   RouteSettings? _pendingDeepLinkTarget;
@@ -182,6 +222,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     super.initState();
     _firebaseReady = widget.firebaseBootstrap.ready;
     _firebaseEmulatorsConfigured = widget.firebaseBootstrap.emulatorsConfigured;
+    _appCheckConfigured = widget.firebaseBootstrap.appCheckConfigured;
     _firestoreCacheConfigured = widget.firebaseBootstrap.cacheConfigured;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_initializeAfterFirstFrame());
@@ -223,29 +264,11 @@ class _MyAppState extends ConsumerState<MyApp> {
       setState(() => _firebaseReady = true);
     }
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
-      final isLocalWeb =
-          kIsWeb &&
-          (Uri.base.host == 'localhost' ||
-              Uri.base.host == '127.0.0.1' ||
-              Uri.base.host == 'mobile.wreadom.in' ||
-              Uri.base.host.endsWith('.vercel.app'));
-      final shouldActivateAppCheck =
-          (!kIsWeb || !kDebugMode || EnvConfig.enableAppCheckWebDebug) &&
-          !isLocalWeb;
-      if (shouldActivateAppCheck) {
-        await _guardedStartupStep('Firebase App Check', () {
-          return FirebaseAppCheck.instance.activate(
-            providerAndroid: kDebugMode
-                ? const AndroidDebugProvider()
-                : const AndroidPlayIntegrityProvider(),
-            providerApple: kDebugMode
-                ? const AppleDebugProvider()
-                : const AppleDeviceCheckProvider(),
-            providerWeb: ReCaptchaV3Provider(
-              '6Lfm-SsqAAAAAA8G1o1I1y7Y5_7yQ1yX7o1yX7o1',
-            ),
-          );
-        });
+      if (!_appCheckConfigured) {
+        _appCheckConfigured = await _guardedStartupStep(
+          'Firebase App Check',
+          _activateFirebaseAppCheckIfNeeded,
+        );
       }
       NotificationService.instance.attachNavigator(_navigatorKey);
       await _guardedStartupStep(

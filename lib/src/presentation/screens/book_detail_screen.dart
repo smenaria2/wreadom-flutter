@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -399,226 +400,216 @@ class _BookDetailBody extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-          SliverAppBar(
-            expandedHeight: 330,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            actions: [
-              if (canEdit)
-                IconButton(
-                  tooltip: AppLocalizations.of(context)!.editBook,
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    AppRoutes.writerPad,
-                    arguments: WriterPadArguments(book: book),
-                  ),
+              SliverAppBar(
+                expandedHeight: 330,
+                pinned: true,
+                leadingWidth: 60,
+                leading: _HeaderIconButton(
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  icon: Icons.arrow_back,
+                  margin: const EdgeInsets.only(left: 8),
+                  onPressed: () {
+                    final navigator = Navigator.of(context);
+                    if (navigator.canPop()) {
+                      navigator.pop();
+                    } else {
+                      navigator.pushReplacementNamed(AppRoutes.main);
+                    }
+                  },
                 ),
-              IconButton(
-                icon: const Icon(Icons.share_outlined),
-                onPressed: () async {
-                  final message = generateBookShareText(
-                    book: book,
-                    link: AppLinkHelper.book(book.id),
-                  );
-                  await AppHaptics.selection();
-                  await shareBookLinkWithCover(
-                    text: message,
-                    subject: book.title,
-                    coverUrl: book.coverUrl,
-                    fileNameBase: book.title,
-                  );
-                },
-              ),
-              if (!canEdit)
-                IconButton(
-                  tooltip: AppLocalizations.of(context)!.reportBook,
-                  icon: const Icon(Icons.report_problem_outlined),
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (context) =>
-                        ReportDialog(targetId: book.id, targetType: 'book'),
-                  ),
-                ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.20),
-                          theme.colorScheme.secondary.withValues(alpha: 0.10),
-                          theme.colorScheme.surface.withValues(alpha: 0.10),
-                        ],
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                actions: [
+                  if (canEdit)
+                    _HeaderIconButton(
+                      tooltip: AppLocalizations.of(context)!.editBook,
+                      icon: Icons.edit_outlined,
+                      margin: const EdgeInsets.only(right: 8),
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        AppRoutes.writerPad,
+                        arguments: WriterPadArguments(book: book),
                       ),
                     ),
-                  ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: heroTag == null
-                          ? _DetailCover(book: book)
-                          : Hero(
-                              tag: heroTag!,
-                              child: _DetailCover(book: book),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Text(
-                  book.title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                _AuthorLine(
-                  book: book,
-                  fallback: AppLocalizations.of(context)!.unknownAuthor,
-                  authorAsync: authorAsync,
-                  authorId: authorId,
-                  collaboratorAsync: collaboratorAsync,
-                  collaboratorId: collaboratorId,
-                ),
-                const SizedBox(height: 16),
-                _StatsRow(book: book),
-                if (book.status == 'published' &&
-                    publicationTimestamp(book) != null) ...[
-                  const SizedBox(height: 10),
-                  _PublicationDateRow(book: book),
-                ],
-                if (book.subjects.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: book.subjects.take(5).map((subject) {
-                      return GlassSurface(
-                        borderRadius: BorderRadius.circular(22),
-                        onTap: () => Navigator.of(context).pushNamed(
-                          AppRoutes.discovery,
-                          arguments: {
-                            'query': 'topic:$subject',
-                            'language': book.languages.firstOrNull,
-                          },
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            subject,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                  _HeaderIconButton(
+                    tooltip: 'Share',
+                    icon: Icons.share_outlined,
+                    margin: const EdgeInsets.only(right: 8),
+                    onPressed: () async {
+                      final message = generateBookShareText(
+                        book: book,
+                        link: AppLinkHelper.book(book.id),
                       );
-                    }).toList(),
+                      await AppHaptics.selection();
+                      await shareBookLinkWithCover(
+                        text: message,
+                        subject: book.title,
+                        coverUrl: book.coverUrl,
+                        fileNameBase: book.title,
+                      );
+                    },
                   ),
+                  if (!canEdit)
+                    _HeaderIconButton(
+                      tooltip: AppLocalizations.of(context)!.reportBook,
+                      icon: Icons.report_problem_outlined,
+                      margin: const EdgeInsets.only(right: 8),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) =>
+                            ReportDialog(targetId: book.id, targetType: 'book'),
+                      ),
+                    ),
                 ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GlassSurface(
-                        strong: true,
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () => _openReader(context, ref, userAsync),
-                        semanticButton: true,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.menu_book_rounded,
-                                color: theme.colorScheme.primary,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: _BookDetailHeader(book: book, heroTag: heroTag),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    Text(
+                      book.title,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _AuthorLine(
+                      book: book,
+                      fallback: AppLocalizations.of(context)!.unknownAuthor,
+                      authorAsync: authorAsync,
+                      authorId: authorId,
+                      collaboratorAsync: collaboratorAsync,
+                      collaboratorId: collaboratorId,
+                    ),
+                    const SizedBox(height: 16),
+                    _StatsRow(book: book),
+                    if (book.status == 'published' &&
+                        publicationTimestamp(book) != null) ...[
+                      const SizedBox(height: 10),
+                      _PublicationDateRow(book: book),
+                    ],
+                    if (book.subjects.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: book.subjects.take(5).map((subject) {
+                          return GlassSurface(
+                            borderRadius: BorderRadius.circular(22),
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.discovery,
+                              arguments: {
+                                'query': 'topic:$subject',
+                                'language': book.languages.firstOrNull,
+                              },
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _hasProgress(userAsync, book.id)
-                                    ? AppLocalizations.of(
-                                        context,
-                                      )!.continueReading
-                                    : AppLocalizations.of(
-                                        context,
-                                      )!.startReading,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: theme.colorScheme.onSurface,
-                                  fontWeight: FontWeight.w700,
+                              child: Text(
+                                subject,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GlassSurface(
+                            strong: true,
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () => _openReader(context, ref, userAsync),
+                            semanticButton: true,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.menu_book_rounded,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _hasProgress(userAsync, book.id)
+                                        ? AppLocalizations.of(
+                                            context,
+                                          )!.continueReading
+                                        : AppLocalizations.of(
+                                            context,
+                                          )!.startReading,
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        _SaveDownloadButton(book: book),
+                        const SizedBox(width: 8),
+                        GlassSurface(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () => _showSendToChatSheet(context, ref, book),
+                          semanticButton: true,
+                          child: const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: Icon(Icons.send_rounded),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_hasArchivePdfViewer(book)) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _openArchivePdf(context, book),
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        label: Text(AppLocalizations.of(context)!.viewPdf),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _SaveDownloadButton(book: book),
-                    const SizedBox(width: 8),
-                    GlassSurface(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => _showSendToChatSheet(context, ref, book),
-                      semanticButton: true,
-                      child: const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: Icon(Icons.send_rounded),
+                    ],
+                    const SizedBox(height: 28),
+                    if ((book.description ?? '').isNotEmpty) ...[
+                      Text(
+                        AppLocalizations.of(context)!.aboutThisBook,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      _ExpandableText(text: book.description!),
+                    ],
+                    const SizedBox(height: 28),
+                    _LatestDiscussionSection(
+                      book: book,
+                      targetCommentId: targetCommentId,
+                      targetReplyId: targetReplyId,
                     ),
-                  ],
-                ),
-                if (_hasArchivePdfViewer(book)) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => _openArchivePdf(context, book),
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(AppLocalizations.of(context)!.viewPdf),
-                  ),
-                ],
-                const SizedBox(height: 28),
-                if ((book.description ?? '').isNotEmpty) ...[
-                  Text(
-                    AppLocalizations.of(context)!.aboutThisBook,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 20),
+                    const AdaptiveBannerAd(
+                      adUnitId: _postCommentsBannerAdUnitId,
+                      horizontalInset: 40,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _ExpandableText(text: book.description!),
-                ],
-                const SizedBox(height: 28),
-                _LatestDiscussionSection(
-                  book: book,
-                  targetCommentId: targetCommentId,
-                  targetReplyId: targetReplyId,
+                    const SizedBox(height: 32),
+                  ]),
                 ),
-                const SizedBox(height: 20),
-                const AdaptiveBannerAd(
-                  adUnitId: _postCommentsBannerAdUnitId,
-                  horizontalInset: 40,
-                ),
-                const SizedBox(height: 32),
-              ]),
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-          ),
+        ),
       ],
     );
   }
@@ -683,195 +674,226 @@ class _BookDetailBody extends ConsumerWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           child: Consumer(
             builder: (context, ref, _) {
-            final conversationsAsync = ref.watch(conversationsProvider);
-            final currentUser = ref.watch(currentUserProvider).value;
+              final conversationsAsync = ref.watch(conversationsProvider);
+              final currentUser = ref.watch(currentUserProvider).value;
 
-            Future<void> shareToFeed() async {
-              final sender = await ref.read(currentUserProvider.future);
-              if (sender == null) return;
-              final text = feedMessageController.text.trim();
-              if (text.isEmpty) return;
-              await ref
-                  .read(feedRepositoryProvider)
-                  .createFeedPost(
-                    FeedPost(
-                      userId: sender.id,
-                      username: sender.username,
-                      displayName: sender.displayName,
-                      penName: sender.penName,
-                      userPhotoURL: sender.photoURL,
-                      type: 'post',
-                      text: text,
-                      bookId: book.id,
-                      bookTitle: book.title,
-                      bookAuthorName: bookAuthorName(book),
-                      bookCover: book.coverUrl,
-                      timestamp: DateTime.now().millisecondsSinceEpoch,
-                      likes: const [],
-                      visibility: 'public',
-                      privacy: 'public',
-                    ),
-                  );
-              await AppHaptics.light();
-              ref.invalidate(feedPostsProvider);
-              ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
-              ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
-              ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-              ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-              if (!sheetContext.mounted) return;
-              Navigator.of(sheetContext).pop();
-              if (!rootContext.mounted) return;
-              ScaffoldMessenger.of(
-                rootContext,
-              ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
-            }
-
-            return SafeArea(
-              child: conversationsAsync.when(
-                data: (conversations) {
-                  if (currentUser == null) {
-                    return Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(child: Text(l10n.signInToShare)),
+              Future<void> shareToFeed() async {
+                final sender = await ref.read(currentUserProvider.future);
+                if (sender == null) return;
+                final text = feedMessageController.text.trim();
+                if (text.isEmpty) return;
+                await ref
+                    .read(feedRepositoryProvider)
+                    .createFeedPost(
+                      FeedPost(
+                        userId: sender.id,
+                        username: sender.username,
+                        displayName: sender.displayName,
+                        penName: sender.penName,
+                        userPhotoURL: sender.photoURL,
+                        type: 'post',
+                        text: text,
+                        bookId: book.id,
+                        bookTitle: book.title,
+                        bookAuthorName: bookAuthorName(book),
+                        bookCover: book.coverUrl,
+                        timestamp: DateTime.now().millisecondsSinceEpoch,
+                        likes: const [],
+                        visibility: 'public',
+                        privacy: 'public',
+                      ),
                     );
-                  }
+                await AppHaptics.light();
+                ref.invalidate(feedPostsProvider);
+                ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
+                ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
+                ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
+                ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+                if (!sheetContext.mounted) return;
+                Navigator.of(sheetContext).pop();
+                if (!rootContext.mounted) return;
+                ScaffoldMessenger.of(
+                  rootContext,
+                ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
+              }
 
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: conversations.isEmpty
-                        ? 3
-                        : conversations.length + 2,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              TextField(
-                                controller: feedMessageController,
-                                maxLines: 3,
-                                decoration: InputDecoration(
-                                  labelText: l10n.shareToFeed,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              GlassSurface(
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: shareToFeed,
-                                semanticButton: true,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.dynamic_feed_outlined,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        l10n.shareToFeed,
-                                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      if (index == 1) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                          child: Text(
-                            l10n.sendToChat,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        );
-                      }
-                      if (conversations.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                          child: Text(l10n.noRecentConversations),
-                        );
-                      }
-                      final conversation = conversations[index - 2];
-                      final otherId = conversation.participants.firstWhere(
-                        (id) => id != currentUser.id,
-                        orElse: () => conversation.participants.first,
+              return SafeArea(
+                child: conversationsAsync.when(
+                  data: (conversations) {
+                    if (currentUser == null) {
+                      return Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(child: Text(l10n.signInToShare)),
                       );
-                      final other = conversation.participantDetails[otherId];
-                      final title =
-                          conversation.name ??
-                          other?.displayName ??
-                          other?.username ??
-                          l10n.conversation;
-                      return ListTile(
-                        leading: CircleAvatar(
-                          child: Text(title.characters.first.toUpperCase()),
-                        ),
-                        title: Text(title),
-                        subtitle: Text(
-                          conversation.lastMessage?.text ?? l10n.noMessagesYet,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () async {
-                          final sender = await ref.read(
-                            currentUserProvider.future,
-                          );
-                          if (sender == null) return;
-                          try {
-                            await ref
-                                .read(messageRepositoryProvider)
-                                .sendStoryMessage(
-                                  conversationId: conversation.id,
-                                  sender: sender,
-                                  storyData: MessageStoryData(
-                                    id: book.id,
-                                    title: book.title,
-                                    coverUrl: book.coverUrl,
-                                    authorNames: authors.isEmpty
-                                        ? l10n.unknownAuthor
-                                        : authors,
+                    }
+
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: conversations.isEmpty
+                          ? 3
+                          : conversations.length + 2,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                            child: GlassSurface(
+                              strong: true,
+                              borderRadius: BorderRadius.circular(22),
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    l10n.shareToFeed,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(fontWeight: FontWeight.w800),
                                   ),
-                                );
-                          } on MessageLimitException {
-                            return;
-                          }
-                          await AppHaptics.selection();
-                          if (!sheetContext.mounted) return;
-                          Navigator.of(sheetContext).pop();
-                          if (!rootContext.mounted) return;
-                          ScaffoldMessenger.of(rootContext).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.sentBookSnack(book.title)),
+                                  const SizedBox(height: 10),
+                                  TextField(
+                                    controller: feedMessageController,
+                                    maxLines: 3,
+                                    decoration: InputDecoration(
+                                      hintText: l10n.defaultShareMessage(
+                                        book.title,
+                                      ),
+                                      alignLabelWithHint: true,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  GlassSurface(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: shareToFeed,
+                                    semanticButton: true,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.dynamic_feed_outlined,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              l10n.shareToFeed,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelLarge
+                                                  ?.copyWith(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
-                        },
-                      );
-                    },
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, _) => Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Text(l10n.failedToLoadChats(error.toString())),
+                        }
+                        if (index == 1) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                            child: Text(
+                              l10n.sendToChat,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          );
+                        }
+                        if (conversations.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                            child: Text(l10n.noRecentConversations),
+                          );
+                        }
+                        final conversation = conversations[index - 2];
+                        final otherId = conversation.participants.firstWhere(
+                          (id) => id != currentUser.id,
+                          orElse: () => conversation.participants.first,
+                        );
+                        final other = conversation.participantDetails[otherId];
+                        final title =
+                            conversation.name ??
+                            other?.displayName ??
+                            other?.username ??
+                            l10n.conversation;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(title.characters.first.toUpperCase()),
+                          ),
+                          title: Text(title),
+                          subtitle: Text(
+                            conversation.lastMessage?.text ??
+                                l10n.noMessagesYet,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () async {
+                            final sender = await ref.read(
+                              currentUserProvider.future,
+                            );
+                            if (sender == null) return;
+                            try {
+                              await ref
+                                  .read(messageRepositoryProvider)
+                                  .sendStoryMessage(
+                                    conversationId: conversation.id,
+                                    sender: sender,
+                                    storyData: MessageStoryData(
+                                      id: book.id,
+                                      title: book.title,
+                                      coverUrl: book.coverUrl,
+                                      authorNames: authors.isEmpty
+                                          ? l10n.unknownAuthor
+                                          : authors,
+                                    ),
+                                  );
+                            } on MessageLimitException {
+                              return;
+                            }
+                            await AppHaptics.selection();
+                            if (!sheetContext.mounted) return;
+                            Navigator.of(sheetContext).pop();
+                            if (!rootContext.mounted) return;
+                            ScaffoldMessenger.of(rootContext).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.sentBookSnack(book.title)),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, _) => Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(l10n.failedToLoadChats(error.toString())),
+                    ),
                   ),
                 ),
-              ),
-            );
+              );
             },
           ),
         );
@@ -1376,19 +1398,20 @@ class _StatsRow extends ConsumerWidget {
   }
 
   _RatingSummary _ratingSummary(Book book, List<Comment> comments) {
-    final ratings = <double>[
-      if (book.averageRating != null && book.averageRating! > 0)
-        book.averageRating!,
-      ...comments
-          .where((comment) => comment.rating != null && comment.rating! > 0)
-          .map((comment) => comment.rating!.toDouble()),
-    ];
+    if (book.averageRating != null && book.averageRating! > 0) {
+      return _RatingSummary(
+        average: book.averageRating!,
+        count: book.ratingsCount ?? 0,
+      );
+    }
+    final ratings = comments
+        .where((comment) => comment.rating != null && comment.rating! > 0)
+        .map((comment) => comment.rating!.toDouble())
+        .toList();
     if (ratings.isEmpty) return const _RatingSummary.none();
     final average =
         ratings.reduce((sum, rating) => sum + rating) / ratings.length;
-    final storedCount = book.ratingsCount ?? 0;
-    final count = storedCount > ratings.length ? storedCount : ratings.length;
-    return _RatingSummary(average: average, count: count);
+    return _RatingSummary(average: average, count: ratings.length);
   }
 
   String _formatCount(int n) {
@@ -1491,6 +1514,10 @@ class _RatingStat extends StatelessWidget {
     }
 
     final countLabel = summary.count > 0 ? ' (${summary.count})' : '';
+    final theme = Theme.of(context);
+    final starColor = theme.brightness == Brightness.dark
+        ? const Color(0xFFFFD36A)
+        : const Color(0xFFC47A00);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1500,13 +1527,17 @@ class _RatingStat extends StatelessWidget {
                 ? Icons.star_rounded
                 : Icons.star_border_rounded,
             size: 16,
-            color: Colors.amber,
+            color: starColor,
           );
         }),
         const SizedBox(width: 4),
         Text(
           '${average.toStringAsFixed(1)}$countLabel',
-          style: const TextStyle(color: Colors.amber, fontSize: 13),
+          style: TextStyle(
+            color: starColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -1551,6 +1582,164 @@ class _PlaceholderCover extends StatelessWidget {
   }
 }
 
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.margin = EdgeInsets.zero,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: margin,
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colorScheme.surface.withValues(alpha: 0.08),
+            border: Border.all(
+              color: colorScheme.onSurface.withValues(alpha: 0.28),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: IconButton(
+                tooltip: tooltip,
+                icon: Icon(icon),
+                iconSize: 22,
+                color: colorScheme.onSurface.withValues(alpha: 0.96),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                onPressed: onPressed,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BookDetailHeader extends StatelessWidget {
+  const _BookDetailHeader({required this.book, required this.heroTag});
+
+  final Book book;
+  final String? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final progress = _collapseProgress(settings);
+    final hasCover = book.coverUrl?.trim().isNotEmpty == true;
+    final coverOpacity = (1.0 - ((progress - 0.24) / 0.48)).clamp(0.0, 1.0);
+    final blur = 16 + (progress * 18);
+    final surfaceTint = theme.colorScheme.surface.withValues(
+      alpha: 0.26 + (progress * 0.50),
+    );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (hasCover)
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+            child: Transform.scale(
+              scale: 1.08,
+              child: Image(
+                image: CachedNetworkImageProvider(book.coverUrl!),
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        if (hasCover)
+          ColoredBox(
+            color: Colors.black.withValues(alpha: 0.16 + (progress * 0.08)),
+          ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                theme.colorScheme.primary.withValues(
+                  alpha: hasCover ? 0.36 : 0.20,
+                ),
+                theme.colorScheme.secondary.withValues(
+                  alpha: hasCover ? 0.22 : 0.10,
+                ),
+                surfaceTint,
+              ],
+            ),
+          ),
+        ),
+        Opacity(
+          opacity: progress.clamp(0.0, 1.0),
+          child: const GlassSurface(
+            strong: true,
+            borderRadius: BorderRadius.zero,
+            child: SizedBox.expand(),
+          ),
+        ),
+        Center(
+          child: Opacity(
+            opacity: coverOpacity,
+            child: Transform.translate(
+              offset: Offset(0, 18 * progress),
+              child: Transform.scale(
+                scale: 1 - (progress * 0.10),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: heroTag == null
+                      ? _DetailCover(book: book)
+                      : Hero(
+                          tag: heroTag!,
+                          child: _DetailCover(book: book),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+double _collapseProgress(FlexibleSpaceBarSettings? settings) {
+  if (settings == null) return 0;
+  final delta = settings.maxExtent - settings.minExtent;
+  if (delta <= 0) return 1;
+  return ((settings.maxExtent - settings.currentExtent) / delta).clamp(
+    0.0,
+    1.0,
+  );
+}
+
 class _DetailCover extends StatelessWidget {
   const _DetailCover({required this.book});
 
@@ -1565,29 +1754,39 @@ class _DetailCover extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: tokens.shadowColor.withValues(alpha: 0.45),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
+            color: tokens.shadowColor.withValues(alpha: 0.62),
+            blurRadius: 34,
+            offset: const Offset(0, 14),
           ),
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.08),
-            blurRadius: 20,
-            spreadRadius: -4,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            spreadRadius: -6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: book.coverUrl != null
-            ? Image(
-                image: CachedNetworkImageProvider(book.coverUrl!),
-                height: 220,
-                width: 150,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
-              )
-            : _PlaceholderCover(book: book),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: theme.colorScheme.surface.withValues(alpha: 0.72),
+              width: 1.4,
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          position: DecorationPosition.foreground,
+          child: book.coverUrl != null
+              ? Image(
+                  image: CachedNetworkImageProvider(book.coverUrl!),
+                  height: 220,
+                  width: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _PlaceholderCover(book: book),
+                )
+              : _PlaceholderCover(book: book),
+        ),
       ),
     );
   }

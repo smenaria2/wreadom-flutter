@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 /// when running on web platforms.
 String? proxyImageUrl(String? url) {
   if (url == null || url.isEmpty) return url;
-  if (kIsWeb && url.contains('archive.org') && !url.contains('images.weserv.nl')) {
+  if (kIsWeb &&
+      url.contains('archive.org') &&
+      !url.contains('images.weserv.nl')) {
     return 'https://images.weserv.nl/?url=${Uri.encodeComponent(url)}';
   }
   return url;

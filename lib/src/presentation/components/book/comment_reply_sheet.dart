@@ -226,84 +226,84 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       child: Padding(
         padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.replyingTo(
-              widget.comment.displayName ?? widget.comment.username,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.replyingTo(
+                widget.comment.displayName ?? widget.comment.username,
+              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          GlassSurface(
-            borderRadius: BorderRadius.circular(18),
-            child: TextField(
-              controller: _controller.value,
-              autofocus: true,
-              minLines: 2,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: l10n.addAReply,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
-                suffixIcon: IconButton(
-                  tooltip: _isRecording ? 'Stop recording' : 'Record audio',
-                  onPressed: _submitting
-                      ? null
-                      : () async {
-                          if (_isRecording) {
-                            await _stopRecording();
-                          } else {
-                            await _startRecording();
-                          }
-                        },
-                  icon: Icon(
-                    _isRecording
-                        ? Icons.stop_circle_outlined
-                        : Icons.mic_none_rounded,
-                    color: _isRecording ? Colors.red : null,
+            const SizedBox(height: 12),
+            GlassSurface(
+              borderRadius: BorderRadius.circular(18),
+              child: TextField(
+                controller: _controller.value,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: l10n.addAReply,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+                  suffixIcon: IconButton(
+                    tooltip: _isRecording ? 'Stop recording' : 'Record audio',
+                    onPressed: _submitting
+                        ? null
+                        : () async {
+                            if (_isRecording) {
+                              await _stopRecording();
+                            } else {
+                              await _startRecording();
+                            }
+                          },
+                    icon: Icon(
+                      _isRecording
+                          ? Icons.stop_circle_outlined
+                          : Icons.mic_none_rounded,
+                      color: _isRecording ? Colors.red : null,
+                    ),
                   ),
                 ),
+                onChanged: (_) => _refreshComposer(),
               ),
-              onChanged: (_) => _refreshComposer(),
             ),
-          ),
-          if (_isRecording || _pendingAudioPath != null) ...[
-            const SizedBox(height: 8),
-            _ReplyAudioComposerChip(
-              isRecording: _isRecording,
-              durationMs: _pendingAudioDurationMs,
-              onStop: _stopRecording,
-              onDelete: _removeRecording,
+            if (_isRecording || _pendingAudioPath != null) ...[
+              const SizedBox(height: 8),
+              _ReplyAudioComposerChip(
+                isRecording: _isRecording,
+                durationMs: _pendingAudioDurationMs,
+                onStop: _stopRecording,
+                onDelete: _removeRecording,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GlassSurface(
+                strong: true,
+                borderRadius: BorderRadius.circular(18),
+                onTap: _submitting || !_canSubmit ? null : _submit,
+                semanticButton: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.reply),
+                ),
+              ),
             ),
           ],
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GlassSurface(
-              strong: true,
-              borderRadius: BorderRadius.circular(18),
-              onTap: _submitting || !_canSubmit ? null : _submit,
-              semanticButton: true,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.reply),
-              ),
-            ),
-          ),
-        ],
         ),
       ),
     );

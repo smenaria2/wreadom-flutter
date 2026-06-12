@@ -110,22 +110,22 @@ void main() {
     expect(target?.payload, 'topic123');
   });
 
-  test('daily topic notification with malformed percent-encoding does not throw', () {
-    final target = NotificationTargetResolver.resolve(
-      notification(
-        type: 'new_creation',
-        link: 'https://wreadom.in/daily-topic?id=topic123&topic=Today%Topic',
-        targetId: 'topic123',
-        metadata: {
-          'targetType': 'daily_topic',
-          'topicId': 'topic123',
-        },
-      ),
-    );
+  test(
+    'daily topic notification with malformed percent-encoding does not throw',
+    () {
+      final target = NotificationTargetResolver.resolve(
+        notification(
+          type: 'new_creation',
+          link: 'https://wreadom.in/daily-topic?id=topic123&topic=Today%Topic',
+          targetId: 'topic123',
+          metadata: {'targetType': 'daily_topic', 'topicId': 'topic123'},
+        ),
+      );
 
-    expect(target?.route, AppRoutes.dailyTopic);
-    expect(target?.payload, 'topic123');
-  });
+      expect(target?.route, AppRoutes.dailyTopic);
+      expect(target?.payload, 'topic123');
+    },
+  );
 
   test('daily topic link notification opens daily topic without metadata', () {
     final target = NotificationTargetResolver.resolve(

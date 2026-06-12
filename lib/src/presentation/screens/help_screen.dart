@@ -210,7 +210,11 @@ class _HelpScreenState extends State<HelpScreen> {
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final category = filtered[index];
-                          return _buildCategorySection(context, category, theme);
+                          return _buildCategorySection(
+                            context,
+                            category,
+                            theme,
+                          );
                         },
                       ),
               ),
@@ -305,32 +309,32 @@ class _HelpScreenState extends State<HelpScreen> {
   Widget _buildSupportFooter(ThemeData theme, AppLocalizations l10n) {
     return GlassSurface(
       strong: true,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
           child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 10,
+            runSpacing: 8,
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.stillNeedHelp,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      l10n.communitySupportAssist,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${l10n.stillNeedHelp} ',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(text: l10n.communitySupportAssist),
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
               ),
               Wrap(
@@ -338,6 +342,9 @@ class _HelpScreenState extends State<HelpScreen> {
                 runSpacing: 8,
                 children: [
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
                     onPressed: () {
                       showDialog<void>(
                         context: context,
@@ -348,6 +355,9 @@ class _HelpScreenState extends State<HelpScreen> {
                     label: Text(l10n.submitError),
                   ),
                   FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
                     onPressed: () => _emailSupport(context, l10n),
                     icon: const Icon(Icons.mail_outline_rounded, size: 18),
                     label: Text(l10n.emailSupport),

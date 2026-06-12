@@ -18,9 +18,8 @@ class ShakeToReportEnabledController extends Notifier<bool> {
 
   Future<void> setEnabled(bool enabled) async {
     state = enabled;
-    await ref.read(sharedPreferencesProvider).setBool(
-      shakeToReportEnabledKey,
-      enabled,
-    );
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(shakeToReportEnabledKey, enabled);
   }
 }

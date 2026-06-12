@@ -39,6 +39,7 @@ import '../widgets/comment_widgets.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
+import '../widgets/in_app_media_web_view.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
@@ -1222,6 +1223,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               }
               return const SizedBox.shrink();
             }
+            if (tag == 'iframe') {
+              final src = element.attributes['src'];
+              if (src != null && src.isNotEmpty) {
+                if (isAllowedWriterLink(src)) {
+                  return InAppMediaWebView(url: src);
+                }
+              }
+              return const SizedBox.shrink();
+            }
             return null;
           },
           onTapUrl: (url) async {
@@ -1810,6 +1820,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final src = node.attributes['src'];
       if (isTrustedCloudinaryImageUrl(src)) {
         blocks.add(_ReaderContentBlock(kind: _ReaderBlockKind.image, url: src));
+      }
+      return;
+    }
+    if (tag == 'iframe') {
+      final src = node.attributes['src'];
+      if (src != null && src.isNotEmpty) {
+        if (isAllowedWriterLink(src)) {
+          blocks.add(
+            _ReaderContentBlock(kind: _ReaderBlockKind.media, url: src),
+          );
+        }
       }
       return;
     }
@@ -3924,6 +3945,10 @@ class _ChapterEndActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final actionForeground =
+        ThemeData.estimateBrightnessForColor(actionColor) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
 
     if (hasNextChapter) {
       return Column(
@@ -3936,22 +3961,19 @@ class _ChapterEndActions extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primary.withValues(alpha: 0.8),
-                  ],
+                  colors: [actionColor, actionColor.withValues(alpha: 0.78)],
                 ),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.navigate_next_rounded, color: Colors.white),
+                  Icon(Icons.navigate_next_rounded, color: actionForeground),
                   const SizedBox(width: 8),
                   Text(
                     l10n.nextChapter,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
+                      color: actionForeground,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -3976,7 +3998,7 @@ class _ChapterEndActions extends StatelessWidget {
                           hasComments
                               ? Icons.chat_bubble_outline_rounded
                               : Icons.rate_review_outlined,
-                          color: theme.colorScheme.primary,
+                          color: actionColor,
                         ),
                         const SizedBox(width: 8),
                         Flexible(
@@ -3985,7 +4007,7 @@ class _ChapterEndActions extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
-                              color: theme.colorScheme.onSurface,
+                              color: actionColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -4006,10 +4028,7 @@ class _ChapterEndActions extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.share_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
+                        Icon(Icons.share_rounded, color: actionColor),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
@@ -4017,7 +4036,7 @@ class _ChapterEndActions extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
-                              color: theme.colorScheme.onSurface,
+                              color: actionColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -4047,13 +4066,13 @@ class _ChapterEndActions extends StatelessWidget {
                     hasComments
                         ? Icons.chat_bubble_outline_rounded
                         : Icons.rate_review_outlined,
-                    color: theme.colorScheme.primary,
+                    color: actionColor,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     hasComments ? l10n.viewComments : l10n.writeReview,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                      color: actionColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -4071,12 +4090,12 @@ class _ChapterEndActions extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.share_rounded, color: theme.colorScheme.primary),
+                  Icon(Icons.share_rounded, color: actionColor),
                   const SizedBox(width: 8),
                   Text(
                     l10n.shareChapter,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                      color: actionColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

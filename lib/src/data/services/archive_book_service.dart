@@ -12,11 +12,16 @@ import '../../utils/image_proxy_utils.dart';
 class ArchiveBookService {
   static const String searchUrl = 'https://archive.org/advancedsearch.php';
   static const String metadataUrl = 'https://archive.org/metadata';
+  static const Duration _requestTimeout = Duration(seconds: 6);
   static const List<String> allowedSearchCollections = [
     'JaiGyan',
     'digitallibraryindia',
     'booksbylanguage_hindi',
   ];
+
+  Future<http.Response> _get(Uri url) {
+    return http.get(url).timeout(_requestTimeout);
+  }
 
   @visibleForTesting
   static String buildSearchQuery({
@@ -58,7 +63,9 @@ class ArchiveBookService {
       final langLower = language.toLowerCase();
       if (langLower == 'hindi' || langLower == 'hi' || langLower == 'hin') {
         queryParts.add('(language:hi OR language:hin OR language:hindi)');
-      } else if (langLower == 'english' || langLower == 'en' || langLower == 'eng') {
+      } else if (langLower == 'english' ||
+          langLower == 'en' ||
+          langLower == 'eng') {
         queryParts.add('(language:en OR language:eng OR language:english)');
       } else {
         queryParts.add('language:$language');
@@ -103,7 +110,7 @@ class ArchiveBookService {
       '&rows=$rows&page=$page&sort[]=${Uri.encodeComponent(sort)}&output=json',
     );
 
-    final response = await http.get(url);
+    final response = await _get(url);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch Archive books');
     }
@@ -117,7 +124,7 @@ class ArchiveBookService {
 
   Future<Book> getBookMetadata(String identifier) async {
     final url = Uri.parse('$metadataUrl/$identifier');
-    final response = await http.get(url);
+    final response = await _get(url);
     if (response.statusCode != 200) {
       throw Exception('Book not found in archives');
     }
@@ -135,7 +142,7 @@ class ArchiveBookService {
       '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
       '&rows=${ids.length}&page=1&sort[]=${Uri.encodeComponent('downloads desc')}&output=json',
     );
-    final response = await http.get(url);
+    final response = await _get(url);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch Archive books');
     }
@@ -148,7 +155,7 @@ class ArchiveBookService {
   Future<List<Chapter>> fetchBookChapters(String identifier) async {
     // 1. Get metadata to find the right text file
     final metaUrl = Uri.parse('$metadataUrl/$identifier');
-    final metaResponse = await http.get(metaUrl);
+    final metaResponse = await _get(metaUrl);
     if (metaResponse.statusCode != 200) {
       throw Exception('Metadata fetch failed');
     }
@@ -164,7 +171,7 @@ class ArchiveBookService {
     final contentUrl = Uri.parse(
       '$baseUrl/${Uri.encodeComponent(preferredSource.name)}',
     );
-    final response = await http.get(contentUrl);
+    final response = await _get(contentUrl);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch book content');
     }

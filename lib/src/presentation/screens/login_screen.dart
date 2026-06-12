@@ -114,287 +114,299 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final locale = ref.watch(localeControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
         children: [
-          const AppBackground(),
+          Positioned.fill(
+            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+          ),
+          const Positioned.fill(child: AppBackground()),
           SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(height: 12.h),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Wrap(
-                            spacing: 8.w,
-                            children: [
-                              _LoginMenuButton<ThemeMode>(
-                                tooltip: l10n.theme,
-                                icon: themeMode == ThemeMode.dark
-                                    ? Icons.dark_mode_outlined
-                                    : Icons.light_mode_outlined,
-                                value: themeMode,
-                                items: [
-                                  PopupMenuItem(
-                                    value: ThemeMode.light,
-                                    child: _MenuChoice(
-                                      icon: Icons.light_mode_outlined,
-                                      label: l10n.light,
-                                      selected: themeMode == ThemeMode.light,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: ThemeMode.dark,
-                                    child: _MenuChoice(
-                                      icon: Icons.dark_mode_outlined,
-                                      label: l10n.dark,
-                                      selected: themeMode == ThemeMode.dark,
-                                    ),
-                                  ),
-                                ],
-                                onSelected: (value) => ref
-                                    .read(appThemeControllerProvider.notifier)
-                                    .setThemeMode(value),
-                              ),
-                              _LoginMenuButton<Locale>(
-                                tooltip: l10n.language,
-                                icon: Icons.language_rounded,
-                                value: locale,
-                                items: [
-                                  PopupMenuItem(
-                                    value: const Locale('en'),
-                                    child: _MenuChoice(
-                                      icon: Icons.translate_rounded,
-                                      label: l10n.english,
-                                      selected: locale.languageCode == 'en',
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: const Locale('hi'),
-                                    child: _MenuChoice(
-                                      icon: Icons.translate_rounded,
-                                      label: l10n.hindi,
-                                      selected: locale.languageCode == 'hi',
-                                    ),
-                                  ),
-                                ],
-                                onSelected: (value) => ref
-                                    .read(localeControllerProvider.notifier)
-                                    .setLocale(value),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 52.h),
-                        Image.asset(
-                          'assets/images/app_logo.png',
-                          width: 86.r,
-                          height: 86.r,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.auto_stories,
-                            size: 80.r,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        SizedBox(height: 24.h),
-                        Text(
-                          _isLogin ? l10n.welcomeBack : l10n.createAccount,
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          _isLogin ? l10n.signInToContinue : l10n.joinCommunity,
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        SizedBox(height: 48.h),
-                        if (!_isLogin)
-                          AuthTextField(
-                            controller: _usernameController,
-                            hintText: l10n.username,
-                            prefixIcon: Icons.person_outline,
-                            validator: (val) => (val == null || val.isEmpty)
-                                ? l10n.requiredField
-                                : null,
-                          ),
-                        AuthTextField(
-                          controller: _emailController,
-                          hintText: l10n.emailAddress,
-                          prefixIcon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (val) =>
-                              (val == null || !val.contains('@'))
-                              ? l10n.invalidEmail
-                              : null,
-                        ),
-                        AuthTextField(
-                          controller: _passwordController,
-                          hintText: l10n.password,
-                          prefixIcon: Icons.lock_outline,
-                          obscureText: true,
-                          validator: (val) => (val == null || val.length < 6)
-                              ? l10n.minChars
-                              : null,
-                        ),
-                        SizedBox(height: 32.h),
-                        PrimaryButton(
-                          text: _isLogin ? l10n.loginBtn : l10n.signupBtn,
-                          isLoading: authState.isLoading,
-                          onPressed: _submit,
-                        ),
-                        SizedBox(height: 24.h),
-                        Row(
-                          children: [
-                            const Expanded(child: Divider()),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              child: Text(
-                                l10n.orDivider,
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                  fontSize: 12.sp,
-                                ),
-                              ),
-                            ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        SizedBox(height: 24.h),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final colorScheme = Theme.of(context).colorScheme;
-                              final email = _emailController.text.trim();
-                              if (email.isEmpty) {
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text(l10n.enterEmailFirst)),
-                                );
-                                return;
-                              }
-                              try {
-                                await ref
-                                    .read(authRepositoryProvider)
-                                    .resetPassword(email);
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.passwordResetSent),
-                                  ),
-                                );
-                              } on firebase_auth.FirebaseAuthException catch (
-                                e
-                              ) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(e.message ?? e.code),
-                                    backgroundColor: colorScheme.error,
-                                  ),
-                                );
-                              } catch (e) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(e.toString()),
-                                    backgroundColor: colorScheme.error,
-                                  ),
-                                );
-                              }
-                            },
-                            child: Text(l10n.forgotPassword),
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        // Google Sign In Button
-                        const GoogleSignInButton(),
-                        SizedBox(height: 40.h),
-                        TextButton(
-                          onPressed: () => setState(() => _isLogin = !_isLogin),
-                          child: RichText(
-                            text: TextSpan(
-                              text: _isLogin
-                                  ? l10n.dontHaveAccount
-                                  : l10n.alreadyHaveAccount,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                                fontSize: 14.sp,
-                              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(height: 12.h),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Wrap(
+                              spacing: 8.w,
                               children: [
-                                TextSpan(
-                                  text: _isLogin
-                                      ? l10n.signUpLink
-                                      : l10n.loginLink,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                _LoginMenuButton<ThemeMode>(
+                                  tooltip: l10n.theme,
+                                  icon: themeMode == ThemeMode.dark
+                                      ? Icons.dark_mode_outlined
+                                      : Icons.light_mode_outlined,
+                                  value: themeMode,
+                                  items: [
+                                    PopupMenuItem(
+                                      value: ThemeMode.light,
+                                      child: _MenuChoice(
+                                        icon: Icons.light_mode_outlined,
+                                        label: l10n.light,
+                                        selected: themeMode == ThemeMode.light,
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: ThemeMode.dark,
+                                      child: _MenuChoice(
+                                        icon: Icons.dark_mode_outlined,
+                                        label: l10n.dark,
+                                        selected: themeMode == ThemeMode.dark,
+                                      ),
+                                    ),
+                                  ],
+                                  onSelected: (value) => ref
+                                      .read(appThemeControllerProvider.notifier)
+                                      .setThemeMode(value),
+                                ),
+                                _LoginMenuButton<Locale>(
+                                  tooltip: l10n.language,
+                                  icon: Icons.language_rounded,
+                                  value: locale,
+                                  items: [
+                                    PopupMenuItem(
+                                      value: const Locale('en'),
+                                      child: _MenuChoice(
+                                        icon: Icons.translate_rounded,
+                                        label: l10n.english,
+                                        selected: locale.languageCode == 'en',
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: const Locale('hi'),
+                                      child: _MenuChoice(
+                                        icon: Icons.translate_rounded,
+                                        label: l10n.hindi,
+                                        selected: locale.languageCode == 'hi',
+                                      ),
+                                    ),
+                                  ],
+                                  onSelected: (value) => ref
+                                      .read(localeControllerProvider.notifier)
+                                      .setLocale(value),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 4.w,
-                          children: [
-                            TextButton(
-                              onPressed: () => AppRouter.openExternalPolicy(
-                                context,
-                                AppRoutes.privacy,
-                              ),
-                              child: Text(l10n.privacyPolicy),
+                          SizedBox(height: 52.h),
+                          Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 86.r,
+                            height: 86.r,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.auto_stories,
+                              size: 80.r,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            Text(
-                              '|',
-                              style: TextStyle(
-                                color: Theme.of(
+                          ),
+                          SizedBox(height: 24.h),
+                          Text(
+                            _isLogin ? l10n.welcomeBack : l10n.createAccount,
+                            style: TextStyle(
+                              fontSize: 28.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            _isLogin
+                                ? l10n.signInToContinue
+                                : l10n.joinCommunity,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          SizedBox(height: 48.h),
+                          if (!_isLogin)
+                            AuthTextField(
+                              controller: _usernameController,
+                              hintText: l10n.username,
+                              prefixIcon: Icons.person_outline,
+                              validator: (val) => (val == null || val.isEmpty)
+                                  ? l10n.requiredField
+                                  : null,
+                            ),
+                          AuthTextField(
+                            controller: _emailController,
+                            hintText: l10n.emailAddress,
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (val) =>
+                                (val == null || !val.contains('@'))
+                                ? l10n.invalidEmail
+                                : null,
+                          ),
+                          AuthTextField(
+                            controller: _passwordController,
+                            hintText: l10n.password,
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: true,
+                            validator: (val) => (val == null || val.length < 6)
+                                ? l10n.minChars
+                                : null,
+                          ),
+                          SizedBox(height: 32.h),
+                          PrimaryButton(
+                            text: _isLogin ? l10n.loginBtn : l10n.signupBtn,
+                            isLoading: authState.isLoading,
+                            onPressed: _submit,
+                          ),
+                          SizedBox(height: 24.h),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                child: Text(
+                                  l10n.orDivider,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontSize: 12.sp,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          SizedBox(height: 24.h),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                final colorScheme = Theme.of(
                                   context,
-                                ).colorScheme.onSurfaceVariant,
+                                ).colorScheme;
+                                final email = _emailController.text.trim();
+                                if (email.isEmpty) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.enterEmailFirst),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                try {
+                                  await ref
+                                      .read(authRepositoryProvider)
+                                      .resetPassword(email);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.passwordResetSent),
+                                    ),
+                                  );
+                                } on firebase_auth.FirebaseAuthException catch (
+                                  e
+                                ) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(e.message ?? e.code),
+                                      backgroundColor: colorScheme.error,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(e.toString()),
+                                      backgroundColor: colorScheme.error,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(l10n.forgotPassword),
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          // Google Sign In Button
+                          const GoogleSignInButton(),
+                          SizedBox(height: 40.h),
+                          TextButton(
+                            onPressed: () =>
+                                setState(() => _isLogin = !_isLogin),
+                            child: RichText(
+                              text: TextSpan(
+                                text: _isLogin
+                                    ? l10n.dontHaveAccount
+                                    : l10n.alreadyHaveAccount,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontSize: 14.sp,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: _isLogin
+                                        ? l10n.signUpLink
+                                        : l10n.loginLink,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            TextButton(
-                              onPressed: () => AppRouter.openExternalPolicy(
-                                context,
-                                AppRoutes.terms,
+                          ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 4.w,
+                            children: [
+                              TextButton(
+                                onPressed: () => AppRouter.openExternalPolicy(
+                                  context,
+                                  AppRoutes.privacy,
+                                ),
+                                child: Text(l10n.privacyPolicy),
                               ),
-                              child: Text(l10n.termsOfUse),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 50.h),
-                      ],
+                              Text(
+                                '|',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => AppRouter.openExternalPolicy(
+                                  context,
+                                  AppRoutes.terms,
+                                ),
+                                child: Text(l10n.termsOfUse),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 50.h),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
       ),
     );
   }

@@ -19,6 +19,7 @@ class EmailVerifiedNotifier extends Notifier<bool> {
   }
 }
 
-final emailVerifiedProvider = NotifierProvider.family<EmailVerifiedNotifier, bool, String>(
-  EmailVerifiedNotifier.new,
-);
+final emailVerifiedProvider =
+    NotifierProvider.family<EmailVerifiedNotifier, bool, String>(
+      EmailVerifiedNotifier.new,
+    );

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -97,13 +99,19 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> getPopularBooks({int limit = 10}) async {
     final firebaseResults = await _firebaseRepo.getPopularBooks(limit: limit);
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getPopularBooks(
-        limit: limit * 2,
-      );
-      final filteredArchive = await _filterArchiveBooks(archiveResults);
+      try {
+        final archiveResults = await _archiveRepo.getPopularBooks(
+          limit: limit * 2,
+        );
+        final filteredArchive = await _filterArchiveBooks(archiveResults);
 
-      final combined = [...firebaseResults, ...filteredArchive];
-      return combined.length > limit ? combined.sublist(0, limit) : combined;
+        final combined = [...firebaseResults, ...filteredArchive];
+        return combined.length > limit ? combined.sublist(0, limit) : combined;
+      } catch (e) {
+        debugPrint(
+          '[CompositeBookRepository] Archive popular fallback failed: $e',
+        );
+      }
     }
     return firebaseResults;
   }
@@ -112,13 +120,19 @@ class CompositeBookRepository implements BookRepository {
   Future<List<Book>> getRecentBooks({int limit = 10}) async {
     final firebaseResults = await _firebaseRepo.getRecentBooks(limit: limit);
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getRecentBooks(
-        limit: limit * 2,
-      ); // Fetch more for filtering
-      final filteredArchive = await _filterArchiveBooks(archiveResults);
+      try {
+        final archiveResults = await _archiveRepo.getRecentBooks(
+          limit: limit * 2,
+        ); // Fetch more for filtering
+        final filteredArchive = await _filterArchiveBooks(archiveResults);
 
-      final combined = [...firebaseResults, ...filteredArchive];
-      return combined.length > limit ? combined.sublist(0, limit) : combined;
+        final combined = [...firebaseResults, ...filteredArchive];
+        return combined.length > limit ? combined.sublist(0, limit) : combined;
+      } catch (e) {
+        debugPrint(
+          '[CompositeBookRepository] Archive recent fallback failed: $e',
+        );
+      }
     }
     return firebaseResults;
   }
@@ -140,13 +154,19 @@ class CompositeBookRepository implements BookRepository {
     // Genre browsing should show matching IA content directly; upvote filtering is
     // reserved for curated homepage shelves.
     if (firebaseResults.length < limit) {
-      final archiveResults = await _archiveRepo.getBooksByGenre(
-        genre,
-        limit: limit * 2,
-      );
+      try {
+        final archiveResults = await _archiveRepo.getBooksByGenre(
+          genre,
+          limit: limit * 2,
+        );
 
-      final combined = [...firebaseResults, ...archiveResults];
-      return combined.length > limit ? combined.sublist(0, limit) : combined;
+        final combined = [...firebaseResults, ...archiveResults];
+        return combined.length > limit ? combined.sublist(0, limit) : combined;
+      } catch (e) {
+        debugPrint(
+          '[CompositeBookRepository] Archive genre fallback failed: $e',
+        );
+      }
     }
 
     return firebaseResults;

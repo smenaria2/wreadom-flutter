@@ -80,14 +80,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
       final json = userModel.toJson();
       if (userModel.notificationSettings != null) {
-        json['notificationSettings'] =
-            _notificationSettingsToMap(userModel.notificationSettings!);
+        json['notificationSettings'] = _notificationSettingsToMap(
+          userModel.notificationSettings!,
+        );
       }
 
-      await _firestore
-          .collection('users')
-          .doc(fbUser.uid)
-          .set(json);
+      await _firestore.collection('users').doc(fbUser.uid).set(json);
 
       AnalyticsService.logSignUp(method: 'email');
       return userModel;
@@ -324,7 +322,9 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
-  Map<String, dynamic> _notificationSettingsToMap(NotificationSettings settings) {
+  Map<String, dynamic> _notificationSettingsToMap(
+    NotificationSettings settings,
+  ) {
     Map<String, bool> preference(NotificationPreference value) => {
       'app': value.app,
       'browser': value.browser,
@@ -350,8 +350,9 @@ class FirebaseAuthRepository implements AuthRepository {
     try {
       final json = userModel.toJson();
       if (userModel.notificationSettings != null) {
-        json['notificationSettings'] =
-            _notificationSettingsToMap(userModel.notificationSettings!);
+        json['notificationSettings'] = _notificationSettingsToMap(
+          userModel.notificationSettings!,
+        );
       }
       await _firestore
           .collection('users')

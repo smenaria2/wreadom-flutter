@@ -13,6 +13,7 @@ import 'package:librebook_flutter/src/presentation/providers/writer_providers.da
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/screens/reader_screen.dart';
+import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
 
 void main() {
   Map<String, dynamic> englishL10n() =>
@@ -220,9 +221,7 @@ void main() {
     expect(find.textContaining('Published:'), findsOneWidget);
   });
 
-  testWidgets('writer card uses theme surface color in dark mode', (
-    tester,
-  ) async {
+  testWidgets('writer card uses glass surface in dark mode', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
@@ -235,11 +234,7 @@ void main() {
       ),
     );
 
-    final card = tester.widget<Card>(find.byType(Card));
-    expect(
-      card.color,
-      ThemeData.dark(useMaterial3: true).colorScheme.surfaceContainerLow,
-    );
+    expect(find.byType(GlassSurface), findsOneWidget);
   });
 
   test('malformed reader route returns a safe page route', () {
@@ -459,10 +454,7 @@ void main() {
     expect(readerSource, isNot(contains('Add Bookmark')));
     expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
     expect(readerSource, contains("AppLocalizations.of(context)!.nextChapter"));
-    expect(
-      readerSource,
-      contains("AppLocalizations.of(context)!.viewComments"),
-    );
+    expect(readerSource, contains("l10n.viewComments"));
     expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
     expect(repositorySource, contains("'readingProgress': {"));
     expect(repositorySource, contains('SetOptions(merge: true)'));
@@ -1179,7 +1171,7 @@ void main() {
     expect(homeSource, isNot(contains('height: 260')));
     expect(homeSource, isNot(contains('height: 210')));
     expect(homeSource, isNot(contains('setState(() {})')));
-    expect(writerPadSource, contains('_writerChromeColor'));
+    expect(writerPadSource, contains('GlassScaffold'));
     expect(writerPadSource, contains('_writerSurfaceColor'));
     expect(writerPadSource, contains('_writerPaperColor'));
     expect(writerPadSource, contains('_syncBookTitleFromFirstChapter'));
@@ -1293,7 +1285,7 @@ void main() {
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
     expect(feedCardSource, contains('updateFeedPost'));
-    expect(feedCardSource, isNot(contains('height: 3')));
+    expect(feedCardSource, isNot(contains(RegExp(r'height:\s*3\b'))));
     expect(helpScreenSource, contains('SubmitErrorDialog'));
     expect(discoverySource, isNot(contains("@\${author.username}")));
     expect(messagesSource, contains('_ConversationSwipeShell'));
@@ -1897,7 +1889,10 @@ void main() {
     ).readAsStringSync();
 
     expect(notificationSource, contains('_groupNotificationItems'));
-    expect(notificationSource, contains('displayItem.notifications'));
+    expect(
+      notificationSource,
+      contains(RegExp(r'displayItem\s*\.\s*notifications')),
+    );
     expect(notificationSource, contains('_openingNotificationKey'));
     expect(notificationSource, contains('_markNotificationItemRead'));
     expect(notificationSource, contains('CircularProgressIndicator'));

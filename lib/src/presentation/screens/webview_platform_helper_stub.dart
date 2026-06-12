@@ -1,4 +1,3 @@
 void initializeWebViewPlatform() {}
-dynamic createWebViewController() => throw UnsupportedError('Cannot create WebViewController');
-
-
+dynamic createWebViewController() =>
+    throw UnsupportedError('Cannot create WebViewController');

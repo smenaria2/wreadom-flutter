@@ -5,7 +5,7 @@ class AppLinkHelper {
   static const wwwHost = 'www.wreadom.in';
   static const origin = 'https://$host';
   static const privacyPolicyUrl = '$origin/privacy';
-  static const termsUrl = '$origin/terms';
+  static const termsUrl = '$origin/terms-of-use';
 
   static String book(String bookId) {
     return 'https://wreadom.in/?book=$bookId';
@@ -108,7 +108,10 @@ class AppLinkHelper {
           break;
         case 'daily-topic':
           id ??= queryTopicId;
-          return ResolvedAppLink(AppRoutes.dailyTopic, _hasValue(id) ? id : null);
+          return ResolvedAppLink(
+            AppRoutes.dailyTopic,
+            _hasValue(id) ? id : null,
+          );
         case 'category':
           if (_hasValue(id)) {
             return ResolvedAppLink(AppRoutes.category, id!);

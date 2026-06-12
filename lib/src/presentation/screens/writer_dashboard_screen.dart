@@ -10,6 +10,7 @@ import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/auth_required_view.dart';
+import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
 class WriterDashboardScreen extends ConsumerWidget {
@@ -25,39 +26,25 @@ class WriterDashboardScreen extends ConsumerWidget {
     final currentUser = currentUserAsync.asData?.value;
 
     if (currentUserAsync.isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: theme.primaryColor,
-          foregroundColor: Colors.white,
-          title: Text(l10n.writerDashboard),
-        ),
+      return GlassScaffold(
+        appBar: glassAppBar(title: Text(l10n.writerDashboard)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (currentUser == null) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: theme.primaryColor,
-          foregroundColor: Colors.white,
-          title: Text(l10n.writerDashboard),
-        ),
+      return GlassScaffold(
+        appBar: glassAppBar(title: Text(l10n.writerDashboard)),
         body: const AuthRequiredView(icon: Icons.edit_note_outlined),
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return GlassScaffold(
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(filteredMyBooksProvider.future),
         child: CustomScrollView(
           slivers: [
-            SliverAppBar(
-              expandedHeight: 0,
-              floating: true,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
+            glassSliverAppBar(
               title: Text(
                 l10n.writerDashboard,
                 style: TextStyle(
@@ -65,6 +52,8 @@ class WriterDashboardScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              floating: true,
+              pinned: true,
             ),
             const SliverToBoxAdapter(child: WriterDashboardHeader()),
             SliverToBoxAdapter(

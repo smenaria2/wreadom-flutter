@@ -122,11 +122,42 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.book_outlined, Icons.book, l10n.home, selectedIndex),
-                _buildNavItem(1, Icons.feed_outlined, Icons.feed, l10n.feed, selectedIndex),
-                _buildNavItem(2, Icons.edit_note_outlined, Icons.edit_note, l10n.writer, selectedIndex),
-                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, l10n.messages, selectedIndex),
-                _buildNavItem(4, Icons.person_outline, Icons.person, l10n.profile, selectedIndex, badge: hasUpdate),
+                _buildNavItem(
+                  0,
+                  Icons.book_outlined,
+                  Icons.book,
+                  l10n.home,
+                  selectedIndex,
+                ),
+                _buildNavItem(
+                  1,
+                  Icons.feed_outlined,
+                  Icons.feed,
+                  l10n.feed,
+                  selectedIndex,
+                ),
+                _buildNavItem(
+                  2,
+                  Icons.edit_note_outlined,
+                  Icons.edit_note,
+                  l10n.writer,
+                  selectedIndex,
+                ),
+                _buildNavItem(
+                  3,
+                  Icons.chat_bubble_outline,
+                  Icons.chat_bubble,
+                  l10n.messages,
+                  selectedIndex,
+                ),
+                _buildNavItem(
+                  4,
+                  Icons.person_outline,
+                  Icons.person,
+                  l10n.profile,
+                  selectedIndex,
+                  badge: hasUpdate,
+                ),
               ],
             ),
           ),
@@ -251,7 +282,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 }
 
 class _UpdateBadgeIcon extends StatelessWidget {
-  const _UpdateBadgeIcon({required this.icon, required this.showBadge, this.color});
+  const _UpdateBadgeIcon({
+    required this.icon,
+    required this.showBadge,
+    this.color,
+  });
 
   final IconData icon;
   final bool showBadge;

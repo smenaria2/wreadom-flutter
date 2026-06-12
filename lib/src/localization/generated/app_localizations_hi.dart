@@ -2087,6 +2087,30 @@ class AppLocalizationsHi extends AppLocalizations {
       'हमारी कम्युनिटी टीम आपकी सहायता के लिए यहाँ है।';
 
   @override
+  String get shareReviewAppTitle => 'Wreadom शेयर और रिव्यू करें';
+
+  @override
+  String get shareReviewAppBody =>
+      'Wreadom पसंद आ रहा है? इसे दूसरों के साथ शेयर करके या Play Store पर रेटिंग देकर हमें बढ़ने में मदद करें!';
+
+  @override
+  String get shareAppLink => 'लिंक शेयर करें';
+
+  @override
+  String get rateReviewApp => 'रेट और रिव्यू करें';
+
+  @override
+  String get copyAppLink => 'ऐप लिंक कॉपी करें';
+
+  @override
+  String get appLinkCopied => 'ऐप लिंक क्लिपबोर्ड पर कॉपी हो गया!';
+
+  @override
+  String shareAppMessage(String link) {
+    return 'Wreadom पर सैकड़ों कहानियाँ पढ़ें और सुनें। अभी डाउनलोड करें: $link';
+  }
+
+  @override
   String get contactUs => 'हमसे संपर्क करें';
 
   @override

@@ -50,6 +50,7 @@ AppBar glassAppBar({
   Widget? leading,
   bool automaticallyImplyLeading = true,
   bool centerTitle = false,
+  double? titleSpacing,
 }) {
   return AppBar(
     title: title,
@@ -58,6 +59,7 @@ AppBar glassAppBar({
     leading: leading,
     automaticallyImplyLeading: automaticallyImplyLeading,
     centerTitle: centerTitle,
+    titleSpacing: titleSpacing,
     backgroundColor: Colors.transparent,
     elevation: 0,
     scrolledUnderElevation: 0,
