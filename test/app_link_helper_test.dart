@@ -49,6 +49,20 @@ void main() {
       expect(resolved?.payload, 'book123');
     });
 
+    test('resolves book leaf query URLs', () {
+      final canonical = AppLinkHelper.resolve(
+        'https://wreadom.in/?book=book123&leaf=leaf9',
+      );
+      final backend = AppLinkHelper.resolve('/book?id=book123&leaf=leaf9');
+
+      expect(canonical?.route, AppRoutes.bookDetail);
+      expect(canonical?.payload, 'book123');
+      expect(canonical?.leafId, 'leaf9');
+      expect(backend?.route, AppRoutes.bookDetail);
+      expect(backend?.payload, 'book123');
+      expect(backend?.leafId, 'leaf9');
+    });
+
     test('resolves shared chapter query URL with zero based index', () {
       final resolved = AppLinkHelper.resolve(
         'https://wreadom.in/?book=book123&mode=read&chapter=3',

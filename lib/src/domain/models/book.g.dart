@@ -56,6 +56,12 @@ _Book _$BookFromJson(Map<String, dynamic> json) => _Book(
   authorIds: (json['authorIds'] as List<dynamic>?)
       ?.map((e) => e as String)
       .toList(),
+  leaves: (json['leaves'] as List<dynamic>?)
+      ?.map((e) => LeafAttachment.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  leafCount: (json['leafCount'] as num?)?.toInt(),
+  hasLeaves: json['hasLeaves'] as bool?,
+  leafUpdatedAt: (json['leafUpdatedAt'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
@@ -96,4 +102,8 @@ Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
   'collaborationRequestedAt': instance.collaborationRequestedAt,
   'collaborationRespondedAt': instance.collaborationRespondedAt,
   'authorIds': instance.authorIds,
+  'leaves': instance.leaves,
+  'leafCount': instance.leafCount,
+  'hasLeaves': instance.hasLeaves,
+  'leafUpdatedAt': instance.leafUpdatedAt,
 };

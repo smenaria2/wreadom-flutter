@@ -466,8 +466,15 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           }
           return FeedPostCard(
             post: items[index],
-            onReplyToQuestion: (question) {
-              showCreatePostSheet(context, initialQuestion: question);
+            onReplyToQuestion: (post) {
+              showCreatePostSheet(
+                context,
+                initialQuestion: post.question,
+                bookId: post.bookId?.toString(),
+                bookTitle: post.bookTitle,
+                bookAuthorName: post.bookAuthorName,
+                bookCover: post.bookCover,
+              );
             },
           );
         },

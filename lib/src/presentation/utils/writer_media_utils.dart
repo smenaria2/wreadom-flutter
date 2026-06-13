@@ -1,4 +1,11 @@
-enum WriterMediaType { youtube, instagram, spotify, unsupported }
+enum WriterMediaType {
+  youtube,
+  instagram,
+  spotify,
+  amazon,
+  wikipedia,
+  unsupported,
+}
 
 class WriterMediaInfo {
   const WriterMediaInfo({
@@ -38,7 +45,11 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
   }
 
   final host = _normalizedHost(uri);
-  if (_hostMatches(host, const ['youtube.com', 'youtu.be', 'youtube-nocookie.com'])) {
+  if (_hostMatches(host, const [
+    'youtube.com',
+    'youtu.be',
+    'youtube-nocookie.com',
+  ])) {
     final id = _youtubeId(uri);
     if (id != null) {
       return WriterMediaInfo(
@@ -72,6 +83,30 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
       embedUrl: uri.replace(path: path).toString(),
       label: 'Spotify',
     );
+  }
+
+  if (_hostMatches(host, const ['wikipedia.org'])) {
+    return WriterMediaInfo(
+      type: WriterMediaType.wikipedia,
+      originalUrl: uri.toString(),
+      embedUrl: uri.toString(),
+      label: 'Wikipedia',
+    );
+  }
+
+  if (host.contains('amazon.') || _hostMatches(host, const ['amzn.to'])) {
+    final path = uri.path.toLowerCase();
+    if (host == 'amzn.to' ||
+        path.contains('/dp/') ||
+        path.contains('/gp/') ||
+        path.contains('/d/')) {
+      return WriterMediaInfo(
+        type: WriterMediaType.amazon,
+        originalUrl: uri.toString(),
+        embedUrl: uri.toString(),
+        label: 'Amazon',
+      );
+    }
   }
 
   return WriterMediaInfo(
@@ -143,6 +178,12 @@ String? _youtubeId(Uri uri) {
     return _sanitizeYouTubeId(segments[markerIndex + 1]);
   }
   return null;
+}
+
+String? youtubeVideoIdFromUrl(String value) {
+  final uri = _parseHttpUri(value.trim());
+  if (uri == null) return null;
+  return _youtubeId(uri);
 }
 
 String? _sanitizeYouTubeId(String value) {

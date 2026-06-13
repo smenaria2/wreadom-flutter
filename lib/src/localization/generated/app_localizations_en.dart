@@ -2322,4 +2322,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationGroupDiscovery => 'Discovery notifications';
+
+  @override
+  String get leaf => 'Leaf';
+
+  @override
+  String get addLeaf => 'Add Leaf';
+
+  @override
+  String get leafNote => 'Note';
+
+  @override
+  String get leafQuestion => 'Question';
+
+  @override
+  String get leafImage => 'Image';
+
+  @override
+  String get leafLink => 'Link';
+
+  @override
+  String get leafAudio => 'Audio';
+
+  @override
+  String get booksWithLeaves => 'Books with Leaves';
+
+  @override
+  String get deleteLeaf => 'Delete Leaf';
+
+  @override
+  String get deleteLeafTitle => 'Delete Leaf?';
+
+  @override
+  String get deleteLeafBody => 'This removes the Leaf from the content.';
+
+  @override
+  String get leafAdded => 'Leaf added.';
+
+  @override
+  String get leafDeleted => 'Leaf deleted.';
+
+  @override
+  String leafMaxLimit(int count) {
+    return 'This content can have up to $count Leaves.';
+  }
+
+  @override
+  String leafUploadFailed(String error) {
+    return 'Leaf upload failed: $error';
+  }
+
+  @override
+  String get leafInvalidLink => 'This Leaf link is not supported.';
+
+  @override
+  String get answerLeafQuestion => 'Answer question';
+
+  @override
+  String get leafWriteNoteFirst => 'Write a note first.';
+
+  @override
+  String get leafWriteQuestionFirst => 'Write a question first.';
+
+  @override
+  String get leafChooseImage => 'Choose an image.';
+
+  @override
+  String get leafRecordAudioFirst => 'Record audio first.';
 }

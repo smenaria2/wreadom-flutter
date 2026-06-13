@@ -67,7 +67,7 @@ String _typeLabel(String type, AppLocalizations l10n) {
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
   final bool openOnTap;
-  final ValueChanged<String>? onReplyToQuestion;
+  final ValueChanged<FeedPost>? onReplyToQuestion;
   const FeedPostCard({
     super.key,
     required this.post,
@@ -701,8 +701,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         const SizedBox(width: 8),
                         GlassSurface(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () =>
-                              widget.onReplyToQuestion!(post.question!),
+                          onTap: () => widget.onReplyToQuestion!(post),
                           semanticButton: true,
                           child: Padding(
                             padding: const EdgeInsets.all(6),

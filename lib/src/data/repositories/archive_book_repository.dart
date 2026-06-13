@@ -41,6 +41,11 @@ class ArchiveBookRepository implements BookRepository {
   }
 
   @override
+  Future<List<Book>> getBooksWithLeaves({int limit = 10}) async {
+    return [];
+  }
+
+  @override
   Future<List<Book>> getOriginalBooksByTopic(
     String topic, {
     int limit = 40,
@@ -154,4 +159,20 @@ class ArchiveBookRepository implements BookRepository {
 
   @override
   Future<List<Book>> getUpvotedIABooks({int limit = 20}) async => [];
+
+  @override
+  Future<LeafMutationResult> createBookLeaf({
+    required String bookId,
+    required Map<String, dynamic> leaf,
+  }) async {
+    throw UnsupportedError('Leaves are only supported for original books.');
+  }
+
+  @override
+  Future<LeafMutationResult> deleteBookLeaf({
+    required String bookId,
+    required String leafId,
+  }) async {
+    throw UnsupportedError('Leaves are only supported for original books.');
+  }
 }

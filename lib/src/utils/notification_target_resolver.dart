@@ -9,6 +9,7 @@ class NotificationTarget {
     this.commentId,
     this.replyId,
     this.chapterIndex,
+    this.leafId,
   });
 
   final String route;
@@ -16,6 +17,7 @@ class NotificationTarget {
   final String? commentId;
   final String? replyId;
   final int? chapterIndex;
+  final String? leafId;
 }
 
 class NotificationTargetResolver {
@@ -73,6 +75,11 @@ class NotificationTargetResolver {
       _queryValue(notification.link, 'reply'),
       _queryValue(notification.link, 'replyId'),
     ]);
+    final leafId = _firstValid([
+      metadata['leafId'],
+      _queryValue(notification.link, 'leaf'),
+      linkTarget?.route == AppRoutes.bookDetail ? linkTarget?.leafId : null,
+    ]);
 
     final userId = _firstValid([
       metadata['userId'],
@@ -91,6 +98,7 @@ class NotificationTargetResolver {
         commentId: commentId,
         replyId: replyId,
         chapterIndex: linkTarget.chapterIndex,
+        leafId: leafId,
       );
     }
     if (linkTarget?.route == AppRoutes.postDetail &&
@@ -140,6 +148,7 @@ class NotificationTargetResolver {
         chapterIndex: linkTarget?.route == AppRoutes.bookDetail
             ? linkTarget?.chapterIndex
             : null,
+        leafId: leafId,
       );
     }
 
@@ -176,6 +185,7 @@ class NotificationTargetResolver {
         chapterIndex: linkTarget?.route == AppRoutes.bookDetail
             ? linkTarget?.chapterIndex
             : null,
+        leafId: leafId,
       );
     }
     if (isPostType && targetId != null) {
@@ -203,6 +213,7 @@ class NotificationTargetResolver {
         type == 'new_creation' ||
         type == 'newcreation' ||
         type == 'chapter_update' ||
+        type == 'leaf_update' ||
         type == 'review' ||
         type == 'book' ||
         type == 'chapter' ||

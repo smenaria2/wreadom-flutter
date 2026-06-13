@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
@@ -20,6 +21,17 @@ final offlineServiceProvider = Provider<OfflineService>((ref) {
 
 final originalBooksProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getOriginalBooks();
+});
+
+final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
+  return ref.watch(bookRepositoryProvider).getBooksWithLeaves();
+});
+
+final currentUserAdminClaimProvider = FutureProvider<bool>((ref) async {
+  final user = firebase_auth.FirebaseAuth.instance.currentUser;
+  if (user == null) return false;
+  final token = await user.getIdTokenResult();
+  return token.claims?['admin'] == true;
 });
 
 final popularBooksProvider = FutureProvider<List<Book>>((ref) async {
@@ -82,11 +94,17 @@ final bookSearchProvider = FutureProvider.family<List<Book>, String>((
   return ref.watch(bookRepositoryProvider).searchBooks(query);
 });
 
-final readingHistoryBooksProvider = FutureProvider<List<Book>>((ref) async {
+final readingHistoryBooksProvider = FutureProvider.family<List<Book>, int>((
+  ref,
+  limit,
+) async {
   final user = await ref.watch(currentUserProvider.future);
   if (user == null || user.readingHistory.isEmpty) return [];
 
-  final ids = user.readingHistory.map((id) => id.toString()).toList();
+  final ids = user.readingHistory
+      .take(limit)
+      .map((id) => id.toString())
+      .toList();
   return ref.watch(bookRepositoryProvider).getBooksByIds(ids);
 });
 
@@ -237,6 +255,44 @@ final userBookVoteProvider = FutureProvider.family<String?, String>((
 final bookVoteControllerProvider = Provider<BookVoteController>((ref) {
   return BookVoteController(ref);
 });
+
+final leafControllerProvider = Provider<LeafController>((ref) {
+  return LeafController(ref);
+});
+
+class LeafController {
+  const LeafController(this._ref);
+
+  final Ref _ref;
+
+  Future<LeafMutationResult> createLeaf({
+    required String bookId,
+    required Map<String, dynamic> leaf,
+  }) async {
+    final result = await _ref
+        .read(bookRepositoryProvider)
+        .createBookLeaf(bookId: bookId, leaf: leaf);
+    _invalidateLeafReads(bookId);
+    return result;
+  }
+
+  Future<LeafMutationResult> deleteLeaf({
+    required String bookId,
+    required String leafId,
+  }) async {
+    final result = await _ref
+        .read(bookRepositoryProvider)
+        .deleteBookLeaf(bookId: bookId, leafId: leafId);
+    _invalidateLeafReads(bookId);
+    return result;
+  }
+
+  void _invalidateLeafReads(String bookId) {
+    _ref.invalidate(liveBookDetailProvider(bookId));
+    _ref.invalidate(bookDetailProvider(bookId));
+    _ref.invalidate(booksWithLeavesProvider);
+  }
+}
 
 class BookVoteController {
   const BookVoteController(this._ref);

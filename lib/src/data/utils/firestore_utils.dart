@@ -218,6 +218,52 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
     }).toList();
   }
 
+  final leavesRaw = m['leaves'];
+  if (leavesRaw is List) {
+    m['leaves'] = leavesRaw.whereType<Map>().map((leaf) {
+      final map = Map<String, dynamic>.from(leaf);
+      map['id'] = map['id']?.toString() ?? '';
+      map['type'] = map['type']?.toString() ?? 'text';
+      map['createdBy'] = map['createdBy']?.toString() ?? '';
+      map['createdByRole'] = map['createdByRole']?.toString();
+      if (map['createdAt'] is Timestamp) {
+        map['createdAt'] =
+            (map['createdAt'] as Timestamp).millisecondsSinceEpoch;
+      } else {
+        map['createdAt'] = map['createdAt'] is int
+            ? map['createdAt']
+            : int.tryParse(map['createdAt']?.toString() ?? '') ?? 0;
+      }
+      for (final key in const [
+        'textHtml',
+        'textPlain',
+        'imageUrl',
+        'imageAlt',
+        'url',
+        'linkType',
+        'title',
+        'question',
+        'audioUrl',
+        'audioObjectKey',
+        'audioMimeType',
+      ]) {
+        map[key] = map[key]?.toString();
+      }
+      for (final key in const [
+        'wordCount',
+        'audioDurationMs',
+        'audioSizeBytes',
+      ]) {
+        map[key] = map[key] is int
+            ? map[key]
+            : int.tryParse(map[key]?.toString() ?? '');
+      }
+      return map;
+    }).toList();
+  } else {
+    m['leaves'] = <Map<String, dynamic>>[];
+  }
+
   // Ensure IDs/Counts
   m['download_count'] ??= m['downloadCount'] ?? 0;
   m['viewCount'] ??= m['readCount'] ?? m['reads'] ?? m['views'] ?? 0;
@@ -236,6 +282,10 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   }
   if (m['publishedAt'] is Timestamp) {
     m['publishedAt'] = (m['publishedAt'] as Timestamp).millisecondsSinceEpoch;
+  }
+  if (m['leafUpdatedAt'] is Timestamp) {
+    m['leafUpdatedAt'] =
+        (m['leafUpdatedAt'] as Timestamp).millisecondsSinceEpoch;
   }
   if (m['collaborationRequestedAt'] is Timestamp) {
     m['collaborationRequestedAt'] =

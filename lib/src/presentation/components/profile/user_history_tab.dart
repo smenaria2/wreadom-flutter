@@ -19,7 +19,7 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final booksAsync = ref.watch(readingHistoryBooksProvider);
+    final booksAsync = ref.watch(readingHistoryBooksProvider(_limit));
     final l10n = AppLocalizations.of(context)!;
 
     return booksAsync.when(

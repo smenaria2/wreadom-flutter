@@ -4123,6 +4123,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discovery notifications'**
   String get notificationGroupDiscovery;
+
+  /// No description provided for @leaf.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaf'**
+  String get leaf;
+
+  /// No description provided for @addLeaf.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Leaf'**
+  String get addLeaf;
+
+  /// No description provided for @leafNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get leafNote;
+
+  /// No description provided for @leafQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get leafQuestion;
+
+  /// No description provided for @leafImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get leafImage;
+
+  /// No description provided for @leafLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get leafLink;
+
+  /// No description provided for @leafAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get leafAudio;
+
+  /// No description provided for @booksWithLeaves.
+  ///
+  /// In en, this message translates to:
+  /// **'Books with Leaves'**
+  String get booksWithLeaves;
+
+  /// No description provided for @deleteLeaf.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Leaf'**
+  String get deleteLeaf;
+
+  /// No description provided for @deleteLeafTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Leaf?'**
+  String get deleteLeafTitle;
+
+  /// No description provided for @deleteLeafBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the Leaf from the content.'**
+  String get deleteLeafBody;
+
+  /// No description provided for @leafAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaf added.'**
+  String get leafAdded;
+
+  /// No description provided for @leafDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaf deleted.'**
+  String get leafDeleted;
+
+  /// No description provided for @leafMaxLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'This content can have up to {count} Leaves.'**
+  String leafMaxLimit(int count);
+
+  /// No description provided for @leafUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaf upload failed: {error}'**
+  String leafUploadFailed(String error);
+
+  /// No description provided for @leafInvalidLink.
+  ///
+  /// In en, this message translates to:
+  /// **'This Leaf link is not supported.'**
+  String get leafInvalidLink;
+
+  /// No description provided for @answerLeafQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer question'**
+  String get answerLeafQuestion;
+
+  /// No description provided for @leafWriteNoteFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a note first.'**
+  String get leafWriteNoteFirst;
+
+  /// No description provided for @leafWriteQuestionFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a question first.'**
+  String get leafWriteQuestionFirst;
+
+  /// No description provided for @leafChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an image.'**
+  String get leafChooseImage;
+
+  /// No description provided for @leafRecordAudioFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Record audio first.'**
+  String get leafRecordAudioFirst;
 }
 
 class _AppLocalizationsDelegate

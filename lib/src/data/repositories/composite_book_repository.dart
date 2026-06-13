@@ -86,6 +86,11 @@ class CompositeBookRepository implements BookRepository {
   }
 
   @override
+  Future<List<Book>> getBooksWithLeaves({int limit = 10}) {
+    return _firebaseRepo.getBooksWithLeaves(limit: limit);
+  }
+
+  @override
   Future<List<Book>> getOriginalBooksByTopic(String topic, {int limit = 40}) {
     return _firebaseRepo.getOriginalBooksByTopic(topic, limit: limit);
   }
@@ -273,6 +278,30 @@ class CompositeBookRepository implements BookRepository {
     final ids = (await _getUpvotedIds()).take(limit).toList();
     if (ids.isEmpty) return [];
     return await _archiveRepo.getBooksByIds(ids);
+  }
+
+  @override
+  Future<LeafMutationResult> createBookLeaf({
+    required String bookId,
+    required Map<String, dynamic> leaf,
+  }) async {
+    final book = await _firebaseRepo.getBook(bookId);
+    if (book?.isOriginal != true) {
+      throw UnsupportedError('Leaves are only supported for original books.');
+    }
+    return _firebaseRepo.createBookLeaf(bookId: bookId, leaf: leaf);
+  }
+
+  @override
+  Future<LeafMutationResult> deleteBookLeaf({
+    required String bookId,
+    required String leafId,
+  }) async {
+    final book = await _firebaseRepo.getBook(bookId);
+    if (book?.isOriginal != true) {
+      throw UnsupportedError('Leaves are only supported for original books.');
+    }
+    return _firebaseRepo.deleteBookLeaf(bookId: bookId, leafId: leafId);
   }
 
   @override

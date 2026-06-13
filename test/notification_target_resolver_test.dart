@@ -75,6 +75,26 @@ void main() {
     expect(target?.chapterIndex, 3);
   });
 
+  test('leaf update notification opens book detail and preserves leaf id', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'leaf_update',
+        link: '/book?id=book1&leaf=leaf1',
+        targetId: 'book1',
+        metadata: {
+          'bookId': 'book1',
+          'leafId': 'leaf1',
+          'leafType': 'link',
+          'linkType': 'youtube',
+        },
+      ),
+    );
+
+    expect(target?.route, AppRoutes.bookDetail);
+    expect(target?.payload, 'book1');
+    expect(target?.leafId, 'leaf1');
+  });
+
   test(
     'new creation notification with backend book link opens book detail',
     () {

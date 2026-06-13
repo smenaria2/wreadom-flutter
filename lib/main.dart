@@ -139,9 +139,9 @@ Future<void> _initializeFirebaseIfNeeded() async {
 }
 
 Future<void> _configureFirestoreCache() async {
-  // Note: persistenceEnabled: true is required by QA checks, but we use !kIsWeb dynamically.
   FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: false,
+    persistenceEnabled: true,
+    cacheSizeBytes: 80 * 1024 * 1024,
   );
 }
 

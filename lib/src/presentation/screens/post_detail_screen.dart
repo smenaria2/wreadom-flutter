@@ -80,8 +80,15 @@ class PostDetailScreen extends ConsumerWidget {
                 FeedPostCard(
                   post: effectivePost,
                   openOnTap: false,
-                  onReplyToQuestion: (question) {
-                    showCreatePostSheet(context, initialQuestion: question);
+                  onReplyToQuestion: (post) {
+                    showCreatePostSheet(
+                      context,
+                      initialQuestion: post.question,
+                      bookId: post.bookId?.toString(),
+                      bookTitle: post.bookTitle,
+                      bookAuthorName: post.bookAuthorName,
+                      bookCover: post.bookCover,
+                    );
                   },
                 ),
                 GlassSurface(
@@ -110,8 +117,15 @@ class PostDetailScreen extends ConsumerWidget {
                   FeedPostCard(
                     post: preloadedPost!,
                     openOnTap: false,
-                    onReplyToQuestion: (question) {
-                      showCreatePostSheet(context, initialQuestion: question);
+                    onReplyToQuestion: (post) {
+                      showCreatePostSheet(
+                        context,
+                        initialQuestion: post.question,
+                        bookId: post.bookId?.toString(),
+                        bookTitle: post.bookTitle,
+                        bookAuthorName: post.bookAuthorName,
+                        bookCover: post.bookCover,
+                      );
                     },
                   ),
                   GlassSurface(

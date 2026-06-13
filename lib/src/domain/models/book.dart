@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../utils/image_proxy_utils.dart';
 import 'author.dart';
 import 'chapter.dart';
+import 'leaf_attachment.dart';
 
 part 'book.freezed.dart';
 part 'book.g.dart';
@@ -46,6 +47,10 @@ abstract class Book with _$Book {
     int? collaborationRequestedAt,
     int? collaborationRespondedAt,
     List<String>? authorIds,
+    List<LeafAttachment>? leaves,
+    int? leafCount,
+    bool? hasLeaves,
+    int? leafUpdatedAt,
   }) = _Book;
 
   factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);

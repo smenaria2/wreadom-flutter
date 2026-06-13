@@ -50,6 +50,7 @@ class BookDetailArguments {
     this.initialReaderChapterIndex,
     this.targetCommentId,
     this.targetReplyId,
+    this.targetLeafId,
   });
 
   final String bookId;
@@ -57,6 +58,7 @@ class BookDetailArguments {
   final int? initialReaderChapterIndex;
   final String? targetCommentId;
   final String? targetReplyId;
+  final String? targetLeafId;
 }
 
 class ConversationArguments {
@@ -145,7 +147,7 @@ class AppRouter {
     final uri = Uri.parse(url);
     final opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     if (!opened && context.mounted) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await Navigator.of(context).pushNamed(routeName);
     }
   }
 
@@ -176,6 +178,7 @@ class AppRouter {
       return BookDetailArguments(
         bookId: resolved.payload!,
         initialReaderChapterIndex: resolved.chapterIndex,
+        targetLeafId: resolved.leafId,
       );
     }
     if (resolved.route == AppRoutes.postDetail && resolved.payload != null) {
@@ -264,6 +267,9 @@ class AppRouter {
             targetReplyId: args is BookDetailArguments
                 ? args.targetReplyId
                 : null,
+            targetLeafId: args is BookDetailArguments
+                ? args.targetLeafId
+                : resolvedIncoming?.leafId,
           ),
         );
       case AppRoutes.reader:

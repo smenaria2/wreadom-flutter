@@ -316,6 +316,7 @@ class NotificationService {
             bookId: target.payload,
             targetCommentId: target.commentId,
             targetReplyId: target.replyId,
+            targetLeafId: target.leafId,
             initialReaderChapterIndex: target.chapterIndex,
           ),
         );
@@ -401,6 +402,7 @@ class NotificationService {
       target.commentId,
       target.replyId,
       target.chapterIndex?.toString(),
+      target.leafId,
     ].whereType<String>().join('|');
   }
 

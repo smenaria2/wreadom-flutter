@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
@@ -9,6 +11,7 @@ import '../../utils/map_utils.dart';
 
 class FirebaseBookRepository implements BookRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   static const String _collection = 'books';
   static const int _maxUserBooks = 120;
 
@@ -110,6 +113,26 @@ class FirebaseBookRepository implements BookRepository {
           .toList();
     } catch (e, stack) {
       debugPrint('[FirebaseBookRepository] Error getting original books: $e');
+      Error.throwWithStackTrace(e, stack);
+    }
+  }
+
+  @override
+  Future<List<Book>> getBooksWithLeaves({int limit = 10}) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('status', isEqualTo: 'published')
+          .where('hasLeaves', isEqualTo: true)
+          .orderBy('leafUpdatedAt', descending: true)
+          .limit(limit)
+          .get();
+
+      return _booksFromDocs(snapshot.docs);
+    } catch (e, stack) {
+      debugPrint(
+        '[FirebaseBookRepository] Error getting books with leaves: $e',
+      );
       Error.throwWithStackTrace(e, stack);
     }
   }
@@ -718,5 +741,78 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Book>> getUpvotedIABooks({int limit = 20}) async {
     return [];
+  }
+
+  @override
+  Future<LeafMutationResult> createBookLeaf({
+    required String bookId,
+    required Map<String, dynamic> leaf,
+  }) async {
+    try {
+      final response = await _functions.httpsCallable('createBookLeaf').call({
+        'bookId': bookId,
+        'leaf': leaf,
+      });
+      return _leafMutationResultFromCallable(response.data);
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error creating Leaf: $e');
+      Error.throwWithStackTrace(e, stack);
+    }
+  }
+
+  @override
+  Future<LeafMutationResult> deleteBookLeaf({
+    required String bookId,
+    required String leafId,
+  }) async {
+    try {
+      final response = await _functions.httpsCallable('deleteBookLeaf').call({
+        'bookId': bookId,
+        'leafId': leafId,
+      });
+      return _leafMutationResultFromCallable(response.data);
+    } catch (e, stack) {
+      debugPrint('[FirebaseBookRepository] Error deleting Leaf: $e');
+      Error.throwWithStackTrace(e, stack);
+    }
+  }
+
+  LeafMutationResult _leafMutationResultFromCallable(dynamic raw) {
+    final data = asStringMap(raw);
+    final leavesRaw = data['leaves'];
+    final leaves = leavesRaw is List
+        ? leavesRaw.whereType<Map>().map((rawLeaf) {
+            final leaf = asStringMap(rawLeaf);
+            leaf['id'] = leaf['id']?.toString() ?? '';
+            leaf['type'] = leaf['type']?.toString() ?? 'text';
+            leaf['createdBy'] = leaf['createdBy']?.toString() ?? '';
+            leaf['createdAt'] = leaf['createdAt'] is int
+                ? leaf['createdAt']
+                : int.tryParse(leaf['createdAt']?.toString() ?? '') ?? 0;
+            for (final key in const [
+              'wordCount',
+              'audioDurationMs',
+              'audioSizeBytes',
+            ]) {
+              leaf[key] = leaf[key] is int
+                  ? leaf[key]
+                  : int.tryParse(leaf[key]?.toString() ?? '');
+            }
+            return LeafAttachment.fromJson(leaf);
+          }).toList()
+        : <LeafAttachment>[];
+    final leafUpdatedAt = data['leafUpdatedAt'];
+    return LeafMutationResult(
+      leaves: leaves,
+      leafCount:
+          (data['leafCount'] as num?)?.toInt() ??
+          int.tryParse(data['leafCount']?.toString() ?? '') ??
+          leaves.length,
+      hasLeaves: data['hasLeaves'] == true || leaves.isNotEmpty,
+      leafUpdatedAt: leafUpdatedAt is num
+          ? leafUpdatedAt.toInt()
+          : int.tryParse(leafUpdatedAt?.toString() ?? ''),
+      maxLeaves: (data['maxLeaves'] as num?)?.toInt(),
+    );
   }
 }

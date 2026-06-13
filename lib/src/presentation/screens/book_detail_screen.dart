@@ -41,6 +41,7 @@ import '../widgets/glass_surface.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
+import '../components/book/leaf_components.dart';
 import '../components/generated_book_cover.dart';
 import 'static_info_screen.dart';
 
@@ -53,6 +54,7 @@ class BookDetailScreen extends ConsumerStatefulWidget {
     this.initialReaderChapterIndex,
     this.targetCommentId,
     this.targetReplyId,
+    this.targetLeafId,
   });
 
   final String bookId;
@@ -61,6 +63,7 @@ class BookDetailScreen extends ConsumerStatefulWidget {
   final int? initialReaderChapterIndex;
   final String? targetCommentId;
   final String? targetReplyId;
+  final String? targetLeafId;
 
   @override
   ConsumerState<BookDetailScreen> createState() => _BookDetailScreenState();
@@ -113,6 +116,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
             heroTag: widget.heroTag,
             targetCommentId: widget.targetCommentId,
             targetReplyId: widget.targetReplyId,
+            targetLeafId: widget.targetLeafId,
           );
         },
         loading: () => widget.preloadedBook != null
@@ -122,6 +126,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
                 heroTag: widget.heroTag,
                 targetCommentId: widget.targetCommentId,
                 targetReplyId: widget.targetReplyId,
+                targetLeafId: widget.targetLeafId,
               )
             : const _BookDetailSkeleton(),
         error: (err, stackTrace) {
@@ -339,6 +344,7 @@ class _BookDetailBody extends ConsumerWidget {
     this.heroTag,
     this.targetCommentId,
     this.targetReplyId,
+    this.targetLeafId,
   });
 
   final Book book;
@@ -346,6 +352,7 @@ class _BookDetailBody extends ConsumerWidget {
   final String? heroTag;
   final String? targetCommentId;
   final String? targetReplyId;
+  final String? targetLeafId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -366,6 +373,13 @@ class _BookDetailBody extends ConsumerWidget {
         currentUser != null &&
         (book.isOriginal ?? false) &&
         canEditCollaborativeBook(book, currentUser.id);
+    final isAdmin = ref.watch(currentUserAdminClaimProvider).value ?? false;
+    final canManageLeaves =
+        currentUser != null &&
+        (book.isOriginal ?? false) &&
+        (canEdit || isAdmin);
+    final leafCount = book.leaves?.length ?? 0;
+    final canAddLeaves = canManageLeaves && leafCount < maxBookLeaves;
 
     Future<void> refresh() async {
       ref.invalidate(liveBookDetailProvider(detailBookId));
@@ -430,6 +444,13 @@ class _BookDetailBody extends ConsumerWidget {
                         arguments: WriterPadArguments(book: book),
                       ),
                     ),
+                  if (canAddLeaves)
+                    _HeaderIconButton(
+                      tooltip: 'Add Leaf',
+                      icon: Icons.eco_outlined,
+                      margin: const EdgeInsets.only(right: 8),
+                      onPressed: () => showAddLeafSheet(context, book: book),
+                    ),
                   _HeaderIconButton(
                     tooltip: 'Share',
                     icon: Icons.share_outlined,
@@ -468,6 +489,7 @@ class _BookDetailBody extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    LeafTargetLauncher(book: book, targetLeafId: targetLeafId),
                     Text(
                       book.title,
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -591,6 +613,18 @@ class _BookDetailBody extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       _ExpandableText(text: book.description!),
+                    ],
+                    if (leafCount > 0) ...[
+                      const SizedBox(height: 28),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: LeafStrip(
+                            book: book,
+                            canManage: canManageLeaves,
+                          ),
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 28),
                     _LatestDiscussionSection(

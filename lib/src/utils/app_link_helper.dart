@@ -5,7 +5,7 @@ class AppLinkHelper {
   static const wwwHost = 'www.wreadom.in';
   static const origin = 'https://$host';
   static const privacyPolicyUrl = '$origin/privacy';
-  static const termsUrl = '$origin/terms-of-use';
+  static const termsUrl = '$origin/terms';
 
   static String book(String bookId) {
     return 'https://wreadom.in/?book=$bookId';
@@ -46,6 +46,7 @@ class AppLinkHelper {
       final queryBookId = uri.queryParameters['book'];
       final queryPostId = uri.queryParameters['post'];
       final queryTopicId = uri.queryParameters['id'];
+      final queryLeafId = uri.queryParameters['leaf'];
       final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
       if (segments.isEmpty) {
         if (queryPage == 'writer') {
@@ -59,6 +60,7 @@ class AppLinkHelper {
             AppRoutes.bookDetail,
             queryBookId,
             chapterIndex: _chapterIndexFromQuery(uri),
+            leafId: _hasValue(queryLeafId) ? queryLeafId : null,
           );
         }
         if (_hasValue(queryPostId)) {
@@ -78,7 +80,11 @@ class AppLinkHelper {
         case 'b':
           id ??= queryBookId ?? queryTopicId;
           if (_hasValue(id)) {
-            return ResolvedAppLink(AppRoutes.bookDetail, id!);
+            return ResolvedAppLink(
+              AppRoutes.bookDetail,
+              id!,
+              leafId: _hasValue(queryLeafId) ? queryLeafId : null,
+            );
           }
           break;
         case 'post':
@@ -168,9 +174,15 @@ class AppLinkHelper {
 }
 
 class ResolvedAppLink {
-  const ResolvedAppLink(this.route, this.payload, {this.chapterIndex});
+  const ResolvedAppLink(
+    this.route,
+    this.payload, {
+    this.chapterIndex,
+    this.leafId,
+  });
 
   final String route;
   final String? payload;
   final int? chapterIndex;
+  final String? leafId;
 }

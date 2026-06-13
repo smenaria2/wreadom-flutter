@@ -15,7 +15,15 @@ import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
 
-void showCreatePostSheet(BuildContext context, {String? initialQuestion}) {
+void showCreatePostSheet(
+  BuildContext context, {
+  String? initialQuestion,
+  bool lockQuestion = false,
+  String? bookId,
+  String? bookTitle,
+  String? bookAuthorName,
+  String? bookCover,
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -27,14 +35,33 @@ void showCreatePostSheet(BuildContext context, {String? initialQuestion}) {
     builder: (_) => GlassSurface(
       strong: true,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: _CreatePostSheet(initialQuestion: initialQuestion),
+      child: _CreatePostSheet(
+        initialQuestion: initialQuestion,
+        lockQuestion: lockQuestion,
+        bookId: bookId,
+        bookTitle: bookTitle,
+        bookAuthorName: bookAuthorName,
+        bookCover: bookCover,
+      ),
     ),
   );
 }
 
 class _CreatePostSheet extends ConsumerStatefulWidget {
   final String? initialQuestion;
-  const _CreatePostSheet({this.initialQuestion});
+  final bool lockQuestion;
+  final String? bookId;
+  final String? bookTitle;
+  final String? bookAuthorName;
+  final String? bookCover;
+  const _CreatePostSheet({
+    this.initialQuestion,
+    this.lockQuestion = false,
+    this.bookId,
+    this.bookTitle,
+    this.bookAuthorName,
+    this.bookCover,
+  });
 
   @override
   ConsumerState<_CreatePostSheet> createState() => _CreatePostSheetState();
@@ -53,7 +80,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   void initState() {
     super.initState();
     _currentQuestion = widget.initialQuestion;
-    if (_currentQuestion == null) {
+    if (_currentQuestion == null && !widget.lockQuestion) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_changeQuestion());
       });
@@ -145,6 +172,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         privacy: _visibility,
         imageUrl: imageUrl,
         question: _currentQuestion,
+        bookId: widget.bookId,
+        bookTitle: widget.bookTitle,
+        bookAuthorName: widget.bookAuthorName,
+        bookCover: widget.bookCover,
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
@@ -322,35 +353,37 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _QuestionActionChip(
-                                  icon: Icons.refresh_rounded,
-                                  isLoading: _isChangingQuestion,
-                                  label: 'Change',
-                                  color: theme.colorScheme.primary,
-                                  onTap: _isChangingQuestion
-                                      ? null
-                                      : _changeQuestion,
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 10,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 5,
+                            if (!widget.lockQuestion) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _QuestionActionChip(
+                                    icon: Icons.refresh_rounded,
+                                    isLoading: _isChangingQuestion,
+                                    label: 'Change',
+                                    color: theme.colorScheme.primary,
+                                    onTap: _isChangingQuestion
+                                        ? null
+                                        : _changeQuestion,
                                   ),
-                                  color: theme.colorScheme.outlineVariant,
-                                ),
-                                _QuestionActionChip(
-                                  icon: Icons.close_rounded,
-                                  label: 'Remove',
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  onTap: _removeQuestion,
-                                ),
-                              ],
-                            ),
+                                  Container(
+                                    width: 1,
+                                    height: 10,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                    ),
+                                    color: theme.colorScheme.outlineVariant,
+                                  ),
+                                  _QuestionActionChip(
+                                    icon: Icons.close_rounded,
+                                    label: 'Remove',
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    onTap: _removeQuestion,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

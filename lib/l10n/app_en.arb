@@ -1275,5 +1275,40 @@
   "appUpdateNoUpdateFound": "No updates found.",
   "notificationDailyTopics": "Daily writing prompts",
   "notificationRecommendedContent": "Recommended content for you",
-  "notificationGroupDiscovery": "Discovery notifications"
+  "notificationGroupDiscovery": "Discovery notifications",
+  "leaf": "Leaf",
+  "addLeaf": "Add Leaf",
+  "leafNote": "Note",
+  "leafQuestion": "Question",
+  "leafImage": "Image",
+  "leafLink": "Link",
+  "leafAudio": "Audio",
+  "booksWithLeaves": "Books with Leaves",
+  "deleteLeaf": "Delete Leaf",
+  "deleteLeafTitle": "Delete Leaf?",
+  "deleteLeafBody": "This removes the Leaf from the content.",
+  "leafAdded": "Leaf added.",
+  "leafDeleted": "Leaf deleted.",
+  "leafMaxLimit": "This content can have up to {count} Leaves.",
+  "@leafMaxLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leafUploadFailed": "Leaf upload failed: {error}",
+  "@leafUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "leafInvalidLink": "This Leaf link is not supported.",
+  "answerLeafQuestion": "Answer question",
+  "leafWriteNoteFirst": "Write a note first.",
+  "leafWriteQuestionFirst": "Write a question first.",
+  "leafChooseImage": "Choose an image.",
+  "leafRecordAudioFirst": "Record audio first."
 }

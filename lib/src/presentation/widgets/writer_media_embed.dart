@@ -162,6 +162,8 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.youtube => Icons.play_circle_fill_rounded,
       WriterMediaType.instagram => Icons.photo_camera_outlined,
       WriterMediaType.spotify => Icons.graphic_eq_rounded,
+      WriterMediaType.amazon => Icons.shopping_bag_outlined,
+      WriterMediaType.wikipedia => Icons.travel_explore_outlined,
       WriterMediaType.unsupported => Icons.link_off_rounded,
     };
   }
@@ -171,6 +173,8 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.youtube => const Color(0xFFD93025),
       WriterMediaType.instagram => const Color(0xFFC13584),
       WriterMediaType.spotify => const Color(0xFF1DB954),
+      WriterMediaType.amazon => const Color(0xFFFF9900),
+      WriterMediaType.wikipedia => const Color(0xFF54595D),
       WriterMediaType.unsupported => Colors.grey,
     };
   }

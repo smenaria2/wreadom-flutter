@@ -89,7 +89,7 @@ Future<void> warmUserHomepageCache(WidgetRef ref) async {
   if (_userHomepageWarmQueued) return;
   _userHomepageWarmQueued = true;
   await Future.wait(<Future<Object?>>[
-    ref.read(readingHistoryBooksProvider.future).then<Object?>((_) => null),
+    ref.read(readingHistoryBooksProvider(5).future).then<Object?>((_) => null),
     ref.read(savedBooksProvider.future).then<Object?>((_) => null),
     ref.read(homepageDownloadedBooksProvider.future).then<Object?>((_) => null),
   ]).catchError((_) => <Object?>[]);

@@ -22,6 +22,7 @@ import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
+import '../components/animated_shelf_container.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -108,6 +109,7 @@ class HomeBooksScreen extends ConsumerWidget {
     final trendingAsync = ref.watch(homepageTrendingWorksProvider);
     final recentAsync = ref.watch(homepageRecentProvider);
     final iaAsync = ref.watch(homepageIABooksProvider);
+    final leavesAsync = ref.watch(booksWithLeavesProvider);
     final bannersAsync = ref.watch(homeBannersProvider);
 
     // Watch saved books for the new section
@@ -175,15 +177,21 @@ class HomeBooksScreen extends ConsumerWidget {
 
               const _HeroBanner(),
               const SizedBox(height: 28),
-
               const _ContinueReadingSection(),
-              const SizedBox(height: 28),
-
-              // Saved Books (Local & Remote)
               const _SavedBooksSection(),
-              const SizedBox(height: 28),
 
-              // Wreadom Originals
+              _BookshelfSection(
+                title: l10n.booksWithLeaves,
+                booksAsync: leavesAsync,
+                sectionId: 'books-with-leaves',
+                onRetry: () => ref.invalidate(booksWithLeavesProvider),
+                onSeeAll: () => _openCategory(
+                  context,
+                  'books-with-leaves',
+                  l10n.booksWithLeaves,
+                ),
+              ),
+
               _BookshelfSection(
                 title: _HomeShelfDestination.originals.getLocalizedCategory(
                   l10n,
@@ -197,7 +205,6 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const SizedBox(height: 28),
 
               _BookshelfSection(
                 title: _HomeShelfDestination.trending.getLocalizedCategory(
@@ -212,9 +219,7 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const SizedBox(height: 28),
 
-              // Popular Books
               _BookshelfSection(
                 title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
                 booksAsync: popularAsync,
@@ -226,9 +231,7 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const SizedBox(height: 28),
 
-              // Recently Added
               _BookshelfSection(
                 title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
                 booksAsync: recentAsync,
@@ -240,11 +243,9 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const SizedBox(height: 28),
 
-              // Genre Sections (Filtered)
               const _AuthorsSection(),
-              const SizedBox(height: 28),
+
               _BookshelfSection(
                 title: _HomeShelfDestination.communityClassics
                     .getLocalizedCategory(l10n),
@@ -257,7 +258,7 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const SizedBox(height: 28),
+
               _LazyGenreSection(
                 title: l10n.genreMystery,
                 providerKey: 'mystery',
@@ -796,29 +797,12 @@ class _LazyGenreSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booksAsync = ref.watch(homepageGenreProvider(providerKey));
-    return booksAsync.when(
-      data: (books) {
-        if (books.isEmpty) return const SizedBox.shrink();
-        return Column(
-          children: [
-            _BookshelfSection(
-              title: title,
-              booksAsync: booksAsync,
-              sectionId: sectionId,
-              onRetry: () => refreshHomepage(ref),
-              onSeeAll: () => _openCategory(context, sectionId, title),
-            ),
-            const SizedBox(height: 28),
-          ],
-        );
-      },
-      loading: () => Column(
-        children: [
-          _BookshelfLoadingPlaceholder(title: title),
-          const SizedBox(height: 28),
-        ],
-      ),
-      error: (_, _) => const SizedBox.shrink(),
+    return _BookshelfSection(
+      title: title,
+      booksAsync: booksAsync,
+      sectionId: sectionId,
+      onRetry: () => refreshHomepage(ref),
+      onSeeAll: () => _openCategory(context, sectionId, title),
     );
   }
 }
@@ -830,50 +814,50 @@ class _ContinueReadingSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final booksAsync = ref.watch(readingHistoryBooksProvider);
+    final booksAsync = ref.watch(readingHistoryBooksProvider(5));
     final user = ref.watch(currentUserProvider).asData?.value;
 
-    return booksAsync.when(
-      data: (books) {
-        if (books.isEmpty) return const SizedBox.shrink();
-        final visibleBooks = books.take(12).toList();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                l10n.continueReading,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+    final books = booksAsync.value ?? [];
+    final hasData = booksAsync.hasValue && books.isNotEmpty;
+
+    return AnimatedShelfContainer(
+      visible: hasData,
+      child: hasData
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    l10n.continueReading,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 150,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: visibleBooks.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final book = visibleBooks[index];
-                  final progress = _progressFor(user, book.id);
-                  return _ContinueReadingCard(
-                    book: book,
-                    chapterIndex: progress.chapterIndex,
-                    position: progress.position,
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => _ContinueReadingFogSection(title: l10n.continueReading),
-      error: (_, _) => const SizedBox.shrink(),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 150,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: books.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final book = books[index];
+                      final progress = _progressFor(user, book.id);
+                      return _ContinueReadingCard(
+                        book: book,
+                        chapterIndex: progress.chapterIndex,
+                        position: progress.position,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -886,81 +870,6 @@ class _ContinueReadingSection extends ConsumerWidget {
       position: ((progress['position'] as num?)?.toDouble() ?? 0)
           .clamp(0.0, 1.0)
           .toDouble(),
-    );
-  }
-}
-
-class _ContinueReadingFogSection extends StatelessWidget {
-  const _ContinueReadingFogSection({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitleFog(title: title),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 150,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (_, _) => const _ContinueReadingCardFog(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ContinueReadingCardFog extends StatelessWidget {
-  const _ContinueReadingCardFog();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 260,
-      child: FogReveal(
-        revealed: false,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _FogBlock(
-                width: 82,
-                height: 124,
-                radius: 10,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _FogLine(width: double.infinity, height: 14),
-                    SizedBox(height: 6),
-                    _FogLine(width: 96, height: 14),
-                    SizedBox(height: 8),
-                    _FogLine(width: 116, height: 11),
-                    Spacer(),
-                    _FogLine(width: 92, height: 11),
-                    SizedBox(height: 8),
-                    _FogLine(width: double.infinity, height: 4, radius: 2),
-                    SizedBox(height: 8),
-                    _FogLine(width: 78, height: 10),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1097,22 +1006,14 @@ class _SavedBooksSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final remoteSavedAsync = ref.watch(homepageDownloadedBooksProvider);
 
-    return remoteSavedAsync.when(
-      data: (books) {
-        if (books.isEmpty) return const SizedBox.shrink();
-
-        return _BookshelfSection(
-          title: l10n.yourShelf,
-          booksAsync: remoteSavedAsync,
-          sectionId: 'saved',
-          onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(AppRoutes.savedBooks);
-          },
-        );
+    return _BookshelfSection(
+      title: l10n.yourShelf,
+      booksAsync: remoteSavedAsync,
+      sectionId: 'saved',
+      onRetry: () => ref.invalidate(homepageDownloadedBooksProvider),
+      onSeeAll: () {
+        Navigator.of(context).pushNamed(AppRoutes.savedBooks);
       },
-      loading: () => _BookshelfLoadingPlaceholder(title: l10n.yourShelf),
-      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -1160,204 +1061,161 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authorsAsync = ref.watch(homepageRankedAuthorsProvider(_ranking));
-    return authorsAsync.when(
-      data: (rankedAuthors) {
-        if (rankedAuthors.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.authorsToFollow,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  PopupMenuButton<HomeAuthorRanking>(
-                    tooltip: _rankingLabel(_ranking, l10n),
-                    initialValue: _ranking,
-                    onSelected: (value) => setState(() => _ranking = value),
-                    itemBuilder: (context) => HomeAuthorRanking.values
-                        .map(
-                          (ranking) => PopupMenuItem(
-                            value: ranking,
-                            child: Text(_rankingLabel(ranking, l10n)),
+    final rankedAuthors = authorsAsync.value ?? [];
+    final hasData = authorsAsync.hasValue && rankedAuthors.isNotEmpty;
+
+    return AnimatedShelfContainer(
+      visible: hasData,
+      child: hasData
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.authorsToFollow,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
                           ),
-                        )
-                        .toList(),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 156),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _rankingLabel(_ranking, l10n),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                      PopupMenuButton<HomeAuthorRanking>(
+                        tooltip: _rankingLabel(_ranking, l10n),
+                        initialValue: _ranking,
+                        onSelected: (value) => setState(() => _ranking = value),
+                        itemBuilder: (context) => HomeAuthorRanking.values
+                            .map(
+                              (ranking) => PopupMenuItem(
+                                value: ranking,
+                                child: Text(_rankingLabel(ranking, l10n)),
                               ),
+                            )
+                            .toList(),
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 156),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.expand_more_rounded, size: 18),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _rankingLabel(_ranking, l10n),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.expand_more_rounded, size: 18),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 146,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: rankedAuthors.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  final ranked = rankedAuthors[index];
-                  final author = ranked.author;
-                  final displayName = author.displayName;
-                  final penName = author.penName;
-                  final name = (displayName != null && displayName.isNotEmpty)
-                      ? displayName
-                      : (penName != null && penName.isNotEmpty)
-                      ? penName
-                      : author.username;
-                  final initial = _initialForName(name);
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => Navigator.of(context).pushNamed(
-                      AppRoutes.publicProfile,
-                      arguments: PublicProfileArguments(userId: author.id),
-                    ),
-                    child: SizedBox(
-                      width: 96,
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundImage:
-                                author.photoURL != null &&
-                                    author.photoURL!.isNotEmpty
-                                ? CachedNetworkImageProvider(author.photoURL!)
-                                : null,
-                            child:
-                                (author.photoURL == null ||
-                                    author.photoURL!.isEmpty)
-                                ? initial != null
-                                      ? Text(initial)
-                                      : const Icon(Icons.person_rounded)
-                                : null,
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 146,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: rankedAuthors.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (context, index) {
+                      final ranked = rankedAuthors[index];
+                      final author = ranked.author;
+                      final displayName = author.displayName;
+                      final penName = author.penName;
+                      final name =
+                          (displayName != null && displayName.isNotEmpty)
+                          ? displayName
+                          : (penName != null && penName.isNotEmpty)
+                          ? penName
+                          : author.username;
+                      final initial = _initialForName(name);
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => Navigator.of(context).pushNamed(
+                          AppRoutes.publicProfile,
+                          arguments: PublicProfileArguments(userId: author.id),
+                        ),
+                        child: SizedBox(
+                          width: 96,
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 30,
+                                backgroundImage:
+                                    author.photoURL != null &&
+                                        author.photoURL!.isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                        author.photoURL!,
+                                      )
+                                    : null,
+                                child:
+                                    (author.photoURL == null ||
+                                        author.photoURL!.isEmpty)
+                                    ? initial != null
+                                          ? Text(initial)
+                                          : const Icon(Icons.person_rounded)
+                                    : null,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                name,
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _metricLabel(ranked, l10n),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            name,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            _metricLabel(ranked, l10n),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => _AuthorsFogSection(title: l10n.authorsToFollow),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _AuthorsFogSection extends StatelessWidget {
-  const _AuthorsFogSection({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitleFog(title: title, trailingWidth: 132),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 146,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (_, _) => const _AuthorFogCard(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AuthorFogCard extends StatelessWidget {
-  const _AuthorFogCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96,
-      child: FogReveal(
-        revealed: false,
-        borderRadius: BorderRadius.circular(12),
-        child: const Column(
-          children: [
-            _FogCircle(size: 60),
-            SizedBox(height: 8),
-            _FogLine(width: 78, height: 11),
-            SizedBox(height: 6),
-            _FogLine(width: 54, height: 10),
-          ],
-        ),
-      ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
@@ -1376,28 +1234,29 @@ class _BookshelfSection extends StatelessWidget {
     this.onSeeAll,
     this.onRetry,
   });
-
   @override
   Widget build(BuildContext context) {
     final shelfHeight = (MediaQuery.sizeOf(context).width * 0.54).clamp(
       190.0,
       232.0,
     );
-    final visibleBooks = _currentBooksOrNull(booksAsync);
-    if (visibleBooks != null && visibleBooks.isNotEmpty) {
-      return _buildShelf(context, visibleBooks, shelfHeight);
-    }
+    final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
+    final hasData = books.isNotEmpty;
 
-    return booksAsync.when(
-      data: (books) {
-        if (books.isEmpty) return const SizedBox.shrink();
-
-        return _buildShelf(context, books, shelfHeight);
-      },
-      loading: () =>
-          _BookshelfLoadingPlaceholder(title: title, shelfHeight: shelfHeight),
-      error: (_, _) => const SizedBox.shrink(),
+    return AnimatedShelfContainer(
+      visible: hasData,
+      child: hasData
+          ? _buildShelf(context, books, shelfHeight)
+          : const SizedBox.shrink(),
     );
+  }
+
+  List<Book>? _currentBooksOrNull(AsyncValue<List<Book>> booksAsync) {
+    try {
+      return booksAsync.value;
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildShelf(
@@ -1449,46 +1308,6 @@ class _BookshelfSection extends StatelessWidget {
                 heroTag: 'book-cover-$shelfId-${book.id}',
               );
             },
-          ),
-        ),
-      ],
-    );
-  }
-
-  List<Book>? _currentBooksOrNull(AsyncValue<List<Book>> booksAsync) {
-    try {
-      return booksAsync.value;
-    } catch (_) {
-      return null;
-    }
-  }
-}
-
-class _BookshelfLoadingPlaceholder extends StatelessWidget {
-  const _BookshelfLoadingPlaceholder({required this.title, this.shelfHeight});
-
-  final String title;
-  final double? shelfHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    final height =
-        shelfHeight ??
-        (MediaQuery.sizeOf(context).width * 0.54).clamp(190.0, 232.0);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitleFog(title: title, trailingWidth: 58),
-        const SizedBox(height: 8),
-        SizedBox(
-          key: const ValueKey('bookshelf-loading-placeholder'),
-          height: height,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (_, _) => const _BookCardSkeleton(),
           ),
         ),
       ],
@@ -1573,35 +1392,41 @@ class _BookCardState extends State<_BookCard> {
                     child: _hasNetworkCover
                         ? Hero(
                             tag: widget.heroTag,
-                            child: CachedNetworkImage(
-                              imageUrl: widget.book.coverUrl!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              memCacheWidth: 240,
-                              memCacheHeight: 360,
-                              imageBuilder: (context, imageProvider) {
-                                _markRevealed();
-                                return Image(
-                                  image: imageProvider,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                );
-                              },
-                              placeholder: (context, url) => _FogBlock(
+                            child: _CoverWithLeafBadge(
+                              book: widget.book,
+                              child: CachedNetworkImage(
+                                imageUrl: widget.book.coverUrl!,
+                                fit: BoxFit.cover,
                                 width: double.infinity,
-                                height: double.infinity,
-                                radius: 12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
+                                memCacheWidth: 240,
+                                memCacheHeight: 360,
+                                imageBuilder: (context, imageProvider) {
+                                  _markRevealed();
+                                  return Image(
+                                    image: imageProvider,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  );
+                                },
+                                placeholder: (context, url) => _FogBlock(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  radius: 12,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                ),
+                                errorWidget: (context, url, error) {
+                                  _markRevealed();
+                                  return _CoverPlaceholder(book: widget.book);
+                                },
                               ),
-                              errorWidget: (context, url, error) {
-                                _markRevealed();
-                                return _CoverPlaceholder(book: widget.book);
-                              },
                             ),
                           )
-                        : _CoverPlaceholder(book: widget.book),
+                        : _CoverWithLeafBadge(
+                            book: widget.book,
+                            child: _CoverPlaceholder(book: widget.book),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1654,84 +1479,51 @@ class _CoverPlaceholder extends StatelessWidget {
   }
 }
 
-// Skeleton placeholder
-class _BookCardSkeleton extends StatelessWidget {
-  const _BookCardSkeleton();
+class _CoverWithLeafBadge extends StatelessWidget {
+  const _CoverWithLeafBadge({required this.book, required this.child});
+
+  final Book book;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 120,
-      child: FogReveal(
-        revealed: false,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+    final hasLeaves = book.hasLeaves == true || (book.leafCount ?? 0) > 0;
+    if (!hasLeaves) return child;
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        Positioned(
+          right: 6,
+          top: 6,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer.withValues(alpha: 0.94),
+              shape: BoxShape.circle,
+              border: Border.all(color: scheme.surface.withValues(alpha: 0.86)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: Icon(
+                Icons.eco_rounded,
+                size: 14,
+                color: scheme.onPrimaryContainer,
               ),
             ),
-            const SizedBox(height: 8),
-            _FogLine(
-              height: 12,
-              width: 100,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-            const SizedBox(height: 4),
-            _FogLine(
-              height: 10,
-              width: 70,
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _SectionTitleFog extends StatelessWidget {
-  const _SectionTitleFog({required this.title, this.trailingWidth});
-
-  final String title;
-  final double? trailingWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    final titleWidth = math
-        .min(220.0, math.max(96.0, title.characters.length * 8.0))
-        .toDouble();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _FogLine(width: titleWidth, height: 20),
-          const Spacer(),
-          if (trailingWidth != null)
-            _FogLine(width: trailingWidth!, height: 18, radius: 9),
-        ],
-      ),
+      ],
     );
   }
 }
 
 class _FogLine extends StatelessWidget {
-  const _FogLine({
-    required this.width,
-    required this.height,
-    this.radius = 4,
-    this.color,
-  });
+  const _FogLine({required this.width, required this.height, this.radius = 4});
 
   final double width;
   final double height;
   final double radius;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -1739,7 +1531,7 @@ class _FogLine extends StatelessWidget {
       width: width,
       height: height,
       radius: radius,
-      color: color ?? Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
     );
   }
 }
