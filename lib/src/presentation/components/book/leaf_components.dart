@@ -1112,7 +1112,7 @@ IconData _leafTypeIcon(LeafType type) {
     LeafType.link => Icons.link_rounded,
     LeafType.audio => Icons.graphic_eq_rounded,
     LeafType.question => Icons.help_outline_rounded,
-    LeafType.certificate => Icons.workspace_premium_outlined,
+    LeafType.certificate => Icons.card_membership_outlined,
   };
 }
 

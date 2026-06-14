@@ -422,6 +422,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                                             user.penName ??
                                             user.username,
                                         userPhotoUrl: user.photoURL,
+                                        userBook: participantBook,
                                       ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -570,6 +571,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
               ),
               topicName: topic.topicName,
               date: certificateDate,
+              bookCoverUrl: participantBook?.coverUrl,
             ),
           ),
         ),
@@ -580,6 +582,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
   Future<void> _downloadCertificate({
     required String userName,
     required String? userPhotoUrl,
+    required Book? userBook,
   }) async {
     setState(() => _isGeneratingCertificate = true);
     try {
@@ -600,6 +603,15 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
       final filename = 'Wreadom_Certificate_${safeTopic}_$safeUser.jpg';
       final savedPath = await saveCertificateBytes(jpgBytes, filename);
 
+      final String shareText;
+      if (userBook != null) {
+        final authorName = userBook.authors.firstOrNull?.name ?? '';
+        shareText =
+            'wreadom participation certificate for "${userBook.title}" by "$authorName" ${AppLinkHelper.book(userBook.id)}';
+      } else {
+        shareText = 'My Wreadom participation certificate';
+      }
+
       await Share.shareXFiles([
         XFile.fromData(
           jpgBytes,
@@ -607,7 +619,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
           mimeType: 'image/jpeg',
           path: savedPath,
         ),
-      ], text: 'My Wreadom participation certificate');
+      ], text: shareText);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

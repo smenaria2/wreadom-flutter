@@ -88,6 +88,7 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
           ? leaf.certificateTopicName!.trim()
           : l10n.dailyTopic,
       date: formatCertificateDateFromMillis(issuedAt),
+      bookCoverUrl: widget.book.coverUrl,
     );
   }
 
@@ -116,8 +117,7 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
           ),
         ],
         text:
-            'My Wreadom participation certificate for "${widget.book.title}"\n'
-            '${AppLinkHelper.book(widget.book.id)}',
+            'wreadom participation certificate for "${widget.book.title}" by "${widget.book.authors.firstOrNull?.name ?? ''}" ${AppLinkHelper.book(widget.book.id)}',
         subject: widget.book.title,
       );
     } finally {

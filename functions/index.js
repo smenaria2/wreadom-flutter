@@ -329,6 +329,98 @@ async function createAdminContentRecommendationNotifications({
   return {created, skipped};
 }
 
+function truncatedNotificationValue(value, maxLength) {
+  const normalized = normalizeString(value).replace(/\s+/g, " ");
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}...`;
+}
+
+function reportReporterId(data = {}) {
+  return notificationValue(data.reporterId, data.reportedBy, data.userId);
+}
+
+async function reportReporterName(data = {}) {
+  const explicitName = notificationValue(
+      data.reporterUsername,
+      data.reporterName,
+      data.reporterDisplayName,
+      data.reporterEmail,
+  );
+  if (explicitName) return truncatedNotificationValue(explicitName, 80);
+
+  const reporterId = reportReporterId(data);
+  if (reporterId && reporterId !== "anonymous") {
+    const reporter = await getUserDoc(reporterId).catch(() => null);
+    if (reporter) {
+      const displayName = userDisplayName(reporter);
+      if (displayName) return truncatedNotificationValue(displayName, 80);
+    }
+    return truncatedNotificationValue(reporterId, 80);
+  }
+
+  return "Anonymous";
+}
+
+function reportNotificationTitle(data = {}) {
+  const title = notificationValue(
+      data.title,
+      data.reason,
+      data.targetType,
+      data.type,
+      data.issue,
+      data.details,
+      data.comment,
+  );
+  return truncatedNotificationValue(title || "Untitled report", 120);
+}
+
+async function notifyAdminsForNewReport(reportId, data = {}) {
+  const adminsSnapshot = await db.collection("admins").get();
+  const adminIds = adminsSnapshot.docs
+      .map((doc) => normalizeString(doc.id))
+      .filter(Boolean);
+  if (adminIds.length === 0) {
+    logger.info(`No admins found for report notification ${reportId}.`);
+    return;
+  }
+
+  const reporterId = reportReporterId(data);
+  const reporterName = await reportReporterName(data);
+  const reportTitle = reportNotificationTitle(data);
+  const reportType = notificationValue(data.type, data.targetType);
+  const reportReason = notificationValue(data.reason);
+  const reportTargetId = notificationValue(data.targetId);
+
+  await Promise.all(
+      adminIds.map((adminId) =>
+        createNotificationDoc(
+            `admin_report_${reportId}_${adminId}`,
+            buildNotification({
+              userId: adminId,
+              actorId: SYSTEM_ACTOR_ID,
+              actorName: "New report",
+              actorPhotoURL: null,
+              type: "admin_report",
+              text: `submitted by '${reporterName}' - '${reportTitle}'.`,
+              link: "/reports",
+              targetId: reportId,
+              metadata: {
+                source: "report_submission",
+                reportId,
+                reporterId,
+                reporterName,
+                reportTitle,
+                targetType: "report",
+                ...(reportType ? {reportType} : {}),
+                ...(reportReason ? {reportReason} : {}),
+                ...(reportTargetId ? {reportTargetId} : {}),
+              },
+            }),
+        )
+      ),
+  );
+}
+
 function notificationValue(...values) {
   for (const value of values) {
     const normalized = normalizeString(value);
@@ -928,6 +1020,11 @@ exports.sendPushNotification = functionsV1.firestore.document("notifications/{no
   }
 
   await sendPushNotificationToUser(data.userId, data, context.params.notificationId);
+});
+
+exports.onReportCreated = functionsV1.firestore.document("reports/{reportId}").onCreate(async (snapshot, context) => {
+  await notifyAdminsForNewReport(context.params.reportId, snapshot.data() || {});
+  return null;
 });
 
 exports.claimFcmToken = functionsV1.https.onCall(async (data, context) => {

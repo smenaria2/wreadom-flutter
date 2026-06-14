@@ -9,12 +9,14 @@ class ParticipationCertificate extends StatelessWidget {
     required this.userPhotoUrl,
     required this.topicName,
     required this.date,
+    this.bookCoverUrl,
   });
 
   final String userName;
   final String? userPhotoUrl;
   final String topicName;
   final String date;
+  final String? bookCoverUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -30,17 +32,17 @@ class ParticipationCertificate extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.05,
-                child: GridPaper(
-                  color: const Color(0xFFC5A059),
-                  interval: 32,
-                  subdivisions: 1,
-                  child: Container(),
+            if (bookCoverUrl != null && bookCoverUrl!.isNotEmpty)
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.05,
+                  child: CachedNetworkImage(
+                    imageUrl: bookCoverUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => const SizedBox.shrink(),
+                  ),
                 ),
               ),
-            ),
             for (final alignment in const [
               Alignment.topLeft,
               Alignment.topRight,
@@ -237,18 +239,18 @@ class ParticipationCertificate extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 72,
+              left: 40,
               bottom: 30,
               child: _CertificateSignature(
-                name: 'Shradha',
+                name: "Shraddha 'Meera'",
                 title: 'Agaaz Admin',
               ),
             ),
             Positioned(
-              right: 72,
+              right: 40,
               bottom: 30,
               child: _CertificateSignature(
-                name: 'Sumit',
+                name: 'Sumit Menaria',
                 title: 'Wreadom Admin',
               ),
             ),
@@ -299,7 +301,7 @@ class _CertificateSignature extends StatelessWidget {
               name,
               style: GoogleFonts.dancingScript(
                 color: const Color(0xCC4338CA),
-                fontSize: 28,
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
             ),
