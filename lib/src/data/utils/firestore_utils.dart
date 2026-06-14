@@ -253,6 +253,7 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
         'wordCount',
         'audioDurationMs',
         'audioSizeBytes',
+        'certificateIssuedAt',
       ]) {
         map[key] = map[key] is int
             ? map[key]

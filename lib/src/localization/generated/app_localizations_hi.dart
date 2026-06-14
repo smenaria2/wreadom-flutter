@@ -479,7 +479,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get exploreNow => 'अभी खोजें';
 
   @override
-  String get dailyTopic => 'दैनिक विषय';
+  String get dailyTopic => 'आगाज़ टॉपिक्स';
+
+  @override
+  String get agaazTopicInfoTitle => 'आगाज़ टॉपिक्स के बारे में';
+
+  @override
+  String get agaazTopicInfoBody =>
+      'ये विषय आगाज़ टीम द्वारा प्रदान किए गए हैं। आप इनमें से किसी भी विषय पर लिख सकते हैं और सबमिशन पर भागीदारी प्रमाणपत्र प्राप्त कर सकते हैं।\n\nअसाधारण प्रविष्टियों को आगाज़ टीम द्वारा \'रीक्रिएट (Recreate)\' के लिए चुना जा सकता है – जिसमें इंस्टाग्राम रील्स, ऑडियो नैरेशन, पोस्टर और अन्य रचनात्मक कार्यों जैसी पूरक सामग्री का निर्माण शामिल है। ये रीक्रिएशन आपके काम को प्रदर्शित करने और बढ़ावा देने के लिए आपके सबमिशन के साथ जोड़े जाएंगे।\n\nयदि आप नहीं चाहते कि आपके काम के साथ ऐसी कोई पूरक सामग्री बनाई या जोड़ी जाए, तो आप नीचे रीक्रिएट को अक्षम (disable) कर सकते हैं।';
+
+  @override
+  String get optOutComplementaryTitle => 'पूरक सामग्री से ऑप्ट-आउट करें';
+
+  @override
+  String get optOutComplementarySubtitle =>
+      'आगाज़ टीम आपकी कहानी के साथ रील्स, ऑडियो नैरेशन, पोस्टर आदि नहीं बनाएगी।';
+
+  @override
+  String get recreateEnabled => 'रीक्रिएट सक्षम है';
+
+  @override
+  String get recreateDisabled => 'रीक्रिएट अक्षम है';
+
+  @override
+  String get enableRecreateTitle => 'रीक्रिएट सक्षम करें';
+
+  @override
+  String get enableRecreateSubtitle =>
+      'आगाज़ टीम को अपनी कहानी के लिए रील्स, ऑडियो नैरेशन, पोस्टर आदि बनाने की अनुमति दें।';
 
   @override
   String get readMore => 'और पढ़ें';
@@ -994,7 +1021,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'अभी कोई सेव या डाउनलोड की गई रचना नहीं है';
 
   @override
-  String get dailyTopicNotFound => 'आज का विषय नहीं मिला';
+  String get dailyTopicNotFound => 'आगाज़ टॉपिक नहीं मिला';
 
   @override
   String get participateNow => 'भाग लें';
@@ -1956,11 +1983,11 @@ class AppLocalizationsHi extends AppLocalizations {
       'रीडम् आपको कम्युनिटी ओरिजिनल के साथ-साथ लाखों क्लासिक रचनाओं और सार्वजनिक डोमेन रचनाओं तक पहुँच देने के लिए इंटरनेट आर्काइव से जुड़ता है।';
 
   @override
-  String get faqDailyTopicQ => 'दैनिक विषय (Daily Topic) क्या है?';
+  String get faqDailyTopicQ => 'आगाज़ टॉपिक्स क्या हैं?';
 
   @override
   String get faqDailyTopicA =>
-      'हर दिन, रीडम् एक नया लेखन या चर्चा प्रॉम्प्ट पेश करता है। भाग लेने के लिए होम फीड पर बैनर पर टैप करें।';
+      'आगाज़ टॉपिक्स आगाज़ टीम की ओर से लेखन प्रॉम्प्ट हैं। भाग लेने और दूसरों की रचनाएँ देखने के लिए होम फीड पर बैनर पर टैप करें।';
 
   @override
   String get faqFollowAuthorQ => 'मैं किसी लेखक को कैसे फ़ॉलो करूँ?';
@@ -2050,11 +2077,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get faqDailyTopicsParticipationQ =>
-      'मैं दैनिक विषयों में कैसे भाग लूँ?';
+      'मैं आगाज़ टॉपिक्स में कैसे भाग लूँ?';
 
   @override
   String get faqDailyTopicsParticipationA =>
-      'अपने होम फीड पर डेली टॉपिक बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।';
+      'अपने होम फीड पर आगाज़ टॉपिक्स बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।';
 
   @override
   String get faqFeedUpdatesQ => 'मेरी फीड में क्या दिखता है?';
@@ -2394,4 +2421,100 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get leafRecordAudioFirst => 'Record audio first.';
+
+  @override
+  String get copyContent => 'सामग्री कॉपी करें';
+
+  @override
+  String get chapterContentCopied => 'अध्याय की सामग्री कॉपी हो गई।';
+
+  @override
+  String get couldNotCopyContent => 'सामग्री कॉपी नहीं हो सकी।';
+
+  @override
+  String get createDraft => 'ड्राफ़्ट बनाएं';
+
+  @override
+  String get addToBook => 'पुस्तक में जोड़ें';
+
+  @override
+  String get selectBookForDraft => 'पुस्तक चुनें';
+
+  @override
+  String get noPublishedBooksToAddDraft =>
+      'इस ड्राफ़्ट को जोड़ने से पहले कोई पुस्तक प्रकाशित करें।';
+
+  @override
+  String get draftAddedToBook => 'ड्राफ़्ट पुस्तक में जोड़ दिया गया।';
+
+  @override
+  String couldNotAddDraftToBook(String error) {
+    return 'ड्राफ़्ट पुस्तक में नहीं जोड़ा जा सका: $error';
+  }
+
+  @override
+  String get adminDailyTopicsTitle => 'आगाज़ टॉपिक्स एडमिन';
+
+  @override
+  String get adminAccessRequired => 'एडमिन एक्सेस आवश्यक है।';
+
+  @override
+  String get manageDailyTopics => 'आगाज़ टॉपिक्स प्रबंधित करें';
+
+  @override
+  String get newTopic => 'नया टॉपिक';
+
+  @override
+  String get editTopic => 'टॉपिक एडिट करें';
+
+  @override
+  String get topicName => 'टॉपिक नाम';
+
+  @override
+  String get shortDescription => 'छोटा विवरण';
+
+  @override
+  String get fullDescription => 'पूरा विवरण';
+
+  @override
+  String get enabled => 'सक्रिय';
+
+  @override
+  String get cover => 'कवर';
+
+  @override
+  String get uploading => 'अपलोड हो रहा है...';
+
+  @override
+  String get saveTopic => 'टॉपिक सेव करें';
+
+  @override
+  String get saving => 'सेव हो रहा है...';
+
+  @override
+  String get topicNameRequired => 'टॉपिक नाम आवश्यक है।';
+
+  @override
+  String get topicSaved => 'टॉपिक सेव हो गया।';
+
+  @override
+  String get deleteTopicTitle => 'टॉपिक हटाएं?';
+
+  @override
+  String deleteTopicBody(String topic) {
+    return 'यह \"$topic\" को हमेशा के लिए हटा देगा।';
+  }
+
+  @override
+  String get signInAgainToUploadImages =>
+      'इमेज अपलोड करने के लिए फिर से साइन इन करें।';
+
+  @override
+  String get untitledTopic => 'बिना शीर्षक वाला टॉपिक';
+
+  @override
+  String get noTopicsFound => 'कोई टॉपिक नहीं मिला।';
+
+  @override
+  String get loadMoreTopics => 'और टॉपिक लोड करें';
 }

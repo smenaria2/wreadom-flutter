@@ -564,6 +564,7 @@ class _ProfileSideMenu extends ConsumerWidget {
     final themeMode = ref.watch(appThemeControllerProvider);
     final l10n = AppLocalizations.of(context)!;
     final currentLocale = ref.watch(localeControllerProvider);
+    final isAdmin = ref.watch(currentUserAdminClaimProvider).value ?? false;
 
     return Drawer(
       backgroundColor: Colors.transparent,
@@ -599,6 +600,12 @@ class _ProfileSideMenu extends ConsumerWidget {
                       title: l10n.editProfile,
                       onTap: () => _go(context, AppRoutes.profileSettings),
                     ),
+                    if (isAdmin)
+                      _MenuTile(
+                        icon: Icons.topic_outlined,
+                        title: l10n.manageDailyTopics,
+                        onTap: () => _go(context, AppRoutes.adminDailyTopics),
+                      ),
                     const Divider(),
                     _MenuSectionLabel(label: l10n.preferences),
                     _MenuTile(

@@ -9,6 +9,7 @@ import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
+import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
 
 void main() {
@@ -85,6 +86,43 @@ void main() {
     expect(find.text('Opening'), findsOneWidget);
     expect(find.textContaining('Hello', findRichText: true), findsWidgets);
     expect(find.textContaining('<strong>'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('chapter draft mode shows simple draft actions only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: const [
+            ...AppLocalizations.localizationsDelegates,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const WriterPadScreen(
+            mode: WriterPadMode.chapterDraft,
+            restoreLocalDrafts: false,
+            showToolbar: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Save Draft'), findsOneWidget);
+    expect(find.text('Add to book'), findsOneWidget);
+    expect(find.text('Next'), findsNothing);
+    expect(find.text('Publish'), findsNothing);
+    expect(find.byTooltip('Chapters'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

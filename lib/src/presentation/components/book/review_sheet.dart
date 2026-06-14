@@ -64,7 +64,8 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       return;
     }
 
-    final user = ref.read(currentUserProvider).asData?.value;
+    final user = await ref.read(currentUserProvider.future);
+    if (!mounted) return;
     if (user == null) {
       ScaffoldMessenger.of(
         context,

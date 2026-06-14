@@ -27,8 +27,10 @@ import '../screens/static_info_screen.dart';
 import '../screens/writer_dashboard_screen.dart';
 import '../screens/writer_pad_screen.dart';
 import '../screens/archive_reader_screen.dart';
+import '../screens/admin_daily_topics_screen.dart';
 import '../components/main_route_gate.dart';
 import 'app_routes.dart';
+import 'writer_pad_mode.dart';
 
 class ReaderArguments {
   const ReaderArguments({required this.book, this.initialChapterIndex = 0});
@@ -71,13 +73,6 @@ class ConversationArguments {
   final String conversationId;
   final String title;
   final String? subtitle;
-}
-
-class WriterPadArguments {
-  const WriterPadArguments({this.book, this.initialTopic});
-
-  final Book? book;
-  final String? initialTopic;
 }
 
 class PostDetailArguments {
@@ -349,6 +344,8 @@ class AppRouter {
           builder: (_) => WriterPadScreen(
             book: args?.book,
             initialTopic: args?.initialTopic,
+            mode: args?.mode ?? WriterPadMode.content,
+            optOutComplementary: args?.optOutComplementary,
           ),
         );
       case AppRoutes.postDetail:
@@ -501,6 +498,11 @@ class AppRouter {
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (_) => ArchiveReaderScreen(book: args),
+        );
+      case AppRoutes.adminDailyTopics:
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const AdminDailyTopicsScreen(),
         );
       case AppRoutes.notFound:
         final args = resolvedArguments;

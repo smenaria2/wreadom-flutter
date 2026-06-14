@@ -42,6 +42,17 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
     state = AsyncValue.data(_allTopics.take(_limit).toList());
   }
 
+  Future<void> refreshNow() async {
+    final remoteTopics = await _fetchRemoteTopics();
+    if (remoteTopics == null) return;
+
+    await _writeCachedTopics(remoteTopics);
+    _allTopics = _mergeTopics(remoteTopics, const []);
+    if (ref.mounted) {
+      state = AsyncValue.data(_allTopics.take(_limit).toList());
+    }
+  }
+
   Future<DailyTopic?> findTopicById(String? topicId) async {
     final topics = await _ensureAllTopics();
     if (topics.isEmpty) return null;

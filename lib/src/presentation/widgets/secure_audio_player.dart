@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -8,19 +9,25 @@ class SecureAudioPlayer extends StatefulWidget {
   const SecureAudioPlayer({
     super.key,
     required this.url,
+    this.localPath,
     this.objectKey,
     this.durationMs,
     this.label = 'Audio',
     this.textColor,
     this.metadataColor,
+    this.onClose,
+    this.compact = true,
   });
 
   final String url;
+  final String? localPath;
   final String? objectKey;
   final int? durationMs;
   final String label;
   final Color? textColor;
   final Color? metadataColor;
+  final VoidCallback? onClose;
+  final bool compact;
 
   @override
   State<SecureAudioPlayer> createState() => _SecureAudioPlayerState();
@@ -43,6 +50,7 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
   void didUpdateWidget(covariant SecureAudioPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url ||
+        oldWidget.localPath != widget.localPath ||
         oldWidget.objectKey != widget.objectKey) {
       _loaded = false;
       _error = null;
@@ -73,8 +81,17 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
         _error = null;
       });
       if (!_loaded) {
-        _resolvedUrl ??= await _audioUrl();
-        await _player.setUrl(_resolvedUrl!);
+        final localPath = widget.localPath?.trim();
+        if (localPath != null && localPath.isNotEmpty) {
+          if (kIsWeb) {
+            await _player.setUrl(localPath);
+          } else {
+            await _player.setFilePath(localPath);
+          }
+        } else {
+          _resolvedUrl ??= await _audioUrl();
+          await _player.setUrl(_resolvedUrl!);
+        }
         _loaded = true;
       }
       unawaited(_player.play());
@@ -83,6 +100,20 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
       if (mounted) setState(() => _loading = false);
     } finally {
       if (mounted && _loading) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _replay() async {
+    try {
+      if (!_loaded) {
+        await _toggle();
+        return;
+      }
+      await _player.seek(Duration.zero);
+      unawaited(_player.play());
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Could not replay audio');
     }
   }
 
@@ -97,10 +128,13 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
     final theme = Theme.of(context);
     final fallback = Duration(milliseconds: widget.durationMs ?? 0);
     final foreground = widget.textColor ?? theme.colorScheme.onSurface;
+    final padding = widget.compact
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+        : const EdgeInsets.fromLTRB(14, 12, 14, 12);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: padding,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(widget.compact ? 8 : 16),
         color: theme.colorScheme.surfaceContainerHighest.withValues(
           alpha: 0.55,
         ),
@@ -108,32 +142,13 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StreamBuilder<PlayerState>(
-            stream: _player.playerStateStream,
-            builder: (context, snapshot) {
-              final state = snapshot.data;
-              final playing = state?.playing == true;
-              final buffering =
-                  state?.processingState == ProcessingState.loading ||
-                  state?.processingState == ProcessingState.buffering;
-              return IconButton(
-                tooltip: playing ? 'Pause audio' : 'Play audio',
-                visualDensity: VisualDensity.compact,
-                onPressed: _loading ? null : _toggle,
-                icon: _loading || buffering
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        playing
-                            ? Icons.pause_circle_filled_rounded
-                            : Icons.play_circle_fill_rounded,
-                      ),
-                color: theme.colorScheme.primary,
-              );
-            },
+          _PlayerButton(player: _player, loading: _loading, onToggle: _toggle),
+          IconButton(
+            tooltip: 'Replay audio',
+            visualDensity: VisualDensity.compact,
+            onPressed: _loading ? null : _replay,
+            icon: const Icon(Icons.replay_rounded),
+            color: theme.colorScheme.primary,
           ),
           Flexible(
             child: StreamBuilder<Duration>(
@@ -158,8 +173,60 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
               },
             ),
           ),
+          if (widget.onClose != null)
+            IconButton(
+              tooltip: 'Close audio',
+              visualDensity: VisualDensity.compact,
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close_rounded),
+              color: widget.metadataColor ?? foreground,
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _PlayerButton extends StatelessWidget {
+  const _PlayerButton({
+    required this.player,
+    required this.loading,
+    required this.onToggle,
+  });
+
+  final AudioPlayer player;
+  final bool loading;
+  final Future<void> Function() onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<PlayerState>(
+      stream: player.playerStateStream,
+      builder: (context, snapshot) {
+        final theme = Theme.of(context);
+        final state = snapshot.data;
+        final playing = state?.playing == true;
+        final buffering =
+            state?.processingState == ProcessingState.loading ||
+            state?.processingState == ProcessingState.buffering;
+        return IconButton(
+          tooltip: playing ? 'Pause audio' : 'Play audio',
+          visualDensity: VisualDensity.compact,
+          onPressed: loading ? null : onToggle,
+          icon: loading || buffering
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  playing
+                      ? Icons.pause_circle_filled_rounded
+                      : Icons.play_circle_fill_rounded,
+                ),
+          color: theme.colorScheme.primary,
+        );
+      },
     );
   }
 }

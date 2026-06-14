@@ -7,7 +7,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as image_codec;
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
@@ -15,11 +14,13 @@ import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/certificate_file_saver.dart';
 import '../components/book_card.dart';
+import '../components/book/participation_certificate.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/daily_topic_providers.dart';
-import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../routing/writer_pad_mode.dart';
+import '../widgets/agaaz_topic_info_dialog.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
@@ -133,6 +134,7 @@ class _DailyTopicBody extends ConsumerStatefulWidget {
 class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
   final GlobalKey _certificateKey = GlobalKey();
   bool _isGeneratingCertificate = false;
+  bool _optOutComplementary = false;
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +143,19 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
     final topic = widget.topic;
     final booksAsync = ref.watch(dailyTopicBooksProvider(topic));
     final userAsync = ref.watch(currentUserProvider);
+    final currentUser = userAsync.asData?.value;
+    final submittedBooks = booksAsync.asData?.value ?? const <Book>[];
+    final participantBook = currentUser == null
+        ? null
+        : submittedBooks.cast<Book?>().firstWhere(
+            (book) => book?.authorId == currentUser.id,
+            orElse: () => null,
+          );
+    final certificateDate = formatCertificateDateFromMillis(
+      participantBook?.publishedAt ??
+          participantBook?.createdAt ??
+          participantBook?.updatedAt,
+    );
 
     Future<void> refresh() async {
       ref.invalidate(dailyTopicsProvider);
@@ -234,13 +249,27 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                                 color: theme.colorScheme.primary,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text(
-                                l10n.dailyTopic,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ClipOval(
+                                    child: Image.asset(
+                                      'assets/images/agaaz_logo.jpg',
+                                      width: 14,
+                                      height: 14,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    l10n.dailyTopic,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -275,11 +304,34 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     if (topic.fullDescription.isNotEmpty) ...[
-                      Text(
-                        l10n.aboutThisTopic,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            l10n.aboutThisTopic,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: Icon(
+                              Icons.info_outline,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                            onPressed: () => showAgaazTopicInfoDialog(
+                              context: context,
+                              optOutComplementary: _optOutComplementary,
+                              onOptOutChanged: (val) {
+                                setState(() {
+                                  _optOutComplementary = val;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -295,11 +347,58 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                       child: FilledButton.icon(
                         icon: const Icon(Icons.edit_rounded),
                         label: Text(l10n.participateNow),
-                        onPressed: () => Navigator.of(context).pushNamed(
-                          AppRoutes.writerPad,
-                          arguments: WriterPadArguments(
-                            initialTopic: topic.topicName,
+                        onPressed: () async {
+                          await Navigator.of(context).pushNamed(
+                            AppRoutes.writerPad,
+                            arguments: WriterPadArguments(
+                              initialTopic: topic.topicName,
+                              optOutComplementary: _optOutComplementary,
+                            ),
+                          );
+                          if (!context.mounted) return;
+                          await refresh();
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => showAgaazTopicInfoDialog(
+                          context: context,
+                          optOutComplementary: _optOutComplementary,
+                          onOptOutChanged: (val) {
+                            setState(() {
+                              _optOutComplementary = val;
+                            });
+                          },
+                        ),
+                        icon: Icon(
+                          !_optOutComplementary
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.info_outline_rounded,
+                          size: 14,
+                          color: !_optOutComplementary
+                              ? Colors.green
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        label: Text(
+                          !_optOutComplementary
+                              ? l10n.recreateEnabled
+                              : l10n.recreateDisabled,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: !_optOutComplementary
+                                ? Colors.green
+                                : theme.colorScheme.onSurfaceVariant,
+                            decoration: TextDecoration.underline,
                           ),
+                        ),
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     ),
@@ -358,62 +457,97 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                       orElse: () => const SizedBox.shrink(),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Text(
-                          l10n.submissionsReceived,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    GlassSurface(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                l10n.submissionsReceived,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                tooltip: 'Refresh submissions',
+                                icon: const Icon(Icons.refresh_rounded),
+                                onPressed: refresh,
+                              ),
+                              booksAsync.maybeWhen(
+                                data: (books) => Chip(
+                                  label: Text('${books.length}'),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                orElse: () => const SizedBox.shrink(),
+                              ),
+                            ],
                           ),
-                        ),
-                        const Spacer(),
-                        booksAsync.maybeWhen(
-                          data: (books) => Chip(
-                            label: Text('${books.length}'),
-                            visualDensity: VisualDensity.compact,
+                          const SizedBox(height: 16),
+                          booksAsync.when(
+                            data: (books) {
+                              if (books.isEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 32.0,
+                                    ),
+                                    child: Text(
+                                      l10n.noSubmissionsYet,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      childAspectRatio: 0.56,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 18,
+                                    ),
+                                itemCount: books.length,
+                                itemBuilder: (context, index) =>
+                                    BookCard(book: books[index]),
+                              );
+                            },
+                            loading: () => const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            error: (error, _) => Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32.0,
+                                ),
+                                child: Text(
+                                  l10n.failedToLoadSubmissions(
+                                    error.toString(),
+                                  ),
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          orElse: () => const SizedBox.shrink(),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                   ]),
-                ),
-              ),
-              booksAsync.when(
-                data: (books) {
-                  if (books.isEmpty) {
-                    return SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(child: Text(l10n.noSubmissionsYet)),
-                    );
-                  }
-                  return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 0.56,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 18,
-                          ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => BookCard(book: books[index]),
-                        childCount: books.length,
-                      ),
-                    ),
-                  );
-                },
-                loading: () => const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, _) => SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Text(l10n.failedToLoadSubmissions(error.toString())),
-                  ),
                 ),
               ),
             ],
@@ -424,7 +558,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
           top: -2000,
           child: RepaintBoundary(
             key: _certificateKey,
-            child: _ParticipationCertificate(
+            child: ParticipationCertificate(
               userName: userAsync.maybeWhen(
                 data: (user) =>
                     user?.displayName ?? user?.penName ?? user?.username ?? '',
@@ -435,31 +569,12 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                 orElse: () => null,
               ),
               topicName: topic.topicName,
-              date: _certificateDate(),
+              date: certificateDate,
             ),
           ),
         ),
       ],
     );
-  }
-
-  String _certificateDate() {
-    final now = DateTime.now();
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
   Future<void> _downloadCertificate({
@@ -513,293 +628,6 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
     final decoded = image_codec.decodePng(pngBytes);
     if (decoded == null) return pngBytes;
     return Uint8List.fromList(image_codec.encodeJpg(decoded, quality: 95));
-  }
-}
-
-class _ParticipationCertificate extends StatelessWidget {
-  const _ParticipationCertificate({
-    required this.userName,
-    required this.userPhotoUrl,
-    required this.topicName,
-    required this.date,
-  });
-
-  final String userName;
-  final String? userPhotoUrl;
-  final String topicName;
-  final String date;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayName = userName.trim().isEmpty ? 'User' : userName.trim();
-    return Material(
-      color: Colors.white,
-      child: Container(
-        width: 842,
-        height: 595,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFC5A059), width: 16),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.05,
-                child: GridPaper(
-                  color: const Color(0xFFC5A059),
-                  interval: 32,
-                  subdivisions: 1,
-                  child: Container(),
-                ),
-              ),
-            ),
-            for (final alignment in const [
-              Alignment.topLeft,
-              Alignment.topRight,
-              Alignment.bottomLeft,
-              Alignment.bottomRight,
-            ])
-              Align(
-                alignment: alignment,
-                child: Container(
-                  width: 128,
-                  height: 128,
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: alignment.y < 0
-                          ? const BorderSide(color: Color(0xFFC5A059), width: 8)
-                          : BorderSide.none,
-                      bottom: alignment.y > 0
-                          ? const BorderSide(color: Color(0xFFC5A059), width: 8)
-                          : BorderSide.none,
-                      left: alignment.x < 0
-                          ? const BorderSide(color: Color(0xFFC5A059), width: 8)
-                          : BorderSide.none,
-                      right: alignment.x > 0
-                          ? const BorderSide(color: Color(0xFFC5A059), width: 8)
-                          : BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(72, 32, 72, 128),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/app_logo.png',
-                      width: 56,
-                      height: 56,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'CERTIFICATE',
-                      style: TextStyle(
-                        color: Color(0xFF8B6B23),
-                        fontSize: 34,
-                        fontFamily: 'Serif',
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                    const Text(
-                      'OF PARTICIPATION',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 26),
-                    const Text(
-                      'This is to certify that',
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    CircleAvatar(
-                      radius: 34,
-                      backgroundColor: const Color(0xFFFF8A65),
-                      backgroundImage:
-                          userPhotoUrl != null && userPhotoUrl!.isNotEmpty
-                          ? CachedNetworkImageProvider(userPhotoUrl!)
-                          : null,
-                      child: userPhotoUrl == null || userPhotoUrl!.isEmpty
-                          ? Text(
-                              displayName.characters.first.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(42, 0, 42, 8),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Color(0x55C5A059),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 30,
-                          fontFamily: 'Serif',
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'has successfully participated in the',
-                      style: TextStyle(
-                        color: Color(0xFF475569),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      topicName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF1E293B),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const SizedBox(
-                      width: 470,
-                      child: Text(
-                        '"We appreciate your participation and your contribution to the spirit of literature through your writing."',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 13,
-                          height: 1.45,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 104,
-              bottom: 38,
-              child: _CertificateFooterLabel(label: 'DATE', value: date),
-            ),
-            const Positioned(
-              right: 34,
-              bottom: 30,
-              child: _CertificateSignature(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CertificateSignature extends StatelessWidget {
-  const _CertificateSignature();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 172,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Transform.rotate(
-            angle: -0.1,
-            child: Text(
-              'Sumit',
-              style: GoogleFonts.dancingScript(
-                color: Color(0xCC4338CA),
-                fontSize: 34,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(
-            width: 132,
-            child: Divider(color: Color(0xFFE2E8F0), height: 12),
-          ),
-          const Text(
-            'ADMIN SIGNATURE',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CertificateFooterLabel extends StatelessWidget {
-  const _CertificateFooterLabel({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(
-          width: 130,
-          child: Divider(color: Color(0xFFF1F5F9), height: 10),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
   }
 }
 

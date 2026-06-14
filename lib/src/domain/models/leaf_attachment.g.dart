@@ -27,6 +27,11 @@ _LeafAttachment _$LeafAttachmentFromJson(Map<String, dynamic> json) =>
       audioDurationMs: (json['audioDurationMs'] as num?)?.toInt(),
       audioMimeType: json['audioMimeType'] as String?,
       audioSizeBytes: (json['audioSizeBytes'] as num?)?.toInt(),
+      certificateTopicName: json['certificateTopicName'] as String?,
+      certificateIssuedAt: (json['certificateIssuedAt'] as num?)?.toInt(),
+      certificateParticipantName: json['certificateParticipantName'] as String?,
+      certificateParticipantPhotoUrl:
+          json['certificateParticipantPhotoUrl'] as String?,
     );
 
 Map<String, dynamic> _$LeafAttachmentToJson(_LeafAttachment instance) =>
@@ -50,6 +55,10 @@ Map<String, dynamic> _$LeafAttachmentToJson(_LeafAttachment instance) =>
       'audioDurationMs': instance.audioDurationMs,
       'audioMimeType': instance.audioMimeType,
       'audioSizeBytes': instance.audioSizeBytes,
+      'certificateTopicName': instance.certificateTopicName,
+      'certificateIssuedAt': instance.certificateIssuedAt,
+      'certificateParticipantName': instance.certificateParticipantName,
+      'certificateParticipantPhotoUrl': instance.certificateParticipantPhotoUrl,
     };
 
 const _$LeafTypeEnumMap = {
@@ -58,6 +67,7 @@ const _$LeafTypeEnumMap = {
   LeafType.link: 'link',
   LeafType.audio: 'audio',
   LeafType.question: 'question',
+  LeafType.certificate: 'certificate',
 };
 
 const _$LeafLinkTypeEnumMap = {

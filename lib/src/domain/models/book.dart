@@ -51,6 +51,7 @@ abstract class Book with _$Book {
     int? leafCount,
     bool? hasLeaves,
     int? leafUpdatedAt,
+    bool? optOutComplementary,
   }) = _Book;
 
   factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);

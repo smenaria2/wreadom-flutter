@@ -62,6 +62,7 @@ _Book _$BookFromJson(Map<String, dynamic> json) => _Book(
   leafCount: (json['leafCount'] as num?)?.toInt(),
   hasLeaves: json['hasLeaves'] as bool?,
   leafUpdatedAt: (json['leafUpdatedAt'] as num?)?.toInt(),
+  optOutComplementary: json['optOutComplementary'] as bool?,
 );
 
 Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
@@ -106,4 +107,5 @@ Map<String, dynamic> _$BookToJson(_Book instance) => <String, dynamic>{
   'leafCount': instance.leafCount,
   'hasLeaves': instance.hasLeaves,
   'leafUpdatedAt': instance.leafUpdatedAt,
+  'optOutComplementary': instance.optOutComplementary,
 };

@@ -714,13 +714,27 @@ class _DailyTopicCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                l10n.dailyTopic,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/images/agaaz_logo.jpg',
+                      width: 14,
+                      height: 14,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.dailyTopic,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
             const Spacer(),

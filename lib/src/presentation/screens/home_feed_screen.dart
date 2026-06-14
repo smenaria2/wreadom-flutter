@@ -143,41 +143,45 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           ),
         ],
       ),
-      floatingActionButton: GlassSurface(
-        strong: true,
-        borderRadius: BorderRadius.circular(24),
-        onTap: () async {
-          // Pick a random active question to prompt the user
-          String? question;
-          try {
-            final questions = await ref.read(activeQuestionsProvider.future);
-            if (questions.isNotEmpty) {
-              questions.shuffle();
-              question = questions.first;
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 86),
+        child: GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.circular(24),
+          onTap: () async {
+            // Pick a random active question to prompt the user
+            String? question;
+            try {
+              final questions = await ref.read(activeQuestionsProvider.future);
+              if (questions.isNotEmpty) {
+                questions.shuffle();
+                question = questions.first;
+              }
+            } catch (_) {
+              // Silently ignore — sheet opens without a question
             }
-          } catch (_) {
-            // Silently ignore — sheet opens without a question
-          }
-          if (context.mounted) {
-            showCreatePostSheet(context, initialQuestion: question);
-          }
-        },
-        semanticButton: true,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                l10n.post,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
+            if (context.mounted) {
+              showCreatePostSheet(context, initialQuestion: question);
+            }
+          },
+          semanticButton: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.post,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -470,6 +474,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               showCreatePostSheet(
                 context,
                 initialQuestion: post.question,
+                lockQuestion: post.bookId?.toString().trim().isNotEmpty == true,
                 bookId: post.bookId?.toString(),
                 bookTitle: post.bookTitle,
                 bookAuthorName: post.bookAuthorName,

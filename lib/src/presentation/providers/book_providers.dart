@@ -28,7 +28,10 @@ final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final currentUserAdminClaimProvider = FutureProvider<bool>((ref) async {
-  final user = firebase_auth.FirebaseAuth.instance.currentUser;
+  final authState = ref.watch(authStateProvider);
+  final user =
+      authState.asData?.value ??
+      firebase_auth.FirebaseAuth.instance.currentUser;
   if (user == null) return false;
   final token = await user.getIdTokenResult();
   return token.claims?['admin'] == true;

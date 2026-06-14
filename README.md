@@ -25,6 +25,13 @@ This app uses a hybrid Firebase architecture:
 
 The Firebase CLI workspace for functions lives in [functions/index.js](C:\Users\user\librebook_flutter\functions\index.js).
 
+## Firebase Rules And Indexes
+
+Firestore security rules and indexes are managed in the sibling
+[librebook](C:\Users\user\librebook) project. Do not add or deploy
+`firestore.rules`, `firestore.indexes.json`, or Firestore rules tests from this
+Flutter repository.
+
 ## Runtime Configuration and Secrets
 
 Client runtime values are supplied with Dart defines. Do not add real API keys,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
@@ -122,6 +123,7 @@ class MessagesScreen extends ConsumerWidget {
                           other?.displayName ??
                           other?.username ??
                           l10n.conversation;
+                      final photoUrl = other?.photoURL?.trim();
                       return _ConversationSwipeShell(
                         onDelete: () async {
                           final confirmed = await showDialog<bool>(
@@ -167,7 +169,13 @@ class MessagesScreen extends ConsumerWidget {
                           semanticButton: true,
                           child: ListTile(
                             leading: CircleAvatar(
-                              child: Text(title.characters.first.toUpperCase()),
+                              backgroundImage:
+                                  photoUrl != null && photoUrl.isNotEmpty
+                                  ? CachedNetworkImageProvider(photoUrl)
+                                  : null,
+                              child: photoUrl == null || photoUrl.isEmpty
+                                  ? Text(title.characters.first.toUpperCase())
+                                  : null,
                             ),
                             title: Text(title),
                             subtitle: Text(

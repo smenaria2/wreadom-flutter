@@ -477,7 +477,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreNow => 'Explore Now';
 
   @override
-  String get dailyTopic => 'Daily Topic';
+  String get dailyTopic => 'Agaaz Topics';
+
+  @override
+  String get agaazTopicInfoTitle => 'About Agaaz Topics';
+
+  @override
+  String get agaazTopicInfoBody =>
+      'These topics are provided by the Agaaz Team. You can write on any of these topics and earn a participation certificate upon submission.\n\nExceptional entries may be selected by the Agaaz Team for \'Recreate\' – the creation of complementary content such as Instagram reels, audio narrations, posters, and other creative works. These recreations will be attached to your submission to help showcase and promote your story.\n\nYou can disable Recreate below if you do not want the Agaaz Team to create or attach any such complementary content to your story.';
+
+  @override
+  String get optOutComplementaryTitle => 'Opt out of complementary content';
+
+  @override
+  String get optOutComplementarySubtitle =>
+      'Agaaz Team will not create or attach Reels, audio narrations, posters, etc. to your story.';
+
+  @override
+  String get recreateEnabled => 'Recreate is enabled';
+
+  @override
+  String get recreateDisabled => 'Recreate is disabled';
+
+  @override
+  String get enableRecreateTitle => 'Enable Recreate';
+
+  @override
+  String get enableRecreateSubtitle =>
+      'Allow Agaaz Team to create Reels, audio narrations, posters, etc. for your story.';
 
   @override
   String get readMore => 'Read More';
@@ -993,7 +1020,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No saved or downloaded content yet.';
 
   @override
-  String get dailyTopicNotFound => 'Daily topic not found.';
+  String get dailyTopicNotFound => 'Agaaz topic not found.';
 
   @override
   String get participateNow => 'Participate now';
@@ -1955,11 +1982,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Wreadom connects to the Internet Archive to give you access to millions of classic books and public domain works alongside community originals.';
 
   @override
-  String get faqDailyTopicQ => 'What is the Daily Topic?';
+  String get faqDailyTopicQ => 'What are Agaaz Topics?';
 
   @override
   String get faqDailyTopicA =>
-      'Every day, Wreadom features a new writing or review prompt. Tap the banner on the Home feed to participate and see what others are sharing.';
+      'Agaaz Topics are writing prompts from the Agaaz Team. Tap the banner on the Home feed to participate and see what others are sharing.';
 
   @override
   String get faqFollowAuthorQ => 'How do I follow an author?';
@@ -2047,11 +2074,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqDailyTopicsParticipationQ =>
-      'How do I participate in Daily Topics?';
+      'How do I participate in Agaaz Topics?';
 
   @override
   String get faqDailyTopicsParticipationA =>
-      'Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.';
+      'Tap the Agaaz Topics banner on your home feed. You can read submissions or add your own response to the prompt.';
 
   @override
   String get faqFeedUpdatesQ => 'What shows up in my Feed?';
@@ -2389,4 +2416,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leafRecordAudioFirst => 'Record audio first.';
+
+  @override
+  String get copyContent => 'Copy content';
+
+  @override
+  String get chapterContentCopied => 'Chapter content copied.';
+
+  @override
+  String get couldNotCopyContent => 'Could not copy content.';
+
+  @override
+  String get createDraft => 'Create Draft';
+
+  @override
+  String get addToBook => 'Add to book';
+
+  @override
+  String get selectBookForDraft => 'Select a book';
+
+  @override
+  String get noPublishedBooksToAddDraft =>
+      'Publish a book before adding this draft to one.';
+
+  @override
+  String get draftAddedToBook => 'Draft added to book.';
+
+  @override
+  String couldNotAddDraftToBook(String error) {
+    return 'Could not add draft to book: $error';
+  }
+
+  @override
+  String get adminDailyTopicsTitle => 'Agaaz Topics Admin';
+
+  @override
+  String get adminAccessRequired => 'Admin access required.';
+
+  @override
+  String get manageDailyTopics => 'Manage Agaaz Topics';
+
+  @override
+  String get newTopic => 'New Topic';
+
+  @override
+  String get editTopic => 'Edit Topic';
+
+  @override
+  String get topicName => 'Topic name';
+
+  @override
+  String get shortDescription => 'Short description';
+
+  @override
+  String get fullDescription => 'Full description';
+
+  @override
+  String get enabled => 'Enabled';
+
+  @override
+  String get cover => 'Cover';
+
+  @override
+  String get uploading => 'Uploading...';
+
+  @override
+  String get saveTopic => 'Save Topic';
+
+  @override
+  String get saving => 'Saving...';
+
+  @override
+  String get topicNameRequired => 'Topic name is required.';
+
+  @override
+  String get topicSaved => 'Topic saved.';
+
+  @override
+  String get deleteTopicTitle => 'Delete topic?';
+
+  @override
+  String deleteTopicBody(String topic) {
+    return 'This removes \"$topic\" permanently.';
+  }
+
+  @override
+  String get signInAgainToUploadImages => 'Sign in again to upload images.';
+
+  @override
+  String get untitledTopic => 'Untitled topic';
+
+  @override
+  String get noTopicsFound => 'No topics found.';
+
+  @override
+  String get loadMoreTopics => 'Load more topics';
 }

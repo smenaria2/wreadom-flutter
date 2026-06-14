@@ -161,15 +161,19 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     setState(() => _deleting = true);
     try {
       await ref.read(feedRepositoryProvider).deleteFeedPost(widget.post.id!);
+      for (final filter in FeedFilter.values) {
+        ref
+            .read(pagedFeedPostsProvider(filter).notifier)
+            .removePost(widget.post.id!);
+      }
+      ref
+          .read(pagedUserFeedPostsProvider(widget.post.userId).notifier)
+          .removePost(widget.post.id!);
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
       ref.invalidate(userFeedPostsProvider(widget.post.userId));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
       ref.invalidate(liveSinglePostProvider(widget.post.id!));
 
       if (!mounted) return;

@@ -139,7 +139,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       return;
     }
 
-    final user = ref.read(currentUserProvider).asData?.value;
+    final user = await ref.read(currentUserProvider.future);
+    if (!mounted) return;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.loginToPost)),

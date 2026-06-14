@@ -211,7 +211,15 @@
   "keepReading": "Keep Reading",
   "heroBannerSubtitle": "Thousands of free content and original stories, curated for you.",
   "exploreNow": "Explore Now",
-  "dailyTopic": "Daily Topic",
+  "dailyTopic": "Agaaz Topics",
+  "agaazTopicInfoTitle": "About Agaaz Topics",
+  "agaazTopicInfoBody": "These topics are provided by the Agaaz Team. You can write on any of these topics and earn a participation certificate upon submission.\n\nExceptional entries may be selected by the Agaaz Team for 'Recreate' – the creation of complementary content such as Instagram reels, audio narrations, posters, and other creative works. These recreations will be attached to your submission to help showcase and promote your story.\n\nYou can disable Recreate below if you do not want the Agaaz Team to create or attach any such complementary content to your story.",
+  "optOutComplementaryTitle": "Opt out of complementary content",
+  "optOutComplementarySubtitle": "Agaaz Team will not create or attach Reels, audio narrations, posters, etc. to your story.",
+  "recreateEnabled": "Recreate is enabled",
+  "recreateDisabled": "Recreate is disabled",
+  "enableRecreateTitle": "Enable Recreate",
+  "enableRecreateSubtitle": "Allow Agaaz Team to create Reels, audio narrations, posters, etc. for your story.",
   "readMore": "Read More",
   "yourShelf": "Your Shelf",
   "percentComplete": "{percent}% complete",
@@ -582,7 +590,7 @@
   "postNotFoundOrDeleted": "Post not found or deleted",
   "savedBooksTitle": "Saved Content",
   "noSavedOrDownloadedBooksYet": "No saved or downloaded content yet.",
-  "dailyTopicNotFound": "Daily topic not found.",
+  "dailyTopicNotFound": "Agaaz topic not found.",
   "participateNow": "Participate now",
   "noSubmissionsYet": "No submissions received yet.",
   "blockUser": "Block user",
@@ -1116,8 +1124,8 @@
   "faqOriginalsA": "Originals are stories written and published directly by authors within the Wreadom community.",
   "faqInternetArchiveQ": "What is the Internet Archive integration?",
   "faqInternetArchiveA": "Wreadom connects to the Internet Archive to give you access to millions of classic books and public domain works alongside community originals.",
-  "faqDailyTopicQ": "What is the Daily Topic?",
-  "faqDailyTopicA": "Every day, Wreadom features a new writing or review prompt. Tap the banner on the Home feed to participate and see what others are sharing.",
+  "faqDailyTopicQ": "What are Agaaz Topics?",
+  "faqDailyTopicA": "Agaaz Topics are writing prompts from the Agaaz Team. Tap the banner on the Home feed to participate and see what others are sharing.",
   "faqFollowAuthorQ": "How do I follow an author?",
   "faqFollowAuthorA": "Tap on an author's name or avatar to visit their public profile, then tap 'Follow' to see their latest posts and story updates in your feed.",
   "faqMessagingQ": "Can I message other users?",
@@ -1142,8 +1150,8 @@
   "faqPinUnpinA": "Yes! If you are the author of a post, you can pin a comment to the top of the review by tapping the 'Pin' option in its menu.",
   "faqMessagingRulesQ": "Are there rules for messaging?",
   "faqMessagingRulesA": "To prevent spam, you can only send one message to a new contact. Once they reply, you can chat freely.",
-  "faqDailyTopicsParticipationQ": "How do I participate in Daily Topics?",
-  "faqDailyTopicsParticipationA": "Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.",
+  "faqDailyTopicsParticipationQ": "How do I participate in Agaaz Topics?",
+  "faqDailyTopicsParticipationA": "Tap the Agaaz Topics banner on your home feed. You can read submissions or add your own response to the prompt.",
   "faqFeedUpdatesQ": "What shows up in my Feed?",
   "faqFeedUpdatesA": "Your Feed is a personalized stream of updates from authors you follow, including new posts, text and audio reviews, replies, and story chapters.",
   "faqMultiChapterWriterQ": "Can I write multiple chapters at once?",
@@ -1310,5 +1318,49 @@
   "leafWriteNoteFirst": "Write a note first.",
   "leafWriteQuestionFirst": "Write a question first.",
   "leafChooseImage": "Choose an image.",
-  "leafRecordAudioFirst": "Record audio first."
+  "leafRecordAudioFirst": "Record audio first.",
+  "copyContent": "Copy content",
+  "chapterContentCopied": "Chapter content copied.",
+  "couldNotCopyContent": "Could not copy content.",
+  "createDraft": "Create Draft",
+  "addToBook": "Add to book",
+  "selectBookForDraft": "Select a book",
+  "noPublishedBooksToAddDraft": "Publish a book before adding this draft to one.",
+  "draftAddedToBook": "Draft added to book.",
+  "couldNotAddDraftToBook": "Could not add draft to book: {error}",
+  "@couldNotAddDraftToBook": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDailyTopicsTitle": "Agaaz Topics Admin",
+  "adminAccessRequired": "Admin access required.",
+  "manageDailyTopics": "Manage Agaaz Topics",
+  "newTopic": "New Topic",
+  "editTopic": "Edit Topic",
+  "topicName": "Topic name",
+  "shortDescription": "Short description",
+  "fullDescription": "Full description",
+  "enabled": "Enabled",
+  "cover": "Cover",
+  "uploading": "Uploading...",
+  "saveTopic": "Save Topic",
+  "saving": "Saving...",
+  "topicNameRequired": "Topic name is required.",
+  "topicSaved": "Topic saved.",
+  "deleteTopicTitle": "Delete topic?",
+  "deleteTopicBody": "This removes \"{topic}\" permanently.",
+  "@deleteTopicBody": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "signInAgainToUploadImages": "Sign in again to upload images.",
+  "untitledTopic": "Untitled topic",
+  "noTopicsFound": "No topics found.",
+  "loadMoreTopics": "Load more topics"
 }

@@ -1001,8 +1001,56 @@ abstract class AppLocalizations {
   /// No description provided for @dailyTopic.
   ///
   /// In en, this message translates to:
-  /// **'Daily Topic'**
+  /// **'Agaaz Topics'**
   String get dailyTopic;
+
+  /// No description provided for @agaazTopicInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About Agaaz Topics'**
+  String get agaazTopicInfoTitle;
+
+  /// No description provided for @agaazTopicInfoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These topics are provided by the Agaaz Team. You can write on any of these topics and earn a participation certificate upon submission.\n\nExceptional entries may be selected by the Agaaz Team for \'Recreate\' – the creation of complementary content such as Instagram reels, audio narrations, posters, and other creative works. These recreations will be attached to your submission to help showcase and promote your story.\n\nYou can disable Recreate below if you do not want the Agaaz Team to create or attach any such complementary content to your story.'**
+  String get agaazTopicInfoBody;
+
+  /// No description provided for @optOutComplementaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Opt out of complementary content'**
+  String get optOutComplementaryTitle;
+
+  /// No description provided for @optOutComplementarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agaaz Team will not create or attach Reels, audio narrations, posters, etc. to your story.'**
+  String get optOutComplementarySubtitle;
+
+  /// No description provided for @recreateEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Recreate is enabled'**
+  String get recreateEnabled;
+
+  /// No description provided for @recreateDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Recreate is disabled'**
+  String get recreateDisabled;
+
+  /// No description provided for @enableRecreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Recreate'**
+  String get enableRecreateTitle;
+
+  /// No description provided for @enableRecreateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Agaaz Team to create Reels, audio narrations, posters, etc. for your story.'**
+  String get enableRecreateSubtitle;
 
   /// No description provided for @readMore.
   ///
@@ -1889,7 +1937,7 @@ abstract class AppLocalizations {
   /// No description provided for @dailyTopicNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Daily topic not found.'**
+  /// **'Agaaz topic not found.'**
   String get dailyTopicNotFound;
 
   /// No description provided for @participateNow.
@@ -3479,13 +3527,13 @@ abstract class AppLocalizations {
   /// No description provided for @faqDailyTopicQ.
   ///
   /// In en, this message translates to:
-  /// **'What is the Daily Topic?'**
+  /// **'What are Agaaz Topics?'**
   String get faqDailyTopicQ;
 
   /// No description provided for @faqDailyTopicA.
   ///
   /// In en, this message translates to:
-  /// **'Every day, Wreadom features a new writing or review prompt. Tap the banner on the Home feed to participate and see what others are sharing.'**
+  /// **'Agaaz Topics are writing prompts from the Agaaz Team. Tap the banner on the Home feed to participate and see what others are sharing.'**
   String get faqDailyTopicA;
 
   /// No description provided for @faqFollowAuthorQ.
@@ -3635,13 +3683,13 @@ abstract class AppLocalizations {
   /// No description provided for @faqDailyTopicsParticipationQ.
   ///
   /// In en, this message translates to:
-  /// **'How do I participate in Daily Topics?'**
+  /// **'How do I participate in Agaaz Topics?'**
   String get faqDailyTopicsParticipationQ;
 
   /// No description provided for @faqDailyTopicsParticipationA.
   ///
   /// In en, this message translates to:
-  /// **'Tap the Daily Topic banner on your home feed. You can read submissions or add your own response to the prompt.'**
+  /// **'Tap the Agaaz Topics banner on your home feed. You can read submissions or add your own response to the prompt.'**
   String get faqDailyTopicsParticipationA;
 
   /// No description provided for @faqFeedUpdatesQ.
@@ -4249,6 +4297,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Record audio first.'**
   String get leafRecordAudioFirst;
+
+  /// No description provided for @copyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy content'**
+  String get copyContent;
+
+  /// No description provided for @chapterContentCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter content copied.'**
+  String get chapterContentCopied;
+
+  /// No description provided for @couldNotCopyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy content.'**
+  String get couldNotCopyContent;
+
+  /// No description provided for @createDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Draft'**
+  String get createDraft;
+
+  /// No description provided for @addToBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to book'**
+  String get addToBook;
+
+  /// No description provided for @selectBookForDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a book'**
+  String get selectBookForDraft;
+
+  /// No description provided for @noPublishedBooksToAddDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish a book before adding this draft to one.'**
+  String get noPublishedBooksToAddDraft;
+
+  /// No description provided for @draftAddedToBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft added to book.'**
+  String get draftAddedToBook;
+
+  /// No description provided for @couldNotAddDraftToBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add draft to book: {error}'**
+  String couldNotAddDraftToBook(String error);
+
+  /// No description provided for @adminDailyTopicsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agaaz Topics Admin'**
+  String get adminDailyTopicsTitle;
+
+  /// No description provided for @adminAccessRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin access required.'**
+  String get adminAccessRequired;
+
+  /// No description provided for @manageDailyTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Agaaz Topics'**
+  String get manageDailyTopics;
+
+  /// No description provided for @newTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'New Topic'**
+  String get newTopic;
+
+  /// No description provided for @editTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Topic'**
+  String get editTopic;
+
+  /// No description provided for @topicName.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic name'**
+  String get topicName;
+
+  /// No description provided for @shortDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Short description'**
+  String get shortDescription;
+
+  /// No description provided for @fullDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Full description'**
+  String get fullDescription;
+
+  /// No description provided for @enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get enabled;
+
+  /// No description provided for @cover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get cover;
+
+  /// No description provided for @uploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get uploading;
+
+  /// No description provided for @saveTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Topic'**
+  String get saveTopic;
+
+  /// No description provided for @saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get saving;
+
+  /// No description provided for @topicNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic name is required.'**
+  String get topicNameRequired;
+
+  /// No description provided for @topicSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic saved.'**
+  String get topicSaved;
+
+  /// No description provided for @deleteTopicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete topic?'**
+  String get deleteTopicTitle;
+
+  /// No description provided for @deleteTopicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes \"{topic}\" permanently.'**
+  String deleteTopicBody(String topic);
+
+  /// No description provided for @signInAgainToUploadImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again to upload images.'**
+  String get signInAgainToUploadImages;
+
+  /// No description provided for @untitledTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled topic'**
+  String get untitledTopic;
+
+  /// No description provided for @noTopicsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics found.'**
+  String get noTopicsFound;
+
+  /// No description provided for @loadMoreTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more topics'**
+  String get loadMoreTopics;
 }
 
 class _AppLocalizationsDelegate

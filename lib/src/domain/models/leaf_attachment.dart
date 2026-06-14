@@ -14,6 +14,8 @@ enum LeafType {
   audio,
   @JsonValue('question')
   question,
+  @JsonValue('certificate')
+  certificate,
 }
 
 enum LeafLinkType {
@@ -51,6 +53,10 @@ abstract class LeafAttachment with _$LeafAttachment {
     int? audioDurationMs,
     String? audioMimeType,
     int? audioSizeBytes,
+    String? certificateTopicName,
+    int? certificateIssuedAt,
+    String? certificateParticipantName,
+    String? certificateParticipantPhotoUrl,
   }) = _LeafAttachment;
 
   factory LeafAttachment.fromJson(Map<String, dynamic> json) =>

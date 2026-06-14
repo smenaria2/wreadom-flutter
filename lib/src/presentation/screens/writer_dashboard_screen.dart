@@ -9,6 +9,7 @@ import '../providers/auth_providers.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../routing/writer_pad_mode.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
@@ -89,9 +90,14 @@ class WriterDashboardScreen extends ConsumerWidget {
                       strong: true,
                       borderRadius: BorderRadius.circular(24),
                       onTap: () {
+                        final isDraftTab = activeTab == 'draft';
                         Navigator.of(context).pushNamed(
                           AppRoutes.writerPad,
-                          arguments: const WriterPadArguments(),
+                          arguments: WriterPadArguments(
+                            mode: isDraftTab
+                                ? WriterPadMode.chapterDraft
+                                : WriterPadMode.content,
+                          ),
                         );
                       },
                       semanticButton: true,
@@ -109,7 +115,9 @@ class WriterDashboardScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              l10n.createContent,
+                              activeTab == 'draft'
+                                  ? l10n.createDraft
+                                  : l10n.createContent,
                               style: theme.textTheme.labelLarge?.copyWith(
                                 color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
@@ -159,9 +167,19 @@ class WriterDashboardScreen extends ConsumerWidget {
                       final book = books[index];
                       final isPublished = book.status == 'published';
                       void openEditor() {
+                        final opensAsChapterDraft =
+                            !isPublished &&
+                            book.authorId?.trim() == currentUser.id &&
+                            !isAcceptedCollaboration(book) &&
+                            (book.chapters ?? const []).length == 1;
                         Navigator.of(context).pushNamed(
                           AppRoutes.writerPad,
-                          arguments: WriterPadArguments(book: book),
+                          arguments: WriterPadArguments(
+                            book: book,
+                            mode: opensAsChapterDraft
+                                ? WriterPadMode.chapterDraft
+                                : WriterPadMode.content,
+                          ),
                         );
                       }
 

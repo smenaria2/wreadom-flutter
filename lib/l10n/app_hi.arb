@@ -116,6 +116,9 @@
   "stop": "रुकें",
   "stopReadingAloud": "जोर से पढ़ना बंद करें",
   "readerSettings": "रीडर सेटिंग्स",
+  "copyContent": "सामग्री कॉपी करें",
+  "chapterContentCopied": "अध्याय की सामग्री कॉपी हो गई।",
+  "couldNotCopyContent": "सामग्री कॉपी नहीं हो सकी।",
   "shareQuote": "उद्धरण साझा करें",
   "quoteAndComment": "उद्धरण और टिप्पणी",
   "genreFantasy": "फंतासी",
@@ -144,7 +147,15 @@
   "keepReading": "पढ़ते रहें",
   "heroBannerSubtitle": "हजारों मुफ्त रचनाएँ और मूल कहानियां, आपके लिए चुनी गईं।",
   "exploreNow": "अभी खोजें",
-  "dailyTopic": "दैनिक विषय",
+  "dailyTopic": "आगाज़ टॉपिक्स",
+  "agaazTopicInfoTitle": "आगाज़ टॉपिक्स के बारे में",
+  "agaazTopicInfoBody": "ये विषय आगाज़ टीम द्वारा प्रदान किए गए हैं। आप इनमें से किसी भी विषय पर लिख सकते हैं और सबमिशन पर भागीदारी प्रमाणपत्र प्राप्त कर सकते हैं।\n\nअसाधारण प्रविष्टियों को आगाज़ टीम द्वारा 'रीक्रिएट (Recreate)' के लिए चुना जा सकता है – जिसमें इंस्टाग्राम रील्स, ऑडियो नैरेशन, पोस्टर और अन्य रचनात्मक कार्यों जैसी पूरक सामग्री का निर्माण शामिल है। ये रीक्रिएशन आपके काम को प्रदर्शित करने और बढ़ावा देने के लिए आपके सबमिशन के साथ जोड़े जाएंगे।\n\nयदि आप नहीं चाहते कि आपके काम के साथ ऐसी कोई पूरक सामग्री बनाई या जोड़ी जाए, तो आप नीचे रीक्रिएट को अक्षम (disable) कर सकते हैं।",
+  "optOutComplementaryTitle": "पूरक सामग्री से ऑप्ट-आउट करें",
+  "optOutComplementarySubtitle": "आगाज़ टीम आपकी कहानी के साथ रील्स, ऑडियो नैरेशन, पोस्टर आदि नहीं बनाएगी।",
+  "recreateEnabled": "रीक्रिएट सक्षम है",
+  "recreateDisabled": "रीक्रिएट अक्षम है",
+  "enableRecreateTitle": "रीक्रिएट सक्षम करें",
+  "enableRecreateSubtitle": "आगाज़ टीम को अपनी कहानी के लिए रील्स, ऑडियो नैरेशन, पोस्टर आदि बनाने की अनुमति दें।",
   "readMore": "और पढ़ें",
   "yourShelf": "आपकी शेल्फ",
   "percentComplete": "{percent}% पूर्ण",
@@ -386,7 +397,7 @@
   "postNotFoundOrDeleted": "पोस्ट नहीं मिली या हटा दी गई है",
   "savedBooksTitle": "सेव की गई रचनाएँ",
   "noSavedOrDownloadedBooksYet": "अभी कोई सेव या डाउनलोड की गई रचना नहीं है",
-  "dailyTopicNotFound": "आज का विषय नहीं मिला",
+  "dailyTopicNotFound": "आगाज़ टॉपिक नहीं मिला",
   "participateNow": "भाग लें",
   "noSubmissionsYet": "अभी कोई रचना नहीं आई है",
   "blockUser": "यूज़र को ब्लॉक करें",
@@ -466,6 +477,19 @@
   "saveFailed": "सेव नहीं हो सका: {error}",
   "writerDashboard": "लेखक डैशबोर्ड",
   "createContent": "रचना लिखें",
+  "createDraft": "ड्राफ़्ट बनाएं",
+  "addToBook": "पुस्तक में जोड़ें",
+  "selectBookForDraft": "पुस्तक चुनें",
+  "noPublishedBooksToAddDraft": "इस ड्राफ़्ट को जोड़ने से पहले कोई पुस्तक प्रकाशित करें।",
+  "draftAddedToBook": "ड्राफ़्ट पुस्तक में जोड़ दिया गया।",
+  "couldNotAddDraftToBook": "ड्राफ़्ट पुस्तक में नहीं जोड़ा जा सका: {error}",
+  "@couldNotAddDraftToBook": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "noPublishedStoriesYet": "अभी कोई प्रकाशित कहानी नहीं है",
   "noDraftsYet": "अभी कोई ड्राफ़्ट नहीं है",
   "draft": "ड्राफ़्ट",
@@ -904,8 +928,8 @@
   "faqOriginalsA": "ओरिजिनल वे कहानियाँ हैं जो लेखकों द्वारा सीधे रीडम् कम्युनिटी के भीतर लिखी और प्रकाशित की जाती हैं।",
   "faqInternetArchiveQ": "इंटरनेट आर्काइव इंटीग्रेशन क्या है?",
   "faqInternetArchiveA": "रीडम् आपको कम्युनिटी ओरिजिनल के साथ-साथ लाखों क्लासिक रचनाओं और सार्वजनिक डोमेन रचनाओं तक पहुँच देने के लिए इंटरनेट आर्काइव से जुड़ता है।",
-  "faqDailyTopicQ": "दैनिक विषय (Daily Topic) क्या है?",
-  "faqDailyTopicA": "हर दिन, रीडम् एक नया लेखन या चर्चा प्रॉम्प्ट पेश करता है। भाग लेने के लिए होम फीड पर बैनर पर टैप करें।",
+  "faqDailyTopicQ": "आगाज़ टॉपिक्स क्या हैं?",
+  "faqDailyTopicA": "आगाज़ टॉपिक्स आगाज़ टीम की ओर से लेखन प्रॉम्प्ट हैं। भाग लेने और दूसरों की रचनाएँ देखने के लिए होम फीड पर बैनर पर टैप करें।",
   "faqFollowAuthorQ": "मैं किसी लेखक को कैसे फ़ॉलो करूँ?",
   "faqFollowAuthorA": "किसी लेखक की प्रोफ़ाइल पर जाने के लिए उनके नाम पर टैप करें, फिर उनके नवीनतम अपडेट देखने के लिए 'फ़ॉलो करें' पर टैप करें।",
   "faqMessagingQ": "क्या मैं अन्य यूज़र्स को संदेश भेज सकता हूँ?",
@@ -930,8 +954,8 @@
   "faqPinUnpinA": "हाँ! यदि आप किसी पोस्ट के लेखक हैं, तो आप उसके मेनू में 'पिन' विकल्प को चुनकर चर्चा के शीर्ष पर एक टिप्पणी पिन कर सकते हैं।",
   "faqMessagingRulesQ": "क्या मैसेजिंग के लिए कोई नियम हैं?",
   "faqMessagingRulesA": "स्पैम को रोकने के लिए, आप किसी नए व्यक्ति को केवल एक संदेश भेज सकते हैं। उनके जवाब देने के बाद, आप खुलकर बातचीत कर सकते हैं।",
-  "faqDailyTopicsParticipationQ": "मैं दैनिक विषयों में कैसे भाग लूँ?",
-  "faqDailyTopicsParticipationA": "अपने होम फीड पर डेली टॉपिक बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।",
+  "faqDailyTopicsParticipationQ": "मैं आगाज़ टॉपिक्स में कैसे भाग लूँ?",
+  "faqDailyTopicsParticipationA": "अपने होम फीड पर आगाज़ टॉपिक्स बैनर पर टैप करें। आप अन्य लोगों की रचनाएँ पढ़ सकते हैं या अपनी खुद की रचना जोड़ सकते हैं।",
   "faqFeedsUpdatesQ": "मेरी फीड में क्या दिखता है?",
   "faqFeedsUpdatesA": "आपकी फीड उन लेखकों के अपडेट का एक व्यक्तिगत स्ट्रीम है जिन्हें आप फ़ॉलो करते हैं, जिसमें नई पोस्ट, समीक्षाएं और अध्याय शामिल हैं।",
   "faqFeedUpdatesQ": "मेरी फीड में क्या दिखता है?",
@@ -1055,5 +1079,33 @@
   "leafWriteNoteFirst": "Write a note first.",
   "leafWriteQuestionFirst": "Write a question first.",
   "leafChooseImage": "Choose an image.",
-  "leafRecordAudioFirst": "Record audio first."
+  "leafRecordAudioFirst": "Record audio first.",
+  "adminAccessRequired": "एडमिन एक्सेस आवश्यक है।",
+  "newTopic": "नया टॉपिक",
+  "editTopic": "टॉपिक एडिट करें",
+  "topicName": "टॉपिक नाम",
+  "shortDescription": "छोटा विवरण",
+  "fullDescription": "पूरा विवरण",
+  "enabled": "सक्रिय",
+  "cover": "कवर",
+  "uploading": "अपलोड हो रहा है...",
+  "saveTopic": "टॉपिक सेव करें",
+  "saving": "सेव हो रहा है...",
+  "topicNameRequired": "टॉपिक नाम आवश्यक है।",
+  "topicSaved": "टॉपिक सेव हो गया।",
+  "deleteTopicTitle": "टॉपिक हटाएं?",
+  "deleteTopicBody": "यह \"{topic}\" को हमेशा के लिए हटा देगा।",
+  "@deleteTopicBody": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "signInAgainToUploadImages": "इमेज अपलोड करने के लिए फिर से साइन इन करें।",
+  "untitledTopic": "बिना शीर्षक वाला टॉपिक",
+  "noTopicsFound": "कोई टॉपिक नहीं मिला।",
+  "loadMoreTopics": "और टॉपिक लोड करें",
+  "adminDailyTopicsTitle": "आगाज़ टॉपिक्स एडमिन",
+  "manageDailyTopics": "आगाज़ टॉपिक्स प्रबंधित करें"
 }

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LeafAttachment {
 
- String get id; LeafType get type; int get createdAt; String get createdBy; String? get createdByRole; String? get textHtml; String? get textPlain; int? get wordCount; String? get imageUrl; String? get imageAlt; String? get url; LeafLinkType? get linkType; String? get title; String? get question; String? get audioUrl; String? get audioObjectKey; int? get audioDurationMs; String? get audioMimeType; int? get audioSizeBytes;
+ String get id; LeafType get type; int get createdAt; String get createdBy; String? get createdByRole; String? get textHtml; String? get textPlain; int? get wordCount; String? get imageUrl; String? get imageAlt; String? get url; LeafLinkType? get linkType; String? get title; String? get question; String? get audioUrl; String? get audioObjectKey; int? get audioDurationMs; String? get audioMimeType; int? get audioSizeBytes; String? get certificateTopicName; int? get certificateIssuedAt; String? get certificateParticipantName; String? get certificateParticipantPhotoUrl;
 /// Create a copy of LeafAttachment
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $LeafAttachmentCopyWith<LeafAttachment> get copyWith => _$LeafAttachmentCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LeafAttachment&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdByRole, createdByRole) || other.createdByRole == createdByRole)&&(identical(other.textHtml, textHtml) || other.textHtml == textHtml)&&(identical(other.textPlain, textPlain) || other.textPlain == textPlain)&&(identical(other.wordCount, wordCount) || other.wordCount == wordCount)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageAlt, imageAlt) || other.imageAlt == imageAlt)&&(identical(other.url, url) || other.url == url)&&(identical(other.linkType, linkType) || other.linkType == linkType)&&(identical(other.title, title) || other.title == title)&&(identical(other.question, question) || other.question == question)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LeafAttachment&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdByRole, createdByRole) || other.createdByRole == createdByRole)&&(identical(other.textHtml, textHtml) || other.textHtml == textHtml)&&(identical(other.textPlain, textPlain) || other.textPlain == textPlain)&&(identical(other.wordCount, wordCount) || other.wordCount == wordCount)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageAlt, imageAlt) || other.imageAlt == imageAlt)&&(identical(other.url, url) || other.url == url)&&(identical(other.linkType, linkType) || other.linkType == linkType)&&(identical(other.title, title) || other.title == title)&&(identical(other.question, question) || other.question == question)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes)&&(identical(other.certificateTopicName, certificateTopicName) || other.certificateTopicName == certificateTopicName)&&(identical(other.certificateIssuedAt, certificateIssuedAt) || other.certificateIssuedAt == certificateIssuedAt)&&(identical(other.certificateParticipantName, certificateParticipantName) || other.certificateParticipantName == certificateParticipantName)&&(identical(other.certificateParticipantPhotoUrl, certificateParticipantPhotoUrl) || other.certificateParticipantPhotoUrl == certificateParticipantPhotoUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,type,createdAt,createdBy,createdByRole,textHtml,textPlain,wordCount,imageUrl,imageAlt,url,linkType,title,question,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes]);
+int get hashCode => Object.hashAll([runtimeType,id,type,createdAt,createdBy,createdByRole,textHtml,textPlain,wordCount,imageUrl,imageAlt,url,linkType,title,question,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes,certificateTopicName,certificateIssuedAt,certificateParticipantName,certificateParticipantPhotoUrl]);
 
 @override
 String toString() {
-  return 'LeafAttachment(id: $id, type: $type, createdAt: $createdAt, createdBy: $createdBy, createdByRole: $createdByRole, textHtml: $textHtml, textPlain: $textPlain, wordCount: $wordCount, imageUrl: $imageUrl, imageAlt: $imageAlt, url: $url, linkType: $linkType, title: $title, question: $question, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
+  return 'LeafAttachment(id: $id, type: $type, createdAt: $createdAt, createdBy: $createdBy, createdByRole: $createdByRole, textHtml: $textHtml, textPlain: $textPlain, wordCount: $wordCount, imageUrl: $imageUrl, imageAlt: $imageAlt, url: $url, linkType: $linkType, title: $title, question: $question, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes, certificateTopicName: $certificateTopicName, certificateIssuedAt: $certificateIssuedAt, certificateParticipantName: $certificateParticipantName, certificateParticipantPhotoUrl: $certificateParticipantPhotoUrl)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $LeafAttachmentCopyWith<$Res>  {
   factory $LeafAttachmentCopyWith(LeafAttachment value, $Res Function(LeafAttachment) _then) = _$LeafAttachmentCopyWithImpl;
 @useResult
 $Res call({
- String id, LeafType type, int createdAt, String createdBy, String? createdByRole, String? textHtml, String? textPlain, int? wordCount, String? imageUrl, String? imageAlt, String? url, LeafLinkType? linkType, String? title, String? question, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
+ String id, LeafType type, int createdAt, String createdBy, String? createdByRole, String? textHtml, String? textPlain, int? wordCount, String? imageUrl, String? imageAlt, String? url, LeafLinkType? linkType, String? title, String? question, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes, String? certificateTopicName, int? certificateIssuedAt, String? certificateParticipantName, String? certificateParticipantPhotoUrl
 });
 
 
@@ -65,7 +65,7 @@ class _$LeafAttachmentCopyWithImpl<$Res>
 
 /// Create a copy of LeafAttachment
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? createdAt = null,Object? createdBy = null,Object? createdByRole = freezed,Object? textHtml = freezed,Object? textPlain = freezed,Object? wordCount = freezed,Object? imageUrl = freezed,Object? imageAlt = freezed,Object? url = freezed,Object? linkType = freezed,Object? title = freezed,Object? question = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? createdAt = null,Object? createdBy = null,Object? createdByRole = freezed,Object? textHtml = freezed,Object? textPlain = freezed,Object? wordCount = freezed,Object? imageUrl = freezed,Object? imageAlt = freezed,Object? url = freezed,Object? linkType = freezed,Object? title = freezed,Object? question = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,Object? certificateTopicName = freezed,Object? certificateIssuedAt = freezed,Object? certificateParticipantName = freezed,Object? certificateParticipantPhotoUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -86,7 +86,11 @@ as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : au
 as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
 as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
 as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,certificateTopicName: freezed == certificateTopicName ? _self.certificateTopicName : certificateTopicName // ignore: cast_nullable_to_non_nullable
+as String?,certificateIssuedAt: freezed == certificateIssuedAt ? _self.certificateIssuedAt : certificateIssuedAt // ignore: cast_nullable_to_non_nullable
+as int?,certificateParticipantName: freezed == certificateParticipantName ? _self.certificateParticipantName : certificateParticipantName // ignore: cast_nullable_to_non_nullable
+as String?,certificateParticipantPhotoUrl: freezed == certificateParticipantPhotoUrl ? _self.certificateParticipantPhotoUrl : certificateParticipantPhotoUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -171,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes,  String? certificateTopicName,  int? certificateIssuedAt,  String? certificateParticipantName,  String? certificateParticipantPhotoUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LeafAttachment() when $default != null:
-return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
+return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes,_that.certificateTopicName,_that.certificateIssuedAt,_that.certificateParticipantName,_that.certificateParticipantPhotoUrl);case _:
   return orElse();
 
 }
@@ -192,10 +196,10 @@ return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.create
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes,  String? certificateTopicName,  int? certificateIssuedAt,  String? certificateParticipantName,  String? certificateParticipantPhotoUrl)  $default,) {final _that = this;
 switch (_that) {
 case _LeafAttachment():
-return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
+return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes,_that.certificateTopicName,_that.certificateIssuedAt,_that.certificateParticipantName,_that.certificateParticipantPhotoUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -212,10 +216,10 @@ return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.create
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  LeafType type,  int createdAt,  String createdBy,  String? createdByRole,  String? textHtml,  String? textPlain,  int? wordCount,  String? imageUrl,  String? imageAlt,  String? url,  LeafLinkType? linkType,  String? title,  String? question,  String? audioUrl,  String? audioObjectKey,  int? audioDurationMs,  String? audioMimeType,  int? audioSizeBytes,  String? certificateTopicName,  int? certificateIssuedAt,  String? certificateParticipantName,  String? certificateParticipantPhotoUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _LeafAttachment() when $default != null:
-return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes);case _:
+return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.createdByRole,_that.textHtml,_that.textPlain,_that.wordCount,_that.imageUrl,_that.imageAlt,_that.url,_that.linkType,_that.title,_that.question,_that.audioUrl,_that.audioObjectKey,_that.audioDurationMs,_that.audioMimeType,_that.audioSizeBytes,_that.certificateTopicName,_that.certificateIssuedAt,_that.certificateParticipantName,_that.certificateParticipantPhotoUrl);case _:
   return null;
 
 }
@@ -227,7 +231,7 @@ return $default(_that.id,_that.type,_that.createdAt,_that.createdBy,_that.create
 @JsonSerializable()
 
 class _LeafAttachment implements LeafAttachment {
-  const _LeafAttachment({required this.id, required this.type, required this.createdAt, required this.createdBy, this.createdByRole, this.textHtml, this.textPlain, this.wordCount, this.imageUrl, this.imageAlt, this.url, this.linkType, this.title, this.question, this.audioUrl, this.audioObjectKey, this.audioDurationMs, this.audioMimeType, this.audioSizeBytes});
+  const _LeafAttachment({required this.id, required this.type, required this.createdAt, required this.createdBy, this.createdByRole, this.textHtml, this.textPlain, this.wordCount, this.imageUrl, this.imageAlt, this.url, this.linkType, this.title, this.question, this.audioUrl, this.audioObjectKey, this.audioDurationMs, this.audioMimeType, this.audioSizeBytes, this.certificateTopicName, this.certificateIssuedAt, this.certificateParticipantName, this.certificateParticipantPhotoUrl});
   factory _LeafAttachment.fromJson(Map<String, dynamic> json) => _$LeafAttachmentFromJson(json);
 
 @override final  String id;
@@ -249,6 +253,10 @@ class _LeafAttachment implements LeafAttachment {
 @override final  int? audioDurationMs;
 @override final  String? audioMimeType;
 @override final  int? audioSizeBytes;
+@override final  String? certificateTopicName;
+@override final  int? certificateIssuedAt;
+@override final  String? certificateParticipantName;
+@override final  String? certificateParticipantPhotoUrl;
 
 /// Create a copy of LeafAttachment
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LeafAttachment&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdByRole, createdByRole) || other.createdByRole == createdByRole)&&(identical(other.textHtml, textHtml) || other.textHtml == textHtml)&&(identical(other.textPlain, textPlain) || other.textPlain == textPlain)&&(identical(other.wordCount, wordCount) || other.wordCount == wordCount)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageAlt, imageAlt) || other.imageAlt == imageAlt)&&(identical(other.url, url) || other.url == url)&&(identical(other.linkType, linkType) || other.linkType == linkType)&&(identical(other.title, title) || other.title == title)&&(identical(other.question, question) || other.question == question)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LeafAttachment&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdByRole, createdByRole) || other.createdByRole == createdByRole)&&(identical(other.textHtml, textHtml) || other.textHtml == textHtml)&&(identical(other.textPlain, textPlain) || other.textPlain == textPlain)&&(identical(other.wordCount, wordCount) || other.wordCount == wordCount)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageAlt, imageAlt) || other.imageAlt == imageAlt)&&(identical(other.url, url) || other.url == url)&&(identical(other.linkType, linkType) || other.linkType == linkType)&&(identical(other.title, title) || other.title == title)&&(identical(other.question, question) || other.question == question)&&(identical(other.audioUrl, audioUrl) || other.audioUrl == audioUrl)&&(identical(other.audioObjectKey, audioObjectKey) || other.audioObjectKey == audioObjectKey)&&(identical(other.audioDurationMs, audioDurationMs) || other.audioDurationMs == audioDurationMs)&&(identical(other.audioMimeType, audioMimeType) || other.audioMimeType == audioMimeType)&&(identical(other.audioSizeBytes, audioSizeBytes) || other.audioSizeBytes == audioSizeBytes)&&(identical(other.certificateTopicName, certificateTopicName) || other.certificateTopicName == certificateTopicName)&&(identical(other.certificateIssuedAt, certificateIssuedAt) || other.certificateIssuedAt == certificateIssuedAt)&&(identical(other.certificateParticipantName, certificateParticipantName) || other.certificateParticipantName == certificateParticipantName)&&(identical(other.certificateParticipantPhotoUrl, certificateParticipantPhotoUrl) || other.certificateParticipantPhotoUrl == certificateParticipantPhotoUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,type,createdAt,createdBy,createdByRole,textHtml,textPlain,wordCount,imageUrl,imageAlt,url,linkType,title,question,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes]);
+int get hashCode => Object.hashAll([runtimeType,id,type,createdAt,createdBy,createdByRole,textHtml,textPlain,wordCount,imageUrl,imageAlt,url,linkType,title,question,audioUrl,audioObjectKey,audioDurationMs,audioMimeType,audioSizeBytes,certificateTopicName,certificateIssuedAt,certificateParticipantName,certificateParticipantPhotoUrl]);
 
 @override
 String toString() {
-  return 'LeafAttachment(id: $id, type: $type, createdAt: $createdAt, createdBy: $createdBy, createdByRole: $createdByRole, textHtml: $textHtml, textPlain: $textPlain, wordCount: $wordCount, imageUrl: $imageUrl, imageAlt: $imageAlt, url: $url, linkType: $linkType, title: $title, question: $question, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes)';
+  return 'LeafAttachment(id: $id, type: $type, createdAt: $createdAt, createdBy: $createdBy, createdByRole: $createdByRole, textHtml: $textHtml, textPlain: $textPlain, wordCount: $wordCount, imageUrl: $imageUrl, imageAlt: $imageAlt, url: $url, linkType: $linkType, title: $title, question: $question, audioUrl: $audioUrl, audioObjectKey: $audioObjectKey, audioDurationMs: $audioDurationMs, audioMimeType: $audioMimeType, audioSizeBytes: $audioSizeBytes, certificateTopicName: $certificateTopicName, certificateIssuedAt: $certificateIssuedAt, certificateParticipantName: $certificateParticipantName, certificateParticipantPhotoUrl: $certificateParticipantPhotoUrl)';
 }
 
 
@@ -283,7 +291,7 @@ abstract mixin class _$LeafAttachmentCopyWith<$Res> implements $LeafAttachmentCo
   factory _$LeafAttachmentCopyWith(_LeafAttachment value, $Res Function(_LeafAttachment) _then) = __$LeafAttachmentCopyWithImpl;
 @override @useResult
 $Res call({
- String id, LeafType type, int createdAt, String createdBy, String? createdByRole, String? textHtml, String? textPlain, int? wordCount, String? imageUrl, String? imageAlt, String? url, LeafLinkType? linkType, String? title, String? question, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes
+ String id, LeafType type, int createdAt, String createdBy, String? createdByRole, String? textHtml, String? textPlain, int? wordCount, String? imageUrl, String? imageAlt, String? url, LeafLinkType? linkType, String? title, String? question, String? audioUrl, String? audioObjectKey, int? audioDurationMs, String? audioMimeType, int? audioSizeBytes, String? certificateTopicName, int? certificateIssuedAt, String? certificateParticipantName, String? certificateParticipantPhotoUrl
 });
 
 
@@ -300,7 +308,7 @@ class __$LeafAttachmentCopyWithImpl<$Res>
 
 /// Create a copy of LeafAttachment
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? createdAt = null,Object? createdBy = null,Object? createdByRole = freezed,Object? textHtml = freezed,Object? textPlain = freezed,Object? wordCount = freezed,Object? imageUrl = freezed,Object? imageAlt = freezed,Object? url = freezed,Object? linkType = freezed,Object? title = freezed,Object? question = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? createdAt = null,Object? createdBy = null,Object? createdByRole = freezed,Object? textHtml = freezed,Object? textPlain = freezed,Object? wordCount = freezed,Object? imageUrl = freezed,Object? imageAlt = freezed,Object? url = freezed,Object? linkType = freezed,Object? title = freezed,Object? question = freezed,Object? audioUrl = freezed,Object? audioObjectKey = freezed,Object? audioDurationMs = freezed,Object? audioMimeType = freezed,Object? audioSizeBytes = freezed,Object? certificateTopicName = freezed,Object? certificateIssuedAt = freezed,Object? certificateParticipantName = freezed,Object? certificateParticipantPhotoUrl = freezed,}) {
   return _then(_LeafAttachment(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -321,7 +329,11 @@ as String?,audioObjectKey: freezed == audioObjectKey ? _self.audioObjectKey : au
 as String?,audioDurationMs: freezed == audioDurationMs ? _self.audioDurationMs : audioDurationMs // ignore: cast_nullable_to_non_nullable
 as int?,audioMimeType: freezed == audioMimeType ? _self.audioMimeType : audioMimeType // ignore: cast_nullable_to_non_nullable
 as String?,audioSizeBytes: freezed == audioSizeBytes ? _self.audioSizeBytes : audioSizeBytes // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,certificateTopicName: freezed == certificateTopicName ? _self.certificateTopicName : certificateTopicName // ignore: cast_nullable_to_non_nullable
+as String?,certificateIssuedAt: freezed == certificateIssuedAt ? _self.certificateIssuedAt : certificateIssuedAt // ignore: cast_nullable_to_non_nullable
+as int?,certificateParticipantName: freezed == certificateParticipantName ? _self.certificateParticipantName : certificateParticipantName // ignore: cast_nullable_to_non_nullable
+as String?,certificateParticipantPhotoUrl: freezed == certificateParticipantPhotoUrl ? _self.certificateParticipantPhotoUrl : certificateParticipantPhotoUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

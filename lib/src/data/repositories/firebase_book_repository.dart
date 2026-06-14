@@ -793,6 +793,7 @@ class FirebaseBookRepository implements BookRepository {
               'wordCount',
               'audioDurationMs',
               'audioSizeBytes',
+              'certificateIssuedAt',
             ]) {
               leaf[key] = leaf[key] is int
                   ? leaf[key]

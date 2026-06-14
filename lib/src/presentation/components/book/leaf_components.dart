@@ -26,10 +26,18 @@ import '../../utils/writer_media_utils.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/in_app_media_web_view.dart';
 import '../../widgets/secure_audio_player.dart';
+import 'certificate_leaf_viewer.dart';
 
 const int maxBookLeaves = 4;
 const int maxNoteLeafCharacters = 1500;
 const int maxQuestionLeafCharacters = 500;
+const List<LeafType> manualLeafTypes = [
+  LeafType.text,
+  LeafType.question,
+  LeafType.image,
+  LeafType.link,
+  LeafType.audio,
+];
 
 class LeafStrip extends StatelessWidget {
   const LeafStrip({super.key, required this.book, required this.canManage});
@@ -146,6 +154,8 @@ Future<void> showLeafViewer(
       return _showLinkLeaf(context, leaf);
     case LeafType.question:
       return _showQuestionLeaf(context, book, leaf);
+    case LeafType.certificate:
+      return showCertificateLeaf(context, book: book, leaf: leaf);
   }
 }
 
@@ -361,20 +371,24 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   int _audioDurationMs = 0;
   bool _isRecording = false;
   bool _isSubmitting = false;
-  int _noteCharacterCount = 0;
+  final ValueNotifier<int> _noteCharacterCount = ValueNotifier<int>(0);
+  WriterMediaInfo _linkInfo = classifyWriterMediaUrl(null);
 
   @override
   void initState() {
     super.initState();
     _noteController.addListener(_handleNoteChanged);
+    _linkController.addListener(_handleLinkChanged);
   }
 
   @override
   void dispose() {
     _noteController.removeListener(_handleNoteChanged);
+    _linkController.removeListener(_handleLinkChanged);
     _questionController.dispose();
     _linkController.dispose();
     _noteController.dispose();
+    _noteCharacterCount.dispose();
     _audioTimer?.cancel();
     unawaited(_audioRecorder.dispose());
     super.dispose();
@@ -382,8 +396,14 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
 
   void _handleNoteChanged() {
     final count = _notePlainText.length;
-    if (count != _noteCharacterCount) {
-      setState(() => _noteCharacterCount = count);
+    if (count != _noteCharacterCount.value) _noteCharacterCount.value = count;
+  }
+
+  void _handleLinkChanged() {
+    final next = classifyWriterMediaUrl(_linkController.text);
+    if (next.type != _linkInfo.type ||
+        next.originalUrl != _linkInfo.originalUrl) {
+      setState(() => _linkInfo = next);
     }
   }
 
@@ -487,6 +507,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
           'audioMimeType': result.audioMimeType,
           'audioSizeBytes': result.audioSizeBytes,
         };
+      case LeafType.certificate:
+        throw const LeafInputException(
+          'Certificate Leaves are created by the app.',
+        );
     }
   }
 
@@ -648,13 +672,13 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            for (final type in LeafType.values) ...[
+            for (final type in manualLeafTypes) ...[
               _LeafTypeButton(
                 type: type,
                 selected: _type == type,
                 onTap: () => setState(() => _type = type),
               ),
-              if (type != LeafType.values.last) const SizedBox(width: 8),
+              if (type != manualLeafTypes.last) const SizedBox(width: 8),
             ],
           ],
         ),
@@ -665,7 +689,6 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   Widget _buildEditor(ThemeData theme) {
     switch (_type) {
       case LeafType.text:
-        final isOverLimit = _noteCharacterCount > maxNoteLeafCharacters;
         return GlassSurface(
           borderRadius: BorderRadius.circular(16),
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
@@ -686,14 +709,20 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: Text(
-                    '$_noteCharacterCount/$maxNoteLeafCharacters',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: isOverLimit
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _noteCharacterCount,
+                    builder: (context, count, _) {
+                      final isOverLimit = count > maxNoteLeafCharacters;
+                      return Text(
+                        '$count/$maxNoteLeafCharacters',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isOverLimit
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -759,53 +788,81 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
         return TextField(
           controller: _linkController,
           keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Link',
             helperText: 'YouTube, Spotify, Instagram, Amazon, or Wikipedia',
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
+            suffixIcon: _linkInfo.isSupported
+                ? Tooltip(
+                    message: _linkInfo.label,
+                    child: Icon(
+                      _writerMediaIcon(_linkInfo.type),
+                      color: theme.colorScheme.primary,
+                    ),
+                  )
+                : null,
+            suffixIconColor: theme.colorScheme.primary,
           ),
         );
       case LeafType.audio:
         return GlassSurface(
           borderRadius: BorderRadius.circular(14),
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                _isRecording ? Icons.mic_rounded : Icons.graphic_eq_rounded,
-                color: _isRecording ? Colors.red : theme.colorScheme.primary,
+              Row(
+                children: [
+                  Icon(
+                    _isRecording ? Icons.mic_rounded : Icons.graphic_eq_rounded,
+                    color: _isRecording
+                        ? Colors.red
+                        : theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _isRecording
+                          ? 'Recording ${_formatDuration(_audioDurationMs)}'
+                          : _audioPath == null
+                          ? 'No audio recorded'
+                          : 'Recorded ${_formatDuration(_audioDurationMs)}',
+                    ),
+                  ),
+                  if (_isRecording)
+                    IconButton(
+                      tooltip: 'Stop recording',
+                      onPressed: _stopRecording,
+                      icon: const Icon(Icons.stop_circle_outlined),
+                    )
+                  else
+                    IconButton(
+                      tooltip: 'Record audio',
+                      onPressed: _startRecording,
+                      icon: const Icon(Icons.mic_none_rounded),
+                    ),
+                  if (_isRecording || _audioPath != null)
+                    IconButton(
+                      tooltip: 'Delete audio',
+                      onPressed: _removeRecording,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  _isRecording
-                      ? 'Recording ${_formatDuration(_audioDurationMs)}'
-                      : _audioPath == null
-                      ? 'No audio recorded'
-                      : 'Recorded ${_formatDuration(_audioDurationMs)}',
+              if (_audioPath != null && !_isRecording) ...[
+                const SizedBox(height: 10),
+                SecureAudioPlayer(
+                  url: '',
+                  localPath: _audioPath,
+                  durationMs: _audioDurationMs,
+                  label: 'Recorded audio',
                 ),
-              ),
-              if (_isRecording)
-                IconButton(
-                  tooltip: 'Stop recording',
-                  onPressed: _stopRecording,
-                  icon: const Icon(Icons.stop_circle_outlined),
-                )
-              else
-                IconButton(
-                  tooltip: 'Record audio',
-                  onPressed: _startRecording,
-                  icon: const Icon(Icons.mic_none_rounded),
-                ),
-              if (_isRecording || _audioPath != null)
-                IconButton(
-                  tooltip: 'Delete audio',
-                  onPressed: _removeRecording,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                ),
+              ],
             ],
           ),
         );
+      case LeafType.certificate:
+        return const SizedBox.shrink();
     }
   }
 }
@@ -890,19 +947,49 @@ void _showImageLeaf(BuildContext context, LeafAttachment leaf) {
 }
 
 void _showAudioLeaf(BuildContext context, LeafAttachment leaf) {
-  showModalBottomSheet<void>(
+  showDialog<void>(
     context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => GlassSurface(
-      strong: true,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-        child: SecureAudioPlayer(
-          url: leaf.audioUrl?.trim() ?? '',
-          objectKey: leaf.audioObjectKey,
-          durationMs: leaf.audioDurationMs,
-          label: 'Audio Leaf',
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Audio Leaf',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SecureAudioPlayer(
+                  url: leaf.audioUrl?.trim() ?? '',
+                  objectKey: leaf.audioObjectKey,
+                  durationMs: leaf.audioDurationMs,
+                  label: 'Audio Leaf',
+                  compact: false,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     ),
@@ -1025,6 +1112,18 @@ IconData _leafTypeIcon(LeafType type) {
     LeafType.link => Icons.link_rounded,
     LeafType.audio => Icons.graphic_eq_rounded,
     LeafType.question => Icons.help_outline_rounded,
+    LeafType.certificate => Icons.workspace_premium_outlined,
+  };
+}
+
+IconData _writerMediaIcon(WriterMediaType type) {
+  return switch (type) {
+    WriterMediaType.youtube => Icons.smart_display_outlined,
+    WriterMediaType.instagram => Icons.photo_camera_outlined,
+    WriterMediaType.spotify => Icons.album_outlined,
+    WriterMediaType.amazon => Icons.shopping_bag_outlined,
+    WriterMediaType.wikipedia => Icons.menu_book_outlined,
+    WriterMediaType.unsupported => Icons.link_rounded,
   };
 }
 
@@ -1048,6 +1147,7 @@ String _leafTypeLabel(LeafType type) {
     LeafType.link => 'Link',
     LeafType.audio => 'Audio',
     LeafType.question => 'Question',
+    LeafType.certificate => 'Certificate',
   };
 }
 

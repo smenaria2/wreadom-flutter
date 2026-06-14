@@ -125,6 +125,15 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
 
   Future<void> loadMore() => _load();
 
+  void removePost(String postId) {
+    if (postId.trim().isEmpty) return;
+    final nextItems = state.items
+        .where((post) => post.id != postId)
+        .toList(growable: false);
+    if (nextItems.length == state.items.length) return;
+    state = state.copyWith(items: nextItems, clearError: true);
+  }
+
   Future<void> _load({bool reset = false}) async {
     if (state.isLoadingMore || (state.isInitialLoading && !reset)) return;
     if (!reset && !state.hasMore) return;
@@ -208,6 +217,15 @@ class PagedUserFeedPostsController extends Notifier<PagedListState<FeedPost>> {
   }
 
   Future<void> loadMore() => _load();
+
+  void removePost(String postId) {
+    if (postId.trim().isEmpty) return;
+    final nextItems = state.items
+        .where((post) => post.id != postId)
+        .toList(growable: false);
+    if (nextItems.length == state.items.length) return;
+    state = state.copyWith(items: nextItems, clearError: true);
+  }
 
   Future<void> _load({bool reset = false}) async {
     if (state.isLoadingMore || (state.isInitialLoading && !reset)) return;

@@ -44,6 +44,7 @@ import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
@@ -751,6 +752,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     final commentsAsync = ref.watch(liveBookCommentsProvider(widget.book.id));
     final userAsync = ref.watch(currentUserProvider);
+    final isAdmin = ref.watch(currentUserAdminClaimProvider).value ?? false;
     ref.watch(appThemeControllerProvider);
 
     ref.listen(readerSettingsControllerProvider, (previous, next) {
@@ -773,6 +775,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             commentsAsync,
             userAsync,
             isOffline: true,
+            isAdmin: isAdmin,
           );
         }
 
@@ -783,6 +786,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             commentsAsync,
             userAsync,
             isOffline: false,
+            isAdmin: isAdmin,
           ),
           loading: () => Scaffold(
             appBar: AppBar(title: Text(widget.book.title)),
@@ -804,6 +808,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           commentsAsync,
           userAsync,
           isOffline: false,
+          isAdmin: isAdmin,
         ),
         loading: () => Scaffold(
           appBar: AppBar(title: Text(widget.book.title)),
@@ -824,6 +829,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           commentsAsync,
           userAsync,
           isOffline: false,
+          isAdmin: isAdmin,
         ),
         loading: () => Scaffold(
           appBar: AppBar(title: Text(widget.book.title)),
@@ -885,6 +891,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     AsyncValue<List<Comment>> commentsAsync,
     AsyncValue<dynamic> userAsync, {
     required bool isOffline,
+    required bool isAdmin,
   }) {
     _restorePendingScrollPosition();
     if (chapters.isNotEmpty) {
@@ -1103,6 +1110,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 onToggleTts: chapter == null || _isTtsPreparing
                     ? null
                     : () => _toggleTts(chapter),
+                onCopyContent:
+                    isAdmin &&
+                        widget.book.optOutComplementary != true &&
+                        chapter != null
+                    ? () => _copyCurrentChapterContent(chapter)
+                    : null,
                 onShowSettings: _showSettings,
               ),
             ),
@@ -1143,6 +1156,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await Navigator.of(
       context,
     ).pushNamed(AppRoutes.archiveReader, arguments: widget.book);
+  }
+
+  Future<void> _copyCurrentChapterContent(Chapter chapter) async {
+    final l10n = AppLocalizations.of(context)!;
+    final text = _readerBlocksForChapter(chapter)
+        .map((block) => block.text.trim())
+        .where((text) => text.isNotEmpty)
+        .join('\n\n');
+    if (text.trim().isEmpty) return;
+    final copied = await writeClipboardText(text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          copied ? l10n.chapterContentCopied : l10n.couldNotCopyContent,
+        ),
+      ),
+    );
   }
 
   /// Builds the scrollable chapter reading content.
@@ -4272,6 +4303,7 @@ class _ReaderTopBar extends StatelessWidget {
     required this.ttsChunkCount,
     required this.onOpenArchivePdf,
     required this.onToggleTts,
+    required this.onCopyContent,
     required this.onShowSettings,
   });
 
@@ -4289,6 +4321,7 @@ class _ReaderTopBar extends StatelessWidget {
   final int ttsChunkCount;
   final VoidCallback onOpenArchivePdf;
   final VoidCallback? onToggleTts;
+  final VoidCallback? onCopyContent;
   final VoidCallback onShowSettings;
 
   @override
@@ -4393,6 +4426,13 @@ class _ReaderTopBar extends StatelessWidget {
                           color: foregroundColor,
                           onPressed: onToggleTts,
                         ),
+                        if (onCopyContent != null)
+                          IconButton(
+                            icon: const Icon(Icons.copy_all_rounded),
+                            tooltip: l10n.copyContent,
+                            color: foregroundColor,
+                            onPressed: onCopyContent,
+                          ),
                         IconButton(
                           icon: const Icon(Icons.format_size_rounded),
                           tooltip: l10n.readerSettings,

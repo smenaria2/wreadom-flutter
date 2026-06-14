@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/leaf_attachment.dart';
 import '../../domain/models/user_model.dart';
 import '../../data/services/analytics_service.dart';
 import '../../localization/generated/app_localizations.dart';
@@ -18,6 +19,8 @@ import '../providers/follow_providers.dart';
 import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
+import '../routing/app_routes.dart';
+import '../routing/writer_pad_mode.dart';
 import '../utils/chapter_version_history.dart';
 import '../utils/writer_html_codec.dart';
 import '../utils/writer_media_utils.dart';
@@ -32,14 +35,18 @@ class WriterPadScreen extends ConsumerStatefulWidget {
     super.key,
     this.book,
     this.initialTopic,
+    this.mode = WriterPadMode.content,
     this.restoreLocalDrafts = true,
     this.showToolbar = true,
+    this.optOutComplementary,
   });
 
   final Book? book;
   final String? initialTopic;
+  final WriterPadMode mode;
   final bool restoreLocalDrafts;
   final bool showToolbar;
+  final bool? optOutComplementary;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -73,6 +80,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Timer? _autosaveTimer;
   String? _bookId;
+  List<LeafAttachment>? _savedBookLeaves;
+  int? _savedPublishedAt;
   late final String _localDraftId;
   int _step = 0;
   int _currentChapterIndex = 0;
@@ -96,11 +105,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _isFetchingAutoCover = false;
   bool _autoCoverFetched = false;
   bool _collabEnabled = false;
+  bool _optOutComplementary = false;
   String? _selectedCollaboratorId;
   String? _selectedCollaboratorName;
   String? _selectedCollaboratorPhotoURL;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
+
+  bool get _isChapterDraftMode => widget.mode == WriterPadMode.chapterDraft;
 
   void _setStep(int value) {
     final oldStep = _step;
@@ -169,7 +181,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   @override
-  String? get restorationId => 'writer_pad_${widget.book?.id ?? 'new'}';
+  String? get restorationId =>
+      'writer_pad_${widget.mode.name}_${widget.book?.id ?? 'new'}';
 
   @override
   void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
@@ -189,7 +202,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _restorableCategory.value = _category;
       _restorableLanguage.value = _language;
     }
-    _step = _restorableStep.value.clamp(0, 1);
+    _step = _isChapterDraftMode ? 0 : _restorableStep.value.clamp(0, 1);
     _currentChapterIndex = _restorableCurrentChapterIndex.value.clamp(
       0,
       _chapters.length - 1,
@@ -241,6 +254,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _selectedCollaboratorId = book?.collaboratorId?.trim();
     _selectedCollaboratorName = book?.collaboratorName?.trim();
     _selectedCollaboratorPhotoURL = book?.collaboratorPhotoURL?.trim();
+    _optOutComplementary =
+        book?.optOutComplementary ?? widget.optOutComplementary ?? false;
     if (!_currentCategories.contains(_category)) {
       _category = _defaultCategory;
     }
@@ -307,6 +322,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       }
       _restorableCategory.value = _category;
       _topicsController.value.text = _initialTopicsText(draft);
+      _optOutComplementary = draft.optOutComplementary ?? _optOutComplementary;
       for (final chapter in _chapters) {
         chapter.dispose();
       }
@@ -400,7 +416,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _step == 0 ? l10n.writerWritingEditor : l10n.writerContentDetails,
+              _isChapterDraftMode || _step == 0
+                  ? l10n.writerWritingEditor
+                  : l10n.writerContentDetails,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
@@ -414,41 +432,62 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         ),
         leading: IconButton(
           tooltip: l10n.back,
-          icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
+          icon: Icon(
+            _isChapterDraftMode || _step == 0 ? Icons.close : Icons.arrow_back,
+          ),
           onPressed: _handleBack,
         ),
         automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : () => _save(status: 'draft'),
-            child: Text(
-              widget.book?.status == 'published'
-                  ? l10n.writerConvertToDraft
-                  : l10n.writerDraft,
-            ),
-          ),
-          const SizedBox(width: 4),
-          FilledButton(
-            onPressed: _isSaving
-                ? null
-                : () {
-                    if (_step == 0) {
-                      _populateSynopsisFromFirstLines();
-                      unawaited(_syncDraftCheckpoint());
-                      setState(() => _setStep(1));
-                    } else {
-                      _save(status: 'published', closeAfterSave: true);
-                    }
-                  },
-            child: Text(_step == 0 ? l10n.writerNext : l10n.writerPublish),
-          ),
-          const SizedBox(width: 12),
-        ],
+        actions: _isChapterDraftMode
+            ? [
+                OutlinedButton(
+                  onPressed: _isSaving ? null : _addChapterDraftToBook,
+                  child: Text(l10n.addToBook),
+                ),
+                const SizedBox(width: 4),
+                FilledButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () => _save(status: 'draft', allowUntitled: true),
+                  child: Text(l10n.saveDraft),
+                ),
+                const SizedBox(width: 12),
+              ]
+            : [
+                TextButton(
+                  onPressed: _isSaving ? null : () => _save(status: 'draft'),
+                  child: Text(
+                    widget.book?.status == 'published'
+                        ? l10n.writerConvertToDraft
+                        : l10n.writerDraft,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                FilledButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () {
+                          if (_step == 0) {
+                            _populateSynopsisFromFirstLines();
+                            unawaited(_syncDraftCheckpoint());
+                            setState(() => _setStep(1));
+                          } else {
+                            _save(status: 'published', closeAfterSave: true);
+                          }
+                        },
+                  child: Text(
+                    _step == 0 ? l10n.writerNext : l10n.writerPublish,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
       ),
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
-          child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
+          child: _isChapterDraftMode || _step == 0
+              ? _buildEditorStep()
+              : _buildDetailsStep(),
         ),
       ),
       bottomNavigationBar: _step == 0 && widget.showToolbar
@@ -509,12 +548,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              IconButton.filledTonal(
-                tooltip: l10n.writerChapters,
-                onPressed: _showChapterSheet,
-                icon: const Icon(Icons.view_list_rounded),
-              ),
+              if (!_isChapterDraftMode) ...[
+                const SizedBox(width: 10),
+                IconButton.filledTonal(
+                  tooltip: l10n.writerChapters,
+                  onPressed: _showChapterSheet,
+                  icon: const Icon(Icons.view_list_rounded),
+                ),
+              ],
             ],
           ),
         ),
@@ -1722,6 +1763,204 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
   }
 
+  String _chapterDraftTitleForSave() {
+    final explicitTitle = _currentChapter.title.text.trim();
+    if (explicitTitle.isNotEmpty) return explicitTitle;
+
+    final content = plainTextFromHtml(
+      htmlFromDocument(_currentChapter.controller.document),
+    ).trim();
+    if (content.isEmpty) return AppLocalizations.of(context)!.untitledStory;
+
+    final words = content
+        .split(RegExp(r'\s+'))
+        .where((word) {
+          return word.trim().isNotEmpty;
+        })
+        .take(8)
+        .join(' ');
+    if (words.isEmpty) return AppLocalizations.of(context)!.untitledStory;
+    return words.length <= 72 ? words : '${words.substring(0, 72).trim()}...';
+  }
+
+  Future<void> _addChapterDraftToBook() async {
+    final l10n = AppLocalizations.of(context)!;
+    final user = await _currentUserOrNull();
+    if (user == null) return;
+
+    final saved = await _save(
+      status: 'draft',
+      allowUntitled: true,
+      showSnack: false,
+    );
+    if (!saved || !mounted) return;
+
+    final draftId = _bookId ?? widget.book?.id;
+    if (draftId == null || draftId.trim().isEmpty) return;
+
+    final publishedBooks = await ref
+        .read(writerRepositoryProvider)
+        .getUserBooks(user.id, status: 'published');
+    if (!mounted) return;
+    if (publishedBooks.isEmpty) {
+      _showSnack(l10n.noPublishedBooksToAddDraft);
+      return;
+    }
+
+    final selectedBook = await _showPublishedBookPicker(publishedBooks);
+    if (selectedBook == null || !mounted) return;
+
+    var didNavigate = false;
+    setState(() {
+      _isSaving = true;
+      _saveStatus = l10n.writerSavingDraft;
+    });
+    try {
+      final sourceDraft = _buildBookForSave(
+        user,
+        status: 'draft',
+      ).copyWith(id: draftId);
+      final imported = await ref
+          .read(writerRepositoryProvider)
+          .importSingleDraftsToBook(
+            targetBook: selectedBook,
+            sourceDrafts: [sourceDraft],
+          );
+      if (imported.isEmpty || !mounted) return;
+
+      ref.invalidate(myBooksProvider);
+      ref.invalidate(filteredMyBooksProvider);
+      _showSnack(l10n.draftAddedToBook);
+
+      final updatedChapters = <Chapter>[...?selectedBook.chapters, ...imported];
+      final updatedBook = selectedBook.copyWith(
+        chapters: updatedChapters,
+        chapterCount: updatedChapters.length,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+      didNavigate = true;
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.writerPad,
+        arguments: WriterPadArguments(book: updatedBook),
+      );
+    } catch (error) {
+      if (mounted) {
+        _showSnack(l10n.couldNotAddDraftToBook('$error'));
+      }
+    } finally {
+      if (mounted && !didNavigate) {
+        setState(() {
+          _isSaving = false;
+          _saveStatus = l10n.writerDraft;
+        });
+      }
+    }
+  }
+
+  Future<Book?> _showPublishedBookPicker(List<Book> books) {
+    final l10n = AppLocalizations.of(context)!;
+    return showModalBottomSheet<Book>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final sheetColor = _writerSurfaceColor(sheetContext);
+        final textColor = _onWriterSurfaceColor(sheetContext);
+        return Container(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.7,
+          margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          decoration: BoxDecoration(
+            color: sheetColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Theme.of(sheetContext).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.selectBookForDraft,
+                        style: Theme.of(sheetContext).textTheme.titleLarge
+                            ?.copyWith(
+                              color: textColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: l10n.close,
+                      color: textColor,
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  itemCount: books.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final book = books[index];
+                    return GlassSurface(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => Navigator.of(context).pop(book),
+                      semanticButton: true,
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.auto_stories_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  book.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.chapterCount(
+                                    book.chapters?.length ??
+                                        book.chapterCount ??
+                                        0,
+                                  ),
+                                  style: TextStyle(
+                                    color: textColor.withValues(alpha: 0.62),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, color: textColor),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickInlineImage() async {
     final l10n = AppLocalizations.of(context)!;
     final user = await ref.read(currentUserProvider.future);
@@ -1914,6 +2153,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         // Cloud Functions generate follower notifications for new publications.
         AnalyticsService.logBookPublish(bookId: _bookId!);
       }
+      _savedBookLeaves = book.leaves;
+      _savedPublishedAt = book.publishedAt;
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
@@ -1976,6 +2217,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Book _buildBookForSave(UserModel user, {required String status}) {
     _syncBookTitleFromFirstChapter();
     final now = DateTime.now().millisecondsSinceEpoch;
+    final bookTitle = _isChapterDraftMode
+        ? _chapterDraftTitleForSave()
+        : _titleController.value.text.trim().isEmpty
+        ? AppLocalizations.of(context)!.untitledStory
+        : _titleController.value.text.trim();
     final chapters = <Chapter>[];
     for (var i = 0; i < _chapters.length; i++) {
       final draft = _chapters[i];
@@ -1991,7 +2237,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         Chapter(
           id: draft.id ?? 'chapter_${now}_$i',
           title: draft.title.text.trim().isEmpty
-              ? AppLocalizations.of(context)!.chapterNumber(i + 1)
+              ? _isChapterDraftMode && i == 0
+                    ? bookTitle
+                    : AppLocalizations.of(context)!.chapterNumber(i + 1)
               : draft.title.text.trim(),
           content: content,
           index: i,
@@ -2060,16 +2308,21 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               collaboratorId,
           }.toList()
         : <String>[primaryAuthorId];
-    final existingPublishedAt = existingBook?.publishedAt;
+    final existingPublishedAt = _savedPublishedAt ?? existingBook?.publishedAt;
     final publishedAt = status == 'published'
         ? existingPublishedAt ?? now
         : existingPublishedAt;
+    final leaves = _leavesForSave(
+      existingBook: existingBook,
+      user: user,
+      status: status,
+      issuedAt: publishedAt,
+      now: now,
+    );
 
     return Book(
       id: _bookId ?? widget.book?.id ?? '',
-      title: _titleController.value.text.trim().isEmpty
-          ? AppLocalizations.of(context)!.untitledStory
-          : _titleController.value.text.trim(),
+      title: bookTitle,
       description: _descriptionController.value.text.trim(),
       coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
       authors: bookAuthors,
@@ -2089,6 +2342,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       createdAt: widget.book?.createdAt ?? now,
       updatedAt: now,
       publishedAt: publishedAt,
+      optOutComplementary: _optOutComplementary,
       identifier: widget.book?.identifier,
       recommendationCount: widget.book?.recommendationCount,
       weightedScore: widget.book?.weightedScore,
@@ -2118,7 +2372,93 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ? existingBook?.collaborationRespondedAt
           : null,
       authorIds: authorIds,
+      leaves: leaves,
+      leafCount: leaves.length,
+      hasLeaves: leaves.isNotEmpty,
+      leafUpdatedAt: leaves.isNotEmpty
+          ? (existingBook?.leafUpdatedAt ?? now)
+          : existingBook?.leafUpdatedAt,
     );
+  }
+
+  List<LeafAttachment> _leavesForSave({
+    required Book? existingBook,
+    required UserModel user,
+    required String status,
+    required int? issuedAt,
+    required int now,
+  }) {
+    final leaves = List<LeafAttachment>.from(
+      _savedBookLeaves ?? existingBook?.leaves ?? const <LeafAttachment>[],
+    );
+    final initialTopic = widget.initialTopic?.trim();
+    final existingCertificateIndex = leaves.indexWhere(
+      (leaf) => leaf.type == LeafType.certificate,
+    );
+    final existingCertificate = existingCertificateIndex == -1
+        ? null
+        : leaves[existingCertificateIndex];
+    final topicName = initialTopic?.isNotEmpty == true
+        ? initialTopic!
+        : existingCertificate?.certificateTopicName?.trim();
+    final isNewPublication =
+        status == 'published' &&
+        (_savedPublishedAt ?? existingBook?.publishedAt) == null;
+    if ((initialTopic == null || initialTopic.isEmpty) &&
+        existingCertificate == null) {
+      return leaves;
+    }
+    if (topicName == null || topicName.isEmpty) {
+      return leaves;
+    }
+
+    final normalizedTopic = topicName.toLowerCase();
+    final matchingCertificateIndex = leaves.indexWhere((leaf) {
+      if (leaf.type != LeafType.certificate) return false;
+      final certificateTopic = (leaf.certificateTopicName ?? '')
+          .trim()
+          .toLowerCase();
+      return certificateTopic == normalizedTopic ||
+          certificateTopic.isEmpty && leaf == existingCertificate;
+    });
+    final participantName = (user.displayName ?? user.penName ?? user.username)
+        .trim();
+    final certificateIssuedAt = status == 'published'
+        ? issuedAt ?? now
+        : existingCertificate?.certificateIssuedAt;
+    final certificate = LeafAttachment(
+      id: matchingCertificateIndex == -1
+          ? _certificateLeafId(topicName, certificateIssuedAt)
+          : leaves[matchingCertificateIndex].id,
+      type: LeafType.certificate,
+      createdAt: matchingCertificateIndex == -1
+          ? now
+          : leaves[matchingCertificateIndex].createdAt,
+      createdBy: user.id,
+      createdByRole: 'app',
+      title: 'Certificate',
+      certificateTopicName: topicName,
+      certificateIssuedAt: certificateIssuedAt,
+      certificateParticipantName: participantName.isEmpty
+          ? user.username
+          : participantName,
+      certificateParticipantPhotoUrl: user.photoURL,
+    );
+    if (matchingCertificateIndex == -1) {
+      leaves.add(certificate);
+    } else if (isNewPublication ||
+        leaves[matchingCertificateIndex].certificateIssuedAt == null) {
+      leaves[matchingCertificateIndex] = certificate;
+    }
+    return leaves;
+  }
+
+  String _certificateLeafId(String topicName, int? issuedAt) {
+    final safeTopic = topicName
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return 'certificate_${issuedAt ?? 'pending'}_${safeTopic.isEmpty ? 'topic' : safeTopic}';
   }
 
   Widget _buildCollaborationSection() {

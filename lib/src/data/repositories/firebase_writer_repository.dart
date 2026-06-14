@@ -308,6 +308,7 @@ class FirebaseWriterRepository implements WriterRepository {
           .toList();
       return chapterData;
     }).toList();
+    data['leaves'] = book.leaves?.map((leaf) => leaf.toJson()).toList();
     return data;
   }
 

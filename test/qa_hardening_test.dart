@@ -138,6 +138,62 @@ void main() {
     expect(english['moveToDrafts'], 'Move to drafts');
   });
 
+  test('message rows use participant photos in chat list avatars', () {
+    final source = File(
+      'lib/src/presentation/screens/messages_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('final photoUrl = other?.photoURL?.trim();'));
+    expect(source, contains('CachedNetworkImageProvider(photoUrl)'));
+    expect(source, contains('title.characters.first.toUpperCase()'));
+  });
+
+  test(
+    'daily topic admin paginates seven at a time and refreshes home topics',
+    () {
+      final adminScreenSource = File(
+        'lib/src/presentation/screens/admin_daily_topics_screen.dart',
+      ).readAsStringSync();
+      final adminProviderSource = File(
+        'lib/src/presentation/providers/admin_topic_providers.dart',
+      ).readAsStringSync();
+      final dailyTopicProviderSource = File(
+        'lib/src/presentation/providers/daily_topic_providers.dart',
+      ).readAsStringSync();
+
+      expect(adminScreenSource, contains('int _visibleTopicCount = 7;'));
+      expect(adminScreenSource, contains('_visibleTopicCount += 7'));
+      expect(adminProviderSource, contains('refreshNow()'));
+      expect(dailyTopicProviderSource, contains('Future<void> refreshNow()'));
+    },
+  );
+
+  test('writer dashboard and pad expose simple chapter draft flow', () {
+    final dashboardSource = File(
+      'lib/src/presentation/screens/writer_dashboard_screen.dart',
+    ).readAsStringSync();
+    final writerSource = File(
+      'lib/src/presentation/screens/writer_pad_screen.dart',
+    ).readAsStringSync();
+    final routeSource = File(
+      'lib/src/presentation/routing/writer_pad_mode.dart',
+    ).readAsStringSync();
+    final english = englishL10n();
+
+    expect(routeSource, contains('enum WriterPadMode'));
+    expect(routeSource, contains('chapterDraft'));
+    expect(dashboardSource, contains('l10n.createDraft'));
+    expect(dashboardSource, contains('WriterPadMode.chapterDraft'));
+    expect(writerSource, contains('bool get _isChapterDraftMode'));
+    expect(writerSource, contains('l10n.addToBook'));
+    expect(writerSource, contains('_chapterDraftTitleForSave'));
+    expect(writerSource, contains('_addChapterDraftToBook'));
+    expect(writerSource, contains('importSingleDraftsToBook'));
+    expect(english['createDraft'], 'Create Draft');
+    expect(english['addToBook'], 'Add to book');
+    expect(english['draftAddedToBook'], 'Draft added to book.');
+  });
+
   test('collab chapter draft moves create user-owned standalone drafts', () {
     final repositorySource = File(
       'lib/src/data/repositories/firebase_writer_repository.dart',
