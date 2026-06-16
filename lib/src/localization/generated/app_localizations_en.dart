@@ -2427,7 +2427,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotCopyContent => 'Could not copy content.';
 
   @override
-  String get createDraft => 'Create Draft';
+  String get createDraft => 'Create Draft Chapter';
 
   @override
   String get addToBook => 'Add to book';
@@ -2511,4 +2511,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loadMoreTopics => 'Load more topics';
+
+  @override
+  String get myContent => 'Content';
+
+  @override
+  String get seeMoreContent => 'See more content';
 }

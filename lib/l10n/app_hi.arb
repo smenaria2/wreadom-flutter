@@ -477,7 +477,7 @@
   "saveFailed": "सेव नहीं हो सका: {error}",
   "writerDashboard": "लेखक डैशबोर्ड",
   "createContent": "रचना लिखें",
-  "createDraft": "ड्राफ़्ट बनाएं",
+  "createDraft": "ड्राफ़्ट अध्याय बनाएं",
   "addToBook": "पुस्तक में जोड़ें",
   "selectBookForDraft": "पुस्तक चुनें",
   "noPublishedBooksToAddDraft": "इस ड्राफ़्ट को जोड़ने से पहले कोई पुस्तक प्रकाशित करें।",
@@ -1107,5 +1107,7 @@
   "noTopicsFound": "कोई टॉपिक नहीं मिला।",
   "loadMoreTopics": "और टॉपिक लोड करें",
   "adminDailyTopicsTitle": "आगाज़ टॉपिक्स एडमिन",
-  "manageDailyTopics": "आगाज़ टॉपिक्स प्रबंधित करें"
+  "manageDailyTopics": "आगाज़ टॉपिक्स प्रबंधित करें",
+  "myContent": "रचनाएं",
+  "seeMoreContent": "और रचनाएं देखें"
 }

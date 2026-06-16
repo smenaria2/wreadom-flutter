@@ -35,6 +35,7 @@ import '../components/profile/user_about_tab.dart';
 import '../components/profile/user_history_tab.dart';
 import '../components/profile/user_saved_tab.dart';
 import '../components/profile/user_downloaded_tab.dart';
+import '../components/profile/user_content_tab.dart';
 import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
@@ -63,7 +64,7 @@ class ProfileScreen extends ConsumerWidget {
             );
 
         return DefaultTabController(
-          length: 5,
+          length: 6,
           child: Scaffold(
             backgroundColor: Colors.transparent,
             endDrawer: const _ProfileSideMenu(),
@@ -204,6 +205,7 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             tabs: [
                               Tab(text: l10n.about),
+                              Tab(text: l10n.myContent),
                               Tab(text: l10n.posts),
                               Tab(text: l10n.history),
                               Tab(text: l10n.saved),
@@ -220,6 +222,7 @@ class ProfileScreen extends ConsumerWidget {
               body: TabBarView(
                 children: [
                   _ProfileTabBody(child: UserAboutTab(user: user)),
+                  _ProfileTabBody(child: UserContentTab(userId: user.id)),
                   _ProfileTabBody(child: UserPostsTab(userId: user.id)),
                   const _ProfileTabBody(child: UserHistoryTab()),
                   const _ProfileTabBody(child: UserSavedTab()),

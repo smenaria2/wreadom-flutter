@@ -4319,7 +4319,7 @@ abstract class AppLocalizations {
   /// No description provided for @createDraft.
   ///
   /// In en, this message translates to:
-  /// **'Create Draft'**
+  /// **'Create Draft Chapter'**
   String get createDraft;
 
   /// No description provided for @addToBook.
@@ -4477,6 +4477,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Load more topics'**
   String get loadMoreTopics;
+
+  /// No description provided for @myContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get myContent;
+
+  /// No description provided for @seeMoreContent.
+  ///
+  /// In en, this message translates to:
+  /// **'See more content'**
+  String get seeMoreContent;
 }
 
 class _AppLocalizationsDelegate

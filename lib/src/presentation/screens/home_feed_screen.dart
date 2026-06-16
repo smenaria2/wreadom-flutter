@@ -274,13 +274,6 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           ),
           const SizedBox(width: 8),
           _TypeChip(
-            label: l10n.feedTypeTestimony,
-            icon: Icons.favorite_border_rounded,
-            selected: _selectedType == 'testimony',
-            onSelected: () => setState(() => _selectedType = 'testimony'),
-          ),
-          const SizedBox(width: 8),
-          _TypeChip(
             label: l10n.feedTypeQuestion,
             icon: Icons.help_outline_rounded,
             selected: _selectedType == 'question',

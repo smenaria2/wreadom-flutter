@@ -1322,7 +1322,7 @@
   "copyContent": "Copy content",
   "chapterContentCopied": "Chapter content copied.",
   "couldNotCopyContent": "Could not copy content.",
-  "createDraft": "Create Draft",
+  "createDraft": "Create Draft Chapter",
   "addToBook": "Add to book",
   "selectBookForDraft": "Select a book",
   "noPublishedBooksToAddDraft": "Publish a book before adding this draft to one.",
@@ -1362,5 +1362,7 @@
   "signInAgainToUploadImages": "Sign in again to upload images.",
   "untitledTopic": "Untitled topic",
   "noTopicsFound": "No topics found.",
-  "loadMoreTopics": "Load more topics"
+  "loadMoreTopics": "Load more topics",
+  "myContent": "Content",
+  "seeMoreContent": "See more content"
 }

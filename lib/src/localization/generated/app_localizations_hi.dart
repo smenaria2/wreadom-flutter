@@ -2432,7 +2432,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get couldNotCopyContent => 'सामग्री कॉपी नहीं हो सकी।';
 
   @override
-  String get createDraft => 'ड्राफ़्ट बनाएं';
+  String get createDraft => 'ड्राफ़्ट अध्याय बनाएं';
 
   @override
   String get addToBook => 'पुस्तक में जोड़ें';
@@ -2517,4 +2517,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get loadMoreTopics => 'और टॉपिक लोड करें';
+
+  @override
+  String get myContent => 'रचनाएं';
+
+  @override
+  String get seeMoreContent => 'और रचनाएं देखें';
 }

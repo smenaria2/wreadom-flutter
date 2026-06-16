@@ -670,15 +670,25 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _PublicBooksSection extends ConsumerWidget {
+class _PublicBooksSection extends ConsumerStatefulWidget {
   const _PublicBooksSection({required this.userId});
 
   final String userId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final booksAsync = ref.watch(userBooksProvider(userId));
+  ConsumerState<_PublicBooksSection> createState() =>
+      _PublicBooksSectionState();
+}
+
+class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
+  bool _showAll = false;
+  static const int _pageSize = 9;
+
+  @override
+  Widget build(BuildContext context) {
+    final booksAsync = ref.watch(userBooksProvider(widget.userId));
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -687,19 +697,53 @@ class _PublicBooksSection extends ConsumerWidget {
             if (books.isEmpty) {
               return Text(l10n.noPublishedBooksYet);
             }
-            return GridView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.only(top: 8),
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.44,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 28,
-              ),
-              itemCount: books.length,
-              itemBuilder: (context, index) =>
-                  BookCard(book: books[index], width: double.infinity),
+            final visibleBooks =
+                _showAll ? books : books.take(_pageSize).toList();
+            final hasMore = !_showAll && books.length > _pageSize;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GridView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(top: 8),
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.44,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 28,
+                  ),
+                  itemCount: visibleBooks.length,
+                  itemBuilder: (context, index) =>
+                      BookCard(book: visibleBooks[index], width: double.infinity),
+                ),
+                if (hasMore)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: OutlinedButton.icon(
+                        onPressed: () => setState(() => _showAll = true),
+                        icon: const Icon(Icons.expand_more_rounded),
+                        label: Text(
+                          l10n.seeMoreContent,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
           loading: () => const Center(
@@ -714,6 +758,7 @@ class _PublicBooksSection extends ConsumerWidget {
     );
   }
 }
+
 
 class _PublicPostsSection extends ConsumerWidget {
   const _PublicPostsSection({required this.userId});
