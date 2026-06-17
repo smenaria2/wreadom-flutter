@@ -738,8 +738,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 },
               ),
             ] else if (post.type.toLowerCase() == 'post' && post.bookId != null) ...[
+              if (post.text.isNotEmpty) ...[
+                Text(
+                  post.text,
+                  style: const TextStyle(fontSize: 14, height: 1.45),
+                ),
+                const SizedBox(height: 10),
+              ],
               GradientBookCard(
-                text: post.text,
                 bookTitle: resolvedBookTitle,
                 bookCover: post.bookCover,
                 bookAuthorName: resolvedBookAuthorName,
@@ -753,8 +759,24 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 },
               ),
             ] else if (post.type.toLowerCase() == 'review' && post.rating != null) ...[
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < post.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: Colors.amber,
+                    size: 20,
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              if (post.text.isNotEmpty) ...[
+                Text(
+                  post.text,
+                  style: const TextStyle(fontSize: 14, height: 1.45),
+                ),
+                const SizedBox(height: 10),
+              ],
               GradientReviewCard(
-                text: post.text,
                 rating: post.rating!,
                 bookTitle: resolvedBookTitle,
                 bookCover: post.bookCover,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class GradientReviewCard extends StatelessWidget {
-  final String text;
   final int rating;
   final String bookTitle;
   final String? bookCover;
@@ -11,7 +10,6 @@ class GradientReviewCard extends StatelessWidget {
 
   const GradientReviewCard({
     super.key,
-    required this.text,
     required this.rating,
     required this.bookTitle,
     this.bookCover,
@@ -22,163 +20,141 @@ class GradientReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFF59E0B), // Amber 500
-            Color(0xFFEA580C), // Orange 600
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return InkWell(
+      onTap: onBookTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: colorScheme.surfaceContainerLow,
+          border: Border.all(
+            color: Colors.amber.withValues(alpha: 0.25),
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            right: -40,
-            top: -40,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        );
-                      }),
-                    ),
-                    Icon(
-                      Icons.rate_review_rounded,
-                      color: Colors.white.withValues(alpha: 0.25),
-                      size: 24,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  text,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.white,
-                    fontSize: 15,
-                    height: 1.45,
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left Accent Gradient Bar
+              Container(
+                width: 4,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFFF59E0B), // Amber 500
+                      Color(0xFFEA580C), // Orange 600
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
-                const SizedBox(height: 14),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onBookTap,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                      child: Row(
-                        children: [
-                          if (bookCover != null && bookCover!.isNotEmpty) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: CachedNetworkImage(
-                                imageUrl: bookCover!,
-                                width: 32,
-                                height: 46,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  width: 32,
-                                  height: 46,
-                                  color: Colors.white.withValues(alpha: 0.1),
+              ),
+              const SizedBox(width: 12),
+              // Content Row
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  child: Row(
+                    children: [
+                      if (bookCover != null && bookCover!.isNotEmpty) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: CachedNetworkImage(
+                            imageUrl: bookCover!,
+                            width: 44,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 44,
+                              height: 64,
+                              color: colorScheme.onSurface.withValues(alpha: 0.05),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              width: 44,
+                              height: 64,
+                              color: colorScheme.onSurface.withValues(alpha: 0.05),
+                              child: const Icon(Icons.book_rounded, size: 20),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              bookTitle,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (bookAuthorName != null && bookAuthorName!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'by $bookAuthorName',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
                                 ),
-                                errorWidget: (context, url, error) => const SizedBox(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Rating Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              color: Colors.amber,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              rating.toDouble().toStringAsFixed(1),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: Colors.amber[800] ?? Colors.amber,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 10),
                           ],
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  bookTitle,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (bookAuthorName != null && bookAuthorName!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'by $bookAuthorName',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.75),
-                                      fontSize: 11,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white.withValues(alpha: 0.7),
-                            size: 18,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
