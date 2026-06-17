@@ -25,10 +25,9 @@ if (-not (Test-Path $gplayPath)) {
 }
 
 # 2. Resolve Service Account JSON key
-$tempKeyFile = ""
-$serviceAccountEnv = $env:GPLAY_SERVICE_ACCOUNT
+$serviceAccountKey = $env:GPLAY_SERVICE_ACCOUNT_JSON
 
-if (-not $serviceAccountEnv) {
+if (-not $serviceAccountKey) {
     # Check Doppler
     if (Get-Command doppler -ErrorAction SilentlyContinue) {
         Write-Host "Checking Doppler for GPLAY_SERVICE_ACCOUNT_KEY..." -ForegroundColor Green
@@ -36,10 +35,7 @@ if (-not $serviceAccountEnv) {
             $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent | ConvertFrom-Json
             if ($secretJson.GPLAY_SERVICE_ACCOUNT_KEY) {
                 Write-Host "Found GPLAY_SERVICE_ACCOUNT_KEY in Doppler." -ForegroundColor Green
-                $tempKeyFile = Join-Path $gplayDir "temp_service_account.json"
-                $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
-                [System.IO.File]::WriteAllText($tempKeyFile, $secretJson.GPLAY_SERVICE_ACCOUNT_KEY, $Utf8NoBomEncoding)
-                $env:GPLAY_SERVICE_ACCOUNT = $tempKeyFile
+                $serviceAccountKey = $secretJson.GPLAY_SERVICE_ACCOUNT_KEY
             }
         } catch {
             Write-Warning "Failed to read secrets from Doppler."
@@ -48,22 +44,26 @@ if (-not $serviceAccountEnv) {
 }
 
 # Fallback to local file in project root if still not set
-if (-not $env:GPLAY_SERVICE_ACCOUNT -and (Test-Path "play_store_key.json")) {
-    $env:GPLAY_SERVICE_ACCOUNT = (Resolve-Path "play_store_key.json").Path
-    Write-Host "Using credentials from local file: $env:GPLAY_SERVICE_ACCOUNT" -ForegroundColor Green
+if (-not $serviceAccountKey -and (Test-Path "play_store_key.json")) {
+    $serviceAccountKey = Get-Content -Raw "play_store_key.json"
+    Write-Host "Using credentials from local file: play_store_key.json" -ForegroundColor Green
 }
 
 # Verify we have credentials
-if (-not $env:GPLAY_SERVICE_ACCOUNT) {
+if (-not $serviceAccountKey) {
     Write-Error @"
 Authentication credentials not found.
 To fix this, please do one of the following:
 1. Save your service account JSON key to 'play_store_key.json' in the root directory.
 2. Store your service account JSON key string in Doppler as 'GPLAY_SERVICE_ACCOUNT_KEY'.
-3. Set the 'GPLAY_SERVICE_ACCOUNT' environment variable to the path of your JSON key file.
+3. Set the 'GPLAY_SERVICE_ACCOUNT_JSON' environment variable to the path or content of your JSON key file.
 "@
     exit 1
 }
+
+# Set environment variable for gplay CLI
+$env:GPLAY_SERVICE_ACCOUNT_JSON = $serviceAccountKey
+
 
 # 3. Build the Release App Bundle
 Write-Host "--------------------------------------------------"
@@ -74,32 +74,59 @@ Write-Host "--------------------------------------------------"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Build failed. Aborting Play Store upload."
-    if ($tempKeyFile -and (Test-Path $tempKeyFile)) { Remove-Item $tempKeyFile -Force }
     exit 1
 }
 
 $aabPath = "build\app\outputs\bundle\release\app-release.aab"
 if (-not (Test-Path $aabPath)) {
     Write-Error "Could not find built app bundle at $aabPath"
-    if ($tempKeyFile -and (Test-Path $tempKeyFile)) { Remove-Item $tempKeyFile -Force }
     exit 1
 }
 
-# 4. Upload/Release to Internal Track
+# 4. Extract Version and Build Number from pubspec.yaml
+$versionString = ""
+if (Test-Path "pubspec.yaml") {
+    $content = Get-Content "pubspec.yaml"
+    foreach ($line in $content) {
+        if ($line -match '^version:\s*(.+)') {
+            $versionString = $Matches[1].Trim()
+            break
+        }
+    }
+}
+
+if (-not $versionString) {
+    $versionString = "1.0.0" # Fallback default
+}
+
+# 5. Extract Git Commit Info for Release Notes
+$commitInfo = "New release build."
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    try {
+        $commitInfo = & git log -n 5 --pretty=format:"- %s"
+        if ($commitInfo -is [array]) {
+            $commitInfo = $commitInfo -join "`n"
+        }
+        if ($commitInfo.Length -gt 450) {
+            $commitInfo = $commitInfo.Substring(0, 450) + "..."
+        }
+    } catch {
+        # Keep fallback
+    }
+}
+
+# 6. Upload/Release to Internal Track
 Write-Host "--------------------------------------------------"
 Write-Host "Releasing to Google Play Store (Internal track)..." -ForegroundColor Cyan
+Write-Host "Version Name: $versionString"
+Write-Host "Release Notes:`n$commitInfo"
 Write-Host "--------------------------------------------------"
 
 # Run the release command
-& $gplayPath release --package in.wreadom.app --track internal --bundle $aabPath
+& $gplayPath release --package in.wreadom.app --track internal --bundle $aabPath --version-name $versionString --release-notes $commitInfo
 
 $releaseExitCode = $LASTEXITCODE
 
-# 5. Clean up temporary credentials if created from Doppler
-if ($tempKeyFile -and (Test-Path $tempKeyFile)) {
-    Write-Host "Cleaning up temporary credentials..." -ForegroundColor Green
-    Remove-Item $tempKeyFile -Force
-}
 
 if ($releaseExitCode -eq 0) {
     Write-Host "--------------------------------------------------"
@@ -109,3 +136,4 @@ if ($releaseExitCode -eq 0) {
     Write-Error "Play Store release failed with exit code $releaseExitCode"
     exit 1
 }
+
