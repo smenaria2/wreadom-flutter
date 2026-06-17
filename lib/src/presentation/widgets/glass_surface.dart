@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_glass_morphism/flutter_glass_morphism.dart';
 
+import '../../utils/app_haptics.dart';
 import '../theme/app_theme.dart';
 
 class GlassSurface extends StatelessWidget {
@@ -72,7 +74,10 @@ class GlassSurface extends StatelessWidget {
             child: onTap == null
                 ? _Padded(padding: padding, child: child)
                 : InkWell(
-                    onTap: onTap,
+                    onTap: () {
+                      unawaited(AppHaptics.selection());
+                      onTap!();
+                    },
                     borderRadius: resolvedRadius,
                     splashColor: tokens.highlightColor,
                     highlightColor: tokens.highlightColor,

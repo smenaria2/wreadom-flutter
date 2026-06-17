@@ -939,14 +939,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           secondaryTextColor: chromeScheme.onSurfaceVariant,
           accentColor: chromeScheme.primary,
           onSelect: (index) {
+            unawaited(AppHaptics.selection());
             _goToChapter(index);
             Navigator.of(context).pop();
           },
           onOpenComments: (index) {
+            unawaited(AppHaptics.selection());
             Navigator.of(context).pop();
             _showDiscussion(chapters[index], chapterIndex: index);
           },
           onBack: () {
+            unawaited(AppHaptics.selection());
             Navigator.of(context).pop();
             Navigator.of(context).pushReplacementNamed(
               AppRoutes.bookDetail,
@@ -1491,6 +1494,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _speakSelectedText(String selected) async {
+    unawaited(AppHaptics.selection());
     final chunks = _ttsChunks(selected);
     if (chunks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2176,6 +2180,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _shareSelectedQuote(dynamic chapter, String selected) async {
+    unawaited(AppHaptics.selection());
     // Restore line breaks that SelectionArea strips out when extracting plainText
     // from HtmlWidget's multi-widget layout.
     final htmlContent = chapter?.content as String?;
@@ -2260,6 +2265,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _handleShareChapter(Chapter? chapter) async {
+    unawaited(AppHaptics.selection());
     if (chapter == null) return;
 
     final chapterNumber = _chapterIndex + 1;
@@ -2747,6 +2753,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     int? chapterIndex,
     bool focusComposer = false,
   }) {
+    unawaited(AppHaptics.selection());
     _prepareReviewComposer(
       chapter: chapter,
       chapterIndex: chapterIndex,
@@ -2814,7 +2821,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         IconButton(
                           tooltip: 'Close',
                           icon: const Icon(Icons.close_rounded),
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            unawaited(AppHaptics.selection());
+                            Navigator.of(context).pop();
+                          },
                         ),
                       ],
                     ),
@@ -3350,9 +3360,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     setState(() => _fontSize = value);
                     setModalState(() {});
                   },
-                  onChangeEnd: (value) => ref
-                      .read(readerSettingsControllerProvider.notifier)
-                      .setFontSize(value),
+                  onChangeEnd: (value) {
+                    unawaited(AppHaptics.selection());
+                    ref
+                        .read(readerSettingsControllerProvider.notifier)
+                        .setFontSize(value);
+                  },
                 ),
                 Text(l10n.theme, style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -3365,6 +3378,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       icon: Icons.brightness_auto_rounded,
                       selected: _readerTheme == ReaderTheme.system,
                       onTap: () {
+                        unawaited(AppHaptics.selection());
                         setState(() => _readerTheme = ReaderTheme.system);
                         ref
                             .read(readerSettingsControllerProvider.notifier)
@@ -3377,6 +3391,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       color: Colors.white,
                       selected: _readerTheme == ReaderTheme.light,
                       onTap: () {
+                        unawaited(AppHaptics.selection());
                         setState(() => _readerTheme = ReaderTheme.light);
                         ref
                             .read(readerSettingsControllerProvider.notifier)
@@ -3389,6 +3404,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       color: const Color(0xFFF4ECD8),
                       selected: _readerTheme == ReaderTheme.sepia,
                       onTap: () {
+                        unawaited(AppHaptics.selection());
                         setState(() => _readerTheme = ReaderTheme.sepia);
                         ref
                             .read(readerSettingsControllerProvider.notifier)
@@ -3402,6 +3418,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       textColor: Colors.white,
                       selected: _readerTheme == ReaderTheme.dark,
                       onTap: () {
+                        unawaited(AppHaptics.selection());
                         setState(() => _readerTheme = ReaderTheme.dark);
                         ref
                             .read(readerSettingsControllerProvider.notifier)
@@ -3983,7 +4000,12 @@ class _ChapterEndActions extends StatelessWidget {
         children: [
           GlassSurface(
             borderRadius: BorderRadius.circular(16),
-            onTap: onNextChapter,
+            onTap: onNextChapter == null
+                ? null
+                : () {
+                    unawaited(AppHaptics.selection());
+                    onNextChapter!();
+                  },
             semanticButton: true,
             child: Container(
               width: double.infinity,
@@ -4015,7 +4037,10 @@ class _ChapterEndActions extends StatelessWidget {
               Expanded(
                 child: GlassSurface(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: onViewComments,
+                  onTap: () {
+                    unawaited(AppHaptics.selection());
+                    onViewComments();
+                  },
                   semanticButton: true,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -4049,7 +4074,10 @@ class _ChapterEndActions extends StatelessWidget {
               Expanded(
                 child: GlassSurface(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: onShare,
+                  onTap: () {
+                    unawaited(AppHaptics.selection());
+                    onShare();
+                  },
                   semanticButton: true,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -4084,7 +4112,10 @@ class _ChapterEndActions extends StatelessWidget {
         children: [
           GlassSurface(
             borderRadius: BorderRadius.circular(16),
-            onTap: onViewComments,
+            onTap: () {
+              unawaited(AppHaptics.selection());
+              onViewComments();
+            },
             semanticButton: true,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -4112,7 +4143,10 @@ class _ChapterEndActions extends StatelessWidget {
           const SizedBox(height: 12),
           GlassSurface(
             borderRadius: BorderRadius.circular(16),
-            onTap: onShare,
+            onTap: () {
+              unawaited(AppHaptics.selection());
+              onShare();
+            },
             semanticButton: true,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -4378,7 +4412,10 @@ class _ReaderTopBar extends StatelessWidget {
                               context,
                             ).openAppDrawerTooltip,
                             color: foregroundColor,
-                            onPressed: () => Scaffold.of(context).openDrawer(),
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              Scaffold.of(context).openDrawer();
+                            },
                           ),
                         ),
                         Expanded(
@@ -4416,7 +4453,10 @@ class _ReaderTopBar extends StatelessWidget {
                             icon: const Icon(Icons.picture_as_pdf_outlined),
                             tooltip: l10n.viewPdf,
                             color: foregroundColor,
-                            onPressed: onOpenArchivePdf,
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              onOpenArchivePdf();
+                            },
                           ),
                         IconButton(
                           icon: isTtsPreparing
@@ -4437,20 +4477,31 @@ class _ReaderTopBar extends StatelessWidget {
                                 ),
                           tooltip: ttsTooltip,
                           color: foregroundColor,
-                          onPressed: onToggleTts,
+                          onPressed: onToggleTts == null
+                              ? null
+                              : () {
+                                  unawaited(AppHaptics.selection());
+                                  onToggleTts!();
+                                },
                         ),
                         if (onCopyContent != null)
                           IconButton(
                             icon: const Icon(Icons.copy_all_rounded),
                             tooltip: l10n.copyContent,
                             color: foregroundColor,
-                            onPressed: onCopyContent,
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              onCopyContent!();
+                            },
                           ),
                         IconButton(
                           icon: const Icon(Icons.format_size_rounded),
                           tooltip: l10n.readerSettings,
                           color: foregroundColor,
-                          onPressed: onShowSettings,
+                          onPressed: () {
+                            unawaited(AppHaptics.selection());
+                            onShowSettings();
+                          },
                         ),
                       ],
                     ),

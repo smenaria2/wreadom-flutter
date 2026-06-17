@@ -115,7 +115,26 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
     }
 }
 
-# 6. Upload/Release to Internal Track
+# 6. Commit Version Bump and changes to Git first
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    Write-Host "--------------------------------------------------"
+    Write-Host "Committing version bump to Git..." -ForegroundColor Cyan
+    Write-Host "--------------------------------------------------"
+    try {
+        & git add -A
+        $gitStatus = & git status --porcelain
+        if ($gitStatus) {
+            & git commit -m "release: version $versionString"
+            Write-Host "Committed successfully to Git." -ForegroundColor Green
+        } else {
+            Write-Host "No changes to commit." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Warning "Failed to commit to Git: $_"
+    }
+}
+
+# 7. Upload/Release to Internal Track
 Write-Host "--------------------------------------------------"
 Write-Host "Releasing to Google Play Store (Internal track)..." -ForegroundColor Cyan
 Write-Host "Version Name: $versionString"

@@ -192,30 +192,6 @@ class _LeafIconChipState extends State<_LeafIconChip> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isCertificate = widget.leaf.type == LeafType.certificate;
-
-    final border = isCertificate
-        ? Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.65), width: 1.5)
-        : null;
-    final decoration = isCertificate
-        ? BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: border,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.18),
-                blurRadius: 8,
-                spreadRadius: 1,
-              )
-            ],
-          )
-        : null;
-
-    final iconColor = isCertificate ? const Color(0xFFFFB300) : theme.colorScheme.primary;
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(
-      fontWeight: FontWeight.w700,
-      color: isCertificate ? const Color(0xFFFFB300) : null,
-    );
 
     return SizedBox(
       width: 76,
@@ -224,31 +200,30 @@ class _LeafIconChipState extends State<_LeafIconChip> {
         clipBehavior: Clip.hardEdge,
         children: [
           Positioned.fill(
-            child: Container(
-              decoration: decoration,
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(18),
-                onTap: _deleting ? null : widget.onTap,
-                semanticButton: true,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(9, 12, 9, 10),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isCertificate ? Icons.workspace_premium_rounded : _leafIcon(widget.leaf),
-                        color: iconColor,
-                        size: 26,
+            child: GlassSurface(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _deleting ? null : widget.onTap,
+              semanticButton: true,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(9, 12, 9, 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _leafIcon(widget.leaf),
+                      color: theme.colorScheme.primary,
+                      size: 26,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _leafLabel(widget.leaf),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _leafLabel(widget.leaf),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: labelStyle,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1138,7 +1113,7 @@ IconData _leafTypeIcon(LeafType type) {
     LeafType.link => Icons.link_rounded,
     LeafType.audio => Icons.graphic_eq_rounded,
     LeafType.question => Icons.help_outline_rounded,
-    LeafType.certificate => Icons.card_membership_outlined,
+    LeafType.certificate => Icons.workspace_premium_rounded,
   };
 }
 
