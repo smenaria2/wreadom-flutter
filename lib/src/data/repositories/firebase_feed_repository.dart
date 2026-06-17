@@ -255,6 +255,7 @@ class FirebaseFeedRepository implements FeedRepository {
     data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
     data['likesCount'] = post.likesCount ?? post.likes.length;
     data['commentCount'] = post.commentCount ?? post.comments?.length ?? 0;
+    data['userIsDeactivated'] = false;
     await _firestore.collection(_collection).add(data);
   }
 

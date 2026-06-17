@@ -12,6 +12,7 @@ import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_link_helper.dart';
 import 'generated_book_cover.dart';
+import 'book/comment_share_preview_sheet.dart';
 
 Future<void> shareReviewCard(
   BuildContext context, {
@@ -155,17 +156,19 @@ Future<void> shareReviewCommentCard(
       return;
     }
 
-    await Share.shareXFiles(
-      [
-        XFile.fromData(
-          bytes,
-          name: '${_safeFilePart(bookTitle)}-review.png',
-          mimeType: 'image/png',
-        ),
-      ],
-      text: link,
-      subject: l10n.reviewTitle(bookTitle),
-    );
+    if (context.mounted) {
+      showCommentSharePreviewSheet(
+        context: context,
+        comment: comment,
+        bookId: bookId,
+        bookTitle: bookTitle,
+        bookAuthorName: bookAuthorName,
+        bookCover: bookCover,
+        imageBytes: bytes,
+        fallbackText: fallbackText,
+        link: link,
+      );
+    }
   } catch (_) {
     await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
   } finally {

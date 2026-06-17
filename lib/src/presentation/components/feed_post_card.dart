@@ -19,6 +19,9 @@ import '../../utils/format_utils.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'book/gradient_quote_card.dart';
+import 'book/gradient_book_card.dart';
+import 'book/gradient_review_card.dart';
 
 /// Maps post type → accent colour
 Color _typeColor(String type, ColorScheme scheme) {
@@ -369,6 +372,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
     final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
     final bookIdText = post.bookId?.toString();
+    final isPremiumCard = post.type.toLowerCase() == 'quote' ||
+        (post.type.toLowerCase() == 'post' && post.bookId != null) ||
+        (post.type.toLowerCase() == 'review' && post.rating != null);
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';
     final fallbackBookAsync =
@@ -577,24 +583,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ],
             ),
 
-            // ─── Star rating (review) ─────────────────────────
-            if (post.type.toLowerCase() == 'review' && post.rating != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: List.generate(5, (i) {
-                  return Icon(
-                    i < post.rating!
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    size: 16,
-                    color: accentColor,
-                  );
-                }),
-              ),
-            ],
 
             // ─── Book reference ───────────────────────────────
-            if (post.bookTitle != null || bookIdText != null) ...[
+            if (!isPremiumCard && (post.bookTitle != null || bookIdText != null)) ...[
               const SizedBox(height: 10),
               InkWell(
                 onTap: () {
@@ -724,14 +715,65 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             ],
 
             // ─── Post text ────────────────────────────────────
-            // Italicise quotes
-            if (post.type.toLowerCase() == 'quote')
-              _QuoteBlock(text: post.text)
-            else
+            if (post.type.toLowerCase() == 'quote') ...[
+              if (post.text.isNotEmpty && post.text.trim() != (post.quote ?? '').trim()) ...[
+                Text(
+                  post.text,
+                  style: const TextStyle(fontSize: 14, height: 1.45),
+                ),
+                const SizedBox(height: 10),
+              ],
+              GradientQuoteCard(
+                quote: post.quote ?? post.text,
+                bookTitle: resolvedBookTitle,
+                bookCover: post.bookCover,
+                chapterTitle: post.chapterTitle,
+                onBookTap: () {
+                  if (bookIdText != null) {
+                    Navigator.of(context).pushNamed(
+                      AppRoutes.bookDetail,
+                      arguments: BookDetailArguments(bookId: bookIdText),
+                    );
+                  }
+                },
+              ),
+            ] else if (post.type.toLowerCase() == 'post' && post.bookId != null) ...[
+              GradientBookCard(
+                text: post.text,
+                bookTitle: resolvedBookTitle,
+                bookCover: post.bookCover,
+                bookAuthorName: resolvedBookAuthorName,
+                onBookTap: () {
+                  if (bookIdText != null) {
+                    Navigator.of(context).pushNamed(
+                      AppRoutes.bookDetail,
+                      arguments: BookDetailArguments(bookId: bookIdText),
+                    );
+                  }
+                },
+              ),
+            ] else if (post.type.toLowerCase() == 'review' && post.rating != null) ...[
+              GradientReviewCard(
+                text: post.text,
+                rating: post.rating!,
+                bookTitle: resolvedBookTitle,
+                bookCover: post.bookCover,
+                bookAuthorName: resolvedBookAuthorName,
+                onBookTap: () {
+                  if (bookIdText != null) {
+                    Navigator.of(context).pushNamed(
+                      AppRoutes.bookDetail,
+                      arguments: BookDetailArguments(bookId: bookIdText),
+                    );
+                  }
+                },
+              ),
+            ] else ...[
               Text(
                 post.text,
                 style: const TextStyle(fontSize: 14, height: 1.45),
               ),
+            ],
 
             const SizedBox(height: 10),
 
@@ -821,34 +863,6 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _CommentsSheet(post: widget.post),
-    );
-  }
-}
-
-// ─── Quote block ─────────────────────────────────────────────────────────────
-class _QuoteBlock extends StatelessWidget {
-  final String text;
-  const _QuoteBlock({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.teal.withValues(alpha: 0.6), width: 3),
-        ),
-      ),
-      child: Text(
-        '"$text"',
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.5,
-          fontStyle: FontStyle.italic,
-          color: colorScheme.onSurface,
-        ),
-      ),
     );
   }
 }

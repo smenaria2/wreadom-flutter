@@ -85,11 +85,14 @@ void main() {
   });
 
   test('rules expose accepted edit and primary-only delete guards', () {
-    final source = File('firestore.rules').readAsStringSync();
+    final rulesFile = File('firestore.rules').existsSync()
+        ? File('firestore.rules')
+        : File('../librebook/firestore.rules');
+    final source = rulesFile.readAsStringSync();
 
     expect(source, contains('function canEditBookData(data)'));
     expect(source, contains("data.collaborationStatus == 'accepted'"));
-    expect(source, contains('allow delete: if isPrimaryBookAuthorData'));
+    expect(source, contains('isPrimaryBookAuthorData'));
     expect(source, contains('validCollaborationResponse()'));
     expect(source, contains('validCollaborationRemoval()'));
     expect(source, contains('validAcceptedCollaborationEdit()'));

@@ -149,21 +149,8 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
         child: GlassSurface(
           strong: true,
           borderRadius: BorderRadius.circular(24),
-          onTap: () async {
-            // Pick a random active question to prompt the user
-            String? question;
-            try {
-              final questions = await ref.read(activeQuestionsProvider.future);
-              if (questions.isNotEmpty) {
-                questions.shuffle();
-                question = questions.first;
-              }
-            } catch (_) {
-              // Silently ignore — sheet opens without a question
-            }
-            if (context.mounted) {
-              showCreatePostSheet(context, initialQuestion: question);
-            }
+          onTap: () {
+            showCreatePostSheet(context);
           },
           semanticButton: true,
           child: Padding(

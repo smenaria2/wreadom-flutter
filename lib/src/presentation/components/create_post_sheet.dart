@@ -75,16 +75,15 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   XFile? _pickedImage;
   String? _currentQuestion;
   bool _isChangingQuestion = false;
+  bool _isAnsweringQuestion = false;
+  bool _isQuestionDynamic = false;
 
   @override
   void initState() {
     super.initState();
     _currentQuestion = widget.initialQuestion;
-    if (_currentQuestion == null && !widget.lockQuestion) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_changeQuestion());
-      });
-    }
+    _isAnsweringQuestion = widget.initialQuestion != null;
+    _isQuestionDynamic = false;
   }
 
   @override
@@ -93,7 +92,13 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     super.dispose();
   }
 
-  void _removeQuestion() => setState(() => _currentQuestion = null);
+  void _removeQuestion() {
+    setState(() {
+      _currentQuestion = null;
+      _isAnsweringQuestion = false;
+      _isQuestionDynamic = false;
+    });
+  }
 
   Future<void> _changeQuestion() async {
     if (_isChangingQuestion) return;
@@ -172,7 +177,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         visibility: _visibility,
         privacy: _visibility,
         imageUrl: imageUrl,
-        question: _currentQuestion,
+        question: _isAnsweringQuestion ? _currentQuestion : null,
         bookId: widget.bookId,
         bookTitle: widget.bookTitle,
         bookAuthorName: widget.bookAuthorName,
@@ -318,7 +323,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Question prompt card
-                  if (_currentQuestion != null) ...[
+                  if (_isAnsweringQuestion && _currentQuestion != null) ...[
                     GlassSurface(
                       margin: const EdgeInsets.only(bottom: 8),
                       borderRadius: BorderRadius.circular(14),
@@ -354,7 +359,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                 ),
                               ],
                             ),
-                            if (!widget.lockQuestion) ...[
+                            if (_isQuestionDynamic) ...[
                               const SizedBox(height: 4),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -444,6 +449,56 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: 6),
 
+                  // Option to answer question (only when initialQuestion is null)
+                  if (widget.initialQuestion == null) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.help_outline_rounded,
+                          size: 18,
+                          color: _isAnsweringQuestion
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.answerLeafQuestion,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _isAnsweringQuestion
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            value: _isAnsweringQuestion,
+                            onChanged: (val) async {
+                              setState(() {
+                                _isAnsweringQuestion = val;
+                                _isQuestionDynamic = val;
+                              });
+                              if (_isAnsweringQuestion) {
+                                if (_currentQuestion == null) {
+                                  await _changeQuestion();
+                                }
+                              } else {
+                                setState(() {
+                                  _currentQuestion = null;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+
                   // Text input
                   TextField(
                     controller: _textController,
@@ -452,7 +507,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     autofocus: true,
                     style: const TextStyle(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: _currentQuestion != null
+                      hintText: _isAnsweringQuestion
                           ? l10n.answerQuestionHint
                           : l10n.postHint,
                       hintStyle: TextStyle(

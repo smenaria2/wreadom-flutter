@@ -14,7 +14,6 @@ import '../../domain/models/message.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../../data/services/analytics_service.dart';
-import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/book_publication_date.dart';
@@ -30,9 +29,7 @@ import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../routing/writer_pad_mode.dart';
-import '../utils/book_share_utils.dart';
 import '../utils/book_author_utils.dart';
-import '../utils/share_text_helper.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/app_background.dart';
@@ -42,6 +39,7 @@ import '../widgets/glass_surface.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
+import '../components/book/book_share_preview_sheet.dart';
 import '../components/book/leaf_components.dart';
 import '../components/generated_book_cover.dart';
 import 'static_info_screen.dart';
@@ -452,22 +450,18 @@ class _BookDetailBody extends ConsumerWidget {
                       margin: const EdgeInsets.only(right: 8),
                       onPressed: () => showAddLeafSheet(context, book: book),
                     ),
-                  _HeaderIconButton(
+                   _HeaderIconButton(
                     tooltip: 'Share',
                     icon: Icons.share_outlined,
                     margin: const EdgeInsets.only(right: 8),
                     onPressed: () async {
-                      final message = generateBookShareText(
-                        book: book,
-                        link: AppLinkHelper.book(book.id),
-                      );
                       await AppHaptics.selection();
-                      await shareBookLinkWithCover(
-                        text: message,
-                        subject: book.title,
-                        coverUrl: book.coverUrl,
-                        fileNameBase: book.title,
-                      );
+                      if (context.mounted) {
+                        showBookSharePreviewSheet(
+                          context: context,
+                          book: book,
+                        );
+                      }
                     },
                   ),
                   if (!canEdit)

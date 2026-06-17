@@ -65,3 +65,8 @@ android/build/
 .agent/
 
 .vercel
+
+# Google Play Publishing CLI and keys
+.gplay/
+play_store_key.json
+

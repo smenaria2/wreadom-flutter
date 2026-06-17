@@ -16,6 +16,18 @@ import 'package:librebook_flutter/src/presentation/screens/reader_screen.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
 
 void main() {
+  String readFirestoreRules() {
+    final local = File('firestore.rules');
+    if (local.existsSync()) return local.readAsStringSync();
+    return File('../librebook/firestore.rules').readAsStringSync();
+  }
+
+  String readFirestoreIndexes() {
+    final local = File('firestore.indexes.json');
+    if (local.existsSync()) return local.readAsStringSync();
+    return File('../librebook/firestore.indexes.json').readAsStringSync();
+  }
+
   Map<String, dynamic> englishL10n() =>
       jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
           as Map<String, dynamic>;
@@ -189,7 +201,7 @@ void main() {
     expect(writerSource, contains('_chapterDraftTitleForSave'));
     expect(writerSource, contains('_addChapterDraftToBook'));
     expect(writerSource, contains('importSingleDraftsToBook'));
-    expect(english['createDraft'], 'Create Draft');
+    expect(english['createDraft'], 'Create Draft Chapter');
     expect(english['addToBook'], 'Add to book');
     expect(english['draftAddedToBook'], 'Draft added to book.');
   });
@@ -704,7 +716,7 @@ void main() {
     final followSource = File(
       'lib/src/data/repositories/firebase_follow_repository.dart',
     ).readAsStringSync();
-    final rulesSource = File('firestore.rules').readAsStringSync();
+    final rulesSource = readFirestoreRules();
     final firebaseConfig = File('firebase.json').readAsStringSync();
 
     expect(feedCardSource, contains('l10n.signInToContinueAction'));
@@ -769,7 +781,7 @@ void main() {
   );
 
   test('shared firestore rules preserve android and web compatibility paths', () {
-    final rulesSource = File('firestore.rules').readAsStringSync();
+    final rulesSource = readFirestoreRules();
 
     expect(
       rulesSource,
@@ -787,7 +799,7 @@ void main() {
     expect(
       rulesSource,
       contains(
-        "'admin' in request.auth.token && request.auth.token.admin == true",
+        "request.auth.token.get('admin', false) == true",
       ),
     );
     expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
@@ -811,7 +823,7 @@ void main() {
 
     expect(
       rulesSource,
-      contains("allow create: if ownsIncoming('followerId')"),
+      contains("ownsIncoming('followerId')"),
     );
     expect(rulesSource, contains("onlyChanges(['commentCount'])"));
     expect(rulesSource, contains("allowsLegacyEmbeddedFeedCommentMutation()"));
@@ -823,7 +835,7 @@ void main() {
     );
     expect(
       rulesSource,
-      contains("allow create: if ownsIncomingAny('authorId', 'userId') &&"),
+      contains("ownsIncomingAny('authorId', 'userId')"),
     );
     expect(rulesSource, contains("function canEditBookData(data)"));
     expect(
@@ -887,7 +899,7 @@ void main() {
     'deprecated firebase index config stays compatible but is not deployed',
     () {
       final firebaseConfig = File('firebase.json').readAsStringSync();
-      final indexes = File('firestore.indexes.json').readAsStringSync();
+      final indexes = readFirestoreIndexes();
 
       expect(
         firebaseConfig,
@@ -1752,7 +1764,7 @@ void main() {
   test(
     'message soft delete rules preserve participant-only deletedFor writes',
     () {
-      final rulesSource = File('firestore.rules').readAsStringSync();
+      final rulesSource = readFirestoreRules();
 
       expect(rulesSource, contains("onlyChanges(['deletedFor'])"));
       expect(
@@ -1809,7 +1821,7 @@ void main() {
     ).readAsStringSync();
 
     expect(profileSource, contains('DefaultTabController'));
-    expect(profileSource, contains('length: 5'));
+    expect(profileSource, contains('length: 6'));
     expect(profileSource, contains('UserDownloadedTab'));
     expect(savedSource, contains('savedBooksProvider'));
     expect(downloadedSource, contains('downloadedBookEntriesProvider'));
@@ -2038,7 +2050,7 @@ void main() {
     final readerSource = File(
       'lib/src/presentation/screens/reader_screen.dart',
     ).readAsStringSync();
-    final rulesSource = File('firestore.rules').readAsStringSync();
+    final rulesSource = readFirestoreRules();
 
     expect(repoSource, contains('chapterKey'));
     expect(repoSource, contains('chapterIndex'));

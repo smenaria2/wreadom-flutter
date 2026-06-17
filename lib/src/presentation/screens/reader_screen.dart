@@ -31,9 +31,7 @@ import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
-import '../utils/book_share_utils.dart';
 import '../utils/error_message_utils.dart';
-import '../utils/share_text_helper.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/glass_surface.dart';
@@ -46,6 +44,8 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
+import '../components/book/quote_share_preview_sheet.dart';
+import '../components/book/chapter_share_preview_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
@@ -2220,17 +2220,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           subject: 'Quote from ${widget.book.title}',
         );
       } else {
-        await Share.shareXFiles(
-          [
-            XFile.fromData(
-              bytes,
-              name: '${_safeFilePart(widget.book.title)}-quote.png',
-              mimeType: 'image/png',
-            ),
-          ],
-          text: chapterLink,
-          subject: 'Quote from ${widget.book.title}',
-        );
+        if (mounted) {
+          showQuoteSharePreviewSheet(
+            context: context,
+            book: widget.book,
+            chapterTitle: chapterTitle,
+            quoteText: quoteWithBreaks,
+            imageBytes: bytes,
+            shareText: shareText,
+            chapterLink: chapterLink,
+          );
+        }
       }
     } catch (_) {
       await Share.share(shareText, subject: 'Quote from ${widget.book.title}');
@@ -2267,27 +2267,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final url = AppLinkHelper.chapter(widget.book.id, chapterNumber);
     final chapterTitle = chapter.title.trim();
 
-    final shareText = generateChapterShareText(
-      book: widget.book,
-      chapterTitle: chapterTitle,
-      link: url,
-    );
-
-    await shareBookLinkWithCover(
-      text: shareText,
-      subject: '${widget.book.title} - $chapterTitle',
-      coverUrl: widget.book.coverUrl,
-      fileNameBase: widget.book.title,
-    );
+    if (mounted) {
+      showChapterSharePreviewSheet(
+        context: context,
+        book: widget.book,
+        chapterTitle: chapterTitle,
+        link: url,
+      );
+    }
   }
 
-  String _safeFilePart(String value) {
-    final safe = value
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-    return safe.isEmpty ? 'wreadom' : safe;
-  }
 
   String? get _bookAuthorId {
     final authorId = widget.book.authorId?.trim();
