@@ -39,10 +39,12 @@ import '../widgets/glass_surface.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
-import '../components/book/book_share_preview_sheet.dart';
 import '../components/book/leaf_components.dart';
 import '../components/generated_book_cover.dart';
 import 'static_info_screen.dart';
+import '../../utils/app_link_helper.dart';
+import '../utils/book_share_utils.dart';
+import '../utils/share_text_helper.dart';
 
 class BookDetailScreen extends ConsumerStatefulWidget {
   const BookDetailScreen({
@@ -457,9 +459,15 @@ class _BookDetailBody extends ConsumerWidget {
                     onPressed: () async {
                       await AppHaptics.selection();
                       if (context.mounted) {
-                        showBookSharePreviewSheet(
-                          context: context,
+                        final text = generateBookShareText(
                           book: book,
+                          link: AppLinkHelper.book(book.id),
+                        );
+                        await shareBookLinkWithCover(
+                          text: text,
+                          subject: book.title,
+                          coverUrl: book.coverUrl,
+                          fileNameBase: book.title,
                         );
                       }
                     },

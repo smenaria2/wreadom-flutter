@@ -193,6 +193,18 @@ class HomeBooksScreen extends ConsumerWidget {
               ),
 
               _BookshelfSection(
+                title: l10n.contentOnAgaazTopics,
+                booksAsync: ref.watch(contentOnAgaazTopicsProvider),
+                sectionId: 'content-on-agaaz-topics',
+                onRetry: () => ref.invalidate(contentOnAgaazTopicsProvider),
+                onSeeAll: () => _openCategory(
+                  context,
+                  'content-on-agaaz-topics',
+                  l10n.contentOnAgaazTopics,
+                ),
+              ),
+
+              _BookshelfSection(
                 title: _HomeShelfDestination.originals.getLocalizedCategory(
                   l10n,
                 ),

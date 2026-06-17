@@ -2375,6 +2375,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get booksWithLeaves => 'Books with Leaves';
 
   @override
+  String get contentOnAgaazTopics => 'Content on Agaaz Topics';
+
+  @override
   String get deleteLeaf => 'Delete Leaf';
 
   @override

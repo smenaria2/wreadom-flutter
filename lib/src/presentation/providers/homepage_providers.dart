@@ -750,12 +750,35 @@ final homepageRankedAuthorsProvider =
         };
       }
 
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const newThreshold = 90 * 24 * 60 * 60 * 1000;
+
+      bool isNew(UserModel user) {
+        final created = user.createdAt ?? 0;
+        return (now - created) < newThreshold;
+      }
+
       authors.sort((a, b) {
-        final scoreCompare = score(b).compareTo(score(a));
+        final scoreA = score(a);
+        final scoreB = score(b);
+
+        final hasScoreA = scoreA > 0;
+        final hasScoreB = scoreB > 0;
+
+        if (hasScoreA && hasScoreB) {
+          final isNewA = isNew(a);
+          final isNewB = isNew(b);
+          if (isNewA != isNewB) {
+            return isNewA ? -1 : 1;
+          }
+        }
+
+        final scoreCompare = scoreB.compareTo(scoreA);
         if (scoreCompare != 0) return scoreCompare;
-        final followersA = a.followersCount ?? 0;
-        final followersB = b.followersCount ?? 0;
-        return followersB.compareTo(followersA);
+
+        final createdA = a.createdAt ?? 0;
+        final createdB = b.createdAt ?? 0;
+        return createdB.compareTo(createdA);
       });
 
       return authors

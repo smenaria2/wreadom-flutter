@@ -513,9 +513,9 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 3,
-                                      childAspectRatio: 0.56,
+                                      childAspectRatio: 0.44,
                                       crossAxisSpacing: 12,
-                                      mainAxisSpacing: 18,
+                                      mainAxisSpacing: 28,
                                     ),
                                 itemCount: books.length,
                                 itemBuilder: (context, index) =>

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
 import '../../data/utils/firestore_utils.dart';
@@ -23,8 +24,26 @@ final originalBooksProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getOriginalBooks();
 });
 
-final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
+final rawBooksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getBooksWithLeaves();
+});
+
+final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
+  final allBooks = await ref.watch(rawBooksWithLeavesProvider.future);
+  return allBooks.where((book) {
+    final leaves = book.leaves;
+    if (leaves == null || leaves.isEmpty) return false;
+    return leaves.any((leaf) => leaf.type != LeafType.certificate);
+  }).toList();
+});
+
+final contentOnAgaazTopicsProvider = FutureProvider<List<Book>>((ref) async {
+  final allBooks = await ref.watch(rawBooksWithLeavesProvider.future);
+  return allBooks.where((book) {
+    final leaves = book.leaves;
+    if (leaves == null || leaves.isEmpty) return false;
+    return leaves.every((leaf) => leaf.type == LeafType.certificate);
+  }).toList();
 });
 
 final currentUserAdminClaimProvider = FutureProvider<bool>((ref) async {

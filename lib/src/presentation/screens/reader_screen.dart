@@ -45,12 +45,14 @@ import '../../utils/app_haptics.dart';
 import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/book/quote_share_preview_sheet.dart';
-import '../components/book/chapter_share_preview_sheet.dart';
+import '../components/book/leaf_components.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../theme/app_theme.dart';
 import '../utils/book_author_utils.dart';
+import '../utils/book_share_utils.dart';
+import '../utils/share_text_helper.dart';
 import '../widgets/adaptive_banner_ad.dart';
 
 const double _readerBottomBarHeight = 50;
@@ -1282,6 +1284,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               : null,
           onViewComments: () => _showDiscussion(chapter),
           onShare: () => _handleShareChapter(chapter),
+          book: widget.book,
+          chromeTheme: _getReaderChromeTheme(),
         ),
         const SizedBox(height: 20),
         const AdaptiveBannerAd(
@@ -1330,6 +1334,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               : null,
           onViewComments: () => _showDiscussion(chapter),
           onShare: () => _handleShareChapter(chapter),
+          book: widget.book,
+          chromeTheme: _getReaderChromeTheme(),
         ),
         const SizedBox(height: 20),
         const AdaptiveBannerAd(
@@ -2250,14 +2256,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       widget.book.id,
       _chapterIndex + 1,
     );
-    final parts = [
-      '"$selected"',
-      '',
-      'From ${widget.book.title}${chapterTitle != null && chapterTitle.isNotEmpty ? ', $chapterTitle' : ''}',
-      if (authors.isNotEmpty) 'by $authors',
-      chapterLink,
-    ];
-    return parts.join('\n');
+    return '"$selected"\n\nRead :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. $chapterLink ::';
   }
 
   Future<void> _handleShareChapter(Chapter? chapter) async {
@@ -2268,11 +2267,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final chapterTitle = chapter.title.trim();
 
     if (mounted) {
-      showChapterSharePreviewSheet(
-        context: context,
+      final text = generateChapterShareText(
         book: widget.book,
         chapterTitle: chapterTitle,
         link: url,
+      );
+      await shareBookLinkWithCover(
+        text: text,
+        subject: '${widget.book.title} - $chapterTitle',
+        coverUrl: widget.book.coverUrl,
+        fileNameBase: widget.book.title,
       );
     }
   }
@@ -3952,6 +3956,8 @@ class _ChapterEndActions extends StatelessWidget {
     required this.onNextChapter,
     required this.onViewComments,
     required this.onShare,
+    required this.book,
+    required this.chromeTheme,
   });
 
   final bool hasNextChapter;
@@ -3960,6 +3966,8 @@ class _ChapterEndActions extends StatelessWidget {
   final VoidCallback? onNextChapter;
   final VoidCallback onViewComments;
   final VoidCallback onShare;
+  final Book book;
+  final ThemeData chromeTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -4071,6 +4079,7 @@ class _ChapterEndActions extends StatelessWidget {
         ],
       );
     } else {
+      final showLeaves = book.isOriginal == true && book.leaves != null && book.leaves!.isNotEmpty;
       return Column(
         children: [
           GlassSurface(
@@ -4123,6 +4132,21 @@ class _ChapterEndActions extends StatelessWidget {
               ),
             ),
           ),
+          if (showLeaves) ...[
+            const SizedBox(height: 28),
+            Theme(
+              data: chromeTheme,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: LeafStrip(
+                    book: book,
+                    canManage: false,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       );
     }

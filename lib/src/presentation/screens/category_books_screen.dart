@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../components/book_card.dart';
 import '../providers/homepage_providers.dart';
+import '../providers/book_providers.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
@@ -49,6 +50,10 @@ class CategoryBooksScreen extends ConsumerWidget {
       'community classics' ||
       'archive' ||
       'community-classics' => ref.watch(homepageIABooksProvider),
+      'books-with-leaves' ||
+      'books with leaves' => ref.watch(booksWithLeavesProvider),
+      'content-on-agaaz-topics' ||
+      'content on agaaz topics' => ref.watch(contentOnAgaazTopicsProvider),
       _ => ref.watch(homepageGenreProvider(category)),
     };
 
@@ -88,9 +93,9 @@ class CategoryBooksScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                childAspectRatio: 0.56,
+                childAspectRatio: 0.44,
                 crossAxisSpacing: 12,
-                mainAxisSpacing: 18,
+                mainAxisSpacing: 28,
               ),
               itemCount: books.length,
               itemBuilder: (context, index) => BookCard(book: books[index]),

@@ -38,6 +38,8 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
 
   Future<void> _shareExternally() async {
     try {
+      final authors = bookAuthorName(widget.book);
+      final caption = 'Read :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. ${widget.chapterLink} ::';
       await Share.shareXFiles(
         [
           XFile.fromData(
@@ -46,7 +48,7 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
             mimeType: 'image/png',
           ),
         ],
-        text: widget.chapterLink,
+        text: caption,
         subject: 'Quote from ${widget.book.title}',
       );
       if (mounted) {

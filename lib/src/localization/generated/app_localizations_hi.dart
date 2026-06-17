@@ -2377,7 +2377,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get leafAudio => 'Audio';
 
   @override
-  String get booksWithLeaves => 'Books with Leaves';
+  String get booksWithLeaves => 'लीव्स वाली पुस्तकें';
+
+  @override
+  String get contentOnAgaazTopics => 'आगाज़ विषयों पर रचनाएँ';
 
   @override
   String get deleteLeaf => 'Delete Leaf';

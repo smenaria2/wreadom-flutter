@@ -4220,6 +4220,12 @@ abstract class AppLocalizations {
   /// **'Books with Leaves'**
   String get booksWithLeaves;
 
+  /// No description provided for @contentOnAgaazTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Content on Agaaz Topics'**
+  String get contentOnAgaazTopics;
+
   /// No description provided for @deleteLeaf.
   ///
   /// In en, this message translates to:
