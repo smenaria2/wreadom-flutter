@@ -31,6 +31,7 @@ import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
+import '../../utils/app_review_helper.dart';
 import '../utils/error_message_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
@@ -2688,6 +2689,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               .read(commentRepositoryProvider)
               .upsertBookReview(comment);
           AnalyticsService.logCommentCreate(targetType: 'book_review');
+          unawaited(AppReviewHelper.incrementActionAndCheck());
 
           if (_shareReviewToFeed) {
             await _upsertReviewFeedPost(

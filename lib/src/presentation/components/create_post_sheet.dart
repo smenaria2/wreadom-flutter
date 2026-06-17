@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/services/analytics_service.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/app_review_helper.dart';
 import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
@@ -187,6 +188,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       AnalyticsService.logPostCreate();
       await AppHaptics.light();
+      unawaited(AppReviewHelper.incrementActionAndCheck());
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));

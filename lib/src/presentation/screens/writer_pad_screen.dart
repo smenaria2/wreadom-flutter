@@ -12,6 +12,7 @@ import '../../domain/models/chapter.dart';
 import '../../domain/models/leaf_attachment.dart';
 import '../../domain/models/user_model.dart';
 import '../../data/services/analytics_service.dart';
+import '../../utils/app_review_helper.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../providers/auth_providers.dart';
@@ -2152,6 +2153,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       if (shouldNotifyFollowers && _bookId != null) {
         // Cloud Functions generate follower notifications for new publications.
         AnalyticsService.logBookPublish(bookId: _bookId!);
+      }
+      if (status == 'published') {
+        unawaited(AppReviewHelper.incrementActionAndCheck());
       }
       _savedBookLeaves = book.leaves;
       _savedPublishedAt = book.publishedAt;
