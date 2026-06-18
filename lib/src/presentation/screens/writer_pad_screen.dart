@@ -5,6 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
@@ -40,6 +41,7 @@ class WriterPadScreen extends ConsumerStatefulWidget {
     this.restoreLocalDrafts = true,
     this.showToolbar = true,
     this.optOutComplementary,
+    this.openPrintPage,
   });
 
   final Book? book;
@@ -48,6 +50,7 @@ class WriterPadScreen extends ConsumerStatefulWidget {
   final bool restoreLocalDrafts;
   final bool showToolbar;
   final bool? optOutComplementary;
+  final Future<bool> Function(Uri uri)? openPrintPage;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -83,6 +86,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String? _bookId;
   List<LeafAttachment>? _savedBookLeaves;
   int? _savedPublishedAt;
+  String? _savedStatus;
   late final String _localDraftId;
   int _step = 0;
   int _currentChapterIndex = 0;
@@ -114,6 +118,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
   bool get _isChapterDraftMode => widget.mode == WriterPadMode.chapterDraft;
+
+  bool get _isPublished =>
+      (_savedStatus ?? widget.book?.status)?.trim().toLowerCase() ==
+      'published';
+
+  bool get _isSingleChapter => _chapters.length <= 1;
+
+  String get _statusForSave => _isPublished ? 'published' : 'draft';
 
   void _setStep(int value) {
     final oldStep = _step;
@@ -203,7 +215,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _restorableCategory.value = _category;
       _restorableLanguage.value = _language;
     }
-    _step = _isChapterDraftMode ? 0 : _restorableStep.value.clamp(0, 1);
+    _step = _restorableStep.value.clamp(0, 1);
     _currentChapterIndex = _restorableCurrentChapterIndex.value.clamp(
       0,
       _chapters.length - 1,
@@ -238,6 +250,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     WidgetsBinding.instance.addObserver(this);
     final book = widget.book;
     _bookId = book?.id;
+    _savedStatus = book?.status;
     _localDraftId =
         book?.id ??
         'new_${DateTime.now().millisecondsSinceEpoch}_${identityHashCode(this)}';
@@ -417,9 +430,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isChapterDraftMode || _step == 0
-                  ? l10n.writerWritingEditor
-                  : l10n.writerContentDetails,
+              _step == 0 ? l10n.writerWritingEditor : l10n.writerContentDetails,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
@@ -433,34 +444,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         ),
         leading: IconButton(
           tooltip: l10n.back,
-          icon: Icon(
-            _isChapterDraftMode || _step == 0 ? Icons.close : Icons.arrow_back,
-          ),
+          icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
           onPressed: _handleBack,
         ),
         automaticallyImplyLeading: false,
-        actions: _isChapterDraftMode
-            ? [
-                OutlinedButton(
-                  onPressed: _isSaving ? null : _addChapterDraftToBook,
-                  child: Text(l10n.addToBook),
-                ),
-                const SizedBox(width: 4),
-                FilledButton(
-                  onPressed: _isSaving
-                      ? null
-                      : () => _save(status: 'draft', allowUntitled: true),
-                  child: Text(l10n.saveDraft),
-                ),
-                const SizedBox(width: 12),
-              ]
+        actions: _step == 0
+            ? _buildEditorAppBarActions(l10n)
             : [
                 TextButton(
                   onPressed: _isSaving ? null : () => _save(status: 'draft'),
                   child: Text(
-                    widget.book?.status == 'published'
-                        ? l10n.writerConvertToDraft
-                        : l10n.writerDraft,
+                    _isPublished ? l10n.writerConvertToDraft : l10n.writerDraft,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -468,17 +462,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   onPressed: _isSaving
                       ? null
                       : () {
-                          if (_step == 0) {
-                            _populateSynopsisFromFirstLines();
-                            unawaited(_syncDraftCheckpoint());
-                            setState(() => _setStep(1));
-                          } else {
-                            _save(status: 'published', closeAfterSave: true);
-                          }
+                          _save(status: 'published', closeAfterSave: true);
                         },
-                  child: Text(
-                    _step == 0 ? l10n.writerNext : l10n.writerPublish,
-                  ),
+                  child: Text(l10n.writerPublish),
                 ),
                 const SizedBox(width: 12),
               ],
@@ -486,15 +472,130 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
-          child: _isChapterDraftMode || _step == 0
-              ? _buildEditorStep()
-              : _buildDetailsStep(),
+          child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
         ),
       ),
       bottomNavigationBar: _step == 0 && widget.showToolbar
           ? _buildToolbar(controller)
           : null,
     );
+  }
+
+  List<Widget> _buildEditorAppBarActions(AppLocalizations l10n) {
+    final saveTooltip = _isPublished ? l10n.save : l10n.saveDraft;
+    final saveButton = _isSingleChapter && !_isPublished
+        ? IconButton.filled(
+            tooltip: saveTooltip,
+            onPressed: _isSaving
+                ? null
+                : () => _save(status: _statusForSave, allowUntitled: true),
+            icon: const Icon(Icons.save_rounded),
+          )
+        : IconButton.filledTonal(
+            tooltip: saveTooltip,
+            onPressed: _isSaving ? null : () => _save(status: _statusForSave),
+            icon: const Icon(Icons.save_rounded),
+          );
+
+    return [
+      if (_isSingleChapter && !_isPublished) ...[
+        TextButton(
+          onPressed: _isSaving ? null : _goToDetails,
+          child: Text(l10n.writerPublish),
+        ),
+        const SizedBox(width: 2),
+        saveButton,
+      ] else ...[
+        saveButton,
+        const SizedBox(width: 4),
+        FilledButton(
+          onPressed: _isSaving ? null : _goToDetails,
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(l10n.writerNext),
+        ),
+      ],
+      _buildEditorMenu(l10n),
+      const SizedBox(width: 4),
+    ];
+  }
+
+  Widget _buildEditorMenu(AppLocalizations l10n) {
+    final actions = <_WriterMenuAction>[
+      if (_isPublished) _WriterMenuAction.convertToDraft,
+      if (_isSingleChapter) _WriterMenuAction.addToBook,
+      if (!_isPublished) _WriterMenuAction.deleteBook,
+      if (_isPublished && !_isSingleChapter) _WriterMenuAction.printBook,
+    ];
+
+    return PopupMenuButton<_WriterMenuAction>(
+      tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+      enabled: !_isSaving,
+      onSelected: _handleWriterMenuAction,
+      itemBuilder: (context) => [
+        for (final action in actions)
+          PopupMenuItem<_WriterMenuAction>(
+            value: action,
+            child: Row(
+              children: [
+                Icon(
+                  switch (action) {
+                    _WriterMenuAction.addToBook => Icons.library_add_outlined,
+                    _WriterMenuAction.deleteBook =>
+                      Icons.delete_outline_rounded,
+                    _WriterMenuAction.convertToDraft => Icons.edit_note_rounded,
+                    _WriterMenuAction.printBook => Icons.print_outlined,
+                  },
+                  color: action == _WriterMenuAction.deleteBook
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    switch (action) {
+                      _WriterMenuAction.addToBook => l10n.addToBook,
+                      _WriterMenuAction.deleteBook => l10n.deleteBook,
+                      _WriterMenuAction.convertToDraft =>
+                        l10n.writerConvertToDraft,
+                      _WriterMenuAction.printBook => l10n.printBook,
+                    },
+                    style: action == _WriterMenuAction.deleteBook
+                        ? TextStyle(color: Theme.of(context).colorScheme.error)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _goToDetails() {
+    _populateSynopsisFromFirstLines();
+    unawaited(_syncDraftCheckpoint());
+    setState(() => _setStep(1));
+  }
+
+  Future<void> _handleWriterMenuAction(_WriterMenuAction action) async {
+    switch (action) {
+      case _WriterMenuAction.addToBook:
+        await _addChapterDraftToBook();
+        return;
+      case _WriterMenuAction.deleteBook:
+        await _confirmAndDeleteBook();
+        return;
+      case _WriterMenuAction.convertToDraft:
+        await _save(status: 'draft');
+        return;
+      case _WriterMenuAction.printBook:
+        await _openPrintPage();
+        return;
+    }
   }
 
   Future<void> _handleBack() async {
@@ -873,9 +974,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
-          onPressed: _isSaving ? null : () => _save(status: 'draft'),
-          icon: const Icon(Icons.save_outlined),
-          label: Text(l10n.saveDraft),
+          onPressed: _isSaving ? null : () => _save(status: _statusForSave),
+          icon: const Icon(Icons.save_rounded),
+          label: Text(_isPublished ? l10n.save : l10n.saveDraft),
         ),
       ],
     );
@@ -1790,7 +1891,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (user == null) return;
 
     final saved = await _save(
-      status: 'draft',
+      status: _statusForSave,
       allowUntitled: true,
       showSnack: false,
     );
@@ -1799,9 +1900,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final draftId = _bookId ?? widget.book?.id;
     if (draftId == null || draftId.trim().isEmpty) return;
 
-    final publishedBooks = await ref
-        .read(writerRepositoryProvider)
-        .getUserBooks(user.id, status: 'published');
+    final publishedBooks =
+        (await ref
+                .read(writerRepositoryProvider)
+                .getUserBooks(user.id, status: 'published'))
+            .where((book) => book.id != draftId)
+            .toList();
     if (!mounted) return;
     if (publishedBooks.isEmpty) {
       _showSnack(l10n.noPublishedBooksToAddDraft);
@@ -1855,6 +1959,114 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           _saveStatus = l10n.writerDraft;
         });
       }
+    }
+  }
+
+  Future<void> _confirmAndDeleteBook() async {
+    final l10n = AppLocalizations.of(context)!;
+    final user = await _currentUserOrNull();
+    if (user == null || !mounted) return;
+    final book = widget.book;
+    if (book != null && !canDeleteCollaborativeBook(book, user.id)) {
+      _showSnack(l10n.removeCollabBeforeDelete);
+      return;
+    }
+
+    final firstConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          _isSingleChapter ? l10n.deleteDraftTitle : l10n.deleteBookTitle,
+        ),
+        content: Text(
+          _isSingleChapter ? l10n.deleteDraftBody : l10n.deleteBookBody,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_isSingleChapter ? l10n.cancel : l10n.keepDraft),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_isSingleChapter ? l10n.delete : l10n.continueAction),
+          ),
+        ],
+      ),
+    );
+    if (firstConfirmed != true || !mounted) return;
+
+    if (!_isSingleChapter) {
+      final finalConfirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.deleteBookFinalTitle),
+          content: Text(l10n.deleteBookFinalBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.keepDraft),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.deleteBook),
+            ),
+          ],
+        ),
+      );
+      if (finalConfirmed != true || !mounted) return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final bookId = (_bookId ?? widget.book?.id)?.trim();
+      if (bookId != null && bookId.isNotEmpty) {
+        await ref.read(writerRepositoryProvider).deleteBook(bookId);
+      }
+      try {
+        await ref
+            .read(writerDraftServiceProvider)
+            .deleteDraft(_draftKey(user.id));
+      } catch (_) {
+        // The remote deletion succeeded; stale recovery data should not make
+        // the destructive action appear to have failed.
+      }
+      ref.invalidate(myBooksProvider);
+      ref.invalidate(filteredMyBooksProvider);
+      if (!mounted) return;
+      _isDirty = false;
+      _isLocalDirty = false;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.bookDeleted)));
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showSnack(l10n.couldNotDeleteBook('$error'));
+    }
+  }
+
+  Future<void> _openPrintPage() async {
+    final uri = Uri.parse('https://publish.wreadom.in');
+    var opened = false;
+    try {
+      opened =
+          await (widget.openPrintPage?.call(uri) ??
+              launchUrl(uri, mode: LaunchMode.inAppBrowserView));
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      _showSnack(AppLocalizations.of(context)!.couldNotOpenPrintPage);
     }
   }
 
@@ -2114,10 +2326,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (_isSaving) return false;
     final l10n = AppLocalizations.of(context)!;
 
-    final title = _titleController.value.text.trim();
+    var title = _titleController.value.text.trim();
+    if (_isChapterDraftMode) {
+      title = _chapterDraftTitleForSave();
+      if (title.isNotEmpty) {
+        _titleController.value.text = title;
+      }
+    }
+
     if (title.isEmpty && !allowUntitled) {
       _showSnack(l10n.addTitleBeforeSaving);
-      setState(() => _setStep(1));
+      if (!_isChapterDraftMode) {
+        setState(() => _setStep(1));
+      }
       return false;
     }
 
@@ -2142,8 +2363,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     try {
       final localDraftKey = _draftKey(user.id);
       final book = _buildBookForSave(user, status: status);
-      final shouldNotifyFollowers =
-          status == 'published' && widget.book?.status != 'published';
+      final shouldNotifyFollowers = status == 'published' && !_isPublished;
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
@@ -2159,6 +2379,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       }
       _savedBookLeaves = book.leaves;
       _savedPublishedAt = book.publishedAt;
+      _savedStatus = status;
       await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
@@ -2193,7 +2414,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Future<void> _syncDraftCheckpoint() async {
     if (!_isDirty || _isSaving || !_hasSavableContent) return;
-    await _save(status: 'draft', allowUntitled: true, showSnack: false);
+    await _save(status: _statusForSave, allowUntitled: true, showSnack: false);
   }
 
   Future<void> _saveLocalDraft() async {
@@ -3101,6 +3322,8 @@ class _ChapterOverviewCard extends StatelessWidget {
     );
   }
 }
+
+enum _WriterMenuAction { addToBook, deleteBook, convertToDraft, printBook }
 
 class _ChapterDraft {
   _ChapterDraft({

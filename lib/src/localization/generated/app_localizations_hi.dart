@@ -1099,6 +1099,37 @@ class AppLocalizationsHi extends AppLocalizations {
   String get draftDeleted => 'ड्राफ़्ट हटा दिया गया।';
 
   @override
+  String get deleteBook => 'पुस्तक हटाएं';
+
+  @override
+  String get deleteBookTitle => 'यह पुस्तक हटाएं?';
+
+  @override
+  String get deleteBookBody =>
+      'इससे पूरी पुस्तक और उसके सभी अध्याय हटा दिए जाएंगे।';
+
+  @override
+  String get deleteBookFinalTitle => 'यह पुस्तक हमेशा के लिए हटाएं?';
+
+  @override
+  String get deleteBookFinalBody =>
+      'यह कार्रवाई पूर्ववत नहीं की जा सकती। आप इस पुस्तक के सभी अध्याय और उन पर की गई टिप्पणियां खो देंगे। आप इस पुस्तक को ड्राफ़्ट के रूप में रख सकते हैं और जब चाहें प्रकाशित कर सकते हैं।';
+
+  @override
+  String get keepDraft => 'ड्राफ़्ट रखें';
+
+  @override
+  String get continueAction => 'जारी रखें';
+
+  @override
+  String get bookDeleted => 'पुस्तक हटा दी गई।';
+
+  @override
+  String couldNotDeleteBook(String error) {
+    return 'पुस्तक हटाई नहीं जा सकी: $error';
+  }
+
+  @override
   String get removeCollabBeforeDelete =>
       'यह ड्राफ़्ट हटाने से पहले सहलेखन हटाएं।';
 
@@ -1516,6 +1547,12 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get writerPublish => 'प्रकाशित करें';
+
+  @override
+  String get printBook => 'प्रिंट';
+
+  @override
+  String get couldNotOpenPrintPage => 'प्रिंट पेज नहीं खुल सका।';
 
   @override
   String writerChapterTitleHint(int number) {

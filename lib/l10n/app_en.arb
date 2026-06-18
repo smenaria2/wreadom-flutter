@@ -615,6 +615,22 @@
   "deleteDraftTitle": "Delete draft?",
   "deleteDraftBody": "This draft will be removed from your dashboard.",
   "draftDeleted": "Draft deleted.",
+  "deleteBook": "Delete Book",
+  "deleteBookTitle": "Delete this book?",
+  "deleteBookBody": "This will delete the entire book and all of its chapters.",
+  "deleteBookFinalTitle": "Delete this book permanently?",
+  "deleteBookFinalBody": "This action cannot be undone. You will lose all chapters of this book and their comments. You can keep this book as a draft and publish it whenever you want.",
+  "keepDraft": "Keep Draft",
+  "continueAction": "Continue",
+  "bookDeleted": "Book deleted.",
+  "couldNotDeleteBook": "Could not delete book: {error}",
+  "@couldNotDeleteBook": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "removeCollabBeforeDelete": "Remove collaboration before deleting this draft.",
   "deleteConversationBody": "This removes the conversation from your messages.",
   "failedToLoadSavedBooks": "Failed to load saved content: {error}",
@@ -854,6 +870,8 @@
   "writerDraft": "Draft",
   "writerNext": "Next",
   "writerPublish": "Publish",
+  "printBook": "Print",
+  "couldNotOpenPrintPage": "Could not open the print page.",
   "writerChapterTitleHint": "Chapter {number} title",
   "@writerChapterTitleHint": {
     "placeholders": {

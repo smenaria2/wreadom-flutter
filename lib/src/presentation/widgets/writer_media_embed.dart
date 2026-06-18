@@ -113,10 +113,18 @@ class WriterMediaPreview extends StatelessWidget {
                   color: _accentColor(info.type).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  _iconFor(info.type),
-                  color: _accentColor(info.type),
-                ),
+                child: info.type == WriterMediaType.suno
+                    ? Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Image.asset(
+                          'assets/images/suno_logo.png',
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Icon(
+                        _iconFor(info.type),
+                        color: _accentColor(info.type),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -164,6 +172,8 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.spotify => Icons.graphic_eq_rounded,
       WriterMediaType.amazon => Icons.shopping_bag_outlined,
       WriterMediaType.wikipedia => Icons.travel_explore_outlined,
+      WriterMediaType.suno => Icons.music_note_rounded,
+      WriterMediaType.wreadomBook => Icons.book_rounded,
       WriterMediaType.unsupported => Icons.link_off_rounded,
     };
   }
@@ -175,6 +185,8 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.spotify => const Color(0xFF1DB954),
       WriterMediaType.amazon => const Color(0xFFFF9900),
       WriterMediaType.wikipedia => const Color(0xFF54595D),
+      WriterMediaType.suno => const Color(0xFFFF5722),
+      WriterMediaType.wreadomBook => const Color(0xFFE91E63),
       WriterMediaType.unsupported => Colors.grey,
     };
   }
@@ -207,5 +219,9 @@ class _BrokenMediaCard extends StatelessWidget {
 Future<void> _openUrl(String value) async {
   final uri = Uri.tryParse(value);
   if (uri == null) return;
-  await launchUrl(uri, mode: LaunchMode.externalApplication);
+  final isSuno = value.toLowerCase().contains('suno.com');
+  await launchUrl(
+    uri,
+    mode: isSuno ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication,
+  );
 }

@@ -15,6 +15,7 @@ import '../providers/feed_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../components/review_share_card.dart';
+import '../components/book/chapter_discussion_sheet.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/report_dialog.dart';
 
@@ -320,18 +321,18 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       Row(
                         children: [
                           Expanded(
-                            child: Row(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
                               children: [
-                                Flexible(
-                                  child: _ProfileName(
-                                    userId: comment.userId,
-                                    name: name,
-                                    color: widget.textColor,
-                                  ),
+                                _ProfileName(
+                                  userId: comment.userId,
+                                  name: name,
+                                  color: widget.textColor,
                                 ),
                                 if (comment.rating != null &&
-                                    comment.rating! > 0) ...[
-                                  const SizedBox(width: 8),
+                                    comment.rating! > 0)
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: List.generate(
@@ -347,15 +348,47 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                       ),
                                     ),
                                   ),
-                                ],
-                                if (isHighlighted) ...[
-                                  const SizedBox(width: 6),
+                                if (isHighlighted)
                                   Icon(
                                     Icons.push_pin_rounded,
                                     size: 16,
                                     color: Colors.amber[700],
                                   ),
-                                ],
+                                if (comment.chapterTitle?.trim().isNotEmpty == true)
+                                  GestureDetector(
+                                    onTap: () {
+                                      showChapterDiscussionSheet(
+                                        context: context,
+                                        bookId: widget.bookId ?? comment.bookId?.toString() ?? '',
+                                        bookTitle: widget.bookTitle ?? comment.bookTitle ?? '',
+                                        bookAuthorId: widget.bookAuthorId ?? '',
+                                        bookAuthorName: widget.bookAuthorName ?? '',
+                                        bookCover: widget.bookCover,
+                                        chapterId: comment.chapterId,
+                                        chapterIndex: comment.chapterIndex,
+                                        chapterTitle: comment.chapterTitle!,
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        comment.chapterTitle!.trim(),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -437,6 +470,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             ),
                         ],
                       ),
+
                       if (_editing) ...[
                         _InlineEditBox(
                           controller: _editController,

@@ -17,10 +17,13 @@ import '../../../data/services/cloudinary_upload_service.dart';
 import '../../../domain/models/book.dart';
 import '../../../domain/models/leaf_attachment.dart';
 import '../../../utils/app_haptics.dart';
+import '../../../utils/app_link_helper.dart';
 import '../../components/create_post_sheet.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
 import '../../providers/comment_providers.dart';
+import '../../routing/app_router.dart';
+import '../../routing/app_routes.dart';
 import '../../utils/writer_html_codec.dart';
 import '../../utils/writer_media_utils.dart';
 import '../../widgets/glass_surface.dart';
@@ -209,11 +212,27 @@ class _LeafIconChipState extends State<_LeafIconChip> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      _leafIcon(widget.leaf),
-                      color: theme.colorScheme.primary,
-                      size: 26,
-                    ),
+                    widget.leaf.linkType == LeafLinkType.wreadomBook &&
+                            widget.leaf.imageUrl?.trim().isNotEmpty == true
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.leaf.imageUrl!,
+                              width: 32,
+                              height: 38,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.book_outlined,
+                                color: theme.colorScheme.primary,
+                                size: 26,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            _leafIcon(widget.leaf),
+                            color: theme.colorScheme.primary,
+                            size: 26,
+                          ),
                     const SizedBox(height: 6),
                     Text(
                       _leafLabel(widget.leaf),
@@ -480,11 +499,26 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
                 !info.originalUrl.contains('amzn.to')) {
           throw const LeafInputException('This Leaf link is not supported.');
         }
+        String? coverUrl;
+        String title = info.label;
+        if (info.type == WriterMediaType.wreadomBook) {
+          final resolved = AppLinkHelper.resolve(info.originalUrl);
+          if (resolved?.payload != null) {
+            try {
+              final targetBook = await ref.read(bookRepositoryProvider).getBook(resolved!.payload!);
+              if (targetBook != null) {
+                coverUrl = targetBook.coverUrl;
+                title = targetBook.title;
+              }
+            } catch (_) {}
+          }
+        }
         return {
           'type': 'link',
           'url': info.originalUrl,
           'linkType': info.type.name,
-          'title': info.label,
+          'title': title,
+          'imageUrl': ?coverUrl,
         };
       case LeafType.audio:
         final path = _audioPath;
@@ -786,24 +820,36 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
           ],
         );
       case LeafType.link:
-        return TextField(
-          controller: _linkController,
-          keyboardType: TextInputType.url,
-          decoration: InputDecoration(
-            labelText: 'Link',
-            helperText: 'YouTube, Spotify, Instagram, Amazon, or Wikipedia',
-            border: const OutlineInputBorder(),
-            suffixIcon: _linkInfo.isSupported
-                ? Tooltip(
-                    message: _linkInfo.label,
-                    child: Icon(
-                      _writerMediaIcon(_linkInfo.type),
-                      color: theme.colorScheme.primary,
-                    ),
-                  )
-                : null,
-            suffixIconColor: theme.colorScheme.primary,
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _linkController,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                labelText: 'Link',
+                border: const OutlineInputBorder(),
+                suffixIcon: _linkInfo.isSupported
+                    ? Tooltip(
+                        message: _linkInfo.label,
+                        child: Icon(
+                          _writerMediaIcon(_linkInfo.type),
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : null,
+                suffixIconColor: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Supported: Wreadom Book, YouTube, Spotify, Instagram, Amazon, Wikipedia, Suno',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
         );
       case LeafType.audio:
         return GlassSurface(
@@ -1001,10 +1047,22 @@ Future<void> _showLinkLeaf(BuildContext context, LeafAttachment leaf) async {
   final url = leaf.url?.trim();
   if (url == null || url.isEmpty) return;
   final linkType = leaf.linkType;
-  if (linkType == LeafLinkType.amazon || linkType == LeafLinkType.wikipedia) {
+  if (linkType == LeafLinkType.amazon ||
+      linkType == LeafLinkType.wikipedia ||
+      linkType == LeafLinkType.suno) {
     final uri = Uri.tryParse(url);
     if (uri != null) {
       await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    }
+    return;
+  }
+  if (linkType == LeafLinkType.wreadomBook) {
+    final resolved = AppLinkHelper.resolve(url);
+    if (resolved?.payload != null) {
+      Navigator.of(context).pushNamed(
+        AppRoutes.bookDetail,
+        arguments: BookDetailArguments(bookId: resolved!.payload!),
+      );
     }
     return;
   }
@@ -1124,18 +1182,26 @@ IconData _writerMediaIcon(WriterMediaType type) {
     WriterMediaType.spotify => Icons.album_outlined,
     WriterMediaType.amazon => Icons.shopping_bag_outlined,
     WriterMediaType.wikipedia => Icons.menu_book_outlined,
+    WriterMediaType.suno => Icons.music_note_outlined,
+    WriterMediaType.wreadomBook => Icons.book_outlined,
     WriterMediaType.unsupported => Icons.link_rounded,
   };
 }
 
 String _leafLabel(LeafAttachment leaf) {
   if (leaf.type == LeafType.link && leaf.linkType != null) {
+    if (leaf.linkType == LeafLinkType.wreadomBook &&
+        leaf.title?.trim().isNotEmpty == true) {
+      return leaf.title!.trim();
+    }
     return switch (leaf.linkType!) {
       LeafLinkType.youtube => 'YouTube',
       LeafLinkType.spotify => 'Spotify',
       LeafLinkType.instagram => 'Instagram',
       LeafLinkType.amazon => 'Amazon',
       LeafLinkType.wikipedia => 'Wikipedia',
+      LeafLinkType.suno => 'Suno',
+      LeafLinkType.wreadomBook => 'Book',
     };
   }
   return _leafTypeLabel(leaf.type);

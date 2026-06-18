@@ -2084,6 +2084,60 @@ abstract class AppLocalizations {
   /// **'Draft deleted.'**
   String get draftDeleted;
 
+  /// No description provided for @deleteBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Book'**
+  String get deleteBook;
+
+  /// No description provided for @deleteBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this book?'**
+  String get deleteBookTitle;
+
+  /// No description provided for @deleteBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will delete the entire book and all of its chapters.'**
+  String get deleteBookBody;
+
+  /// No description provided for @deleteBookFinalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this book permanently?'**
+  String get deleteBookFinalTitle;
+
+  /// No description provided for @deleteBookFinalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone. You will lose all chapters of this book and their comments. You can keep this book as a draft and publish it whenever you want.'**
+  String get deleteBookFinalBody;
+
+  /// No description provided for @keepDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Draft'**
+  String get keepDraft;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAction;
+
+  /// No description provided for @bookDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Book deleted.'**
+  String get bookDeleted;
+
+  /// No description provided for @couldNotDeleteBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete book: {error}'**
+  String couldNotDeleteBook(String error);
+
   /// No description provided for @removeCollabBeforeDelete.
   ///
   /// In en, this message translates to:
@@ -2779,6 +2833,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Publish'**
   String get writerPublish;
+
+  /// No description provided for @printBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get printBook;
+
+  /// No description provided for @couldNotOpenPrintPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the print page.'**
+  String get couldNotOpenPrintPage;
 
   /// No description provided for @writerChapterTitleHint.
   ///

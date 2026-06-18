@@ -126,12 +126,14 @@ class NotificationTargetResolver {
     final isBookType = _isBookType(type, targetType);
     final isPostType = _isPostType(type, targetType);
     final isMessageType = type == 'message' || type == 'groupmessage';
-    final isProfileType =
+    final isFollowType =
         type == 'follow' ||
         type == 'follower' ||
         type == 'following' ||
-        type == 'testimonial' ||
         type.contains('follow');
+    final isProfileType =
+        type == 'testimonial' ||
+        isFollowType;
     final hasAmbiguousContentType =
         type == 'comment' ||
         type == 'reply' ||
@@ -164,6 +166,10 @@ class NotificationTargetResolver {
 
     if (isMessageType && conversationId != null) {
       return NotificationTarget(AppRoutes.conversation, conversationId);
+    }
+
+    if (isFollowType && notification.actorId.isNotEmpty) {
+      return NotificationTarget(AppRoutes.publicProfile, notification.actorId);
     }
 
     if (isProfileType && userId != null) {
@@ -199,6 +205,10 @@ class NotificationTargetResolver {
     if (isMessageType && targetId != null) {
       return NotificationTarget(AppRoutes.conversation, targetId);
     }
+    if (isFollowType && notification.actorId.isNotEmpty) {
+      return NotificationTarget(AppRoutes.publicProfile, notification.actorId);
+    }
+
     if (isProfileType && targetId != null) {
       return NotificationTarget(AppRoutes.publicProfile, targetId);
     }
@@ -218,11 +228,13 @@ class NotificationTargetResolver {
         type == 'book' ||
         type == 'chapter' ||
         type == 'quote' ||
+        type == 'collaboration_removed' ||
         type.contains('book') ||
         type.contains('creation') ||
         type.contains('chapter') ||
         type.contains('quote') ||
-        type.contains('review');
+        type.contains('review') ||
+        type.contains('collaboration');
   }
 
   static bool _isPostType(String type, String? targetType) {

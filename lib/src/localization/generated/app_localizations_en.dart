@@ -1099,6 +1099,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get draftDeleted => 'Draft deleted.';
 
   @override
+  String get deleteBook => 'Delete Book';
+
+  @override
+  String get deleteBookTitle => 'Delete this book?';
+
+  @override
+  String get deleteBookBody =>
+      'This will delete the entire book and all of its chapters.';
+
+  @override
+  String get deleteBookFinalTitle => 'Delete this book permanently?';
+
+  @override
+  String get deleteBookFinalBody =>
+      'This action cannot be undone. You will lose all chapters of this book and their comments. You can keep this book as a draft and publish it whenever you want.';
+
+  @override
+  String get keepDraft => 'Keep Draft';
+
+  @override
+  String get continueAction => 'Continue';
+
+  @override
+  String get bookDeleted => 'Book deleted.';
+
+  @override
+  String couldNotDeleteBook(String error) {
+    return 'Could not delete book: $error';
+  }
+
+  @override
   String get removeCollabBeforeDelete =>
       'Remove collaboration before deleting this draft.';
 
@@ -1519,6 +1550,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get writerPublish => 'Publish';
+
+  @override
+  String get printBook => 'Print';
+
+  @override
+  String get couldNotOpenPrintPage => 'Could not open the print page.';
 
   @override
   String writerChapterTitleHint(int number) {

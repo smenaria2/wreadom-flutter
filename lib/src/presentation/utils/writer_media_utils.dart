@@ -1,9 +1,14 @@
+import '../../utils/app_link_helper.dart';
+import '../routing/app_routes.dart';
+
 enum WriterMediaType {
   youtube,
   instagram,
   spotify,
   amazon,
   wikipedia,
+  suno,
+  wreadomBook,
   unsupported,
 }
 
@@ -31,6 +36,18 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
       originalUrl: '',
       embedUrl: '',
       label: 'Unsupported link',
+    );
+  }
+
+  final wreadomLink = AppLinkHelper.resolve(raw);
+  if (wreadomLink != null &&
+      wreadomLink.route == AppRoutes.bookDetail &&
+      wreadomLink.payload != null) {
+    return WriterMediaInfo(
+      type: WriterMediaType.wreadomBook,
+      originalUrl: raw,
+      embedUrl: raw,
+      label: 'Wreadom Book',
     );
   }
 
@@ -107,6 +124,15 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
         label: 'Amazon',
       );
     }
+  }
+
+  if (_hostMatches(host, const ['suno.com'])) {
+    return WriterMediaInfo(
+      type: WriterMediaType.suno,
+      originalUrl: uri.toString(),
+      embedUrl: uri.toString(),
+      label: 'Suno',
+    );
   }
 
   return WriterMediaInfo(

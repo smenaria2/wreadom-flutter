@@ -29,6 +29,10 @@ enum LeafLinkType {
   amazon,
   @JsonValue('wikipedia')
   wikipedia,
+  @JsonValue('suno')
+  suno,
+  @JsonValue('wreadomBook')
+  wreadomBook,
 }
 
 @freezed

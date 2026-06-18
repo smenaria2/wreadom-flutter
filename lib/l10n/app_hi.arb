@@ -422,6 +422,22 @@
   "deleteDraftTitle": "ड्राफ़्ट हटाएं?",
   "deleteDraftBody": "यह ड्राफ़्ट आपके डैशबोर्ड से हट जाएगा।",
   "draftDeleted": "ड्राफ़्ट हटा दिया गया।",
+  "deleteBook": "पुस्तक हटाएं",
+  "deleteBookTitle": "यह पुस्तक हटाएं?",
+  "deleteBookBody": "इससे पूरी पुस्तक और उसके सभी अध्याय हटा दिए जाएंगे।",
+  "deleteBookFinalTitle": "यह पुस्तक हमेशा के लिए हटाएं?",
+  "deleteBookFinalBody": "यह कार्रवाई पूर्ववत नहीं की जा सकती। आप इस पुस्तक के सभी अध्याय और उन पर की गई टिप्पणियां खो देंगे। आप इस पुस्तक को ड्राफ़्ट के रूप में रख सकते हैं और जब चाहें प्रकाशित कर सकते हैं।",
+  "keepDraft": "ड्राफ़्ट रखें",
+  "continueAction": "जारी रखें",
+  "bookDeleted": "पुस्तक हटा दी गई।",
+  "couldNotDeleteBook": "पुस्तक हटाई नहीं जा सकी: {error}",
+  "@couldNotDeleteBook": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "removeCollabBeforeDelete": "यह ड्राफ़्ट हटाने से पहले सहलेखन हटाएं।",
   "deleteConversationBody": "यह बातचीत आपके इनबॉक्स से हट जाएगी।",
   "failedToLoadSavedBooks": "सेव की गई रचनाएँ लोड नहीं हो सकीं: {error}",
@@ -653,6 +669,8 @@
   "writerDraft": "ड्राफ़्ट",
   "writerNext": "आगे",
   "writerPublish": "प्रकाशित करें",
+  "printBook": "प्रिंट",
+  "couldNotOpenPrintPage": "प्रिंट पेज नहीं खुल सका।",
   "writerChapterTitleHint": "अध्याय {number} का शीर्षक",
   "@writerChapterTitleHint": {
     "placeholders": {

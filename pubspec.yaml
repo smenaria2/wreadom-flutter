@@ -138,6 +138,7 @@ flutter:
   assets:
     - assets/images/app_logo.png
     - assets/images/agaaz_logo.jpg
+    - assets/images/suno_logo.png
     - assets/adi-registration.properties
 
 

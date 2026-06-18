@@ -76,4 +76,6 @@ const _$LeafLinkTypeEnumMap = {
   LeafLinkType.instagram: 'instagram',
   LeafLinkType.amazon: 'amazon',
   LeafLinkType.wikipedia: 'wikipedia',
+  LeafLinkType.suno: 'suno',
+  LeafLinkType.wreadomBook: 'wreadomBook',
 };
