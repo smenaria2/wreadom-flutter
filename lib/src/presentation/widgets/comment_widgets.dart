@@ -350,12 +350,15 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             child: Wrap(
                               crossAxisAlignment: WrapCrossAlignment.center,
                               spacing: 8,
-                              runSpacing: 4,
+                              runSpacing: 8,
                               children: [
-                                _ProfileName(
-                                  userId: comment.userId,
-                                  name: name,
-                                  color: widget.textColor,
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _ProfileName(
+                                    userId: comment.userId,
+                                    name: name,
+                                    color: widget.textColor,
+                                  ),
                                 ),
                                 if (comment.rating != null &&
                                     comment.rating! > 0)
@@ -369,7 +372,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                             : Icons.star_border_rounded,
                                         size: 14,
                                         color: index < comment.rating!
-                                            ? Colors.amber
+                                            ? (theme.brightness ==
+                                                      Brightness.dark
+                                                  ? const Color(0xFFFFC857)
+                                                  : const Color(0xFF9A5700))
                                             : theme.colorScheme.outlineVariant,
                                       ),
                                     ),
@@ -512,6 +518,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             ),
                         ],
                       ),
+                      const SizedBox(height: 8),
 
                       if (_editing) ...[
                         _InlineEditBox(

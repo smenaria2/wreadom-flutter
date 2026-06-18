@@ -10,6 +10,7 @@ import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 class AdminDailyTopicsScreen extends ConsumerStatefulWidget {
   const AdminDailyTopicsScreen({super.key});
@@ -237,13 +238,7 @@ class _AdminTopicBody extends ConsumerWidget {
                 const SizedBox(height: 10),
               ],
             if (hasMore)
-              Center(
-                child: OutlinedButton.icon(
-                  onPressed: onLoadMore,
-                  icon: const Icon(Icons.expand_more_rounded),
-                  label: Text(l10n.loadMoreTopics),
-                ),
-              ),
+              Center(child: SeeMoreContentButton(onPressed: onLoadMore)),
           ],
         );
       },

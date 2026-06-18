@@ -43,6 +43,7 @@ import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/book/quote_share_preview_sheet.dart';
@@ -55,6 +56,7 @@ import '../utils/book_author_utils.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/share_text_helper.dart';
 import '../widgets/adaptive_banner_ad.dart';
+import 'static_info_screen.dart';
 
 const double _readerBottomBarHeight = 50;
 const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
@@ -749,14 +751,58 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    final latestBookAsync = ref.watch(liveBookDetailProvider(widget.book.id));
     final chaptersAsync = ref.watch(liveBookChaptersProvider(widget.book.id));
     final offlineChaptersAsync = ref.watch(
       offlineChaptersProvider(widget.book.id),
     );
     final commentsAsync = ref.watch(liveBookCommentsProvider(widget.book.id));
     final userAsync = ref.watch(currentUserProvider);
+    final currentUserId = userAsync.asData?.value?.id;
     final isAdmin = ref.watch(currentUserAdminClaimProvider).value ?? false;
     ref.watch(appThemeControllerProvider);
+
+    final latestBookValue = latestBookAsync.asData;
+    if (latestBookValue != null) {
+      final latestBook = latestBookValue.value;
+      if (latestBook != null &&
+          !canViewBook(latestBook, null) &&
+          userAsync.isLoading) {
+        return Scaffold(
+          appBar: AppBar(title: Text(widget.book.title)),
+          body: _buildLoadingBody(),
+        );
+      }
+      if (latestBook == null || !canViewBook(latestBook, currentUserId)) {
+        return Scaffold(
+          appBar: AppBar(),
+          body: const StaticInfoScreen(
+            title: 'Content Not Found',
+            body:
+                'This book may have been unpublished, deleted, or is unavailable.',
+          ),
+        );
+      }
+    } else if (latestBookAsync.hasError && widget.book.source != 'archive') {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const StaticInfoScreen(
+          title: 'Content Not Found',
+          body:
+              'This book may have been unpublished, deleted, or is unavailable.',
+        ),
+      );
+    } else if (!userAsync.isLoading &&
+        !canViewBook(widget.book, currentUserId)) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const StaticInfoScreen(
+          title: 'Content Not Found',
+          body:
+              'This book may have been unpublished, deleted, or is unavailable.',
+        ),
+      );
+    }
 
     ref.listen(readerSettingsControllerProvider, (previous, next) {
       if (previous != next) _applyReaderSettings(next);

@@ -33,6 +33,13 @@ bool canDeleteCollaborativeBook(Book book, String userId) {
       !isAcceptedCollaboration(book);
 }
 
+bool canViewBook(Book book, String? userId) {
+  if (book.source == 'archive') return true;
+  if ((book.status ?? '').toLowerCase() == 'published') return true;
+  if (userId == null || userId.trim().isEmpty) return false;
+  return canEditCollaborativeBook(book, userId);
+}
+
 String primaryAuthorDisplayName(Book book, UserModel? user) {
   return _displayName(user) ??
       (book.authors.isNotEmpty ? book.authors.first.name.trim() : '');

@@ -22,6 +22,7 @@ import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
   const PublicProfileScreen({super.key, required this.userId});
@@ -688,7 +689,6 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
   Widget build(BuildContext context) {
     final booksAsync = ref.watch(userBooksProvider(widget.userId));
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -697,8 +697,9 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
             if (books.isEmpty) {
               return Text(l10n.noPublishedBooksYet);
             }
-            final visibleBooks =
-                _showAll ? books : books.take(_pageSize).toList();
+            final visibleBooks = _showAll
+                ? books
+                : books.take(_pageSize).toList();
             final hasMore = !_showAll && books.length > _pageSize;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -707,39 +708,24 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
                   shrinkWrap: true,
                   padding: const EdgeInsets.only(top: 8),
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 0.44,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 28,
                   ),
                   itemCount: visibleBooks.length,
-                  itemBuilder: (context, index) =>
-                      BookCard(book: visibleBooks[index], width: double.infinity),
+                  itemBuilder: (context, index) => BookCard(
+                    book: visibleBooks[index],
+                    width: double.infinity,
+                  ),
                 ),
                 if (hasMore)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Center(
-                      child: OutlinedButton.icon(
+                      child: SeeMoreContentButton(
                         onPressed: () => setState(() => _showAll = true),
-                        icon: const Icon(Icons.expand_more_rounded),
-                        label: Text(
-                          l10n.seeMoreContent,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                        ),
                       ),
                     ),
                   ),
@@ -758,7 +744,6 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
     );
   }
 }
-
 
 class _PublicPostsSection extends ConsumerWidget {
   const _PublicPostsSection({required this.userId});
@@ -793,16 +778,9 @@ class _PublicPostsSection extends ConsumerWidget {
               if (state.hasMore)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: TextButton.icon(
+                  child: SeeMoreContentButton(
                     onPressed: state.isLoadingMore ? null : controller.loadMore,
-                    icon: state.isLoadingMore
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.add_rounded),
-                    label: Text(l10n.loadMore),
+                    loading: state.isLoadingMore,
                   ),
                 ),
             ],

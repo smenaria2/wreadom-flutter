@@ -14,6 +14,7 @@ import '../utils/error_message_utils.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 import '../widgets/section_error.dart';
 import '../../utils/notification_target_resolver.dart';
 import '../../utils/format_utils.dart';
@@ -298,24 +299,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                           vertical: 16.0,
                                         ),
                                         child: Center(
-                                          child: TextButton.icon(
+                                          child: SeeMoreContentButton(
                                             onPressed:
                                                 notificationsState.isLoadingMore
                                                 ? null
                                                 : notificationsController
                                                       .loadMore,
-                                            icon:
-                                                notificationsState.isLoadingMore
-                                                ? const SizedBox(
-                                                    width: 18,
-                                                    height: 18,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  )
-                                                : const Icon(Icons.add_rounded),
-                                            label: Text(l10n.loadMore),
+                                            loading: notificationsState
+                                                .isLoadingMore,
                                           ),
                                         ),
                                       );

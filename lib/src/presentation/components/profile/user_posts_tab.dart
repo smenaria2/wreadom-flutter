@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../providers/feed_providers.dart';
 import '../../widgets/themed_empty_state.dart';
+import '../../widgets/see_more_content_button.dart';
 import '../feed_post_card.dart';
 
 class UserPostsTab extends ConsumerWidget {
@@ -43,16 +44,9 @@ class UserPostsTab extends ConsumerWidget {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
-                child: TextButton.icon(
+                child: SeeMoreContentButton(
                   onPressed: state.isLoadingMore ? null : controller.loadMore,
-                  icon: state.isLoadingMore
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.add_rounded),
-                  label: Text(l10n.loadMore),
+                  loading: state.isLoadingMore,
                 ),
               ),
             );

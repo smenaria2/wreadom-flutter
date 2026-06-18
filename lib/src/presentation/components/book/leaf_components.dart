@@ -15,13 +15,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../data/services/audio_review_upload_service.dart';
 import '../../../data/services/cloudinary_upload_service.dart';
 import '../../../domain/models/book.dart';
+import '../../../domain/models/feed_post.dart';
 import '../../../domain/models/leaf_attachment.dart';
+import '../../../localization/generated/app_localizations.dart';
 import '../../../utils/app_haptics.dart';
 import '../../../utils/app_link_helper.dart';
 import '../../components/create_post_sheet.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
 import '../../providers/comment_providers.dart';
+import '../../providers/feed_providers.dart';
 import '../../routing/app_router.dart';
 import '../../routing/app_routes.dart';
 import '../../utils/writer_html_codec.dart';
@@ -29,6 +32,7 @@ import '../../utils/writer_media_utils.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/in_app_media_web_view.dart';
 import '../../widgets/secure_audio_player.dart';
+import '../../widgets/see_more_content_button.dart';
 import 'certificate_leaf_viewer.dart';
 
 const int maxBookLeaves = 4;
@@ -505,7 +509,9 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
           final resolved = AppLinkHelper.resolve(info.originalUrl);
           if (resolved?.payload != null) {
             try {
-              final targetBook = await ref.read(bookRepositoryProvider).getBook(resolved!.payload!);
+              final targetBook = await ref
+                  .read(bookRepositoryProvider)
+                  .getBook(resolved!.payload!);
               if (targetBook != null) {
                 coverUrl = targetBook.coverUrl;
                 title = targetBook.title;
@@ -846,7 +852,9 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
             Text(
               'Supported: Wreadom Book, YouTube, Spotify, Instagram, Amazon, Wikipedia, Suno',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
           ],
@@ -1085,81 +1093,217 @@ Future<void> _showLinkLeaf(BuildContext context, LeafAttachment leaf) async {
   );
 }
 
-void _showQuestionLeaf(BuildContext context, Book book, LeafAttachment leaf) {
-  showModalBottomSheet<void>(
+Future<void> _showQuestionLeaf(
+  BuildContext context,
+  Book book,
+  LeafAttachment leaf,
+) {
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => GlassSurface(
+    builder: (_) => _QuestionLeafSheet(book: book, leaf: leaf),
+  );
+}
+
+class _QuestionLeafSheet extends ConsumerStatefulWidget {
+  const _QuestionLeafSheet({required this.book, required this.leaf});
+
+  final Book book;
+  final LeafAttachment leaf;
+
+  @override
+  ConsumerState<_QuestionLeafSheet> createState() => _QuestionLeafSheetState();
+}
+
+class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
+  bool _showAll = false;
+
+  String get _question => widget.leaf.question ?? widget.leaf.textPlain ?? '';
+
+  QuestionLeafAnswersQuery get _query => QuestionLeafAnswersQuery(
+    bookId: widget.book.id,
+    leafId: widget.leaf.id,
+    question: _question,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final answersAsync = ref.watch(questionLeafAnswersProvider(_query));
+
+    return GlassSurface(
       strong: true,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 26),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (book.coverUrl?.trim().isNotEmpty == true)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: book.coverUrl!,
-                      width: 48,
-                      height: 68,
-                      fit: BoxFit.cover,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.84,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (widget.book.coverUrl?.trim().isNotEmpty == true)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.book.coverUrl!,
+                        width: 48,
+                        height: 68,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    book.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              leaf.question ?? leaf.textPlain ?? '',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                height: 1.25,
+                ],
               ),
-            ),
-            const SizedBox(height: 18),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  showCreatePostSheet(
-                    context,
-                    initialQuestion: leaf.question ?? leaf.textPlain,
-                    lockQuestion: true,
-                    bookId: book.id,
-                    bookTitle: book.title,
-                    bookAuthorName: book.authors.isNotEmpty
-                        ? book.authors.first.name
-                        : null,
-                    bookCover: book.coverUrl,
+              const SizedBox(height: 16),
+              Text(
+                _question,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 18),
+              answersAsync.when(
+                data: (answers) {
+                  final visible = _showAll
+                      ? answers
+                      : answers.take(3).toList(growable: false);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (visible.isNotEmpty) ...[
+                        Text(
+                          l10n.answers,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        for (final answer in visible) ...[
+                          _QuestionAnswerPreview(answer: answer),
+                          const SizedBox(height: 8),
+                        ],
+                      ],
+                      if (!_showAll && answers.length > 3)
+                        Align(
+                          alignment: Alignment.center,
+                          child: SeeMoreContentButton(
+                            onPressed: () => setState(() => _showAll = true),
+                          ),
+                        ),
+                    ],
                   );
                 },
-                icon: const Icon(Icons.reply_rounded),
-                label: const Text('Reply'),
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (_, _) => const SizedBox.shrink(),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await showCreatePostSheet(
+                      context,
+                      initialQuestion: _question,
+                      questionLeafId: widget.leaf.id,
+                      lockQuestion: true,
+                      bookId: widget.book.id,
+                      bookTitle: widget.book.title,
+                      bookAuthorName: widget.book.authors.isNotEmpty
+                          ? widget.book.authors.first.name
+                          : null,
+                      bookCover: widget.book.coverUrl,
+                    );
+                  },
+                  icon: const Icon(Icons.reply_rounded),
+                  label: Text(l10n.reply),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _QuestionAnswerPreview extends StatelessWidget {
+  const _QuestionAnswerPreview({required this.answer});
+
+  final FeedPost answer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final answerer = [answer.displayName, answer.penName, answer.username]
+        .map((value) => value?.trim())
+        .whereType<String>()
+        .firstWhere((value) => value.isNotEmpty, orElse: () => answer.username);
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(14),
+      onTap: answer.id == null
+          ? null
+          : () {
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.pushNamed(
+                AppRoutes.postDetail,
+                arguments: PostDetailArguments(
+                  postId: answer.id!,
+                  post: answer,
+                ),
+              );
+            },
+      semanticButton: answer.id != null,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            answerer,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            answer.text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 IconData _leafIcon(LeafAttachment leaf) => _leafTypeIcon(leaf.type);

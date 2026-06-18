@@ -8,6 +8,7 @@ import '../components/feed_post_card.dart';
 import '../components/create_post_sheet.dart';
 import '../routing/app_routes.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
   const HomeFeedScreen({super.key});
@@ -416,21 +417,11 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ),
             const SizedBox(height: 24),
             if (feedState.hasMore)
-              FilledButton.icon(
-                icon: feedState.isLoadingMore
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.add_rounded),
-                label: Text(l10n.loadMore),
+              SeeMoreContentButton(
                 onPressed: feedState.isLoadingMore
                     ? null
                     : feedController.loadMore,
+                loading: feedState.isLoadingMore,
               ),
           ],
         ),
@@ -454,6 +445,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               showCreatePostSheet(
                 context,
                 initialQuestion: post.question,
+                questionLeafId: post.questionLeafId,
                 lockQuestion: post.bookId?.toString().trim().isNotEmpty == true,
                 bookId: post.bookId?.toString(),
                 bookTitle: post.bookTitle,
@@ -548,21 +540,13 @@ class _LoadMoreFeedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     if (!hasMore) return const SizedBox(height: 24);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
-        child: TextButton.icon(
+        child: SeeMoreContentButton(
           onPressed: isLoading ? null : onPressed,
-          icon: isLoading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.add_rounded),
-          label: Text(l10n.loadMore),
+          loading: isLoading,
         ),
       ),
     );

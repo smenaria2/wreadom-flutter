@@ -5,6 +5,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../providers/book_providers.dart';
 import '../../components/book_card.dart';
 import '../../widgets/themed_empty_state.dart';
+import '../../widgets/see_more_content_button.dart';
 
 class UserContentTab extends ConsumerStatefulWidget {
   final String userId;
@@ -22,7 +23,6 @@ class _UserContentTabState extends ConsumerState<UserContentTab> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final booksAsync = ref.watch(userBooksProvider(widget.userId));
-    final theme = Theme.of(context);
 
     return booksAsync.when(
       data: (books) {
@@ -59,24 +59,8 @@ class _UserContentTabState extends ConsumerState<UserContentTab> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
-                    child: OutlinedButton.icon(
+                    child: SeeMoreContentButton(
                       onPressed: () => setState(() => _showAll = true),
-                      icon: const Icon(Icons.expand_more_rounded),
-                      label: Text(
-                        l10n.seeMoreContent,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
                     ),
                   ),
                 ),

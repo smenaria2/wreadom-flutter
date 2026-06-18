@@ -16,6 +16,7 @@ import '../utils/error_message_utils.dart';
 import '../utils/message_display_utils.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
   const ConversationScreen({
@@ -199,20 +200,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Center(
-                          child: TextButton.icon(
+                          child: SeeMoreContentButton(
                             onPressed: messagesState.isLoadingMore
                                 ? null
                                 : messagesController.loadMore,
-                            icon: messagesState.isLoadingMore
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.history_rounded),
-                            label: Text(l10n.loadMore),
+                            loading: messagesState.isLoadingMore,
                           ),
                         ),
                       );

@@ -5,6 +5,7 @@ import '../../../domain/models/book.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
 import '../../widgets/themed_empty_state.dart';
+import '../../widgets/see_more_content_button.dart';
 import '../book_card.dart';
 
 class UserHistoryTab extends ConsumerStatefulWidget {
@@ -62,10 +63,8 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Center(
-                    child: TextButton.icon(
+                    child: SeeMoreContentButton(
                       onPressed: () => setState(() => _limit += _increment),
-                      icon: const Icon(Icons.add_rounded),
-                      label: Text(l10n.loadMore),
                     ),
                   ),
                 ),

@@ -11,6 +11,7 @@ import '../routing/app_routes.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 enum FollowListMode { followers, following }
 
@@ -94,19 +95,11 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: Center(
-                      child: TextButton.icon(
+                      child: SeeMoreContentButton(
                         onPressed: followState.isLoadingMore
                             ? null
                             : followController.loadMore,
-                        icon: followState.isLoadingMore
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_rounded),
-                        label: Text(l10n.loadMore),
+                        loading: followState.isLoadingMore,
                       ),
                     ),
                   );

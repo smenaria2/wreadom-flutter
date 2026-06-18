@@ -4358,6 +4358,18 @@ abstract class AppLocalizations {
   /// **'Answer question'**
   String get answerLeafQuestion;
 
+  /// No description provided for @answers.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers'**
+  String get answers;
+
+  /// No description provided for @startMessaging.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation with someone you follow'**
+  String get startMessaging;
+
   /// No description provided for @leafWriteNoteFirst.
   ///
   /// In en, this message translates to:

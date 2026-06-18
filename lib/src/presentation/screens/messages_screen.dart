@@ -4,14 +4,18 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../utils/app_haptics.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
+import '../providers/follow_providers.dart';
 import '../providers/message_providers.dart';
+import '../providers/profile_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../utils/message_display_utils.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/see_more_content_button.dart';
 
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
@@ -54,31 +58,9 @@ class MessagesScreen extends ConsumerWidget {
                     hiddenForUserId: currentUser.id,
                   );
                   if (conversations.isEmpty) {
-                    return ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.sizeOf(context).height * 0.6,
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 360),
-                              child: Text(
-                                l10n.noConversationsYet,
-                                textAlign: TextAlign.center,
-                                softWrap: true,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                      height: 1.35,
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    return _EmptyMessagesSuggestions(
+                      currentUser: currentUser,
+                      emptyMessage: l10n.noConversationsYet,
                     );
                   }
                   return ListView.separated(
@@ -94,20 +76,11 @@ class MessagesScreen extends ConsumerWidget {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Center(
-                            child: TextButton.icon(
+                            child: SeeMoreContentButton(
                               onPressed: conversationsState.isLoadingMore
                                   ? null
                                   : conversationsController.loadMore,
-                              icon: conversationsState.isLoadingMore
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.add_rounded),
-                              label: Text(l10n.loadMore),
+                              loading: conversationsState.isLoadingMore,
                             ),
                           ),
                         );
@@ -192,6 +165,182 @@ class MessagesScreen extends ConsumerWidget {
                 },
               ),
             ),
+    );
+  }
+}
+
+class _EmptyMessagesSuggestions extends ConsumerStatefulWidget {
+  const _EmptyMessagesSuggestions({
+    required this.currentUser,
+    required this.emptyMessage,
+  });
+
+  final UserModel currentUser;
+  final String emptyMessage;
+
+  @override
+  ConsumerState<_EmptyMessagesSuggestions> createState() =>
+      _EmptyMessagesSuggestionsState();
+}
+
+class _EmptyMessagesSuggestionsState
+    extends ConsumerState<_EmptyMessagesSuggestions> {
+  int _visibleCount = 5;
+  String? _openingUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    final followingAsync = ref.watch(followingListProvider);
+    return followingAsync.when(
+      data: (ids) {
+        final filteredIds = ids
+            .where((id) => id != widget.currentUser.id)
+            .toList(growable: false);
+        if (filteredIds.isEmpty) {
+          return _PlainMessagesEmptyState(message: widget.emptyMessage);
+        }
+        final profilesAsync = ref.watch(
+          publicProfilesByStableIdsProvider(filteredIds.join('|')),
+        );
+        return profilesAsync.when(
+          data: (profiles) {
+            if (profiles.isEmpty) {
+              return _PlainMessagesEmptyState(message: widget.emptyMessage);
+            }
+            final visible = profiles.take(_visibleCount).toList();
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.startMessaging,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (final profile in visible) ...[
+                  GlassSurface(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: _openingUserId == null
+                        ? () => _openConversation(profile)
+                        : null,
+                    semanticButton: true,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage:
+                            profile.photoURL?.trim().isNotEmpty == true
+                            ? CachedNetworkImageProvider(profile.photoURL!)
+                            : null,
+                        child: profile.photoURL?.trim().isNotEmpty == true
+                            ? null
+                            : Text(_profileName(profile).characters.first),
+                      ),
+                      title: Text(_profileName(profile)),
+                      subtitle: Text('@${profile.username}'),
+                      trailing: _openingUserId == profile.id
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.chat_bubble_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (_visibleCount < profiles.length)
+                  Center(
+                    child: SeeMoreContentButton(
+                      onPressed: () => setState(() => _visibleCount += 5),
+                    ),
+                  ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) =>
+              _PlainMessagesEmptyState(message: widget.emptyMessage),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => _PlainMessagesEmptyState(message: widget.emptyMessage),
+    );
+  }
+
+  Future<void> _openConversation(UserModel profile) async {
+    if (_openingUserId != null) return;
+    setState(() => _openingUserId = profile.id);
+    try {
+      final conversationId = await ref
+          .read(messageRepositoryProvider)
+          .getOrCreateDirectConversation(
+            currentUser: widget.currentUser,
+            otherUser: profile,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pushNamed(
+        AppRoutes.conversation,
+        arguments: ConversationArguments(
+          conversationId: conversationId,
+          title: _profileName(profile),
+          subtitle: profile.username,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.failedToLoadChats(error.toString()),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _openingUserId = null);
+    }
+  }
+
+  String _profileName(UserModel profile) {
+    for (final value in [
+      profile.displayName,
+      profile.penName,
+      profile.username,
+    ]) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return profile.username;
+  }
+}
+
+class _PlainMessagesEmptyState extends StatelessWidget {
+  const _PlainMessagesEmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      children: [
+        SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.6,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

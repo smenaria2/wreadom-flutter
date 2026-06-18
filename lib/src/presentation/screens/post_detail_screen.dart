@@ -84,6 +84,7 @@ class PostDetailScreen extends ConsumerWidget {
                     showCreatePostSheet(
                       context,
                       initialQuestion: post.question,
+                      questionLeafId: post.questionLeafId,
                       lockQuestion:
                           post.bookId?.toString().trim().isNotEmpty == true,
                       bookId: post.bookId?.toString(),
@@ -123,6 +124,7 @@ class PostDetailScreen extends ConsumerWidget {
                       showCreatePostSheet(
                         context,
                         initialQuestion: post.question,
+                        questionLeafId: post.questionLeafId,
                         lockQuestion:
                             post.bookId?.toString().trim().isNotEmpty == true,
                         bookId: post.bookId?.toString(),

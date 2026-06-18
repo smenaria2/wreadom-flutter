@@ -13,6 +13,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../services/analytics_service.dart';
 import '../services/google_sign_in_initializer.dart';
 import '../utils/firestore_utils.dart';
+import '../utils/profile_search_utils.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   firebase.FirebaseAuth get _auth => firebase.FirebaseAuth.instance;
@@ -84,6 +85,12 @@ class FirebaseAuthRepository implements AuthRepository {
           userModel.notificationSettings!,
         );
       }
+      json['searchTerms'] = buildProfileSearchTerms(
+        username: userModel.username,
+        email: userModel.email,
+        displayName: userModel.displayName,
+        penName: userModel.penName,
+      );
 
       await _firestore.collection('users').doc(fbUser.uid).set(json);
 
@@ -128,6 +135,14 @@ class FirebaseAuthRepository implements AuthRepository {
         };
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
+        }
+        if (raw['searchTerms'] is! List) {
+          patch['searchTerms'] = buildProfileSearchTerms(
+            username: raw['username']?.toString() ?? fallbackUser.username,
+            email: raw['email']?.toString() ?? fallbackUser.email,
+            displayName: raw['displayName']?.toString(),
+            penName: raw['penName']?.toString(),
+          );
         }
         try {
           await _firestore
@@ -229,6 +244,14 @@ class FirebaseAuthRepository implements AuthRepository {
         };
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
+        }
+        if (raw['searchTerms'] is! List) {
+          patch['searchTerms'] = buildProfileSearchTerms(
+            username: raw['username']?.toString() ?? fallbackUser.username,
+            email: raw['email']?.toString() ?? fallbackUser.email,
+            displayName: raw['displayName']?.toString(),
+            penName: raw['penName']?.toString(),
+          );
         }
         try {
           await _firestore
@@ -354,6 +377,12 @@ class FirebaseAuthRepository implements AuthRepository {
           userModel.notificationSettings!,
         );
       }
+      json['searchTerms'] = buildProfileSearchTerms(
+        username: userModel.username,
+        email: userModel.email,
+        displayName: userModel.displayName,
+        penName: userModel.penName,
+      );
       await _firestore
           .collection('users')
           .doc(userModel.id)
@@ -409,6 +438,16 @@ class FirebaseAuthRepository implements AuthRepository {
 
     if (updates.isEmpty) return;
 
+    if (displayName != null) {
+      final current = await _firestore.collection('users').doc(userId).get();
+      final data = current.data() ?? const <String, dynamic>{};
+      updates['searchTerms'] = buildProfileSearchTerms(
+        username: data['username']?.toString() ?? '',
+        email: data['email']?.toString() ?? '',
+        displayName: displayName,
+        penName: data['penName']?.toString(),
+      );
+    }
     await _firestore.collection('users').doc(userId).update(updates);
     await _fanOutProfileUpdates(userId, updates);
   }

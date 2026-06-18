@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../utils/firestore_utils.dart';
+import '../utils/profile_search_utils.dart';
 
 class FirebaseProfileRepository implements ProfileRepository {
   FirebaseProfileRepository({FirebaseFirestore? firestore})
@@ -93,24 +94,24 @@ class FirebaseProfileRepository implements ProfileRepository {
     final term = query.trim();
     if (term.isEmpty) return [];
 
-    final lowerTerm = term.toLowerCase();
+    final lowerTerm = normalizeProfileSearchText(term);
     final searches = <Query<Map<String, dynamic>>>[
       _firestore
           .collection('users')
-          .where('username', isGreaterThanOrEqualTo: lowerTerm)
-          .where('username', isLessThanOrEqualTo: '$lowerTerm\uf8ff')
-          .limit(limit),
-      _firestore
-          .collection('users')
-          .where('displayName', isGreaterThanOrEqualTo: term)
-          .where('displayName', isLessThanOrEqualTo: '$term\uf8ff')
-          .limit(limit),
-      _firestore
-          .collection('users')
-          .where('penName', isGreaterThanOrEqualTo: term)
-          .where('penName', isLessThanOrEqualTo: '$term\uf8ff')
-          .limit(limit),
+          .where('searchTerms', arrayContains: lowerTerm)
+          .limit(limit * 2),
     ];
+    for (final variant in profileSearchPrefixVariants(term)) {
+      for (final field in ['username', 'displayName', 'penName', 'email']) {
+        searches.add(
+          _firestore
+              .collection('users')
+              .where(field, isGreaterThanOrEqualTo: variant)
+              .where(field, isLessThanOrEqualTo: '$variant\uf8ff')
+              .limit(limit),
+        );
+      }
+    }
 
     final byId = <String, UserModel>{};
     for (final search in searches) {
@@ -119,7 +120,7 @@ class FirebaseProfileRepository implements ProfileRepository {
         for (final doc in snapshot.docs) {
           final user = _userFromDoc(doc);
           if (user != null && _isSearchableUser(user)) {
-            byId[user.id] = user;
+            byId[user.id] = _searchResultUser(user);
           }
         }
       } catch (e) {
@@ -140,6 +141,20 @@ class FirebaseProfileRepository implements ProfileRepository {
         return aName.compareTo(bName);
       });
     return results.take(limit).toList();
+  }
+
+  UserModel _searchResultUser(UserModel user) {
+    return user.copyWith(
+      email: '',
+      bio: null,
+      readingHistory: const [],
+      savedBooks: const [],
+      bookmarks: const [],
+      pinnedWorks: const [],
+      readingProgress: null,
+      fcmTokens: null,
+      notificationSettings: null,
+    );
   }
 
   UserModel? _userFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
@@ -255,13 +270,33 @@ class FirebaseProfileRepository implements ProfileRepository {
     String? penName,
     String? displayName,
   }) async {
+    final current = await _firestore.collection('users').doc(userId).get();
+    final currentData = current.data() ?? const <String, dynamic>{};
     final updates = <String, dynamic>{};
     updates['bio'] = _emptyStringDeletes(bio);
     updates['penName'] = _emptyStringDeletes(penName);
     updates['displayName'] = _emptyStringDeletes(displayName);
+    updates['searchTerms'] = buildProfileSearchTerms(
+      username: currentData['username']?.toString() ?? '',
+      email: currentData['email']?.toString() ?? '',
+      displayName: _resolvedSearchValue(
+        displayName,
+        currentData['displayName']?.toString(),
+      ),
+      penName: _resolvedSearchValue(
+        penName,
+        currentData['penName']?.toString(),
+      ),
+    );
     if (updates.isNotEmpty) {
       await _firestore.collection('users').doc(userId).update(updates);
     }
+  }
+
+  String? _resolvedSearchValue(String? next, String? current) {
+    if (next == null) return current;
+    final trimmed = next.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   Object _emptyStringDeletes(String? value) {

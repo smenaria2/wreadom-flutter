@@ -29,6 +29,12 @@ abstract class FeedRepository {
     int limit = 10,
     Object? cursor,
   });
+  Future<List<FeedPost>> getQuestionAnswers({
+    required String bookId,
+    required String questionLeafId,
+    required String question,
+    int limit = 100,
+  });
   Future<void> createFeedPost(FeedPost post);
   Future<FeedPost?> findUserReviewPost({
     required String userId,

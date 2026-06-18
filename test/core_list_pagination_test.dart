@@ -690,6 +690,16 @@ class _FakeFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<List<FeedPost>> getQuestionAnswers({
+    required String bookId,
+    required String questionLeafId,
+    required String question,
+    int limit = 100,
+  }) async {
+    return const [];
+  }
+
+  @override
   Future<void> addComment(String postId, Map<String, dynamic> comment) async {}
 
   @override

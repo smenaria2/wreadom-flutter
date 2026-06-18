@@ -1336,6 +1336,8 @@
   },
   "leafInvalidLink": "This Leaf link is not supported.",
   "answerLeafQuestion": "Answer question",
+  "answers": "Answers",
+  "startMessaging": "Start a conversation with someone you follow",
   "leafWriteNoteFirst": "Write a note first.",
   "leafWriteQuestionFirst": "Write a question first.",
   "leafChooseImage": "Choose an image.",

@@ -1097,6 +1097,8 @@
   "leafUploadFailed": "Leaf upload failed: {error}",
   "leafInvalidLink": "This Leaf link is not supported.",
   "answerLeafQuestion": "Answer question",
+  "answers": "जवाब",
+  "startMessaging": "जिन्हें आप फ़ॉलो करते हैं, उनसे बातचीत शुरू करें",
   "leafWriteNoteFirst": "Write a note first.",
   "leafWriteQuestionFirst": "Write a question first.",
   "leafChooseImage": "Choose an image.",

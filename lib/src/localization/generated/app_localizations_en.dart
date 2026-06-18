@@ -2452,6 +2452,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get answerLeafQuestion => 'Answer question';
 
   @override
+  String get answers => 'Answers';
+
+  @override
+  String get startMessaging => 'Start a conversation with someone you follow';
+
+  @override
   String get leafWriteNoteFirst => 'Write a note first.';
 
   @override

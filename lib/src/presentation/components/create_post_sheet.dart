@@ -16,16 +16,17 @@ import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
 
-void showCreatePostSheet(
+Future<void> showCreatePostSheet(
   BuildContext context, {
   String? initialQuestion,
+  String? questionLeafId,
   bool lockQuestion = false,
   String? bookId,
   String? bookTitle,
   String? bookAuthorName,
   String? bookCover,
 }) {
-  showModalBottomSheet(
+  return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -38,6 +39,7 @@ void showCreatePostSheet(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: _CreatePostSheet(
         initialQuestion: initialQuestion,
+        questionLeafId: questionLeafId,
         lockQuestion: lockQuestion,
         bookId: bookId,
         bookTitle: bookTitle,
@@ -50,6 +52,7 @@ void showCreatePostSheet(
 
 class _CreatePostSheet extends ConsumerStatefulWidget {
   final String? initialQuestion;
+  final String? questionLeafId;
   final bool lockQuestion;
   final String? bookId;
   final String? bookTitle;
@@ -57,6 +60,7 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
   final String? bookCover;
   const _CreatePostSheet({
     this.initialQuestion,
+    this.questionLeafId,
     this.lockQuestion = false,
     this.bookId,
     this.bookTitle,
@@ -179,6 +183,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         privacy: _visibility,
         imageUrl: imageUrl,
         question: _isAnsweringQuestion ? _currentQuestion : null,
+        questionLeafId: _isAnsweringQuestion ? widget.questionLeafId : null,
         bookId: widget.bookId,
         bookTitle: widget.bookTitle,
         bookAuthorName: widget.bookAuthorName,
@@ -196,6 +201,25 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      final questionLeafId = widget.questionLeafId?.trim();
+      final bookId = widget.bookId?.trim();
+      final question = widget.initialQuestion?.trim();
+      if (questionLeafId != null &&
+          questionLeafId.isNotEmpty &&
+          bookId != null &&
+          bookId.isNotEmpty &&
+          question != null &&
+          question.isNotEmpty) {
+        ref.invalidate(
+          questionLeafAnswersProvider(
+            QuestionLeafAnswersQuery(
+              bookId: bookId,
+              leafId: questionLeafId,
+              question: question,
+            ),
+          ),
+        );
+      }
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -477,7 +501,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         Transform.scale(
                           scale: 0.8,
                           child: Switch(
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                             value: _isAnsweringQuestion,
                             onChanged: (val) async {
                               setState(() {

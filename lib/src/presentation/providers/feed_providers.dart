@@ -17,6 +17,29 @@ part 'feed_providers.g.dart';
 
 enum FeedFilter { following, public, mine }
 
+class QuestionLeafAnswersQuery {
+  const QuestionLeafAnswersQuery({
+    required this.bookId,
+    required this.leafId,
+    required this.question,
+  });
+
+  final String bookId;
+  final String leafId;
+  final String question;
+
+  @override
+  bool operator ==(Object other) {
+    return other is QuestionLeafAnswersQuery &&
+        other.bookId == bookId &&
+        other.leafId == leafId &&
+        other.question == question;
+  }
+
+  @override
+  int get hashCode => Object.hash(bookId, leafId, question);
+}
+
 const int feedPageSize = 10;
 const Duration followingFeedLoadTimeout = Duration(seconds: 15);
 
@@ -74,6 +97,20 @@ final pagedUserFeedPostsProvider =
       PagedListState<FeedPost>,
       String
     >(PagedUserFeedPostsController.new);
+
+final questionLeafAnswersProvider =
+    FutureProvider.family<List<FeedPost>, QuestionLeafAnswersQuery>((
+      ref,
+      query,
+    ) {
+      return ref
+          .watch(feedRepositoryProvider)
+          .getQuestionAnswers(
+            bookId: query.bookId,
+            questionLeafId: query.leafId,
+            question: query.question,
+          );
+    });
 
 class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
   PagedFeedPostsController(this._filter);

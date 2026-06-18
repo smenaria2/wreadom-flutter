@@ -2458,6 +2458,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get answerLeafQuestion => 'Answer question';
 
   @override
+  String get answers => 'जवाब';
+
+  @override
+  String get startMessaging =>
+      'जिन्हें आप फ़ॉलो करते हैं, उनसे बातचीत शुरू करें';
+
+  @override
   String get leafWriteNoteFirst => 'Write a note first.';
 
   @override

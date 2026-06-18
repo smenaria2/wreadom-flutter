@@ -86,22 +86,21 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final bookAsync = ref.watch(liveBookDetailProvider(widget.bookId));
+    final userAsync = ref.watch(currentUserProvider);
+    final currentUserId = userAsync.asData?.value?.id;
 
     return Scaffold(
       body: bookAsync.when(
         data: (liveBook) {
-          final book = liveBook ?? widget.preloadedBook;
+          final book = liveBook;
           if (book == null) {
-            return StaticInfoScreen(
-              title: 'Content Not Found',
-              body:
-                  'This book may have been deleted or is no longer available.',
-              actionLabel: AppLocalizations.of(context)!.searchBooks,
-              onAction: () => Navigator.of(context).pushNamed(
-                AppRoutes.discovery,
-                arguments: {'query': widget.bookId},
-              ),
-            );
+            return _UnavailableBookView(bookId: widget.bookId);
+          }
+          if (!canViewBook(book, null) && userAsync.isLoading) {
+            return const _BookDetailSkeleton();
+          }
+          if (!canViewBook(book, currentUserId)) {
+            return _UnavailableBookView(bookId: widget.bookId);
           }
           _precacheCover(book.coverUrl);
           if (widget.initialReaderChapterIndex != null) {
@@ -120,7 +119,9 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
             targetLeafId: widget.targetLeafId,
           );
         },
-        loading: () => widget.preloadedBook != null
+        loading: () =>
+            widget.preloadedBook?.source == 'archive' &&
+                canViewBook(widget.preloadedBook!, currentUserId)
             ? _BookDetailBody(
                 book: widget.preloadedBook!,
                 detailBookId: widget.bookId,
@@ -156,6 +157,24 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
       if (!mounted) return;
       precacheImage(CachedNetworkImageProvider(url), context);
     });
+  }
+}
+
+class _UnavailableBookView extends StatelessWidget {
+  const _UnavailableBookView({required this.bookId});
+
+  final String bookId;
+
+  @override
+  Widget build(BuildContext context) {
+    return StaticInfoScreen(
+      title: 'Content Not Found',
+      body: 'This book may have been unpublished, deleted, or is unavailable.',
+      actionLabel: AppLocalizations.of(context)!.searchBooks,
+      onAction: () => Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.discovery, arguments: {'query': bookId}),
+    );
   }
 }
 
