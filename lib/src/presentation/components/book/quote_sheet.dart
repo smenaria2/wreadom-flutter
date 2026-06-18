@@ -136,9 +136,9 @@ class _QuoteSheetState extends ConsumerState<QuoteSheet> {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.format_quote_rounded,
-                      color: Colors.grey,
+                      color: theme.colorScheme.onSurfaceVariant,
                       size: 32,
                     ),
                     TextField(

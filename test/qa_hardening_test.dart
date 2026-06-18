@@ -224,9 +224,14 @@ void main() {
     expect(writerSource, contains('ownerUserId: user.id'));
     expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
     expect(mainSource, contains("error.code == 'duplicate-app'"));
+    expect(mainSource, contains('if (!firebaseReady) {'));
+    expect(mainSource, contains('if (firebaseRetrying) {'));
+    expect(mainSource, contains('onPressed: onRetryFirebase'));
     expect(
       mainSource,
-      contains('if (!firebaseReady) {\n      return const Scaffold'),
+      isNot(
+        contains('Future.delayed(\n        const Duration(milliseconds: 100)'),
+      ),
     );
   });
 
@@ -798,9 +803,7 @@ void main() {
     );
     expect(
       rulesSource,
-      contains(
-        "request.auth.token.get('admin', false) == true",
-      ),
+      contains("request.auth.token.get('admin', false) == true"),
     );
     expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
     expect(rulesSource, isNot(contains("'fcmTokenRegistry'")));
@@ -821,10 +824,7 @@ void main() {
       isNot(contains('userId == uid() ||\n        isAdmin()')),
     );
 
-    expect(
-      rulesSource,
-      contains("ownsIncoming('followerId')"),
-    );
+    expect(rulesSource, contains("ownsIncoming('followerId')"));
     expect(rulesSource, contains("onlyChanges(['commentCount'])"));
     expect(rulesSource, contains("allowsLegacyEmbeddedFeedCommentMutation()"));
     expect(rulesSource, contains("onlyChanges(['likes', 'likesCount'])"));
@@ -833,10 +833,7 @@ void main() {
       rulesSource,
       contains("request.resource.data.highlightedByUserId == uid()"),
     );
-    expect(
-      rulesSource,
-      contains("ownsIncomingAny('authorId', 'userId')"),
-    );
+    expect(rulesSource, contains("ownsIncomingAny('authorId', 'userId')"));
     expect(rulesSource, contains("function canEditBookData(data)"));
     expect(
       rulesSource,

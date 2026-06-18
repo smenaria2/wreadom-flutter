@@ -10,6 +10,7 @@ import '../../providers/homepage_providers.dart';
 import '../../routing/app_router.dart';
 import '../../routing/app_routes.dart';
 import '../../utils/book_author_utils.dart';
+import '../../widgets/themed_empty_state.dart';
 
 class UserDownloadedTab extends ConsumerWidget {
   const UserDownloadedTab({super.key});
@@ -22,15 +23,9 @@ class UserDownloadedTab extends ConsumerWidget {
     return entriesAsync.when(
       data: (entries) {
         if (entries.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-              child: Text(
-                l10n.noDownloadedBooksYet,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
+          return ThemedEmptyState(
+            icon: Icons.download_done_rounded,
+            message: l10n.noDownloadedBooksYet,
           );
         }
         return ListView.separated(

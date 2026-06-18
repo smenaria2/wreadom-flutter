@@ -74,10 +74,12 @@ class ChapterDiscussionSheet extends ConsumerStatefulWidget {
   final String chapterTitle;
 
   @override
-  ConsumerState<ChapterDiscussionSheet> createState() => _ChapterDiscussionSheetState();
+  ConsumerState<ChapterDiscussionSheet> createState() =>
+      _ChapterDiscussionSheetState();
 }
 
-class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet> {
+class _ChapterDiscussionSheetState
+    extends ConsumerState<ChapterDiscussionSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -101,7 +103,9 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.3,
+                          ),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -125,11 +129,17 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
               onTap: () async {
                 try {
                   unawaited(AppHaptics.selection());
-                  final book = await ref.read(bookRepositoryProvider).getBook(widget.bookId);
+                  final book = await ref
+                      .read(bookRepositoryProvider)
+                      .getBook(widget.bookId);
                   if (book == null || !context.mounted) return;
                   int chapterIndex = widget.chapterIndex ?? 0;
-                  if (widget.chapterIndex == null && widget.chapterId != null && book.chapters != null) {
-                    final foundIndex = book.chapters!.indexWhere((ch) => ch.id == widget.chapterId);
+                  if (widget.chapterIndex == null &&
+                      widget.chapterId != null &&
+                      book.chapters != null) {
+                    final foundIndex = book.chapters!.indexWhere(
+                      (ch) => ch.id == widget.chapterId,
+                    );
                     if (foundIndex != -1) {
                       chapterIndex = foundIndex;
                     }
@@ -150,7 +160,6 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary,
-                  decoration: TextDecoration.underline,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -168,7 +177,8 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
                       comment.chapterId == chapterId) {
                     return true;
                   }
-                  if (widget.chapterIndex != null && comment.chapterIndex == widget.chapterIndex) {
+                  if (widget.chapterIndex != null &&
+                      comment.chapterIndex == widget.chapterIndex) {
                     return true;
                   }
                   return false;
@@ -184,7 +194,9 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
                           Icon(
                             Icons.chat_bubble_outline_rounded,
                             size: 48,
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -206,20 +218,24 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
                   itemBuilder: (context, index) {
                     final comment = chapterComments[index];
                     return CommentTile(
-                      key: ValueKey('chapter-discussion-comment-${comment.id ?? comment.timestamp}'),
+                      key: ValueKey(
+                        'chapter-discussion-comment-${comment.id ?? comment.timestamp}',
+                      ),
                       comment: comment,
                       bookId: widget.bookId,
                       bookTitle: widget.bookTitle,
                       bookAuthorName: widget.bookAuthorName,
                       bookCover: widget.bookCover,
                       bookAuthorId: widget.bookAuthorId,
+                      showChapterContext: false,
                       onReply: () => _showReplySheet(comment),
                     );
                   },
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Error loading comments: $err')),
+              error: (err, stack) =>
+                  Center(child: Text('Error loading comments: $err')),
             ),
           ),
         ],
@@ -234,10 +250,8 @@ class _ChapterDiscussionSheetState extends ConsumerState<ChapterDiscussionSheet>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => CommentReplySheet(
-        comment: comment,
-        bookId: widget.bookId,
-      ),
+      builder: (context) =>
+          CommentReplySheet(comment: comment, bookId: widget.bookId),
     );
   }
 }

@@ -28,14 +28,12 @@ class MainRouteGate extends ConsumerWidget {
             return EmailVerificationScreen(userId: user.uid);
           }
 
-          // Trigger post-auth actions when verified
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(warmUserHomepageCache(ref));
-            NotificationService.instance.drainPendingNavigation();
-          });
-
           return OnboardingGate(
             userId: user.uid,
+            onReady: () {
+              unawaited(warmUserHomepageCache(ref));
+              NotificationService.instance.drainPendingNavigation();
+            },
             child: MainNavigationShell(initialIndex: initialIndex),
           );
         }

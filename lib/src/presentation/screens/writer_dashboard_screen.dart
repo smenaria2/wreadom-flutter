@@ -13,6 +13,7 @@ import '../routing/writer_pad_mode.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/themed_empty_state.dart';
 
 class WriterDashboardScreen extends ConsumerWidget {
   const WriterDashboardScreen({super.key});
@@ -136,26 +137,15 @@ class WriterDashboardScreen extends ConsumerWidget {
                 if (books.isEmpty) {
                   return SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.auto_stories_outlined,
-                            size: 64,
-                            color: Colors.grey.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            activeTab == 'published'
-                                ? l10n.noPublishedStoriesYet
-                                : l10n.noDraftsYet,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    child: ThemedEmptyState(
+                      icon: Icons.auto_stories_outlined,
+                      iconSize: 64,
+                      message: activeTab == 'published'
+                          ? l10n.noPublishedStoriesYet
+                          : l10n.noDraftsYet,
+                      textStyle: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   );

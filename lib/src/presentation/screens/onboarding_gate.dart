@@ -7,9 +7,15 @@ import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 class OnboardingGate extends ConsumerStatefulWidget {
-  const OnboardingGate({super.key, required this.userId, required this.child});
+  const OnboardingGate({
+    super.key,
+    required this.userId,
+    required this.onReady,
+    required this.child,
+  });
 
   final String userId;
+  final VoidCallback onReady;
   final Widget child;
 
   @override
@@ -19,6 +25,7 @@ class OnboardingGate extends ConsumerStatefulWidget {
 class _OnboardingGateState extends ConsumerState<OnboardingGate> {
   bool _checked = false;
   bool _showGuide = false;
+  bool _readyNotified = false;
 
   String get _prefsKey => 'onboarding_seen_${widget.userId}_v2';
 
@@ -34,6 +41,7 @@ class _OnboardingGateState extends ConsumerState<OnboardingGate> {
     if (oldWidget.userId != widget.userId) {
       _checked = false;
       _showGuide = false;
+      _readyNotified = false;
       _loadState();
     }
   }
@@ -46,12 +54,22 @@ class _OnboardingGateState extends ConsumerState<OnboardingGate> {
       _checked = true;
       _showGuide = !seen;
     });
+    if (seen) _notifyReady();
   }
 
   Future<void> _complete() async {
     await ref.read(sharedPreferencesProvider).setBool(_prefsKey, true);
     if (!mounted) return;
     setState(() => _showGuide = false);
+    _notifyReady();
+  }
+
+  void _notifyReady() {
+    if (_readyNotified) return;
+    _readyNotified = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onReady();
+    });
   }
 
   @override

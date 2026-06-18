@@ -23,6 +23,7 @@ import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/routing/app_routes.dart';
+import 'src/presentation/routing/pending_navigation_coordinator.dart';
 import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
@@ -211,8 +212,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   late bool _firebaseEmulatorsConfigured;
   late bool _appCheckConfigured;
   late bool _firestoreCacheConfigured;
-  Uri? _pendingDeepLink;
-  RouteSettings? _pendingDeepLinkTarget;
+  late bool _firebaseRetrying;
+  final _pendingNavigation = PendingNavigationCoordinator();
 
   static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
   static const Duration _startupTimeout = Duration(seconds: 8);
@@ -224,7 +225,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     _firebaseEmulatorsConfigured = widget.firebaseBootstrap.emulatorsConfigured;
     _appCheckConfigured = widget.firebaseBootstrap.appCheckConfigured;
     _firestoreCacheConfigured = widget.firebaseBootstrap.cacheConfigured;
+    _firebaseRetrying = !_firebaseReady;
+    _pendingNavigation.updateReadiness(firebaseReady: _firebaseReady);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingNavigation.updateReadiness(
+        navigatorReady: _navigatorKey.currentState != null,
+      );
       unawaited(_initializeAfterFirstFrame());
     });
   }
@@ -260,8 +266,13 @@ class _MyAppState extends ConsumerState<MyApp> {
         );
       }
     }
-    if (firebaseReady && mounted) {
-      setState(() => _firebaseReady = true);
+    if (mounted) {
+      setState(() {
+        _firebaseReady = firebaseReady;
+        _firebaseRetrying = false;
+      });
+      _pendingNavigation.updateReadiness(firebaseReady: firebaseReady);
+      _drainPendingDeepLinkTarget();
     }
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
       if (!_appCheckConfigured) {
@@ -283,6 +294,47 @@ class _MyAppState extends ConsumerState<MyApp> {
       return GoogleSignInInitializer.ensureInitialized();
     });
     unawaited(_initDeepLinks());
+  }
+
+  Future<void> _retryFirebaseStartup() async {
+    if (_firebaseRetrying) return;
+    setState(() => _firebaseRetrying = true);
+    final firebaseReady = await _guardedStartupStep(
+      'Firebase',
+      _initializeFirebaseIfNeeded,
+    );
+    if (firebaseReady) {
+      if (!_firebaseEmulatorsConfigured) {
+        _firebaseEmulatorsConfigured = await _guardedStartupStep(
+          'Firebase emulators',
+          _configureFirebaseEmulators,
+        );
+      }
+      if (!_firestoreCacheConfigured) {
+        _firestoreCacheConfigured = await _guardedStartupStep(
+          'Firestore cache',
+          _configureFirestoreCache,
+        );
+      }
+      if (!_appCheckConfigured && !EnvConfig.useFirebaseEmulators) {
+        _appCheckConfigured = await _guardedStartupStep(
+          'Firebase App Check',
+          _activateFirebaseAppCheckIfNeeded,
+        );
+      }
+      NotificationService.instance.attachNavigator(_navigatorKey);
+      await _guardedStartupStep(
+        'Notifications',
+        NotificationService.instance.init,
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _firebaseReady = firebaseReady;
+      _firebaseRetrying = false;
+    });
+    _pendingNavigation.updateReadiness(firebaseReady: firebaseReady);
+    _drainPendingDeepLinkTarget();
   }
 
   Future<void> _initializeWebGoogleSignIn() async {
@@ -342,8 +394,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        _pendingDeepLink = initialUri;
-        _processPendingDeepLink();
+        _handleUri(initialUri);
       }
     } catch (e) {
       debugPrint('Failed to get initial deep link: $e');
@@ -359,65 +410,23 @@ class _MyAppState extends ConsumerState<MyApp> {
     );
   }
 
-  void _processPendingDeepLink() {
-    if (_pendingDeepLink == null) return;
-    if (!_firebaseReady) {
-      Future.delayed(
-        const Duration(milliseconds: 100),
-        _processPendingDeepLink,
-      );
-      return;
-    }
-    final uri = _pendingDeepLink!;
-    _pendingDeepLink = null;
-    _handleUri(uri);
-    _drainPendingDeepLinkTarget();
-  }
-
   void _handleUri(Uri uri) {
     if (_isDuplicateDeepLink(uri)) return;
-    if (!_firebaseReady) {
-      _pendingDeepLink = uri;
-      return;
-    }
     debugPrint('Handling deep link: $uri');
 
-    final navigator = _navigatorKey.currentState;
     final target =
         AppRouter.routeSettingsForAppLink(uri.toString()) ??
         (!_isRootLink(uri)
             ? AppRouter.notFoundRouteSettingsForAppLink(uri.toString())
-            : null);
-    if (target == null && !_isRootLink(uri)) {
-      return;
-    }
-    if (navigator == null) {
-      _pendingDeepLinkTarget = target;
-      return;
-    }
-
-    if (_isRootLink(uri)) {
-      if (FirebaseAuth.instance.currentUser == null) return;
-      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-      return;
-    }
-
-    if (FirebaseAuth.instance.currentUser == null) {
-      _pendingDeepLinkTarget = target;
-      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-      return;
-    }
-
-    _openResolvedDeepLinkTarget(target);
+            : const RouteSettings(name: AppRoutes.main));
+    if (target == null) return;
+    _pendingNavigation.setTarget(target);
+    _drainPendingDeepLinkTarget();
   }
 
-  void _openResolvedDeepLinkTarget(RouteSettings? target) {
-    if (target == null) return;
+  void _openResolvedDeepLinkTarget(RouteSettings target) {
     final navigator = _navigatorKey.currentState;
-    if (navigator == null || FirebaseAuth.instance.currentUser == null) {
-      _pendingDeepLinkTarget = target;
-      return;
-    }
+    if (navigator == null) return;
     navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
     if (target.name != null &&
         target.name != AppRoutes.main &&
@@ -427,10 +436,12 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   void _drainPendingDeepLinkTarget() {
-    final target = _pendingDeepLinkTarget;
+    _pendingNavigation.updateReadiness(
+      firebaseReady: _firebaseReady,
+      navigatorReady: _navigatorKey.currentState != null,
+    );
+    final target = _pendingNavigation.takeReadyTarget();
     if (target == null) return;
-    if (!_firebaseReady || FirebaseAuth.instance.currentUser == null) return;
-    _pendingDeepLinkTarget = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _openResolvedDeepLinkTarget(target);
@@ -459,6 +470,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   void dispose() {
     _linkSubscription?.cancel();
     _googleAuthSubscription?.cancel();
+    _pendingNavigation.dispose();
     super.dispose();
   }
 
@@ -516,7 +528,30 @@ class _MyAppState extends ConsumerState<MyApp> {
               navigatorKey: _navigatorKey,
               child: AuthWrapper(
                 firebaseReady: _firebaseReady,
-                onAuthenticated: _drainPendingDeepLinkTarget,
+                firebaseRetrying: _firebaseRetrying,
+                onRetryFirebase: _retryFirebaseStartup,
+                onReadinessChanged:
+                    ({
+                      required authenticated,
+                      required emailVerified,
+                      required onboardingReady,
+                    }) {
+                      _pendingNavigation.updateReadiness(
+                        authenticated: authenticated,
+                        emailVerified: emailVerified,
+                        onboardingReady: onboardingReady,
+                      );
+                      _drainPendingDeepLinkTarget();
+                    },
+                onSignedOut: () {
+                  _pendingNavigation
+                    ..clear()
+                    ..updateReadiness(
+                      authenticated: false,
+                      emailVerified: false,
+                      onboardingReady: false,
+                    );
+                },
               ),
             ),
           ),
@@ -530,16 +565,46 @@ class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({
     super.key,
     required this.firebaseReady,
-    required this.onAuthenticated,
+    required this.firebaseRetrying,
+    required this.onRetryFirebase,
+    required this.onReadinessChanged,
+    required this.onSignedOut,
   });
 
   final bool firebaseReady;
-  final VoidCallback onAuthenticated;
+  final bool firebaseRetrying;
+  final Future<void> Function() onRetryFirebase;
+  final void Function({
+    required bool authenticated,
+    required bool emailVerified,
+    required bool onboardingReady,
+  })
+  onReadinessChanged;
+  final VoidCallback onSignedOut;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!firebaseReady) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      if (firebaseRetrying) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      final l10n = AppLocalizations.of(context)!;
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.somethingWentWrong),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onRetryFirebase,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(l10n.tryAgain),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     ref.listen(authStateProvider, (previous, next) {
@@ -565,13 +630,10 @@ class AuthWrapper extends ConsumerWidget {
           unawaited(
             ref.read(localeControllerProvider.notifier).syncPreferredLanguage(),
           );
-          NotificationService.instance.drainPendingNavigation();
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            onAuthenticated();
-          });
         }
       }
       if (previousId != null && nextId == null) {
+        onSignedOut();
         AnalyticsService.identifyUser(null);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
@@ -599,18 +661,32 @@ class AuthWrapper extends ConsumerWidget {
         if (user != null) {
           final isVerified = ref.watch(emailVerifiedProvider(user.uid));
           if (!isVerified) {
+            _notifyReadiness(
+              authenticated: true,
+              emailVerified: false,
+              onboardingReady: false,
+            );
             return EmailVerificationScreen(userId: user.uid);
           }
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(warmUserHomepageCache(ref));
-            NotificationService.instance.drainPendingNavigation();
-            onAuthenticated();
-          });
           return OnboardingGate(
             userId: user.uid,
+            onReady: () {
+              unawaited(warmUserHomepageCache(ref));
+              NotificationService.instance.drainPendingNavigation();
+              onReadinessChanged(
+                authenticated: true,
+                emailVerified: true,
+                onboardingReady: true,
+              );
+            },
             child: const MainNavigationShell(),
           );
         }
+        _notifyReadiness(
+          authenticated: false,
+          emailVerified: false,
+          onboardingReady: false,
+        );
         return const LoginScreen();
       },
       loading: () =>
@@ -620,5 +696,19 @@ class AuthWrapper extends ConsumerWidget {
         return const LoginScreen();
       },
     );
+  }
+
+  void _notifyReadiness({
+    required bool authenticated,
+    required bool emailVerified,
+    required bool onboardingReady,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      onReadinessChanged(
+        authenticated: authenticated,
+        emailVerified: emailVerified,
+        onboardingReady: onboardingReady,
+      );
+    });
   }
 }

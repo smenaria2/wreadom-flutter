@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../providers/feed_providers.dart';
+import '../../widgets/themed_empty_state.dart';
 import '../feed_post_card.dart';
 
 class UserPostsTab extends ConsumerWidget {
@@ -27,15 +28,9 @@ class UserPostsTab extends ConsumerWidget {
       );
     }
     if (state.items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-          child: Text(
-            l10n.noPostsYetStartSharing,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
-          ),
-        ),
+      return ThemedEmptyState(
+        icon: Icons.dynamic_feed_outlined,
+        message: l10n.noPostsYetStartSharing,
       );
     }
     return RefreshIndicator(

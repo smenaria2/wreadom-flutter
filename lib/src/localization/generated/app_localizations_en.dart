@@ -253,6 +253,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get searchUnavailable => 'Search is temporarily unavailable.';
+
+  @override
+  String get searchPartialResults =>
+      'Some search sources could not be reached. Showing available results.';
+
+  @override
   String get originalBooks => 'Original Content';
 
   @override
@@ -1092,8 +1099,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteDraftTitle => 'Delete draft?';
 
   @override
-  String get deleteDraftBody =>
-      'This draft will be removed from your dashboard.';
+  String get deleteDraftBody => 'This draft will be deleted.';
 
   @override
   String get draftDeleted => 'Draft deleted.';

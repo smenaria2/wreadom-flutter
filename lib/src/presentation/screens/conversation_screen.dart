@@ -12,6 +12,7 @@ import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
+import '../utils/error_message_utils.dart';
 import '../utils/message_display_utils.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
@@ -58,13 +59,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             text: text,
           );
       _controller.clear();
-      await ref
-          .read(
-            pagedConversationMessagesProvider(widget.conversationId).notifier,
-          )
-          .refresh();
     } on MessageLimitException {
       // The composer state already reflects blocked/first-message limits.
+    } catch (error, stackTrace) {
+      logUiError('Message send failed', error, stackTrace);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingErrorMessage(AppLocalizations.of(context)!, error),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -152,12 +158,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 if (messagesState.isInitialLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                if (messagesState.error != null) {
+                if (messagesState.error != null && messages.isEmpty) {
                   return Center(
-                    child: Text(
-                      l10n.failedToLoadWithError(
-                        messagesState.error.toString(),
-                      ),
+                    child: _ConversationLoadError(
+                      onRetry: messagesController.refresh,
                     ),
                   );
                 }
@@ -181,8 +185,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   itemCount:
                       messages.length +
                       (hasLoader ? 1 : 0) +
-                      (hasWaitingNotice ? 1 : 0),
+                      (hasWaitingNotice ? 1 : 0) +
+                      (messagesState.error != null ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (messagesState.error != null && index == 0) {
+                      return _LiveUpdateWarning(
+                        onRetry: messagesController.retryLiveUpdates,
+                      );
+                    }
+                    final errorOffset = messagesState.error != null ? 1 : 0;
+                    index -= errorOffset;
                     if (hasLoader && index == 0) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -466,6 +478,60 @@ class _ConversationInfoMessage extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConversationLoadError extends StatelessWidget {
+  const _ConversationLoadError({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(l10n.somethingWentWrong),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: Text(l10n.tryAgain),
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveUpdateWarning extends StatelessWidget {
+  const _LiveUpdateWarning({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(14),
+        child: ListTile(
+          dense: true,
+          leading: Icon(
+            Icons.sync_problem_rounded,
+            color: colorScheme.onErrorContainer,
+          ),
+          title: Text(
+            l10n.somethingWentWrong,
+            style: TextStyle(color: colorScheme.onErrorContainer),
+          ),
+          trailing: TextButton(onPressed: onRetry, child: Text(l10n.tryAgain)),
         ),
       ),
     );

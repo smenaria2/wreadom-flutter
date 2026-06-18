@@ -207,4 +207,22 @@ void main() {
     expect(source, contains("type != 'book_comment' && type != 'comment'"));
     expect(source, contains('_contentCommentKey'));
   });
+
+  test('notification rows do not repeat chapter titles separately', () {
+    final source = File(
+      'lib/src/presentation/screens/notifications_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, isNot(contains("'Chapter: \$chapterTitle'")));
+    expect(source, isNot(contains('String? _extractChapterTitle')));
+  });
+
+  test('chapter discussion heading is not underlined', () {
+    final source = File(
+      'lib/src/presentation/components/book/chapter_discussion_sheet.dart',
+    ).readAsStringSync();
+
+    expect(source, isNot(contains('TextDecoration.underline')));
+    expect(source, contains('showChapterContext: false'));
+  });
 }

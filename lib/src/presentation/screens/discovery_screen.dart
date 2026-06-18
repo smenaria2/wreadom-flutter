@@ -193,14 +193,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 hasScrollBody: false,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, _) => SliverFillRemaining(
+              error: (_, _) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorWithDetails(error.toString()),
-                  ),
+                child: _SearchFailureView(
+                  onRetry: () =>
+                      ref.invalidate(discoverySearchProvider(queryForProvider)),
                 ),
               ),
             )
@@ -231,20 +228,45 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           else
             searchAsync.when(
               data: (results) {
+                if (results.allFailed) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _SearchFailureView(
+                      onRetry: () => ref.invalidate(
+                        discoverySearchProvider(queryForProvider),
+                      ),
+                    ),
+                  );
+                }
                 if (results.isEmpty) {
                   return SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.noResultsFor(effectiveQuery),
-                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (results.hasPartialFailure)
+                          _SearchPartialWarning(
+                            onRetry: () => ref.invalidate(
+                              discoverySearchProvider(queryForProvider),
+                            ),
+                          ),
+                        Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.noResultsFor(effectiveQuery),
+                        ),
+                      ],
                     ),
                   );
                 }
                 return SliverList(
                   delegate: SliverChildListDelegate([
+                    if (results.hasPartialFailure)
+                      _SearchPartialWarning(
+                        onRetry: () => ref.invalidate(
+                          discoverySearchProvider(queryForProvider),
+                        ),
+                      ),
                     if (results.authors.isNotEmpty)
                       _AuthorResultSection(authors: results.authors),
                     if (results.originals.isNotEmpty)
@@ -277,6 +299,64 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _SearchFailureView extends StatelessWidget {
+  const _SearchFailureView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.search_off_rounded, size: 48),
+          const SizedBox(height: 12),
+          Text(l10n.searchUnavailable),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(l10n.tryAgain),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchPartialWarning extends StatelessWidget {
+  const _SearchPartialWarning({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Material(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(14),
+        child: ListTile(
+          dense: true,
+          leading: Icon(
+            Icons.info_outline_rounded,
+            color: colorScheme.onTertiaryContainer,
+          ),
+          title: Text(
+            l10n.searchPartialResults,
+            style: TextStyle(color: colorScheme.onTertiaryContainer),
+          ),
+          trailing: TextButton(onPressed: onRetry, child: Text(l10n.tryAgain)),
+        ),
       ),
     );
   }

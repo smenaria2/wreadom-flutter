@@ -82,12 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
-          if (previous?.isLoading == true &&
-              firebase_auth.FirebaseAuth.instance.currentUser != null) {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-          }
+          // AuthWrapper owns navigation after authentication.
         },
         error: (e, st) {
           logUiError('Authentication action failed', e, st);
@@ -100,15 +95,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         },
       );
     });
-    ref.listen(authStateProvider, (previous, next) {
-      final user = next.asData?.value;
-      if (user == null) return;
-      if (!context.mounted) return;
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-    });
-
     final authState = ref.watch(authControllerProvider);
     final themeMode = ref.watch(appThemeControllerProvider);
     final locale = ref.watch(localeControllerProvider);

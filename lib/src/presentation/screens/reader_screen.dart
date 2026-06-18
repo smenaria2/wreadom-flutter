@@ -2288,7 +2288,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
-
   String? get _bookAuthorId {
     final authorId = widget.book.authorId?.trim();
     return authorId == null || authorId.isEmpty ? null : authorId;
@@ -3258,6 +3257,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                 ),
                                                 bookCover: widget.book.coverUrl,
                                                 bookAuthorId: _bookAuthorId,
+                                                chapterCount:
+                                                    widget.book.chapterCount ??
+                                                    widget
+                                                        .book
+                                                        .chapters
+                                                        ?.length,
                                                 textColor: _getTextColor(),
                                                 metadataColor:
                                                     _getSecondaryTextColor(),
@@ -4109,7 +4114,10 @@ class _ChapterEndActions extends StatelessWidget {
         ],
       );
     } else {
-      final showLeaves = book.isOriginal == true && book.leaves != null && book.leaves!.isNotEmpty;
+      final showLeaves =
+          book.isOriginal == true &&
+          book.leaves != null &&
+          book.leaves!.isNotEmpty;
       return Column(
         children: [
           GlassSurface(
@@ -4175,10 +4183,7 @@ class _ChapterEndActions extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
-                  child: LeafStrip(
-                    book: book,
-                    canManage: false,
-                  ),
+                  child: LeafStrip(book: book, canManage: false),
                 ),
               ),
             ),

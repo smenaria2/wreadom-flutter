@@ -5,6 +5,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../../domain/models/book.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
+import '../../widgets/themed_empty_state.dart';
 import '../book_card.dart';
 
 class UserSavedTab extends ConsumerWidget {
@@ -18,15 +19,9 @@ class UserSavedTab extends ConsumerWidget {
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-              child: Text(
-                l10n.noSavedBooksYet,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
+          return ThemedEmptyState(
+            icon: Icons.bookmark_border_rounded,
+            message: l10n.noSavedBooksYet,
           );
         }
         return GridView.builder(

@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../../domain/models/book.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
+import '../../widgets/themed_empty_state.dart';
 import '../book_card.dart';
 
 class UserHistoryTab extends ConsumerStatefulWidget {
@@ -25,15 +26,9 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-              child: Text(
-                l10n.noReadingHistoryYet,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
+          return ThemedEmptyState(
+            icon: Icons.history_rounded,
+            message: l10n.noReadingHistoryYet,
           );
         }
 

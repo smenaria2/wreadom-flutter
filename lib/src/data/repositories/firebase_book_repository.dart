@@ -354,32 +354,34 @@ class FirebaseBookRepository implements BookRepository {
     if (term.isEmpty) return [];
 
     try {
-      Query dbQuery = _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'published');
-
       if (term.startsWith('subject:')) {
         final genre = term.split(':').last.trim();
-        dbQuery = dbQuery.where('genres', arrayContains: genre);
+        final snapshot = await _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .where('genres', arrayContains: genre)
+            .limit(limit)
+            .get();
+        return _booksFromDocs(snapshot.docs);
       } else if (term.startsWith('topic:')) {
         final topic = term.split(':').last.trim();
-        // IA uses 'subject', Firebase uses 'subjects' or 'bookshelves'
-        // For localized topics/subject tags, 'subjects' is the model field
-        dbQuery = dbQuery.where('subjects', arrayContains: topic);
-      } else {
-        // Standard title prefix search
-        dbQuery = dbQuery
-            .where('title', isGreaterThanOrEqualTo: term)
-            .where('title', isLessThanOrEqualTo: '$term\uf8ff');
+        final snapshot = await _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .where('subjects', arrayContains: topic)
+            .limit(limit)
+            .get();
+        return _booksFromDocs(snapshot.docs);
       }
-
-      final snapshot = await dbQuery.limit(limit).get();
-      final books = _booksFromDocs(snapshot.docs);
-      if (books.isNotEmpty) return books;
-    } catch (e) {
+      return await _searchTitlePrefixes(
+        term,
+        limit: limit,
+        originalsOnly: false,
+      );
+    } catch (e, stackTrace) {
       debugPrint('[FirebaseBookRepository] Error searching books: $e');
+      Error.throwWithStackTrace(e, stackTrace);
     }
-    return [];
   }
 
   @override
@@ -388,34 +390,64 @@ class FirebaseBookRepository implements BookRepository {
     if (term.isEmpty) return [];
 
     try {
-      Query dbQuery = _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'published')
-          .where('isOriginal', isEqualTo: true);
-
       if (term.startsWith('subject:')) {
-        dbQuery = dbQuery.where(
-          'subjects',
-          arrayContains: term.split(':').last.trim(),
-        );
+        final snapshot = await _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .where('isOriginal', isEqualTo: true)
+            .where('subjects', arrayContains: term.split(':').last.trim())
+            .limit(limit)
+            .get();
+        return _booksFromDocs(snapshot.docs);
       } else if (term.startsWith('topic:')) {
-        dbQuery = dbQuery.where(
-          'topics',
-          arrayContains: term.split(':').last.trim(),
-        );
-      } else {
-        dbQuery = dbQuery
-            .where('title', isGreaterThanOrEqualTo: term)
-            .where('title', isLessThanOrEqualTo: '$term\uf8ff');
+        final snapshot = await _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .where('isOriginal', isEqualTo: true)
+            .where('topics', arrayContains: term.split(':').last.trim())
+            .limit(limit)
+            .get();
+        return _booksFromDocs(snapshot.docs);
       }
-
-      final snapshot = await dbQuery.limit(limit).get();
-      final books = _booksFromDocs(snapshot.docs);
-      if (books.isNotEmpty) return books;
-    } catch (e) {
+      return await _searchTitlePrefixes(
+        term,
+        limit: limit,
+        originalsOnly: true,
+      );
+    } catch (e, stackTrace) {
       debugPrint('[FirebaseBookRepository] Error searching originals: $e');
+      Error.throwWithStackTrace(e, stackTrace);
     }
-    return [];
+  }
+
+  Future<List<Book>> _searchTitlePrefixes(
+    String term, {
+    required int limit,
+    required bool originalsOnly,
+  }) async {
+    final variants = firebaseTitlePrefixVariants(term);
+    final snapshots = await Future.wait(
+      variants.map((variant) {
+        Query query = _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published');
+        if (originalsOnly) {
+          query = query.where('isOriginal', isEqualTo: true);
+        }
+        return query
+            .where('title', isGreaterThanOrEqualTo: variant)
+            .where('title', isLessThanOrEqualTo: '$variant\uf8ff')
+            .limit(limit)
+            .get();
+      }),
+    );
+    final byId = <String, Book>{};
+    for (final snapshot in snapshots) {
+      for (final book in _booksFromDocs(snapshot.docs)) {
+        byId[book.id] = book;
+      }
+    }
+    return byId.values.take(limit).toList();
   }
 
   @override
@@ -816,4 +848,22 @@ class FirebaseBookRepository implements BookRepository {
       maxLeaves: (data['maxLeaves'] as num?)?.toInt(),
     );
   }
+}
+
+List<String> firebaseTitlePrefixVariants(String term) {
+  final trimmed = term.trim();
+  final lower = trimmed.toLowerCase();
+  final title = trimmed
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .map((word) {
+        if (word.length == 1) return word.toUpperCase();
+        return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+      })
+      .join(' ');
+  return <String>{
+    trimmed,
+    lower,
+    title,
+  }.where((value) => value.isNotEmpty).toList();
 }

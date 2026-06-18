@@ -358,21 +358,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(displayItem.subtitle(l10n)),
-                                              if (_extractChapterTitle(item) case final chapterTitle?) ...[
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  'Chapter: $chapterTitle',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        fontWeight: FontWeight.w600,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primary,
-                                                      ),
-                                                ),
-                                              ],
                                               const SizedBox(height: 2),
                                               Text(
                                                 FormatUtils.relativeTime(
@@ -829,24 +814,6 @@ String localizedNotificationText(
     return l10n.removedYouAsCoAuthor;
   }
   return notification.text;
-}
-
-String? _extractChapterTitle(AppNotification notification) {
-  final metadata = notification.metadata;
-  if (metadata != null) {
-    final title = metadata['chapterTitle'] ?? metadata['chapterName'];
-    if (title != null) return title.toString().trim();
-  }
-  final text = notification.text;
-  if (text.isEmpty) return null;
-  final match = RegExp(
-    r'''(?:on|on\s+chapter)\s+['"]([^'"]+)['"]\s+of\s+['"]''',
-    caseSensitive: false,
-  ).firstMatch(text);
-  if (match != null) {
-    return match.group(1)?.trim();
-  }
-  return null;
 }
 
 String? _localizedHindiBookReplyText(

@@ -431,6 +431,72 @@ void main() {
     ]);
     expect(repo.conversationPageRequests, ['user-a', 'user-b']);
   });
+
+  test(
+    'paged messages merge live updates with history and retain content on stream error',
+    () async {
+      final repo = _FakeMessageRepository(
+        messagePages: [
+          PagedResult(
+            items: [_messageAt('m1', 'a', 'old text', 10)],
+            hasMore: true,
+            nextCursor: 'older',
+          ),
+          PagedResult(
+            items: [
+              _messageAt('m0', 'b', 'older', 1),
+              _messageAt('m1', 'a', 'stale duplicate', 10),
+            ],
+            hasMore: false,
+          ),
+        ],
+      );
+      addTearDown(repo.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          messageRepositoryProvider.overrideWithValue(repo),
+          currentUserProvider.overrideWith(
+            (ref) => Stream.value(_user('viewer')),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final provider = pagedConversationMessagesProvider('conversation');
+      final subscription = container.listen(provider, (_, _) {});
+      addTearDown(subscription.close);
+
+      await _waitFor(() => container.read(provider).items.isNotEmpty);
+      repo.messageStream.add([
+        _messageAt('m1', 'a', 'edited text', 10),
+        _messageAt('m2', 'b', 'new message', 20),
+        _messageAt(
+          'm3',
+          'b',
+          'hidden message',
+          30,
+          deletedFor: const ['viewer'],
+        ),
+      ]);
+
+      await _waitFor(
+        () =>
+            container.read(provider).items.any((message) => message.id == 'm2'),
+      );
+      var state = container.read(provider);
+      expect(state.items.map((message) => message.id), ['m1', 'm2']);
+      expect(state.items.first.text, 'edited text');
+
+      await container.read(provider.notifier).loadMore();
+      state = container.read(provider);
+      expect(state.items.map((message) => message.id), ['m0', 'm1', 'm2']);
+      expect(state.items[1].text, 'edited text');
+
+      repo.messageStream.addError(StateError('live stream offline'));
+      await _waitFor(() => container.read(provider).error != null);
+      state = container.read(provider);
+      expect(state.items.map((message) => message.id), ['m0', 'm1', 'm2']);
+    },
+  );
 }
 
 Future<void> _waitFor(bool Function() condition) async {
@@ -486,6 +552,25 @@ Message _message(String senderId, String text) {
     timestamp: 1,
     type: 'text',
     readBy: const [],
+  );
+}
+
+Message _messageAt(
+  String id,
+  String senderId,
+  String text,
+  int timestamp, {
+  List<String> deletedFor = const [],
+}) {
+  return Message(
+    id: id,
+    senderId: senderId,
+    senderName: senderId,
+    text: text,
+    timestamp: timestamp,
+    type: 'text',
+    readBy: const [],
+    deletedFor: deletedFor,
   );
 }
 
@@ -689,7 +774,16 @@ class _FakeFeedRepository implements FeedRepository {
 }
 
 class _FakeMessageRepository implements MessageRepository {
+  _FakeMessageRepository({this.messagePages = const []});
+
+  final List<PagedResult<Message>> messagePages;
+  final messageStream = StreamController<List<Message>>.broadcast();
   final conversationPageRequests = <String>[];
+  int _messagePageIndex = 0;
+
+  void dispose() {
+    messageStream.close();
+  }
 
   @override
   Future<void> blockUserInConversation({
@@ -742,7 +836,13 @@ class _FakeMessageRepository implements MessageRepository {
     int limit = 25,
     Object? cursor,
   }) async {
-    return const PagedResult(items: [], hasMore: false);
+    if (messagePages.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+    final index = _messagePageIndex++;
+    return messagePages[index >= messagePages.length
+        ? messagePages.length - 1
+        : index];
   }
 
   @override
@@ -771,7 +871,7 @@ class _FakeMessageRepository implements MessageRepository {
 
   @override
   Stream<List<Message>> watchMessages(String conversationId) {
-    return Stream.value(const []);
+    return messageStream.stream;
   }
 }
 

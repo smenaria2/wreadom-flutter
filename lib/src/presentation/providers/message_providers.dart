@@ -111,19 +111,42 @@ class PagedConversationMessagesController
   final String _conversationId;
   Object? _olderCursor;
   int _loadGeneration = 0;
+  String? _currentUserId;
+  final Map<String, Message> _liveMessagesByKey = {};
+  final Set<String> _liveHiddenKeys = {};
 
   @override
   PagedListState<Message> build() {
     ref.listen(currentUserProvider, (previous, next) {
       final previousUserId = previous?.asData?.value?.id;
       final nextUserId = next.asData?.value?.id;
+      _currentUserId = nextUserId;
       if (previousUserId != nextUserId) {
         _olderCursor = null;
+        _liveMessagesByKey.clear();
+        _liveHiddenKeys.clear();
         _loadGeneration++;
         state = const PagedListState(isInitialLoading: true);
         Future.microtask(refresh);
       }
     });
+    ref.listen<AsyncValue<List<Message>>>(
+      conversationMessagesProvider(_conversationId),
+      (previous, next) {
+        next.when(
+          data: _mergeLiveMessages,
+          loading: () {},
+          error: (error, _) {
+            state = state.copyWith(
+              isInitialLoading: false,
+              isLoadingMore: false,
+              error: error,
+            );
+          },
+        );
+      },
+      fireImmediately: true,
+    );
     Future.microtask(refresh);
     return const PagedListState();
   }
@@ -136,6 +159,10 @@ class PagedConversationMessagesController
   }
 
   Future<void> loadMore() => _load();
+
+  void retryLiveUpdates() {
+    ref.invalidate(conversationMessagesProvider(_conversationId));
+  }
 
   Future<void> _load({bool reset = false}) async {
     if (state.isLoadingMore || (state.isInitialLoading && !reset)) return;
@@ -164,8 +191,17 @@ class PagedConversationMessagesController
       final visibleItems = page.items
           .where((message) => !message.deletedFor.contains(user.id))
           .toList();
+      final pageItems = reset
+          ? visibleItems
+          : [...visibleItems, ...state.items];
+      final mergedWithLive = <Message>[
+        ...pageItems.where(
+          (message) => !_liveHiddenKeys.contains(_messageKey(message)),
+        ),
+        ..._liveMessagesByKey.values,
+      ];
       state = PagedListState(
-        items: reset ? visibleItems : [...visibleItems, ...state.items],
+        items: _mergeMessages(mergedWithLive),
         hasMore: page.hasMore,
       );
     } catch (error) {
@@ -176,6 +212,55 @@ class PagedConversationMessagesController
         error: error,
       );
     }
+  }
+
+  void _mergeLiveMessages(List<Message> liveMessages) {
+    final userId =
+        _currentUserId ?? ref.read(currentUserProvider).asData?.value?.id;
+    final mergedByKey = <String, Message>{
+      for (final message in state.items) _messageKey(message): message,
+    };
+
+    for (final message in liveMessages) {
+      final key = _messageKey(message);
+      if (userId != null && message.deletedFor.contains(userId)) {
+        _liveMessagesByKey.remove(key);
+        _liveHiddenKeys.add(key);
+        mergedByKey.remove(key);
+      } else {
+        _liveHiddenKeys.remove(key);
+        _liveMessagesByKey[key] = message;
+        mergedByKey[key] = message;
+      }
+    }
+
+    state = state.copyWith(
+      items: _mergeMessages(mergedByKey.values),
+      isInitialLoading: false,
+      isLoadingMore: false,
+      clearError: true,
+    );
+  }
+
+  List<Message> _mergeMessages(Iterable<Message> messages) {
+    final byKey = <String, Message>{};
+    for (final message in messages) {
+      byKey[_messageKey(message)] = message;
+    }
+    final merged = byKey.values.toList()
+      ..sort((first, second) {
+        final timestampOrder = first.timestamp.compareTo(second.timestamp);
+        if (timestampOrder != 0) return timestampOrder;
+        return _messageKey(first).compareTo(_messageKey(second));
+      });
+    return merged;
+  }
+
+  String _messageKey(Message message) {
+    final id = message.id?.trim();
+    if (id != null && id.isNotEmpty) return id;
+    return '${message.timestamp}|${message.senderId}|${message.type}|'
+        '${message.text ?? ''}';
   }
 }
 

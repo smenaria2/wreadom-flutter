@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/presentation/widgets/submit_error_dialog.d
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/app_background.dart';
+import '../widgets/themed_empty_state.dart';
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -389,21 +390,10 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 
   Widget _buildEmptyState(AppLocalizations l10n) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            l10n.noHelpTopicsFound(_searchQuery),
-            style: const TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+    return ThemedEmptyState(
+      icon: Icons.search_off_rounded,
+      iconSize: 64,
+      message: l10n.noHelpTopicsFound(_searchQuery),
     );
   }
 }

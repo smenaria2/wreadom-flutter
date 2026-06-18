@@ -1,18 +1,35 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
+import 'package:librebook_flutter/src/domain/repositories/writer_repository.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
+import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
 import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
 
 void main() {
+  late Directory hiveDirectory;
+
+  setUpAll(() async {
+    hiveDirectory = await Directory.systemTemp.createTemp('writer-pad-test-');
+    Hive.init(hiveDirectory.path);
+  });
+
+  tearDownAll(() async {
+    await Hive.close();
+    await hiveDirectory.delete(recursive: true);
+  });
+
   const testUser = UserModel(
     id: 'user-1',
     username: 'writer',
@@ -64,10 +81,13 @@ void main() {
     Book book, {
     WriterPadMode mode = WriterPadMode.content,
     Future<bool> Function(Uri uri)? openPrintPage,
+    WriterRepository? writerRepository,
   }) {
     return ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+        if (writerRepository != null)
+          writerRepositoryProvider.overrideWithValue(writerRepository),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -164,6 +184,20 @@ void main() {
     expect(find.byTooltip('Save Draft'), findsOneWidget);
     expect(find.byIcon(Icons.save_rounded), findsOneWidget);
     expect(find.text('Publish'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byIcon(Icons.save_rounded),
+        matching: find.byType(FilledButton),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.text('Publish'),
+        matching: find.byType(OutlinedButton),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Next'), findsNothing);
     expect(find.byTooltip('Chapters'), findsNothing);
 
@@ -172,6 +206,12 @@ void main() {
 
     expect(find.text('Add to book'), findsOneWidget);
     expect(find.text('Delete Book'), findsOneWidget);
+
+    await tester.tap(find.text('Delete Book'));
+    await tester.pumpAndSettle();
+    expect(find.text('This draft will be deleted.'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -186,6 +226,17 @@ void main() {
     expect(find.byTooltip('Save'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
     expect(find.text('Publish'), findsNothing);
+    expect(
+      find.ancestor(
+        of: find.byIcon(Icons.save_rounded),
+        matching: find.byType(OutlinedButton),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(of: find.text('Next'), matching: find.byType(FilledButton)),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
@@ -197,6 +248,119 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('content details shows one themed action set', (tester) async {
+    await tester.pumpWidget(
+      writerPadTestApp(testBook(status: 'draft', chapterCount: 2)),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Publish Content'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('Content Details'), findsOneWidget);
+    expect(find.text('Publish Content'), findsOneWidget);
+    expect(find.text('Save Draft'), findsOneWidget);
+    expect(find.byType(PopupMenuButton), findsNothing);
+  });
+
+  testWidgets('saving published content preserves status and confirms save', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository();
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'published'),
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.save_rounded));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.updatedBook?.status, 'published');
+    expect(find.text('Content saved.'), findsWidgets);
+    expect(find.text('Story published.'), findsNothing);
+  });
+
+  testWidgets('draft save confirms draft saved', (tester) async {
+    final repository = _FakeWriterRepository();
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'draft'),
+        mode: WriterPadMode.chapterDraft,
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.save_rounded));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.updatedBook?.status, 'draft');
+    expect(find.text('Draft saved'), findsWidgets);
+  });
+
+  testWidgets('first publication confirms story published', (tester) async {
+    final repository = _FakeWriterRepository();
+    final draft = testBook(status: 'draft');
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+          writerRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: const [
+            ...AppLocalizations.localizationsDelegates,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => WriterPadScreen(
+                      book: draft,
+                      restoreLocalDrafts: false,
+                      showToolbar: false,
+                    ),
+                  ),
+                ),
+                child: const Text('Open writer'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open writer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Publish'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Publish Content'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Publish Content'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.updatedBook?.status, 'published');
+    expect(find.text('Story published.'), findsWidgets);
+    expect(find.text('Content saved.'), findsNothing);
   });
 
   testWidgets('multi chapter draft requires two confirmations to delete', (
@@ -354,4 +518,63 @@ void main() {
       await tester.pump();
     },
   );
+}
+
+class _FakeWriterRepository implements WriterRepository {
+  Book? updatedBook;
+
+  @override
+  Future<String> createBook(Book book) async {
+    updatedBook = book;
+    return 'created-book';
+  }
+
+  @override
+  Future<void> updateBook(String bookId, Book book) async {
+    updatedBook = book;
+  }
+
+  @override
+  Future<void> deleteBook(String bookId) async {}
+
+  @override
+  Future<List<Book>> getUserBooks(
+    String userId, {
+    String status = 'all',
+  }) async {
+    return const [];
+  }
+
+  @override
+  Future<List<Book>> getImportableSingleChapterDrafts(
+    String userId, {
+    String? excludeBookId,
+  }) async {
+    return const [];
+  }
+
+  @override
+  Future<List<Chapter>> importSingleDraftsToBook({
+    required Book targetBook,
+    required List<Book> sourceDrafts,
+  }) async {
+    return const [];
+  }
+
+  @override
+  Future<String> moveChapterToStandaloneDraft({
+    required Book sourceBook,
+    required Chapter chapter,
+    required List<Chapter> remainingChapters,
+    required String ownerUserId,
+  }) async {
+    return 'draft-book';
+  }
+
+  @override
+  Future<void> respondToCollaborationRequest({
+    required String bookId,
+    required String userId,
+    required bool accept,
+  }) async {}
 }

@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'No results for \"{query}\"'**
   String noResultsFor(String query);
 
+  /// No description provided for @searchUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Search is temporarily unavailable.'**
+  String get searchUnavailable;
+
+  /// No description provided for @searchPartialResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Some search sources could not be reached. Showing available results.'**
+  String get searchPartialResults;
+
   /// No description provided for @originalBooks.
   ///
   /// In en, this message translates to:
@@ -2075,7 +2087,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteDraftBody.
   ///
   /// In en, this message translates to:
-  /// **'This draft will be removed from your dashboard.'**
+  /// **'This draft will be deleted.'**
   String get deleteDraftBody;
 
   /// No description provided for @draftDeleted.

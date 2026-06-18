@@ -151,7 +151,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.delete),
           ),
@@ -372,7 +375,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
     final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
     final bookIdText = post.bookId?.toString();
-    final isPremiumCard = post.type.toLowerCase() == 'quote' ||
+    final isPremiumCard =
+        post.type.toLowerCase() == 'quote' ||
         (post.type.toLowerCase() == 'post' && post.bookId != null) ||
         (post.type.toLowerCase() == 'review' && post.rating != null);
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
@@ -465,7 +469,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                               Text(
                                 FormatUtils.relativeTime(post.timestamp),
                                 style: TextStyle(
-                                  color: Colors.grey[500],
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontSize: 11,
                                 ),
                               ),
@@ -517,7 +523,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         : Icon(
                             Icons.more_vert_rounded,
                             size: 18,
-                            color: Colors.grey[400],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -553,10 +561,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                           value: 'delete',
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.delete_outline_rounded,
                                 size: 20,
-                                color: Colors.red,
+                                color: Theme.of(context).colorScheme.error,
                               ),
                               const SizedBox(width: 8),
                               Text(l10n.deletePostTitle),
@@ -583,9 +591,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ],
             ),
 
-
             // ─── Book reference ───────────────────────────────
-            if (!isPremiumCard && (post.bookTitle != null || bookIdText != null)) ...[
+            if (!isPremiumCard &&
+                (post.bookTitle != null || bookIdText != null)) ...[
               const SizedBox(height: 10),
               InkWell(
                 onTap: () {
@@ -716,7 +724,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             // ─── Post text ────────────────────────────────────
             if (post.type.toLowerCase() == 'quote') ...[
-              if (post.text.isNotEmpty && post.text.trim() != (post.quote ?? '').trim()) ...[
+              if (post.text.isNotEmpty &&
+                  post.text.trim() != (post.quote ?? '').trim()) ...[
                 Text(
                   post.text,
                   style: const TextStyle(fontSize: 14, height: 1.45),
@@ -737,7 +746,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   }
                 },
               ),
-            ] else if (post.type.toLowerCase() == 'post' && post.bookId != null) ...[
+            ] else if (post.type.toLowerCase() == 'post' &&
+                post.bookId != null) ...[
               if (post.text.isNotEmpty) ...[
                 Text(
                   post.text,
@@ -758,11 +768,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   }
                 },
               ),
-            ] else if (post.type.toLowerCase() == 'review' && post.rating != null) ...[
+            ] else if (post.type.toLowerCase() == 'review' &&
+                post.rating != null) ...[
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < post.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                    index < post.rating!
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     color: Colors.amber,
                     size: 20,
                   );
@@ -1069,7 +1082,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1096,7 +1109,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                     child: Center(
                       child: Text(
                         l10n.noCommentsYet,
-                        style: const TextStyle(color: Colors.grey),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   );
@@ -1139,7 +1154,10 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                       l10n.replyingTo(
                         _replyingTo!.displayName ?? _replyingTo!.username,
                       ),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   IconButton(

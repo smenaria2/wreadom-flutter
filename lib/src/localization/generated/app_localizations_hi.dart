@@ -254,6 +254,13 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get searchUnavailable => 'खोज सेवा अभी उपलब्ध नहीं है।';
+
+  @override
+  String get searchPartialResults =>
+      'कुछ खोज स्रोत उपलब्ध नहीं हैं। उपलब्ध परिणाम दिखाए जा रहे हैं।';
+
+  @override
   String get originalBooks => 'मूल रचनाएँ';
 
   @override
@@ -1093,7 +1100,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteDraftTitle => 'ड्राफ़्ट हटाएं?';
 
   @override
-  String get deleteDraftBody => 'यह ड्राफ़्ट आपके डैशबोर्ड से हट जाएगा।';
+  String get deleteDraftBody => 'यह ड्राफ़्ट हटा दिया जाएगा।';
 
   @override
   String get draftDeleted => 'ड्राफ़्ट हटा दिया गया।';

@@ -89,6 +89,8 @@
     }
   },
   "noResultsFor": "No results for \"{query}\"",
+  "searchUnavailable": "Search is temporarily unavailable.",
+  "searchPartialResults": "Some search sources could not be reached. Showing available results.",
   "@noResultsFor": {
     "placeholders": {
       "query": {
@@ -613,7 +615,7 @@
   "drafts": "Drafts",
   "reads": "Reads",
   "deleteDraftTitle": "Delete draft?",
-  "deleteDraftBody": "This draft will be removed from your dashboard.",
+  "deleteDraftBody": "This draft will be deleted.",
   "draftDeleted": "Draft deleted.",
   "deleteBook": "Delete Book",
   "deleteBookTitle": "Delete this book?",

@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../providers/book_providers.dart';
 import '../../components/book_card.dart';
+import '../../widgets/themed_empty_state.dart';
 
 class UserContentTab extends ConsumerStatefulWidget {
   final String userId;
@@ -26,15 +27,9 @@ class _UserContentTabState extends ConsumerState<UserContentTab> {
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-              child: Text(
-                l10n.noPublishedBooksYet,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
+          return ThemedEmptyState(
+            icon: Icons.auto_stories_outlined,
+            message: l10n.noPublishedBooksYet,
           );
         }
 

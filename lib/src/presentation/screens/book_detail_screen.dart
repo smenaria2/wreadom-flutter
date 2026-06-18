@@ -452,7 +452,7 @@ class _BookDetailBody extends ConsumerWidget {
                       margin: const EdgeInsets.only(right: 8),
                       onPressed: () => showAddLeafSheet(context, book: book),
                     ),
-                   _HeaderIconButton(
+                  _HeaderIconButton(
                     tooltip: 'Share',
                     icon: Icons.share_outlined,
                     margin: const EdgeInsets.only(right: 8),
@@ -1245,6 +1245,8 @@ class _LatestDiscussionSectionState
                 bookAuthorName: bookAuthorName(widget.book),
                 bookCover: widget.book.coverUrl,
                 bookAuthorId: widget.book.authorId,
+                chapterCount:
+                    widget.book.chapterCount ?? widget.book.chapters?.length,
                 onReply: () => _showReplySheet(targetComment),
                 isTargetComment: true,
                 targetReplyId: widget.targetReplyId,
@@ -1262,6 +1264,8 @@ class _LatestDiscussionSectionState
                 bookAuthorName: bookAuthorName(widget.book),
                 bookCover: widget.book.coverUrl,
                 bookAuthorId: widget.book.authorId,
+                chapterCount:
+                    widget.book.chapterCount ?? widget.book.chapters?.length,
                 onReply: () => _showReplySheet(comment),
               ),
             if (_visibleCount < comments.length)

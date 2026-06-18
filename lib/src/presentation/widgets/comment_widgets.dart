@@ -10,6 +10,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../domain/models/comment.dart';
 import '../../utils/app_haptics.dart';
 import '../providers/auth_providers.dart';
+import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
 import '../routing/app_router.dart';
@@ -32,6 +33,8 @@ class CommentTile extends ConsumerStatefulWidget {
     this.bookAuthorName,
     this.bookCover,
     this.bookAuthorId,
+    this.chapterCount,
+    this.showChapterContext = true,
     this.isTargetComment = false,
     this.targetReplyId,
   });
@@ -46,6 +49,8 @@ class CommentTile extends ConsumerStatefulWidget {
   final String? bookAuthorName;
   final String? bookCover;
   final String? bookAuthorId;
+  final int? chapterCount;
+  final bool showChapterContext;
   final bool isTargetComment;
   final String? targetReplyId;
 
@@ -256,6 +261,27 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final comment = widget.comment;
+    final resolvedBookId = (widget.bookId ?? comment.bookId?.toString())
+        ?.trim();
+    final shouldResolveBook =
+        widget.showChapterContext &&
+        widget.chapterCount == null &&
+        resolvedBookId != null &&
+        resolvedBookId.isNotEmpty;
+    final resolvedBook = shouldResolveBook
+        ? ref.watch(bookDetailProvider(resolvedBookId)).asData?.value
+        : null;
+    final resolvedChapterCount =
+        widget.chapterCount ??
+        resolvedBook?.chapterCount ??
+        resolvedBook?.chapters?.length;
+    final showChapterChip =
+        widget.showChapterContext &&
+        resolvedChapterCount != null &&
+        resolvedChapterCount > 1 &&
+        resolvedBookId != null &&
+        resolvedBookId.isNotEmpty &&
+        comment.chapterTitle?.trim().isNotEmpty == true;
     final replies = comment.replies ?? [];
     final name = comment.displayName ?? comment.username;
     final user = ref.watch(currentUserProvider).asData?.value;
@@ -344,7 +370,58 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                         size: 14,
                                         color: index < comment.rating!
                                             ? Colors.amber
-                                            : Colors.grey[400],
+                                            : theme.colorScheme.outlineVariant,
+                                      ),
+                                    ),
+                                  ),
+                                if (showChapterChip)
+                                  GestureDetector(
+                                    onTap: () {
+                                      showChapterDiscussionSheet(
+                                        context: context,
+                                        bookId: resolvedBookId,
+                                        bookTitle:
+                                            widget.bookTitle ??
+                                            comment.bookTitle ??
+                                            '',
+                                        bookAuthorId: widget.bookAuthorId ?? '',
+                                        bookAuthorName:
+                                            widget.bookAuthorName ?? '',
+                                        bookCover: widget.bookCover,
+                                        chapterId: comment.chapterId,
+                                        chapterIndex: comment.chapterIndex,
+                                        chapterTitle: comment.chapterTitle!,
+                                      );
+                                    },
+                                    child: Container(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 140,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        comment.chapterTitle!.trim(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: false,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -353,41 +430,6 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                     Icons.push_pin_rounded,
                                     size: 16,
                                     color: Colors.amber[700],
-                                  ),
-                                if (comment.chapterTitle?.trim().isNotEmpty == true)
-                                  GestureDetector(
-                                    onTap: () {
-                                      showChapterDiscussionSheet(
-                                        context: context,
-                                        bookId: widget.bookId ?? comment.bookId?.toString() ?? '',
-                                        bookTitle: widget.bookTitle ?? comment.bookTitle ?? '',
-                                        bookAuthorId: widget.bookAuthorId ?? '',
-                                        bookAuthorName: widget.bookAuthorName ?? '',
-                                        bookCover: widget.bookCover,
-                                        chapterId: comment.chapterId,
-                                        chapterIndex: comment.chapterIndex,
-                                        chapterTitle: comment.chapterTitle!,
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        comment.chapterTitle!.trim(),
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.primary,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
                                   ),
                               ],
                             ),
@@ -1485,7 +1527,10 @@ Future<void> _confirmDeleteComment(
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          child: Text(
+            l10n.delete,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ),
       ],
     ),
@@ -1541,7 +1586,10 @@ Future<void> _confirmDeleteReply(
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          child: Text(
+            l10n.delete,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ),
       ],
     ),

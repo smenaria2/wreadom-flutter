@@ -132,6 +132,7 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -142,9 +143,12 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               overflow: TextOverflow.ellipsis,
             ),
-            const Text(
+            Text(
               'Internet Archive Reader',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -181,7 +185,11 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: theme.colorScheme.error,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       widget.book.identifier == null ||
@@ -194,10 +202,12 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Please check your internet connection or try opening in browser.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(

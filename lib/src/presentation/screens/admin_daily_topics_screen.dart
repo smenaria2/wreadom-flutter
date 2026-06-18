@@ -82,7 +82,13 @@ class _AdminDailyTopicsScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(
+            e.toString(),
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -145,7 +151,13 @@ class _AdminDailyTopicsScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(
+            e.toString(),
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -409,6 +421,7 @@ class _CoverPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
@@ -420,15 +433,26 @@ class _CoverPreview extends StatelessWidget {
               Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const ColoredBox(
-                  color: Colors.black12,
-                  child: Center(child: Icon(Icons.broken_image_outlined)),
+                errorBuilder: (_, _, _) => ColoredBox(
+                  color: scheme.surfaceContainerHigh,
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               )
             else
-              const ColoredBox(
-                color: Colors.black12,
-                child: Center(child: Icon(Icons.image_outlined, size: 36)),
+              ColoredBox(
+                color: scheme.surfaceContainerHigh,
+                child: Center(
+                  child: Icon(
+                    Icons.image_outlined,
+                    size: 36,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ),
             Positioned(
               right: 10,
@@ -479,16 +503,22 @@ class _TopicTile extends StatelessWidget {
               width: 72,
               height: 48,
               child: topic.coverImageUrl.trim().isEmpty
-                  ? const ColoredBox(
-                      color: Colors.black12,
-                      child: Icon(Icons.image_outlined),
+                  ? ColoredBox(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     )
                   : Image.network(
                       topic.coverImageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const ColoredBox(
-                        color: Colors.black12,
-                        child: Icon(Icons.broken_image_outlined),
+                      errorBuilder: (_, _, _) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
             ),

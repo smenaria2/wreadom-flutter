@@ -448,26 +448,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           onPressed: _handleBack,
         ),
         automaticallyImplyLeading: false,
-        actions: _step == 0
-            ? _buildEditorAppBarActions(l10n)
-            : [
-                TextButton(
-                  onPressed: _isSaving ? null : () => _save(status: 'draft'),
-                  child: Text(
-                    _isPublished ? l10n.writerConvertToDraft : l10n.writerDraft,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                FilledButton(
-                  onPressed: _isSaving
-                      ? null
-                      : () {
-                          _save(status: 'published', closeAfterSave: true);
-                        },
-                  child: Text(l10n.writerPublish),
-                ),
-                const SizedBox(width: 12),
-              ],
+        actions: _step == 0 ? _buildEditorAppBarActions(l10n) : null,
       ),
       body: SafeArea(
         child: AnimatedSwitcher(
@@ -483,44 +464,66 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   List<Widget> _buildEditorAppBarActions(AppLocalizations l10n) {
     final saveTooltip = _isPublished ? l10n.save : l10n.saveDraft;
-    final saveButton = _isSingleChapter && !_isPublished
-        ? IconButton.filled(
-            tooltip: saveTooltip,
-            onPressed: _isSaving
-                ? null
-                : () => _save(status: _statusForSave, allowUntitled: true),
-            icon: const Icon(Icons.save_rounded),
-          )
-        : IconButton.filledTonal(
-            tooltip: saveTooltip,
-            onPressed: _isSaving ? null : () => _save(status: _statusForSave),
-            icon: const Icon(Icons.save_rounded),
-          );
+    final saveButton = Tooltip(
+      message: saveTooltip,
+      child: _isSingleChapter && !_isPublished
+          ? FilledButton(
+              style: _writerAppBarActionStyle(primary: true, iconOnly: true),
+              onPressed: _isSaving
+                  ? null
+                  : () => _save(status: _statusForSave, allowUntitled: true),
+              child: const Icon(Icons.save_rounded),
+            )
+          : OutlinedButton(
+              style: _writerAppBarActionStyle(primary: false, iconOnly: true),
+              onPressed: _isSaving ? null : () => _save(status: _statusForSave),
+              child: const Icon(Icons.save_rounded),
+            ),
+    );
 
     return [
       if (_isSingleChapter && !_isPublished) ...[
-        TextButton(
+        OutlinedButton(
+          style: _writerAppBarActionStyle(primary: false),
           onPressed: _isSaving ? null : _goToDetails,
           child: Text(l10n.writerPublish),
         ),
-        const SizedBox(width: 2),
+        const SizedBox(width: 6),
         saveButton,
       ] else ...[
         saveButton,
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
         FilledButton(
+          style: _writerAppBarActionStyle(primary: true),
           onPressed: _isSaving ? null : _goToDetails,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
           child: Text(l10n.writerNext),
         ),
       ],
       _buildEditorMenu(l10n),
       const SizedBox(width: 4),
     ];
+  }
+
+  ButtonStyle _writerAppBarActionStyle({
+    required bool primary,
+    bool iconOnly = false,
+  }) {
+    final theme = Theme.of(context);
+    final base = primary
+        ? theme.filledButtonTheme.style
+        : theme.outlinedButtonTheme.style;
+    return (base ?? const ButtonStyle()).copyWith(
+      minimumSize: WidgetStatePropertyAll(Size(iconOnly ? 40 : 58, 40)),
+      fixedSize: iconOnly ? const WidgetStatePropertyAll(Size(40, 40)) : null,
+      padding: WidgetStatePropertyAll(
+        iconOnly ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
+      ),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
   }
 
   Widget _buildEditorMenu(AppLocalizations l10n) {
@@ -2325,6 +2328,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }) async {
     if (_isSaving) return false;
     final l10n = AppLocalizations.of(context)!;
+    final wasPublished = _isPublished;
 
     var title = _titleController.value.text.trim();
     if (_isChapterDraftMode) {
@@ -2380,7 +2384,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _savedBookLeaves = book.leaves;
       _savedPublishedAt = book.publishedAt;
       _savedStatus = status;
-      await ref.read(writerDraftServiceProvider).deleteDraft(localDraftKey);
+      unawaited(
+        ref
+            .read(writerDraftServiceProvider)
+            .deleteDraft(localDraftKey)
+            .catchError((Object _) {}),
+      );
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
       if (!mounted) return true;
@@ -2389,12 +2398,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _isLocalDirty = false;
         _isSaving = false;
         _saveStatus = status == 'published'
-            ? l10n.writerPublishedStatus
-            : l10n.writerDraft;
+            ? (wasPublished ? l10n.bookSaved : l10n.writerPublishedStatus)
+            : l10n.draftSaved;
       });
       if (showSnack) {
         _showSnack(
-          status == 'published' ? l10n.storyPublished : l10n.writerDraft,
+          status == 'published'
+              ? (wasPublished ? l10n.bookSaved : l10n.storyPublished)
+              : l10n.draftSaved,
         );
       }
       if (closeAfterSave && mounted) Navigator.of(context).pop();
