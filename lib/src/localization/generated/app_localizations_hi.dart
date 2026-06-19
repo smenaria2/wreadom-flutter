@@ -2577,4 +2577,60 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get seeMoreContent => 'और रचनाएं देखें';
+
+  @override
+  String chapterReviewPromptTitle(String chapterTitle) {
+    return '\"$chapterTitle\" के बारे में आपका क्या विचार है?';
+  }
+
+  @override
+  String chapterReviewPromptBody(String authorName) {
+    return 'आपकी समीक्षा $authorName को और लिखने और आगे बढ़ने के लिए प्रोत्साहित करेगी।';
+  }
+
+  @override
+  String get chapterReviewVoicePrompt =>
+      'क्या आप इसे बोलकर कहना चाहेंगे? वॉइस समीक्षा रिकॉर्ड करें।';
+
+  @override
+  String get chapterReviewPromptHint =>
+      'इस अध्याय के बारे में अपने विचार साझा करें';
+
+  @override
+  String get chapterReviewTextOrVoiceRequired =>
+      'आगे बढ़ने के लिए कुछ शब्द लिखें या वॉइस समीक्षा रिकॉर्ड करें।';
+
+  @override
+  String get recordVoiceReview => 'वॉइस समीक्षा रिकॉर्ड करें';
+
+  @override
+  String get stopRecording => 'रिकॉर्डिंग रोकें';
+
+  @override
+  String get cancelRecording => 'रिकॉर्डिंग रद्द करें';
+
+  @override
+  String get deleteAudio => 'ऑडियो हटाएं';
+
+  @override
+  String get microphonePermissionRequired =>
+      'रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति आवश्यक है।';
+
+  @override
+  String recordingAudioDuration(String duration) {
+    return 'रिकॉर्डिंग $duration';
+  }
+
+  @override
+  String newAudioDuration(String duration) {
+    return 'नया ऑडियो $duration';
+  }
+
+  @override
+  String audioReviewDuration(String duration) {
+    return 'ऑडियो समीक्षा $duration';
+  }
+
+  @override
+  String get shareReview => 'समीक्षा साझा करें';
 }

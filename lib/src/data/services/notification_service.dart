@@ -6,10 +6,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/app_notification.dart';
 import '../../presentation/routing/app_routes.dart';
 import '../../presentation/routing/app_router.dart';
+import '../../utils/app_link_helper.dart';
 import '../../utils/notification_target_resolver.dart';
 
 @pragma('vm:entry-point')
@@ -284,6 +286,11 @@ class NotificationService {
       metadata: data,
     );
     final target = NotificationTargetResolver.resolve(notification);
+    final externalUri = NotificationTargetResolver.externalUri(notification);
+    if (target == null && externalUri != null) {
+      unawaited(_launchNotificationUri(externalUri));
+      return;
+    }
     final navigator = _navigatorKey?.currentState;
     if (target == null) return;
     final navigationKey = _navigationKey(target, data);
@@ -352,6 +359,17 @@ class NotificationService {
       default:
         navigator.pushNamed(target.route, arguments: target.payload);
     }
+  }
+
+  Future<void> _launchNotificationUri(Uri uri) async {
+    final isWreadom =
+        uri.host == AppLinkHelper.host || uri.host == AppLinkHelper.wwwHost;
+    await launchUrl(
+      uri,
+      mode: isWreadom
+          ? LaunchMode.inAppBrowserView
+          : LaunchMode.externalApplication,
+    );
   }
 
   @visibleForTesting

@@ -2569,4 +2569,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get seeMoreContent => 'See more content';
+
+  @override
+  String chapterReviewPromptTitle(String chapterTitle) {
+    return 'What did you think of \"$chapterTitle\"?';
+  }
+
+  @override
+  String chapterReviewPromptBody(String authorName) {
+    return 'Your review will encourage $authorName to write more and grow.';
+  }
+
+  @override
+  String get chapterReviewVoicePrompt =>
+      'Rather say it aloud? Record a voice review.';
+
+  @override
+  String get chapterReviewPromptHint =>
+      'Share your thoughts about this chapter';
+
+  @override
+  String get chapterReviewTextOrVoiceRequired =>
+      'Write a few words or record a voice review to continue.';
+
+  @override
+  String get recordVoiceReview => 'Record voice review';
+
+  @override
+  String get stopRecording => 'Stop recording';
+
+  @override
+  String get cancelRecording => 'Cancel recording';
+
+  @override
+  String get deleteAudio => 'Delete audio';
+
+  @override
+  String get microphonePermissionRequired =>
+      'Microphone permission is needed to record.';
+
+  @override
+  String recordingAudioDuration(String duration) {
+    return 'Recording $duration';
+  }
+
+  @override
+  String newAudioDuration(String duration) {
+    return 'New audio $duration';
+  }
+
+  @override
+  String audioReviewDuration(String duration) {
+    return 'Audio review $duration';
+  }
+
+  @override
+  String get shareReview => 'Share review';
 }

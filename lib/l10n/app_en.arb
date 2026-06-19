@@ -1387,5 +1387,44 @@
   "noTopicsFound": "No topics found.",
   "loadMoreTopics": "Load more topics",
   "myContent": "Content",
-  "seeMoreContent": "See more content"
+  "seeMoreContent": "See more content",
+  "chapterReviewPromptTitle": "What did you think of \"{chapterTitle}\"?",
+  "@chapterReviewPromptTitle": {
+    "placeholders": {
+      "chapterTitle": { "type": "String" }
+    }
+  },
+  "chapterReviewPromptBody": "Your review will encourage {authorName} to write more and grow.",
+  "@chapterReviewPromptBody": {
+    "placeholders": {
+      "authorName": { "type": "String" }
+    }
+  },
+  "chapterReviewVoicePrompt": "Rather say it aloud? Record a voice review.",
+  "chapterReviewPromptHint": "Share your thoughts about this chapter",
+  "chapterReviewTextOrVoiceRequired": "Write a few words or record a voice review to continue.",
+  "recordVoiceReview": "Record voice review",
+  "stopRecording": "Stop recording",
+  "cancelRecording": "Cancel recording",
+  "deleteAudio": "Delete audio",
+  "microphonePermissionRequired": "Microphone permission is needed to record.",
+  "recordingAudioDuration": "Recording {duration}",
+  "@recordingAudioDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "newAudioDuration": "New audio {duration}",
+  "@newAudioDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "audioReviewDuration": "Audio review {duration}",
+  "@audioReviewDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "shareReview": "Share review"
 }

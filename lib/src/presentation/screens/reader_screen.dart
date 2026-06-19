@@ -32,6 +32,7 @@ import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
 import '../../utils/app_review_helper.dart';
+import '../utils/chapter_review_prompt_policy.dart';
 import '../utils/error_message_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
@@ -229,6 +230,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final RestorableInt _restorableChapterIndex = RestorableInt(0);
   final RestorableDouble _restorableScrollProgress = RestorableDouble(0.0);
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _chapterEndActionsKey = GlobalKey();
   final GlobalKey _chapterContentStartKey = GlobalKey();
   final FocusNode _commentFocusNode = FocusNode();
   Comment? _replyingTo;
@@ -281,6 +283,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _lastSavedProgressChapterIndex;
   double? _lastSavedProgressPosition;
   DateTime? _lastProgressSaveAt;
+  List<Chapter> _activeChapters = const [];
+  final List<int> _completedChaptersThisSession = [];
+  final Set<int> _persistedCompletedChaptersThisSession = {};
+  bool _chapterEndCheckScheduled = false;
+  bool _isHandlingReaderExit = false;
+  bool _allowReaderPop = false;
 
   @override
   String? get restorationId => 'reader_comment_${widget.book.id}';
@@ -375,6 +383,58 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         });
         _scheduleProgressSave();
       }
+    }
+    _scheduleChapterEndVisibilityCheck();
+  }
+
+  void _scheduleChapterEndVisibilityCheck() {
+    if (_chapterEndCheckScheduled) return;
+    _chapterEndCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _chapterEndCheckScheduled = false;
+      if (!mounted) return;
+      final endContext = _chapterEndActionsKey.currentContext;
+      final renderObject = endContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) return;
+      final topLeft = renderObject.localToGlobal(Offset.zero);
+      final rect = topLeft & renderObject.size;
+      final viewport = Offset.zero & MediaQuery.sizeOf(context);
+      if (rect.overlaps(viewport)) {
+        unawaited(_markChapterComplete(_chapterIndex));
+      }
+    });
+  }
+
+  Future<void> _markChapterComplete(int chapterIndex) async {
+    if (chapterIndex < 0 || chapterIndex >= _activeChapters.length) return;
+    _completedChaptersThisSession.remove(chapterIndex);
+    _completedChaptersThisSession.add(chapterIndex);
+
+    final user = ref.read(currentUserProvider).value;
+    final userId = user?.id ?? _currentUserId;
+    if (userId == null) return;
+    if (!_persistedCompletedChaptersThisSession.add(chapterIndex)) return;
+    try {
+      await _bookRepository.updateReadingProgress(
+        userId,
+        widget.book.id.toString(),
+        chapterIndex: chapterIndex,
+        position: 1.0,
+        completedChapterIndex: chapterIndex,
+      );
+      AnalyticsService.logChapterComplete(
+        bookId: widget.book.id.toString(),
+        chapterIndex: chapterIndex,
+      );
+      if (mounted) ref.invalidate(currentUserProvider);
+    } catch (error, stackTrace) {
+      _persistedCompletedChaptersThisSession.remove(chapterIndex);
+      _logBackgroundSaveError(
+        'chapter_completion',
+        error,
+        stackTrace,
+        chapterIndex: chapterIndex,
+      );
     }
   }
 
@@ -624,22 +684,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _markChapterCompleteAndGoNext() async {
     final currentChapterIndex = _chapterIndex;
-    final user = ref.read(currentUserProvider).value;
-    final userId = user?.id ?? _currentUserId;
-    if (userId != null) {
-      await _bookRepository.updateReadingProgress(
-        userId,
-        widget.book.id.toString(),
-        chapterIndex: currentChapterIndex,
-        position: 1.0,
-        completedChapterIndex: currentChapterIndex,
-      );
-      AnalyticsService.logChapterComplete(
-        bookId: widget.book.id.toString(),
-        chapterIndex: currentChapterIndex,
-      );
-      if (mounted) ref.invalidate(currentUserProvider);
-    }
+    await _markChapterComplete(currentChapterIndex);
     await AppHaptics.selection();
     await _showNextChapterAdAndGoTo(currentChapterIndex + 1);
   }
@@ -720,6 +765,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(0);
       }
+      _scheduleChapterEndVisibilityCheck();
     });
     unawaited(_incrementView(chapterIndex: index));
     _saveProgressSilently('chapter_change_after_navigation');
@@ -943,6 +989,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     required bool isAdmin,
   }) {
     _restorePendingScrollPosition();
+    _activeChapters = chapters;
+    _scheduleChapterEndVisibilityCheck();
     if (chapters.isNotEmpty) {
       final clampedIndex = _chapterIndex.clamp(0, chapters.length - 1).toInt();
       if (clampedIndex != _chapterIndex) {
@@ -972,233 +1020,248 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final chromeTheme = _getReaderChromeTheme();
     final chromeScheme = chromeTheme.colorScheme;
 
-    return Scaffold(
-      drawer: Theme(
-        data: chromeTheme,
-        child: _ChapterDrawer(
-          chapters: chapters,
-          currentIndex: _chapterIndex,
-          completedChapterIndexes: completedChapterIndexes,
-          commentCounts: commentCounts,
-          backgroundColor: chromeScheme.surface,
-          headerColor: chromeScheme.surface,
-          textColor: chromeScheme.onSurface,
-          secondaryTextColor: chromeScheme.onSurfaceVariant,
-          accentColor: chromeScheme.primary,
-          onSelect: (index) {
-            unawaited(AppHaptics.selection());
-            _goToChapter(index);
-            Navigator.of(context).pop();
-          },
-          onOpenComments: (index) {
-            unawaited(AppHaptics.selection());
-            Navigator.of(context).pop();
-            _showDiscussion(chapters[index], chapterIndex: index);
-          },
-          onBack: () {
-            unawaited(AppHaptics.selection());
-            Navigator.of(context).pop();
-            Navigator.of(context).pushReplacementNamed(
-              AppRoutes.bookDetail,
-              arguments: BookDetailArguments(
-                bookId: widget.book.id,
-                book: widget.book,
-              ),
-            );
-          },
+    return PopScope<Object?>(
+      canPop: _allowReaderPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          unawaited(_handleReaderExit(_popReaderAfterPrompt));
+        }
+      },
+      child: Scaffold(
+        drawer: Theme(
+          data: chromeTheme,
+          child: _ChapterDrawer(
+            chapters: chapters,
+            currentIndex: _chapterIndex,
+            completedChapterIndexes: completedChapterIndexes,
+            commentCounts: commentCounts,
+            backgroundColor: chromeScheme.surface,
+            headerColor: chromeScheme.surface,
+            textColor: chromeScheme.onSurface,
+            secondaryTextColor: chromeScheme.onSurfaceVariant,
+            accentColor: chromeScheme.primary,
+            onSelect: (index) {
+              unawaited(AppHaptics.selection());
+              _goToChapter(index);
+              Navigator.of(context).pop();
+            },
+            onOpenComments: (index) {
+              unawaited(AppHaptics.selection());
+              Navigator.of(context).pop();
+              _showDiscussion(chapters[index], chapterIndex: index);
+            },
+            onBack: () {
+              unawaited(AppHaptics.selection());
+              Navigator.of(context).pop();
+              unawaited(
+                _handleReaderExit(() async {
+                  if (!mounted) return;
+                  setState(() => _allowReaderPop = true);
+                  Navigator.of(context).pushReplacementNamed(
+                    AppRoutes.bookDetail,
+                    arguments: BookDetailArguments(
+                      bookId: widget.book.id,
+                      book: widget.book,
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
         ),
-      ),
-      body: Container(
-        color: _getBackgroundColor(),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Column(
-              children: [
-                // Removed horizontal chips - now in Drawer
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      if (_isDiscussionOpen) {
-                        Navigator.of(context).maybePop();
-                      }
-                    },
-                    onTapUp:
-                        _useLegacyTtsTapSeeking &&
-                            (_isTtsPlaying ||
-                                _isTtsPreparing ||
-                                _isTtsPaused) &&
-                            !_isSelectionTtsPlaying
-                        ? (details) {
-                            // TTS is active — seek to the tapped position.
-                            if (chapter == null) return;
-                            if (!_scrollController.hasClients) return;
-                            final position = _scrollController.position;
-                            final tapY =
-                                details.localPosition.dy +
-                                _scrollController.offset;
-                            final totalHeight =
-                                position.viewportDimension +
-                                position.maxScrollExtent;
-                            final fraction = totalHeight > 0
-                                ? (tapY / totalHeight).clamp(0.0, 1.0)
-                                : 0.0;
-                            unawaited(_seekTtsToFraction(chapter, fraction));
-                          }
-                        : null,
-                    child:
-                        (_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
-                            !_isSelectionTtsPlaying
-                        // When TTS is active, disable text selection so
-                        // taps are handled cleanly for seeking.
-                        ? _buildTtsListView(
-                            chapter,
-                            chapters,
-                            commentCounts,
-                            contentPadding: readerContentPadding,
-                          )
-                        : SelectionArea(
-                            onSelectionChanged: (content) {
-                              setState(() {
-                                _selectedText = content?.plainText ?? "";
-                              });
-                            },
-                            contextMenuBuilder: (context, selectableRegionState) {
-                              final selected = _selectedText.trim();
-                              final ctxChapter =
-                                  _chapterIndex >= 0 &&
-                                      _chapterIndex < chapters.length
-                                  ? chapters[_chapterIndex]
-                                  : null;
-                              final buttonItems = <ContextMenuButtonItem>[
-                                ContextMenuButtonItem(
-                                  label: 'Share Quote',
-                                  onPressed: selected.isEmpty
-                                      ? null
-                                      : () {
-                                          selectableRegionState.hideToolbar();
-                                          _shareSelectedQuote(
-                                            ctxChapter,
-                                            selected,
-                                          );
-                                        },
-                                ),
-                                ContextMenuButtonItem(
-                                  label: 'Quote & Comment',
-                                  onPressed: selected.isEmpty
-                                      ? null
-                                      : () {
-                                          final restoredQuote =
-                                              restoreReaderQuoteLineBreaks(
-                                                selected,
-                                                ctxChapter?.content,
-                                              );
-                                          setState(() {
-                                            _selectedQuote = restoredQuote;
-                                            _replyingTo = null;
-                                          });
-                                          selectableRegionState.hideToolbar();
-                                          _showDiscussion(
-                                            ctxChapter,
-                                            focusComposer: true,
-                                          );
-                                        },
-                                ),
-                                ContextMenuButtonItem(
-                                  label: 'Read aloud',
-                                  onPressed: selected.isEmpty
-                                      ? null
-                                      : () {
-                                          selectableRegionState.hideToolbar();
-                                          _speakSelectedText(selected);
-                                        },
-                                ),
-                              ];
-                              return AdaptiveTextSelectionToolbar.buttonItems(
-                                anchors:
-                                    selectableRegionState.contextMenuAnchors,
-                                buttonItems: buttonItems,
-                              );
-                            },
-                            child: _buildListView(
+        body: Container(
+          color: _getBackgroundColor(),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Column(
+                children: [
+                  // Removed horizontal chips - now in Drawer
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        if (_isDiscussionOpen) {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
+                      onTapUp:
+                          _useLegacyTtsTapSeeking &&
+                              (_isTtsPlaying ||
+                                  _isTtsPreparing ||
+                                  _isTtsPaused) &&
+                              !_isSelectionTtsPlaying
+                          ? (details) {
+                              // TTS is active — seek to the tapped position.
+                              if (chapter == null) return;
+                              if (!_scrollController.hasClients) return;
+                              final position = _scrollController.position;
+                              final tapY =
+                                  details.localPosition.dy +
+                                  _scrollController.offset;
+                              final totalHeight =
+                                  position.viewportDimension +
+                                  position.maxScrollExtent;
+                              final fraction = totalHeight > 0
+                                  ? (tapY / totalHeight).clamp(0.0, 1.0)
+                                  : 0.0;
+                              unawaited(_seekTtsToFraction(chapter, fraction));
+                            }
+                          : null,
+                      child:
+                          (_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
+                              !_isSelectionTtsPlaying
+                          // When TTS is active, disable text selection so
+                          // taps are handled cleanly for seeking.
+                          ? _buildTtsListView(
                               chapter,
                               chapters,
                               commentCounts,
                               contentPadding: readerContentPadding,
+                            )
+                          : SelectionArea(
+                              onSelectionChanged: (content) {
+                                setState(() {
+                                  _selectedText = content?.plainText ?? "";
+                                });
+                              },
+                              contextMenuBuilder: (context, selectableRegionState) {
+                                final selected = _selectedText.trim();
+                                final ctxChapter =
+                                    _chapterIndex >= 0 &&
+                                        _chapterIndex < chapters.length
+                                    ? chapters[_chapterIndex]
+                                    : null;
+                                final buttonItems = <ContextMenuButtonItem>[
+                                  ContextMenuButtonItem(
+                                    label: 'Share Quote',
+                                    onPressed: selected.isEmpty
+                                        ? null
+                                        : () {
+                                            selectableRegionState.hideToolbar();
+                                            _shareSelectedQuote(
+                                              ctxChapter,
+                                              selected,
+                                            );
+                                          },
+                                  ),
+                                  ContextMenuButtonItem(
+                                    label: 'Quote & Comment',
+                                    onPressed: selected.isEmpty
+                                        ? null
+                                        : () {
+                                            final restoredQuote =
+                                                restoreReaderQuoteLineBreaks(
+                                                  selected,
+                                                  ctxChapter?.content,
+                                                );
+                                            setState(() {
+                                              _selectedQuote = restoredQuote;
+                                              _replyingTo = null;
+                                            });
+                                            selectableRegionState.hideToolbar();
+                                            _showDiscussion(
+                                              ctxChapter,
+                                              focusComposer: true,
+                                            );
+                                          },
+                                  ),
+                                  ContextMenuButtonItem(
+                                    label: 'Read aloud',
+                                    onPressed: selected.isEmpty
+                                        ? null
+                                        : () {
+                                            selectableRegionState.hideToolbar();
+                                            _speakSelectedText(selected);
+                                          },
+                                  ),
+                                ];
+                                return AdaptiveTextSelectionToolbar.buttonItems(
+                                  anchors:
+                                      selectableRegionState.contextMenuAnchors,
+                                  buttonItems: buttonItems,
+                                );
+                              },
+                              child: _buildListView(
+                                chapter,
+                                chapters,
+                                commentCounts,
+                                contentPadding: readerContentPadding,
+                              ),
                             ),
-                          ),
-                  ), // GestureDetector
-                ), // Expanded
-              ],
-            ), // Column
-            if (_quoteSharePayload != null)
+                    ), // GestureDetector
+                  ), // Expanded
+                ],
+              ), // Column
+              if (_quoteSharePayload != null)
+                Positioned(
+                  left: -2000,
+                  top: 0,
+                  child: RepaintBoundary(
+                    key: _quoteImageKey,
+                    child: _QuoteImage(payload: _quoteSharePayload!),
+                  ),
+                ),
               Positioned(
-                left: -2000,
+                left: 0,
+                right: 0,
                 top: 0,
-                child: RepaintBoundary(
-                  key: _quoteImageKey,
-                  child: _QuoteImage(payload: _quoteSharePayload!),
-                ),
-              ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: _ReaderTopBar(
-                visible: _showReaderChrome,
-                title: widget.book.title,
-                chromeTheme: chromeTheme,
-                backgroundColor: _getAppBarBackgroundColor(),
-                foregroundColor: _getAppBarForegroundColor(),
-                isOffline: isOffline,
-                isArchiveBook: isArchiveBook,
-                isTtsPreparing: _isTtsPreparing,
-                isTtsPlaying: _isTtsPlaying,
-                isTtsPaused: _isTtsPaused,
-                ttsChunkIndex: _ttsChunkIndex,
-                ttsChunkCount: _ttsChunkList.length,
-                onOpenArchivePdf: _openArchivePdfViewer,
-                onToggleTts: chapter == null || _isTtsPreparing
-                    ? null
-                    : () => _toggleTts(chapter),
-                onCopyContent:
-                    isAdmin &&
-                        widget.book.optOutComplementary != true &&
-                        chapter != null
-                    ? () => _copyCurrentChapterContent(chapter)
-                    : null,
-                onShowSettings: _showSettings,
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: _ReaderBottomBar(
-                  progress: _scrollProgress,
+                child: _ReaderTopBar(
                   visible: _showReaderChrome,
-                  onSwipeUp: () => _showDiscussion(chapter),
-                  onTap: () => _showDiscussion(chapter),
+                  title: widget.book.title,
                   chromeTheme: chromeTheme,
-                  theme: _getEffectiveTheme(),
-                  hasPrevious: _chapterIndex > 0,
-                  hasNext: _chapterIndex < chapters.length - 1,
-                  onPrevious: () {
-                    unawaited(AppHaptics.selection());
-                    _goToChapter(_chapterIndex - 1);
-                  },
-                  onNext: () {
-                    unawaited(AppHaptics.selection());
-                    unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
-                  },
-                  onClose: () => Navigator.of(context).pop(),
+                  backgroundColor: _getAppBarBackgroundColor(),
+                  foregroundColor: _getAppBarForegroundColor(),
+                  isOffline: isOffline,
+                  isArchiveBook: isArchiveBook,
+                  isTtsPreparing: _isTtsPreparing,
+                  isTtsPlaying: _isTtsPlaying,
+                  isTtsPaused: _isTtsPaused,
+                  ttsChunkIndex: _ttsChunkIndex,
+                  ttsChunkCount: _ttsChunkList.length,
+                  onOpenArchivePdf: _openArchivePdfViewer,
+                  onToggleTts: chapter == null || _isTtsPreparing
+                      ? null
+                      : () => _toggleTts(chapter),
+                  onCopyContent:
+                      isAdmin &&
+                          widget.book.optOutComplementary != true &&
+                          chapter != null
+                      ? () => _copyCurrentChapterContent(chapter)
+                      : null,
+                  onShowSettings: _showSettings,
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SafeArea(
+                  top: false,
+                  child: _ReaderBottomBar(
+                    progress: _scrollProgress,
+                    visible: _showReaderChrome,
+                    onSwipeUp: () => _showDiscussion(chapter),
+                    onTap: () => _showDiscussion(chapter),
+                    chromeTheme: chromeTheme,
+                    theme: _getEffectiveTheme(),
+                    hasPrevious: _chapterIndex > 0,
+                    hasNext: _chapterIndex < chapters.length - 1,
+                    onPrevious: () {
+                      unawaited(AppHaptics.selection());
+                      _goToChapter(_chapterIndex - 1);
+                    },
+                    onNext: () {
+                      unawaited(AppHaptics.selection());
+                      unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
+                    },
+                    onClose: () =>
+                        unawaited(_handleReaderExit(_popReaderAfterPrompt)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1325,17 +1388,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           },
         ),
         const SizedBox(height: 24),
-        _ChapterEndActions(
-          actionColor: _getReaderActionColor(),
-          hasNextChapter: _chapterIndex < chapters.length - 1,
-          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
-          onNextChapter: _chapterIndex < chapters.length - 1
-              ? _markChapterCompleteAndGoNext
-              : null,
-          onViewComments: () => _showDiscussion(chapter),
-          onShare: () => _handleShareChapter(chapter),
-          book: widget.book,
-          chromeTheme: _getReaderChromeTheme(),
+        KeyedSubtree(
+          key: _chapterEndActionsKey,
+          child: _ChapterEndActions(
+            actionColor: _getReaderActionColor(),
+            hasNextChapter: _chapterIndex < chapters.length - 1,
+            hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+            onNextChapter: _chapterIndex < chapters.length - 1
+                ? _markChapterCompleteAndGoNext
+                : null,
+            onViewComments: () => _showDiscussion(chapter),
+            onShare: () => _handleShareChapter(chapter),
+            book: widget.book,
+            chromeTheme: _getReaderChromeTheme(),
+          ),
         ),
         const SizedBox(height: 20),
         const AdaptiveBannerAd(
@@ -1375,17 +1441,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 : () => unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
           ),
         const SizedBox(height: 24),
-        _ChapterEndActions(
-          actionColor: _getReaderActionColor(),
-          hasNextChapter: _chapterIndex < chapters.length - 1,
-          hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
-          onNextChapter: _chapterIndex < chapters.length - 1
-              ? _markChapterCompleteAndGoNext
-              : null,
-          onViewComments: () => _showDiscussion(chapter),
-          onShare: () => _handleShareChapter(chapter),
-          book: widget.book,
-          chromeTheme: _getReaderChromeTheme(),
+        KeyedSubtree(
+          key: _chapterEndActionsKey,
+          child: _ChapterEndActions(
+            actionColor: _getReaderActionColor(),
+            hasNextChapter: _chapterIndex < chapters.length - 1,
+            hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+            onNextChapter: _chapterIndex < chapters.length - 1
+                ? _markChapterCompleteAndGoNext
+                : null,
+            onViewComments: () => _showDiscussion(chapter),
+            onShare: () => _handleShareChapter(chapter),
+            book: widget.book,
+            chromeTheme: _getReaderChromeTheme(),
+          ),
         ),
         const SizedBox(height: 20),
         const AdaptiveBannerAd(
@@ -2340,7 +2409,377 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   bool _isOwnOriginalBook(String userId) {
-    return (widget.book.isOriginal ?? false) && _bookAuthorId == userId;
+    return (widget.book.isOriginal ?? false) &&
+        acceptedAuthorIdsFor(widget.book).contains(userId.trim());
+  }
+
+  Future<_ChapterReviewPromptCandidate?> _reviewPromptCandidate() async {
+    if (_completedChaptersThisSession.isEmpty ||
+        widget.book.source == 'archive' ||
+        widget.book.isOriginal != true ||
+        _bookAuthorId == null) {
+      return null;
+    }
+
+    final user = await ref.read(currentUserProvider.future);
+    if (user == null || _isOwnOriginalBook(user.id)) return null;
+    final authorName = bookAuthorName(widget.book).trim();
+    if (authorName.isEmpty) return null;
+
+    final today = ChapterReviewPromptPolicy.localDay(DateTime.now());
+    if (_sharedPreferences.getString(
+          ChapterReviewPromptPolicy.lastPromptDayKey(user.id),
+        ) ==
+        today) {
+      return null;
+    }
+
+    for (final chapterIndex in _completedChaptersThisSession.reversed) {
+      if (chapterIndex < 0 || chapterIndex >= _activeChapters.length) continue;
+      final chapter = _activeChapters[chapterIndex];
+      final promptedKey = ChapterReviewPromptPolicy.promptedChapterKey(
+        userId: user.id,
+        bookId: widget.book.id,
+        chapter: chapter,
+        chapterIndex: chapterIndex,
+      );
+      if (_sharedPreferences.getBool(promptedKey) == true) continue;
+
+      final existingReview = await ref
+          .read(commentRepositoryProvider)
+          .getUserChapterReview(
+            bookId: widget.book.id,
+            userId: user.id,
+            chapterId: chapter.id,
+            chapterIndex: chapterIndex,
+          );
+      if (existingReview != null) continue;
+
+      final previousPromptCount =
+          _sharedPreferences.getInt(
+            ChapterReviewPromptPolicy.promptCountKey(user.id),
+          ) ??
+          0;
+      return _ChapterReviewPromptCandidate(
+        userId: user.id,
+        chapter: chapter,
+        chapterIndex: chapterIndex,
+        authorName: authorName,
+        promptedKey: promptedKey,
+        previousPromptCount: previousPromptCount,
+      );
+    }
+    return null;
+  }
+
+  Future<void> _handleReaderExit(Future<void> Function() exitAction) async {
+    if (_isHandlingReaderExit) return;
+    _isHandlingReaderExit = true;
+    try {
+      _ChapterReviewPromptCandidate? candidate;
+      try {
+        candidate = await _reviewPromptCandidate();
+      } catch (error, stackTrace) {
+        logUiError(
+          'Chapter review prompt eligibility failed',
+          error,
+          stackTrace,
+        );
+      }
+      if (candidate != null && mounted) {
+        await _showChapterReviewPrompt(candidate);
+      }
+      if (mounted) await exitAction();
+    } finally {
+      _isHandlingReaderExit = false;
+    }
+  }
+
+  Future<void> _popReaderAfterPrompt() async {
+    if (!mounted) return;
+    setState(() => _allowReaderPop = true);
+    await Future<void>.delayed(Duration.zero);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _showChapterReviewPrompt(
+    _ChapterReviewPromptCandidate candidate,
+  ) async {
+    final today = ChapterReviewPromptPolicy.localDay(DateTime.now());
+    await Future.wait([
+      _sharedPreferences.setString(
+        ChapterReviewPromptPolicy.lastPromptDayKey(candidate.userId),
+        today,
+      ),
+      _sharedPreferences.setBool(candidate.promptedKey, true),
+      _sharedPreferences.setInt(
+        ChapterReviewPromptPolicy.promptCountKey(candidate.userId),
+        candidate.previousPromptCount + 1,
+      ),
+    ]);
+    AnalyticsService.logChapterReviewPromptShown(
+      bookId: widget.book.id,
+      chapterIndex: candidate.chapterIndex,
+    );
+
+    _replyingTo = null;
+    _existingUserReview = null;
+    _isReviewEditMode = true;
+    _chapterRating = 0;
+    _shareReviewToFeed = false;
+    _commentController.value.clear();
+    _selectedQuote = null;
+    _clearAudioReviewState();
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<_ChapterReviewPromptResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setModalState) {
+            final l10n = AppLocalizations.of(sheetContext)!;
+            final theme = Theme.of(sheetContext);
+            final emphasizeVoice = ChapterReviewPromptPolicy.emphasizeVoice(
+              candidate.previousPromptCount,
+            );
+            final canSubmit =
+                _chapterRating > 0 &&
+                (_commentController.value.text.trim().isNotEmpty ||
+                    _hasReviewAudio);
+
+            Future<void> toggleRecording() async {
+              if (_isRecordingAudioReview) {
+                await _stopAudioReviewRecording(() => setModalState(() {}));
+              } else {
+                await _startAudioReviewRecording(() => setModalState(() {}));
+              }
+            }
+
+            Future<void> submit() async {
+              if (_chapterRating <= 0) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(content: Text(l10n.pleaseSelectRating)),
+                );
+                return;
+              }
+              if (!_canSubmitReview) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.chapterReviewTextOrVoiceRequired),
+                  ),
+                );
+                return;
+              }
+              setModalState(() {});
+              await _submitComment(
+                candidate.chapter,
+                chapterIndex: candidate.chapterIndex,
+              );
+              if (!sheetContext.mounted || _existingUserReview == null) {
+                setModalState(() {});
+                return;
+              }
+              AnalyticsService.logChapterReviewPromptSubmitted(
+                bookId: widget.book.id,
+                chapterIndex: candidate.chapterIndex,
+                usedVoice:
+                    _existingUserReview?.audioUrl != null ||
+                    _existingUserReview?.audioObjectKey != null,
+              );
+              Navigator.of(
+                sheetContext,
+              ).pop(_ChapterReviewPromptResult.submitted);
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+              ),
+              child: GlassSurface(
+                strong: true,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        l10n.chapterReviewPromptTitle(candidate.chapter.title),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.chapterReviewPromptBody(candidate.authorName),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final active = index < _chapterRating;
+                          return IconButton(
+                            tooltip: l10n.ratingOutOfFive('${index + 1}'),
+                            onPressed: _isSubmittingComment
+                                ? null
+                                : () => setModalState(
+                                    () => _chapterRating = index + 1,
+                                  ),
+                            icon: Icon(
+                              active
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              color: active
+                                  ? Colors.amber
+                                  : theme.colorScheme.onSurfaceVariant,
+                              size: 30,
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _commentController.value,
+                        minLines: 2,
+                        maxLines: 4,
+                        enabled: !_isSubmittingComment,
+                        decoration: InputDecoration(
+                          hintText: l10n.chapterReviewPromptHint,
+                        ),
+                        onChanged: (_) => setModalState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.chapterReviewVoicePrompt,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: emphasizeVoice
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      emphasizeVoice
+                          ? FilledButton.tonalIcon(
+                              onPressed: _isSubmittingComment
+                                  ? null
+                                  : toggleRecording,
+                              icon: Icon(
+                                _isRecordingAudioReview
+                                    ? Icons.stop_circle_outlined
+                                    : Icons.mic_none_rounded,
+                              ),
+                              label: Text(
+                                _isRecordingAudioReview
+                                    ? l10n.stopRecording
+                                    : l10n.recordVoiceReview,
+                              ),
+                            )
+                          : OutlinedButton.icon(
+                              onPressed: _isSubmittingComment
+                                  ? null
+                                  : toggleRecording,
+                              icon: Icon(
+                                _isRecordingAudioReview
+                                    ? Icons.stop_circle_outlined
+                                    : Icons.mic_none_rounded,
+                              ),
+                              label: Text(
+                                _isRecordingAudioReview
+                                    ? l10n.stopRecording
+                                    : l10n.recordVoiceReview,
+                              ),
+                            ),
+                      if (_isRecordingAudioReview || _hasReviewAudio) ...[
+                        const SizedBox(height: 8),
+                        _AudioReviewComposerChip(
+                          isRecording: _isRecordingAudioReview,
+                          durationMs: _isRecordingAudioReview
+                              ? _pendingAudioReviewDurationMs
+                              : (_pendingAudioReviewPath != null
+                                    ? _pendingAudioReviewDurationMs
+                                    : (_reviewAudioDurationMs ?? 0)),
+                          isPendingUpload: _pendingAudioReviewPath != null,
+                          textColor: theme.colorScheme.onSurface,
+                          metadataColor: theme.colorScheme.onSurfaceVariant,
+                          onStop: () => _stopAudioReviewRecording(
+                            () => setModalState(() {}),
+                          ),
+                          onDelete: () =>
+                              _removeAudioReview(() => setModalState(() {})),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: _isSubmittingComment
+                                ? null
+                                : () => Navigator.of(
+                                    sheetContext,
+                                  ).pop(_ChapterReviewPromptResult.dismissed),
+                            child: Text(l10n.notNow),
+                          ),
+                          const Spacer(),
+                          FilledButton.icon(
+                            onPressed: _isSubmittingComment || !canSubmit
+                                ? null
+                                : submit,
+                            icon: _isSubmittingComment
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.send_rounded),
+                            label: Text(l10n.shareReview),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (_isRecordingAudioReview) {
+      await _cancelAudioReviewRecording(null);
+    }
+    if (result != _ChapterReviewPromptResult.submitted) {
+      AnalyticsService.logChapterReviewPromptDismissed(
+        bookId: widget.book.id,
+        chapterIndex: candidate.chapterIndex,
+      );
+    }
   }
 
   bool get _hasReviewAudio =>
@@ -2406,7 +2845,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Microphone permission is needed to record.'),
+          content: Text(l10n.microphonePermissionRequired),
           action: status.isPermanentlyDenied
               ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
               : null,
@@ -2732,7 +3171,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
           final savedReviewId = await ref
               .read(commentRepositoryProvider)
-              .upsertBookReview(comment);
+              .upsertChapterReview(comment);
           AnalyticsService.logCommentCreate(targetType: 'book_review');
           unawaited(AppReviewHelper.incrementActionAndCheck());
 
@@ -4304,6 +4743,26 @@ class _ThemeOption extends StatelessWidget {
   }
 }
 
+enum _ChapterReviewPromptResult { submitted, dismissed }
+
+class _ChapterReviewPromptCandidate {
+  const _ChapterReviewPromptCandidate({
+    required this.userId,
+    required this.chapter,
+    required this.chapterIndex,
+    required this.authorName,
+    required this.promptedKey,
+    required this.previousPromptCount,
+  });
+
+  final String userId;
+  final Chapter chapter;
+  final int chapterIndex;
+  final String authorName;
+  final String promptedKey;
+  final int previousPromptCount;
+}
+
 class _AudioReviewComposerChip extends StatelessWidget {
   const _AudioReviewComposerChip({
     required this.isRecording,
@@ -4326,6 +4785,7 @@ class _AudioReviewComposerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -4349,8 +4809,16 @@ class _AudioReviewComposerChip extends StatelessWidget {
             Expanded(
               child: Text(
                 isRecording
-                    ? 'Recording ${_formatReviewAudioDuration(durationMs)}'
-                    : '${isPendingUpload ? 'New audio' : 'Audio review'} ${_formatReviewAudioDuration(durationMs)}',
+                    ? l10n.recordingAudioDuration(
+                        _formatReviewAudioDuration(durationMs),
+                      )
+                    : isPendingUpload
+                    ? l10n.newAudioDuration(
+                        _formatReviewAudioDuration(durationMs),
+                      )
+                    : l10n.audioReviewDuration(
+                        _formatReviewAudioDuration(durationMs),
+                      ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -4362,13 +4830,13 @@ class _AudioReviewComposerChip extends StatelessWidget {
             ),
             if (isRecording)
               IconButton(
-                tooltip: 'Stop recording',
+                tooltip: l10n.stopRecording,
                 visualDensity: VisualDensity.compact,
                 onPressed: onStop,
                 icon: const Icon(Icons.stop_circle_outlined),
               ),
             IconButton(
-              tooltip: isRecording ? 'Cancel recording' : 'Delete audio',
+              tooltip: isRecording ? l10n.cancelRecording : l10n.deleteAudio,
               visualDensity: VisualDensity.compact,
               onPressed: onDelete,
               icon: Icon(Icons.close_rounded, color: metadataColor),

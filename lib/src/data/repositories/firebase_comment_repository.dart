@@ -142,23 +142,45 @@ class FirebaseCommentRepository implements CommentRepository {
   }
 
   @override
-  Future<Comment?> getUserBookReview(String bookId, String userId) async {
+  Future<Comment?> getUserChapterReview({
+    required String bookId,
+    required String userId,
+    String? chapterId,
+    required int chapterIndex,
+  }) async {
     final snapshot = await _bookCommentsQuery(
       bookId,
     ).where('userId', isEqualTo: userId).get();
     if (snapshot.docs.isEmpty) return null;
     for (final doc in snapshot.docs) {
       final comment = Comment.fromJson(mapFirestoreData(doc.data(), doc.id));
-      if ((comment.rating ?? 0) > 0) return comment;
+      if ((comment.rating ?? 0) <= 0) continue;
+      if (_matchesChapter(
+        comment,
+        chapterId: chapterId,
+        chapterIndex: chapterIndex,
+      )) {
+        return comment;
+      }
     }
     return null;
   }
 
   @override
-  Future<String> upsertBookReview(Comment comment) async {
-    final existing = await getUserBookReview(
-      comment.bookId.toString(),
-      comment.userId,
+  Future<String> upsertChapterReview(Comment comment) async {
+    final chapterIndex = comment.chapterIndex;
+    if (chapterIndex == null) {
+      throw ArgumentError.value(
+        comment.chapterIndex,
+        'comment.chapterIndex',
+        'Chapter reviews require a chapter index.',
+      );
+    }
+    final existing = await getUserChapterReview(
+      bookId: comment.bookId.toString(),
+      userId: comment.userId,
+      chapterId: comment.chapterId,
+      chapterIndex: chapterIndex,
     );
     if (existing?.id == null) {
       return addComment(comment.copyWith(rating: comment.rating ?? 5));
@@ -290,6 +312,22 @@ class FirebaseCommentRepository implements CommentRepository {
     final idAsInt = int.tryParse(bookId);
     final ids = [bookId, ?idAsInt];
     return _firestore.collection('comments').where('bookId', whereIn: ids);
+  }
+
+  bool _matchesChapter(
+    Comment comment, {
+    required String? chapterId,
+    required int chapterIndex,
+  }) {
+    final normalizedChapterId = chapterId?.trim();
+    final commentChapterId = comment.chapterId?.trim();
+    if (normalizedChapterId != null &&
+        normalizedChapterId.isNotEmpty &&
+        commentChapterId != null &&
+        commentChapterId.isNotEmpty) {
+      return normalizedChapterId == commentChapterId;
+    }
+    return comment.chapterIndex == chapterIndex;
   }
 
   int _compareBookComments(Comment a, Comment b) {

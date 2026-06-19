@@ -111,6 +111,54 @@ void main() {
     },
   );
 
+  test(
+    'custom external notification exposes browser URL, not an app route',
+    () {
+      final item = notification(
+        type: 'new_creation',
+        link: 'https://example.com/articles/story',
+        metadata: {'targetType': 'custom'},
+      );
+
+      expect(NotificationTargetResolver.resolve(item), isNull);
+      expect(
+        NotificationTargetResolver.externalUri(item),
+        Uri.parse('https://example.com/articles/story'),
+      );
+    },
+  );
+
+  test('custom Wreadom app link still resolves inside the app', () {
+    final item = notification(
+      type: 'new_creation',
+      link: 'https://wreadom.in/category/poetry',
+      metadata: {'targetType': 'custom'},
+    );
+
+    expect(NotificationTargetResolver.externalUri(item), isNull);
+    expect(NotificationTargetResolver.resolve(item)?.route, AppRoutes.category);
+    expect(NotificationTargetResolver.resolve(item)?.payload, 'poetry');
+  });
+
+  test('custom link ignores stale book routing metadata', () {
+    final item = notification(
+      type: 'new_creation',
+      link: 'https://example.com/custom',
+      targetId: 'oldBook',
+      metadata: {
+        'targetType': 'custom',
+        'bookId': 'oldBook',
+        'contentId': 'oldBook',
+      },
+    );
+
+    expect(NotificationTargetResolver.resolve(item), isNull);
+    expect(
+      NotificationTargetResolver.externalUri(item),
+      Uri.parse('https://example.com/custom'),
+    );
+  });
+
   test('daily topic new creation notification opens daily topic', () {
     final target = NotificationTargetResolver.resolve(
       notification(

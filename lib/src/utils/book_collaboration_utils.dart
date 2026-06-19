@@ -69,10 +69,14 @@ List<String> acceptedAuthorIdsFor(Book book) {
   final primaryId = book.authorId?.trim();
   final collaboratorId = cleanCollaboratorId(book);
   if (primaryId != null && primaryId.isNotEmpty) ids.add(primaryId);
-  if (isAcceptedCollaboration(book) &&
-      collaboratorId != null &&
-      collaboratorId.isNotEmpty) {
-    ids.add(collaboratorId);
+  if (isAcceptedCollaboration(book)) {
+    if (collaboratorId != null && collaboratorId.isNotEmpty) {
+      ids.add(collaboratorId);
+    }
+    for (final authorId in book.authorIds ?? const <String>[]) {
+      final normalized = authorId.trim();
+      if (normalized.isNotEmpty) ids.add(normalized);
+    }
   }
   return ids.toList(growable: false);
 }

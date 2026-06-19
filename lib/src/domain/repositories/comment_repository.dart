@@ -2,9 +2,14 @@ import '../models/comment.dart';
 
 abstract class CommentRepository {
   Future<List<Comment>> getBookComments(String bookId);
-  Future<Comment?> getUserBookReview(String bookId, String userId);
+  Future<Comment?> getUserChapterReview({
+    required String bookId,
+    required String userId,
+    String? chapterId,
+    required int chapterIndex,
+  });
   Future<String> addComment(Comment comment);
-  Future<String> upsertBookReview(Comment comment);
+  Future<String> upsertChapterReview(Comment comment);
   Future<void> addReply(String commentId, CommentReply reply);
   Future<List<Comment>> getFeedPostComments(String postId);
   Future<void> deleteComment(String commentId);

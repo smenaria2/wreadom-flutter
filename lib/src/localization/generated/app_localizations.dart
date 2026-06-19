@@ -4585,6 +4585,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'See more content'**
   String get seeMoreContent;
+
+  /// No description provided for @chapterReviewPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What did you think of \"{chapterTitle}\"?'**
+  String chapterReviewPromptTitle(String chapterTitle);
+
+  /// No description provided for @chapterReviewPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your review will encourage {authorName} to write more and grow.'**
+  String chapterReviewPromptBody(String authorName);
+
+  /// No description provided for @chapterReviewVoicePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Rather say it aloud? Record a voice review.'**
+  String get chapterReviewVoicePrompt;
+
+  /// No description provided for @chapterReviewPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts about this chapter'**
+  String get chapterReviewPromptHint;
+
+  /// No description provided for @chapterReviewTextOrVoiceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a few words or record a voice review to continue.'**
+  String get chapterReviewTextOrVoiceRequired;
+
+  /// No description provided for @recordVoiceReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Record voice review'**
+  String get recordVoiceReview;
+
+  /// No description provided for @stopRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop recording'**
+  String get stopRecording;
+
+  /// No description provided for @cancelRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel recording'**
+  String get cancelRecording;
+
+  /// No description provided for @deleteAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete audio'**
+  String get deleteAudio;
+
+  /// No description provided for @microphonePermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is needed to record.'**
+  String get microphonePermissionRequired;
+
+  /// No description provided for @recordingAudioDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording {duration}'**
+  String recordingAudioDuration(String duration);
+
+  /// No description provided for @newAudioDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'New audio {duration}'**
+  String newAudioDuration(String duration);
+
+  /// No description provided for @audioReviewDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio review {duration}'**
+  String audioReviewDuration(String duration);
+
+  /// No description provided for @shareReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Share review'**
+  String get shareReview;
 }
 
 class _AppLocalizationsDelegate

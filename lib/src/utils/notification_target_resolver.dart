@@ -21,11 +21,29 @@ class NotificationTarget {
 }
 
 class NotificationTargetResolver {
+  static Uri? externalUri(AppNotification notification) {
+    final metadata = notification.metadata ?? const <String, dynamic>{};
+    final targetType = _clean(metadata['targetType'])?.toLowerCase();
+    if (targetType != 'custom') return null;
+
+    final rawLink = notification.link.trim();
+    final uri = Uri.tryParse(rawLink);
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty ||
+        AppLinkHelper.resolve(rawLink) != null) {
+      return null;
+    }
+    return uri;
+  }
+
   static NotificationTarget? resolve(AppNotification notification) {
     final metadata = notification.metadata ?? const <String, dynamic>{};
     final linkTarget = AppLinkHelper.resolve(notification.link);
     final type = notification.type.toLowerCase();
     final targetType = _clean(metadata['targetType'])?.toLowerCase();
+
+    if (targetType == 'custom' && linkTarget == null) return null;
 
     if (targetType == 'daily_topic' ||
         linkTarget?.route == AppRoutes.dailyTopic) {
@@ -131,9 +149,7 @@ class NotificationTargetResolver {
         type == 'follower' ||
         type == 'following' ||
         type.contains('follow');
-    final isProfileType =
-        type == 'testimonial' ||
-        isFollowType;
+    final isProfileType = type == 'testimonial' || isFollowType;
     final hasAmbiguousContentType =
         type == 'comment' ||
         type == 'reply' ||

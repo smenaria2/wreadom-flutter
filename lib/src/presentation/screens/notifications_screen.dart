@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/notification_providers.dart';
@@ -19,6 +20,7 @@ import '../widgets/section_error.dart';
 import '../../utils/notification_target_resolver.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/app_link_helper.dart';
 import '../../domain/models/app_notification.dart';
 
 enum _NotificationFilter {
@@ -387,6 +389,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                         NotificationTargetResolver.resolve(
                                                           item,
                                                         );
+                                                    final externalUri =
+                                                        NotificationTargetResolver.externalUri(
+                                                          item,
+                                                        );
                                                     unawaited(
                                                       _markNotificationItemRead(
                                                         ref,
@@ -459,6 +465,23 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                       ).pushNamed(
                                                         target.route,
                                                         arguments: routeArgs,
+                                                      );
+                                                    } else if (externalUri !=
+                                                        null) {
+                                                      final isWreadom =
+                                                          externalUri.host ==
+                                                              AppLinkHelper
+                                                                  .host ||
+                                                          externalUri.host ==
+                                                              AppLinkHelper
+                                                                  .wwwHost;
+                                                      await launchUrl(
+                                                        externalUri,
+                                                        mode: isWreadom
+                                                            ? LaunchMode
+                                                                  .inAppBrowserView
+                                                            : LaunchMode
+                                                                  .externalApplication,
                                                       );
                                                     } else {
                                                       ref

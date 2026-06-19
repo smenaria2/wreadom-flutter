@@ -544,10 +544,7 @@ void main() {
 
     expect(readerSource, contains('completedChapterIndexes'));
     expect(readerSource, contains('_markChapterCompleteAndGoNext'));
-    expect(
-      readerSource,
-      contains('completedChapterIndex: currentChapterIndex'),
-    );
+    expect(readerSource, contains('completedChapterIndex: chapterIndex'));
     expect(readerSource, contains('commentCounts'));
     expect(
       readerSource,
@@ -993,14 +990,14 @@ void main() {
       expect(commentSource, contains('isHighlighted'));
       expect(commentSource, contains('highlightedAt'));
       expect(commentSource, contains('highlightedByUserId'));
-      expect(repositorySource, contains('getUserBookReview'));
-      expect(repositorySource, contains('upsertBookReview'));
+      expect(repositorySource, contains('getUserChapterReview'));
+      expect(repositorySource, contains('upsertChapterReview'));
       expect(repositorySource, contains('toggleReviewHighlight'));
       expect(repositorySource, contains('maxHighlighted = 3'));
       expect(readerSource, contains('int _chapterRating = 5'));
       expect(readerSource, contains('_isOwnOriginalBook'));
       expect(readerSource, contains('l10n.authorsCannotReviewOwnBook'));
-      expect(readerSource, contains('upsertBookReview'));
+      expect(readerSource, contains('upsertChapterReview'));
       expect(readerSource, contains('_restoreLineBreaks'));
       expect(readerSource, contains('viewInsets.bottom'));
       expect(tileSource, contains('bookAuthorId'));

@@ -216,16 +216,16 @@ function contentRecommendationLink(bookId) {
 }
 
 async function validateAdminContentNotificationRequest(data = {}) {
-  const bookId = normalizeString(data.bookId);
+  const bookId = normalizeString(data.bookId) || null;
   const title = normalizeString(data.title);
   const message = normalizeString(data.message);
+  const customLink = normalizeString(data.link) || null;
+  const imageUrl = normalizeString(data.imageUrl) || null;
+  const toAllActive = data.toAllActive === true;
   const userIds = Array.isArray(data.userIds) ?
     Array.from(new Set(data.userIds.map((value) => normalizeString(value)).filter(Boolean))) :
     [];
 
-  if (!bookId) {
-    throw new functionsV1.https.HttpsError("invalid-argument", "Missing bookId.");
-  }
   if (!title || title.length > 80) {
     throw new functionsV1.https.HttpsError(
         "invalid-argument",
@@ -238,34 +238,53 @@ async function validateAdminContentNotificationRequest(data = {}) {
         "Message must be between 1 and 500 characters.",
     );
   }
-  if (userIds.length === 0) {
-    throw new functionsV1.https.HttpsError("invalid-argument", "Select at least one recipient.");
-  }
-  if (userIds.length > 1000) {
-    throw new functionsV1.https.HttpsError(
-        "invalid-argument",
-        "Select 1000 recipients or fewer per send.",
-    );
+  if (!toAllActive) {
+    if (userIds.length === 0) {
+      throw new functionsV1.https.HttpsError("invalid-argument", "Select at least one recipient.");
+    }
+    if (userIds.length > 1000) {
+      throw new functionsV1.https.HttpsError(
+          "invalid-argument",
+          "Select 1000 recipients or fewer per send.",
+      );
+    }
   }
 
-  const bookSnapshot = await db.collection("books").doc(bookId).get();
-  if (!bookSnapshot.exists) {
-    throw new functionsV1.https.HttpsError("not-found", "Selected content was not found.");
-  }
-  const book = bookSnapshot.data() || {};
-  if (normalizeString(book.status).toLowerCase() !== "published") {
-    throw new functionsV1.https.HttpsError(
-        "failed-precondition",
-        "Only published content can be recommended.",
-    );
+  let resolvedLink = customLink || "/";
+  let resolvedImageUrl = imageUrl;
+  const isCustomDestination =
+    !bookId ||
+    Boolean(customLink && customLink !== contentRecommendationLink(bookId));
+
+  if (bookId) {
+    const bookSnapshot = await db.collection("books").doc(bookId).get();
+    if (!bookSnapshot.exists) {
+      throw new functionsV1.https.HttpsError("not-found", "Selected content was not found.");
+    }
+    const book = bookSnapshot.data() || {};
+    if (normalizeString(book.status).toLowerCase() !== "published") {
+      throw new functionsV1.https.HttpsError(
+          "failed-precondition",
+          "Only published content can be recommended.",
+      );
+    }
+    if (!customLink) {
+      resolvedLink = contentRecommendationLink(bookId);
+    }
+    if (!imageUrl) {
+      resolvedImageUrl = normalizeString(book.coverUrl) || null;
+    }
   }
 
   return {
     bookId,
     title,
     message,
-    link: contentRecommendationLink(bookId),
+    link: resolvedLink,
+    imageUrl: resolvedImageUrl,
+    isCustomDestination,
     userIds,
+    toAllActive,
   };
 }
 
@@ -274,14 +293,28 @@ async function createAdminContentRecommendationNotifications({
   title,
   message,
   link,
+  imageUrl,
+  isCustomDestination,
   createdBy,
   userIds,
+  toAllActive,
 }) {
   let created = 0;
   let skipped = 0;
 
+  let targetUserIds = userIds;
+  if (toAllActive) {
+    const usersSnap = await db.collection("users").get();
+    targetUserIds = usersSnap.docs
+        .filter((doc) => {
+          const user = doc.data();
+          return !user || user.isDeactivated !== true;
+        })
+        .map((doc) => doc.id);
+  }
+
   const results = await Promise.all(
-    userIds.map(async (userId) => {
+    targetUserIds.map(async (userId) => {
       try {
         const userDoc = await db.collection("users").doc(userId).get();
         const user = userDoc.exists ? userDoc.data() || {} : null;
@@ -298,12 +331,12 @@ async function createAdminContentRecommendationNotifications({
           type: "new_creation",
           text: message,
           link,
-          targetId: bookId,
+          targetId: isCustomDestination ? null : bookId,
           metadata: {
             source: "admin_content_recommendation",
-            bookId,
-            contentId: bookId,
-            targetType: "book",
+            ...(!isCustomDestination && bookId ? {bookId, contentId: bookId} : {}),
+            targetType: isCustomDestination ? "custom" : "book",
+            coverUrl: imageUrl || null,
             createdBy,
             selectedRecipient: true,
           },

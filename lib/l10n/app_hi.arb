@@ -1132,5 +1132,54 @@
   "adminDailyTopicsTitle": "आगाज़ टॉपिक्स एडमिन",
   "manageDailyTopics": "आगाज़ टॉपिक्स प्रबंधित करें",
   "myContent": "रचनाएं",
-  "seeMoreContent": "और रचनाएं देखें"
+  "seeMoreContent": "और रचनाएं देखें",
+  "chapterReviewPromptTitle": "\"{chapterTitle}\" के बारे में आपका क्या विचार है?",
+  "@chapterReviewPromptTitle": {
+    "placeholders": {
+      "chapterTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "chapterReviewPromptBody": "आपकी समीक्षा {authorName} को और लिखने और आगे बढ़ने के लिए प्रोत्साहित करेगी।",
+  "@chapterReviewPromptBody": {
+    "placeholders": {
+      "authorName": {
+        "type": "String"
+      }
+    }
+  },
+  "chapterReviewVoicePrompt": "क्या आप इसे बोलकर कहना चाहेंगे? वॉइस समीक्षा रिकॉर्ड करें।",
+  "chapterReviewPromptHint": "इस अध्याय के बारे में अपने विचार साझा करें",
+  "chapterReviewTextOrVoiceRequired": "आगे बढ़ने के लिए कुछ शब्द लिखें या वॉइस समीक्षा रिकॉर्ड करें।",
+  "recordVoiceReview": "वॉइस समीक्षा रिकॉर्ड करें",
+  "stopRecording": "रिकॉर्डिंग रोकें",
+  "cancelRecording": "रिकॉर्डिंग रद्द करें",
+  "deleteAudio": "ऑडियो हटाएं",
+  "microphonePermissionRequired": "रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति आवश्यक है।",
+  "recordingAudioDuration": "रिकॉर्डिंग {duration}",
+  "@recordingAudioDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "newAudioDuration": "नया ऑडियो {duration}",
+  "@newAudioDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "audioReviewDuration": "ऑडियो समीक्षा {duration}",
+  "@audioReviewDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReview": "समीक्षा साझा करें"
 }

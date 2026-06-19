@@ -65,6 +65,39 @@ class AnalyticsService {
     );
   }
 
+  static void logChapterReviewPromptShown({
+    required String bookId,
+    required int chapterIndex,
+  }) {
+    logEvent(
+      'chapter_review_prompt_shown',
+      parameters: {'book_id': bookId, 'chapter_index': chapterIndex},
+    );
+  }
+
+  static void logChapterReviewPromptDismissed({
+    required String bookId,
+    required int chapterIndex,
+  }) {
+    logEvent(
+      'chapter_review_prompt_dismissed',
+      parameters: {'book_id': bookId, 'chapter_index': chapterIndex},
+    );
+  }
+
+  static void logChapterReviewPromptSubmitted({
+    required String bookId,
+    required int chapterIndex,
+    required bool usedVoice,
+  }) {
+    logEvent(
+      usedVoice
+          ? 'chapter_review_prompt_voice_submitted'
+          : 'chapter_review_prompt_text_submitted',
+      parameters: {'book_id': bookId, 'chapter_index': chapterIndex},
+    );
+  }
+
   static void logSearch(String searchTerm) {
     final term = searchTerm.trim();
     if (term.isEmpty) return;
