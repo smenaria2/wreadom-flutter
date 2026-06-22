@@ -29,6 +29,21 @@ class EnvConfig {
     defaultValue: '127.0.0.1',
   );
 
+  static const int firebaseFirestoreEmulatorPort = int.fromEnvironment(
+    'FIREBASE_FIRESTORE_EMULATOR_PORT',
+    defaultValue: 8080,
+  );
+
+  static const int firebaseAuthEmulatorPort = int.fromEnvironment(
+    'FIREBASE_AUTH_EMULATOR_PORT',
+    defaultValue: 9099,
+  );
+
+  static const int firebaseFunctionsEmulatorPort = int.fromEnvironment(
+    'FIREBASE_FUNCTIONS_EMULATOR_PORT',
+    defaultValue: 5001,
+  );
+
   static const bool enableAppCheckWebDebug = bool.fromEnvironment(
     'ENABLE_APPCHECK_WEB_DEBUG',
     defaultValue: false,

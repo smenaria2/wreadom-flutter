@@ -12,6 +12,7 @@ import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/domain/repositories/writer_repository.dart';
+import 'package:librebook_flutter/src/data/services/writer_draft_service.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
@@ -80,12 +81,16 @@ void main() {
     Book book, {
     Future<bool> Function(Uri uri)? openPrintPage,
     WriterRepository? writerRepository,
+    WriterDraftStore? writerDraftStore,
+    bool restoreLocalDrafts = false,
   }) {
     return ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
         if (writerRepository != null)
           writerRepositoryProvider.overrideWithValue(writerRepository),
+        if (writerDraftStore != null)
+          writerDraftServiceProvider.overrideWithValue(writerDraftStore),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -98,7 +103,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: WriterPadScreen(
           book: book,
-          restoreLocalDrafts: false,
+          restoreLocalDrafts: restoreLocalDrafts,
           showToolbar: false,
           openPrintPage: openPrintPage,
         ),
@@ -151,7 +156,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('single chapter draft shows save, publish, and draft menu', (
+  testWidgets('single chapter draft shows save, next, and draft menu', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -179,7 +184,7 @@ void main() {
 
     expect(find.byTooltip('Save Draft'), findsOneWidget);
     expect(find.byIcon(Icons.save_rounded), findsOneWidget);
-    expect(find.text('Publish'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
     expect(
       find.ancestor(
         of: find.byIcon(Icons.save_rounded),
@@ -189,12 +194,12 @@ void main() {
     );
     expect(
       find.ancestor(
-        of: find.text('Publish'),
+        of: find.text('Next'),
         matching: find.byType(OutlinedButton),
       ),
       findsOneWidget,
     );
-    expect(find.text('Next'), findsNothing);
+    expect(find.text('Publish'), findsNothing);
     expect(find.byTooltip('Chapters'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_vert));
@@ -275,6 +280,100 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('single hydrated chapter is visible and cannot be hidden', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository(
+      authoringChapters: const [
+        Chapter(
+          id: 'chapter-1',
+          title: 'Only chapter',
+          content: '<p>Visible content</p>',
+          index: 0,
+          status: 'draft',
+          isHidden: true,
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'published'),
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byTooltip('Chapters'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hidden'), findsNothing);
+    expect(find.byTooltip('Hide chapter'), findsNothing);
+    expect(find.byTooltip('Show chapter'), findsNothing);
+  });
+
+  testWidgets('newer local draft restores automatically without dialog', (
+    tester,
+  ) async {
+    final serverBook = testBook(status: 'draft', id: 'auto-restore-book');
+    final localBook = serverBook.copyWith(
+      title: 'Automatically restored',
+      updatedAt: 100,
+      chapters: const [
+        Chapter(
+          id: 'chapter-1',
+          title: 'Restored chapter',
+          content: '<p>Latest local text</p>',
+          index: 0,
+          isHidden: true,
+        ),
+      ],
+    );
+    final draftStore = _FakeWriterDraftStore({
+      'user-1:auto-restore-book': localBook,
+    });
+
+    await tester.pumpWidget(
+      writerPadTestApp(
+        serverBook,
+        restoreLocalDrafts: true,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Restore unsaved draft?'), findsNothing);
+    expect(find.text('Restored chapter'), findsOneWidget);
+    await tester.tap(find.byTooltip('Chapters'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hidden'), findsNothing);
+  });
+
+  testWidgets('stale local draft is deleted and ignored', (tester) async {
+    final serverBook = testBook(
+      status: 'draft',
+      id: 'stale-draft-book',
+    ).copyWith(updatedAt: 100);
+    final staleBook = serverBook.copyWith(
+      title: 'Stale local title',
+      updatedAt: 50,
+    );
+    const draftKey = 'user-1:stale-draft-book';
+    final draftStore = _FakeWriterDraftStore({draftKey: staleBook});
+
+    await tester.pumpWidget(
+      writerPadTestApp(
+        serverBook,
+        restoreLocalDrafts: true,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Stale local title'), findsNothing);
+    expect(await draftStore.getDraft(draftKey), isNull);
+  });
+
   testWidgets('content details shows one themed action set', (tester) async {
     await tester.pumpWidget(
       writerPadTestApp(testBook(status: 'draft', chapterCount: 2)),
@@ -369,7 +468,7 @@ void main() {
 
     await tester.tap(find.text('Open writer'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Publish'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Publish Content'),
@@ -541,7 +640,30 @@ void main() {
   );
 }
 
+class _FakeWriterDraftStore implements WriterDraftStore {
+  _FakeWriterDraftStore([Map<String, Book>? drafts])
+    : _drafts = Map<String, Book>.from(drafts ?? const {});
+
+  final Map<String, Book> _drafts;
+
+  @override
+  Future<void> deleteDraft(String draftKey) async {
+    _drafts.remove(draftKey);
+  }
+
+  @override
+  Future<Book?> getDraft(String draftKey) async => _drafts[draftKey];
+
+  @override
+  Future<void> saveDraft({required String draftKey, required Book book}) async {
+    _drafts[draftKey] = book;
+  }
+}
+
 class _FakeWriterRepository implements WriterRepository {
+  _FakeWriterRepository({this.authoringChapters = const <Chapter>[]});
+
+  final List<Chapter> authoringChapters;
   Book? updatedBook;
 
   @override
@@ -557,7 +679,7 @@ class _FakeWriterRepository implements WriterRepository {
 
   @override
   Future<List<Chapter>> getAuthoringChapters(String bookId) async {
-    return const <Chapter>[];
+    return authoringChapters;
   }
 
   @override

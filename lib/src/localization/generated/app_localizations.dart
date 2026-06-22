@@ -3128,18 +3128,6 @@ abstract class AppLocalizations {
   /// **'A published book must keep at least one chapter visible.'**
   String get keepOneChapterVisible;
 
-  /// No description provided for @restoreLocalDraftTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Restore unsaved draft?'**
-  String get restoreLocalDraftTitle;
-
-  /// No description provided for @restoreLocalDraftBody.
-  ///
-  /// In en, this message translates to:
-  /// **'A newer unsaved draft was found on this device. Restoring it will replace the editor\'s current contents.'**
-  String get restoreLocalDraftBody;
-
   /// No description provided for @discard.
   ///
   /// In en, this message translates to:

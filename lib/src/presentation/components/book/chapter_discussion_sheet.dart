@@ -5,6 +5,7 @@ import '../../../domain/models/comment.dart';
 import '../../providers/comment_providers.dart';
 import '../../widgets/comment_widgets.dart';
 import '../../widgets/glass_surface.dart';
+import '../../widgets/modal_feedback_scope.dart';
 import '../../../utils/app_haptics.dart';
 import 'comment_reply_sheet.dart';
 import '../../routing/app_routes.dart';
@@ -27,24 +28,26 @@ void showChapterDiscussionSheet({
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      minChildSize: 0.4,
-      maxChildSize: 0.98,
-      expand: false,
-      builder: (context, scrollController) {
-        return ChapterDiscussionSheet(
-          scrollController: scrollController,
-          bookId: bookId,
-          bookTitle: bookTitle,
-          bookAuthorId: bookAuthorId,
-          bookAuthorName: bookAuthorName,
-          bookCover: bookCover,
-          chapterId: chapterId,
-          chapterIndex: chapterIndex,
-          chapterTitle: chapterTitle,
-        );
-      },
+    builder: (context) => ModalFeedbackScope(
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.4,
+        maxChildSize: 0.98,
+        expand: false,
+        builder: (context, scrollController) {
+          return ChapterDiscussionSheet(
+            scrollController: scrollController,
+            bookId: bookId,
+            bookTitle: bookTitle,
+            bookAuthorId: bookAuthorId,
+            bookAuthorName: bookAuthorName,
+            bookCover: bookCover,
+            chapterId: chapterId,
+            chapterIndex: chapterIndex,
+            chapterTitle: chapterTitle,
+          );
+        },
+      ),
     ),
   );
 }
@@ -250,8 +253,9 @@ class _ChapterDiscussionSheetState
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          CommentReplySheet(comment: comment, bookId: widget.bookId),
+      builder: (context) => ModalFeedbackScope(
+        child: CommentReplySheet(comment: comment, bookId: widget.bookId),
+      ),
     );
   }
 }

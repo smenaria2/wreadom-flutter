@@ -8,6 +8,7 @@ import '../../../domain/models/feed_post.dart';
 import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
+import '../../widgets/modal_feedback_scope.dart';
 
 class CommentSharePreviewSheet extends ConsumerStatefulWidget {
   final Comment comment;
@@ -36,7 +37,8 @@ class CommentSharePreviewSheet extends ConsumerStatefulWidget {
       _CommentSharePreviewSheetState();
 }
 
-class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSheet> {
+class _CommentSharePreviewSheetState
+    extends ConsumerState<CommentSharePreviewSheet> {
   bool _isSharingToFeed = false;
 
   Future<void> _shareExternally() async {
@@ -46,7 +48,8 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
         [
           XFile.fromData(
             widget.imageBytes,
-            name: '${widget.bookTitle.replaceAll(RegExp(r'[^\w\s\-]'), '')}-review.png',
+            name:
+                '${widget.bookTitle.replaceAll(RegExp(r'[^\w\s\-]'), '')}-review.png',
             mimeType: 'image/png',
           ),
         ],
@@ -58,7 +61,8 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text('Failed to share: $e')),
         );
       }
@@ -70,7 +74,8 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text(l10n.signInToShare)),
         );
       }
@@ -108,13 +113,14 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.sharedToFeed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text('Failed to share to feed: $e')),
         );
       }
@@ -146,7 +152,9 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.comment.rating != null ? 'Share Review' : 'Share Comment',
+                    widget.comment.rating != null
+                        ? 'Share Review'
+                        : 'Share Comment',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -176,10 +184,7 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(
-                      widget.imageBytes,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.memory(widget.imageBytes, fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -231,7 +236,9 @@ class _CommentSharePreviewSheetState extends ConsumerState<CommentSharePreviewSh
                                 ),
                               )
                             : const Icon(Icons.forum_rounded),
-                        label: Text(_isSharingToFeed ? 'Sharing...' : l10n.shareToFeed),
+                        label: Text(
+                          _isSharingToFeed ? 'Sharing...' : l10n.shareToFeed,
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           foregroundColor: Colors.white,
@@ -269,15 +276,17 @@ void showCommentSharePreviewSheet({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => CommentSharePreviewSheet(
-      comment: comment,
-      bookId: bookId,
-      bookTitle: bookTitle,
-      bookAuthorName: bookAuthorName,
-      bookCover: bookCover,
-      imageBytes: imageBytes,
-      fallbackText: fallbackText,
-      link: link,
+    builder: (context) => ModalFeedbackScope(
+      child: CommentSharePreviewSheet(
+        comment: comment,
+        bookId: bookId,
+        bookTitle: bookTitle,
+        bookAuthorName: bookAuthorName,
+        bookCover: bookCover,
+        imageBytes: imageBytes,
+        fallbackText: fallbackText,
+        link: link,
+      ),
     ),
   );
 }

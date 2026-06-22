@@ -5,7 +5,13 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../utils/map_utils.dart';
 
-class WriterDraftService {
+abstract interface class WriterDraftStore {
+  Future<void> saveDraft({required String draftKey, required Book book});
+  Future<Book?> getDraft(String draftKey);
+  Future<void> deleteDraft(String draftKey);
+}
+
+class WriterDraftService implements WriterDraftStore {
   factory WriterDraftService() => _instance;
   WriterDraftService._();
 
@@ -23,6 +29,7 @@ class WriterDraftService {
 
   Box get _box => Hive.box(_boxName);
 
+  @override
   Future<void> saveDraft({required String draftKey, required Book book}) async {
     await init();
     await _box.put(draftKey, {
@@ -32,6 +39,7 @@ class WriterDraftService {
     });
   }
 
+  @override
   Future<Book?> getDraft(String draftKey) async {
     await init();
     final raw = _box.get(draftKey);
@@ -43,6 +51,7 @@ class WriterDraftService {
     return Book.fromJson(bookJson);
   }
 
+  @override
   Future<void> deleteDraft(String draftKey) async {
     await init();
     await _box.delete(draftKey);

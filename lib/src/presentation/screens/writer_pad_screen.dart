@@ -318,13 +318,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           .read(writerRepositoryProvider)
           .getAuthoringChapters(bookId);
       if (!mounted || chapters.isEmpty) return;
-      final hydrated = <Chapter>[
-        for (final chapter in chapters)
-          if (_isPublished && chapter.status == 'draft' && !chapter.isHidden)
-            chapter.copyWith(isHidden: true)
-          else
-            chapter,
-      ];
+      final hydrated = _normalizeHydratedChapters(chapters);
       setState(() {
         for (final chapter in _chapters) {
           chapter.dispose();
@@ -336,6 +330,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               (chapter) => _ChapterDraft.fromChapter(chapter, _markDirty),
             ),
           );
+        _ensureVisibleChapter();
         _setCurrentChapterIndex(
           _currentChapterIndex.clamp(0, _chapters.length - 1),
         );
@@ -359,31 +354,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (serverUpdatedAt != null &&
         localUpdatedAt != null &&
         localUpdatedAt <= serverUpdatedAt) {
-      await ref
-          .read(writerDraftServiceProvider)
-          .deleteDraft(_draftKey(user.id));
-      return;
-    }
-
-    final shouldRestore = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.restoreLocalDraftTitle),
-        content: Text(AppLocalizations.of(context)!.restoreLocalDraftBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(AppLocalizations.of(context)!.discard),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(AppLocalizations.of(context)!.restoreVersion),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (shouldRestore != true) {
       await ref
           .read(writerDraftServiceProvider)
           .deleteDraft(_draftKey(user.id));
@@ -421,6 +391,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       if (_chapters.isEmpty) {
         _chapters.add(_ChapterDraft.empty(_markDirty));
       }
+      _ensureVisibleChapter();
       _setCurrentChapterIndex(
         _currentChapterIndex.clamp(0, _chapters.length - 1),
       );
@@ -429,6 +400,35 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
     });
     _isRestoringLocalDraft = false;
+  }
+
+  List<Chapter> _normalizeHydratedChapters(List<Chapter> chapters) {
+    if (chapters.isEmpty) return const <Chapter>[];
+    final normalized = List<Chapter>.from(chapters);
+    var visibleCount = normalized.where((chapter) => !chapter.isHidden).length;
+
+    if (_isPublished && visibleCount > 1) {
+      for (var i = 0; i < normalized.length && visibleCount > 1; i++) {
+        final chapter = normalized[i];
+        if (chapter.status == 'draft' && !chapter.isHidden) {
+          normalized[i] = chapter.copyWith(isHidden: true);
+          visibleCount -= 1;
+        }
+      }
+    }
+
+    if (normalized.length == 1 || visibleCount == 0) {
+      normalized[0] = normalized[0].copyWith(isHidden: false);
+    }
+    return normalized;
+  }
+
+  void _ensureVisibleChapter() {
+    if (_chapters.isEmpty) return;
+    if (_chapters.length == 1 ||
+        !_chapters.any((chapter) => !chapter.isHidden)) {
+      _chapters.first.isHidden = false;
+    }
   }
 
   Future<UserModel?> _currentUserOrNull() async {
@@ -565,7 +565,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         OutlinedButton(
           style: _writerAppBarActionStyle(primary: false),
           onPressed: _isSaving ? null : _goToDetails,
-          child: Text(l10n.writerPublish),
+          child: Text(l10n.writerNext),
         ),
         const SizedBox(width: 6),
         saveButton,
@@ -1403,6 +1403,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               versionCount: chapter.versions.length,
                               isCurrent: isCurrent,
                               isHidden: chapter.isHidden,
+                              canToggleVisibility: _chapters.length > 1,
                               canDelete: _chapters.length > 1,
                               textColor: onSheetColor,
                               onTap: () {
@@ -1497,6 +1498,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   bool _toggleChapterVisibility(int index) {
     if (index < 0 || index >= _chapters.length) return false;
+    if (_chapters.length <= 1) {
+      _ensureVisibleChapter();
+      return false;
+    }
     final chapter = _chapters[index];
     if (_isPublished &&
         !chapter.isHidden &&
@@ -1554,6 +1559,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       for (var i = 0; i < chapters.length; i++)
         if (i != index) chapters[i].copyWith(index: i > index ? i - 1 : i),
     ];
+    if (remaining.length == 1 ||
+        !remaining.any((chapter) => !chapter.isHidden)) {
+      remaining[0] = remaining[0].copyWith(isHidden: false);
+    }
     try {
       await ref
           .read(writerRepositoryProvider)
@@ -1572,6 +1581,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     setState(() {
       final removed = _chapters.removeAt(index);
       removed.dispose();
+      _ensureVisibleChapter();
       _setCurrentChapterIndex(
         _currentChapterIndex.clamp(0, _chapters.length - 1),
       );
@@ -3298,6 +3308,7 @@ class _ChapterOverviewCard extends StatelessWidget {
     required this.versionCount,
     required this.isCurrent,
     required this.isHidden,
+    required this.canToggleVisibility,
     required this.canDelete,
     required this.textColor,
     required this.onTap,
@@ -3313,6 +3324,7 @@ class _ChapterOverviewCard extends StatelessWidget {
   final int versionCount;
   final bool isCurrent;
   final bool isHidden;
+  final bool canToggleVisibility;
   final bool canDelete;
   final Color textColor;
   final VoidCallback onTap;
@@ -3437,16 +3449,17 @@ class _ChapterOverviewCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  tooltip: isHidden ? l10n.showChapter : l10n.hideChapter,
-                  onPressed: onToggleVisibility,
-                  color: textColor.withValues(alpha: 0.74),
-                  icon: Icon(
-                    isHidden
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
+                if (canToggleVisibility)
+                  IconButton(
+                    tooltip: isHidden ? l10n.showChapter : l10n.hideChapter,
+                    onPressed: onToggleVisibility,
+                    color: textColor.withValues(alpha: 0.74),
+                    icon: Icon(
+                      isHidden
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
                   ),
-                ),
                 if (onHistory != null)
                   IconButton(
                     tooltip: l10n.versionHistory,

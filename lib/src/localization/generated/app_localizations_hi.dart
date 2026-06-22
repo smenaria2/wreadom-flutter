@@ -1709,14 +1709,6 @@ class AppLocalizationsHi extends AppLocalizations {
       'प्रकाशित पुस्तक में कम से कम एक अध्याय दिखना चाहिए।';
 
   @override
-  String get restoreLocalDraftTitle =>
-      'बिना सेव किया ड्राफ़्ट पुनर्स्थापित करें?';
-
-  @override
-  String get restoreLocalDraftBody =>
-      'इस डिवाइस पर एक नया बिना सेव किया ड्राफ़्ट मिला है। इसे पुनर्स्थापित करने पर एडिटर की वर्तमान सामग्री बदल जाएगी।';
-
-  @override
   String get discard => 'हटाएं';
 
   @override

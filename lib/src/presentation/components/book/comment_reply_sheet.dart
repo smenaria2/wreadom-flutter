@@ -12,6 +12,7 @@ import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
 import '../../widgets/glass_surface.dart';
+import '../../widgets/modal_feedback_scope.dart';
 
 class CommentReplySheet extends ConsumerStatefulWidget {
   const CommentReplySheet({
@@ -70,7 +71,8 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
     if (!hasPermission) {
       final status = await Permission.microphone.status;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ModalFeedbackScope.show(
+        context,
         SnackBar(
           content: const Text('Microphone permission is needed to record.'),
           action: status.isPermanentlyDenied
@@ -203,7 +205,8 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(
             content: Text(
               AppLocalizations.of(context)!.failedToPostReply(e.toString()),

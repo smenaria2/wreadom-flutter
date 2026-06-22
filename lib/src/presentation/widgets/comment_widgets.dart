@@ -19,6 +19,7 @@ import '../components/review_share_card.dart';
 import '../components/book/chapter_discussion_sheet.dart';
 import '../utils/error_message_utils.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/modal_feedback_scope.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -143,9 +144,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       logUiError('Comment highlight failed', e, stackTrace);
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
+        ModalFeedbackScope.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
+          SnackBar(content: Text(l10n.somethingWentWrong)),
+        );
       }
     } finally {
       if (mounted) setState(() => _highlighting = false);
@@ -190,9 +192,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        ModalFeedbackScope.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
+          SnackBar(content: Text(l10n.editFailed(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _savingEdit = false);
@@ -798,9 +801,10 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        ModalFeedbackScope.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.editFailed(e.toString()))));
+          SnackBar(content: Text(l10n.editFailed(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _savingEdit = false);
@@ -1561,7 +1565,8 @@ Future<void> _confirmDeleteComment(
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
         );
       }
@@ -1627,7 +1632,8 @@ Future<void> _confirmDeleteReply(
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
         );
       }

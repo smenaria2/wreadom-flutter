@@ -40,6 +40,7 @@ import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
 import '../widgets/in_app_media_web_view.dart';
+import '../widgets/modal_feedback_scope.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
@@ -2540,233 +2541,243 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       enableDrag: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (sheetContext, setModalState) {
-            final l10n = AppLocalizations.of(sheetContext)!;
-            final theme = Theme.of(sheetContext);
-            final emphasizeVoice = ChapterReviewPromptPolicy.emphasizeVoice(
-              candidate.previousPromptCount,
-            );
-            final canSubmit =
-                _chapterRating > 0 &&
-                (_commentController.value.text.trim().isNotEmpty ||
-                    _hasReviewAudio);
-
-            Future<void> toggleRecording() async {
-              if (_isRecordingAudioReview) {
-                await _stopAudioReviewRecording(() => setModalState(() {}));
-              } else {
-                await _startAudioReviewRecording(() => setModalState(() {}));
-              }
-            }
-
-            Future<void> submit() async {
-              if (_chapterRating <= 0) {
-                ScaffoldMessenger.of(sheetContext).showSnackBar(
-                  SnackBar(content: Text(l10n.pleaseSelectRating)),
-                );
-                return;
-              }
-              if (!_canSubmitReview) {
-                ScaffoldMessenger.of(sheetContext).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.chapterReviewTextOrVoiceRequired),
-                  ),
-                );
-                return;
-              }
-              setModalState(() {});
-              await _submitComment(
-                candidate.chapter,
-                chapterIndex: candidate.chapterIndex,
+        return ModalFeedbackScope(
+          child: StatefulBuilder(
+            builder: (sheetContext, setModalState) {
+              final l10n = AppLocalizations.of(sheetContext)!;
+              final theme = Theme.of(sheetContext);
+              final emphasizeVoice = ChapterReviewPromptPolicy.emphasizeVoice(
+                candidate.previousPromptCount,
               );
-              if (!sheetContext.mounted || _existingUserReview == null) {
+              final canSubmit =
+                  _chapterRating > 0 &&
+                  (_commentController.value.text.trim().isNotEmpty ||
+                      _hasReviewAudio);
+
+              Future<void> toggleRecording() async {
+                if (_isRecordingAudioReview) {
+                  await _stopAudioReviewRecording(() => setModalState(() {}));
+                } else {
+                  await _startAudioReviewRecording(
+                    () => setModalState(() {}),
+                    feedbackContext: sheetContext,
+                  );
+                }
+              }
+
+              Future<void> submit() async {
+                if (_chapterRating <= 0) {
+                  ModalFeedbackScope.show(
+                    sheetContext,
+                    SnackBar(content: Text(l10n.pleaseSelectRating)),
+                  );
+                  return;
+                }
+                if (!_canSubmitReview) {
+                  ModalFeedbackScope.show(
+                    sheetContext,
+                    SnackBar(
+                      content: Text(l10n.chapterReviewTextOrVoiceRequired),
+                    ),
+                  );
+                  return;
+                }
                 setModalState(() {});
-                return;
+                await _submitComment(
+                  candidate.chapter,
+                  chapterIndex: candidate.chapterIndex,
+                  feedbackContext: sheetContext,
+                );
+                if (!sheetContext.mounted || _existingUserReview == null) {
+                  setModalState(() {});
+                  return;
+                }
+                AnalyticsService.logChapterReviewPromptSubmitted(
+                  bookId: widget.book.id,
+                  chapterIndex: candidate.chapterIndex,
+                  usedVoice:
+                      _existingUserReview?.audioUrl != null ||
+                      _existingUserReview?.audioObjectKey != null,
+                );
+                Navigator.of(
+                  sheetContext,
+                ).pop(_ChapterReviewPromptResult.submitted);
               }
-              AnalyticsService.logChapterReviewPromptSubmitted(
-                bookId: widget.book.id,
-                chapterIndex: candidate.chapterIndex,
-                usedVoice:
-                    _existingUserReview?.audioUrl != null ||
-                    _existingUserReview?.audioObjectKey != null,
-              );
-              Navigator.of(
-                sheetContext,
-              ).pop(_ChapterReviewPromptResult.submitted);
-            }
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
-              ),
-              child: GlassSurface(
-                strong: true,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.outlineVariant,
-                            borderRadius: BorderRadius.circular(2),
+                child: GlassSurface(
+                  strong: true,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.outlineVariant,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        l10n.chapterReviewPromptTitle(candidate.chapter.title),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 18),
+                        Text(
+                          l10n.chapterReviewPromptTitle(
+                            candidate.chapter.title,
+                          ),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.chapterReviewPromptBody(candidate.authorName),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(5, (index) {
-                          final active = index < _chapterRating;
-                          return IconButton(
-                            tooltip: l10n.ratingOutOfFive('${index + 1}'),
-                            onPressed: _isSubmittingComment
-                                ? null
-                                : () => setModalState(
-                                    () => _chapterRating = index + 1,
-                                  ),
-                            icon: Icon(
-                              active
-                                  ? Icons.star_rounded
-                                  : Icons.star_border_rounded,
-                              color: active
-                                  ? Colors.amber
-                                  : theme.colorScheme.onSurfaceVariant,
-                              size: 30,
-                            ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _commentController.value,
-                        minLines: 2,
-                        maxLines: 4,
-                        enabled: !_isSubmittingComment,
-                        decoration: InputDecoration(
-                          hintText: l10n.chapterReviewPromptHint,
-                        ),
-                        onChanged: (_) => setModalState(() {}),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        l10n.chapterReviewVoicePrompt,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: emphasizeVoice
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      emphasizeVoice
-                          ? FilledButton.tonalIcon(
-                              onPressed: _isSubmittingComment
-                                  ? null
-                                  : toggleRecording,
-                              icon: Icon(
-                                _isRecordingAudioReview
-                                    ? Icons.stop_circle_outlined
-                                    : Icons.mic_none_rounded,
-                              ),
-                              label: Text(
-                                _isRecordingAudioReview
-                                    ? l10n.stopRecording
-                                    : l10n.recordVoiceReview,
-                              ),
-                            )
-                          : OutlinedButton.icon(
-                              onPressed: _isSubmittingComment
-                                  ? null
-                                  : toggleRecording,
-                              icon: Icon(
-                                _isRecordingAudioReview
-                                    ? Icons.stop_circle_outlined
-                                    : Icons.mic_none_rounded,
-                              ),
-                              label: Text(
-                                _isRecordingAudioReview
-                                    ? l10n.stopRecording
-                                    : l10n.recordVoiceReview,
-                              ),
-                            ),
-                      if (_isRecordingAudioReview || _hasReviewAudio) ...[
                         const SizedBox(height: 8),
-                        _AudioReviewComposerChip(
-                          isRecording: _isRecordingAudioReview,
-                          durationMs: _isRecordingAudioReview
-                              ? _pendingAudioReviewDurationMs
-                              : (_pendingAudioReviewPath != null
-                                    ? _pendingAudioReviewDurationMs
-                                    : (_reviewAudioDurationMs ?? 0)),
-                          isPendingUpload: _pendingAudioReviewPath != null,
-                          textColor: theme.colorScheme.onSurface,
-                          metadataColor: theme.colorScheme.onSurfaceVariant,
-                          onStop: () => _stopAudioReviewRecording(
-                            () => setModalState(() {}),
+                        Text(
+                          l10n.chapterReviewPromptBody(candidate.authorName),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          onDelete: () =>
-                              _removeAudioReview(() => setModalState(() {})),
                         ),
-                      ],
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          TextButton(
-                            onPressed: _isSubmittingComment
-                                ? null
-                                : () => Navigator.of(
-                                    sheetContext,
-                                  ).pop(_ChapterReviewPromptResult.dismissed),
-                            child: Text(l10n.notNow),
-                          ),
-                          const Spacer(),
-                          FilledButton.icon(
-                            onPressed: _isSubmittingComment || !canSubmit
-                                ? null
-                                : submit,
-                            icon: _isSubmittingComment
-                                ? const SizedBox.square(
-                                    dimension: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            final active = index < _chapterRating;
+                            return IconButton(
+                              tooltip: l10n.ratingOutOfFive('${index + 1}'),
+                              onPressed: _isSubmittingComment
+                                  ? null
+                                  : () => setModalState(
+                                      () => _chapterRating = index + 1,
                                     ),
-                                  )
-                                : const Icon(Icons.send_rounded),
-                            label: Text(l10n.shareReview),
+                              icon: Icon(
+                                active
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: active
+                                    ? Colors.amber
+                                    : theme.colorScheme.onSurfaceVariant,
+                                size: 30,
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _commentController.value,
+                          minLines: 2,
+                          maxLines: 4,
+                          enabled: !_isSubmittingComment,
+                          decoration: InputDecoration(
+                            hintText: l10n.chapterReviewPromptHint,
+                          ),
+                          onChanged: (_) => setModalState(() {}),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          l10n.chapterReviewVoicePrompt,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: emphasizeVoice
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        emphasizeVoice
+                            ? FilledButton.tonalIcon(
+                                onPressed: _isSubmittingComment
+                                    ? null
+                                    : toggleRecording,
+                                icon: Icon(
+                                  _isRecordingAudioReview
+                                      ? Icons.stop_circle_outlined
+                                      : Icons.mic_none_rounded,
+                                ),
+                                label: Text(
+                                  _isRecordingAudioReview
+                                      ? l10n.stopRecording
+                                      : l10n.recordVoiceReview,
+                                ),
+                              )
+                            : OutlinedButton.icon(
+                                onPressed: _isSubmittingComment
+                                    ? null
+                                    : toggleRecording,
+                                icon: Icon(
+                                  _isRecordingAudioReview
+                                      ? Icons.stop_circle_outlined
+                                      : Icons.mic_none_rounded,
+                                ),
+                                label: Text(
+                                  _isRecordingAudioReview
+                                      ? l10n.stopRecording
+                                      : l10n.recordVoiceReview,
+                                ),
+                              ),
+                        if (_isRecordingAudioReview || _hasReviewAudio) ...[
+                          const SizedBox(height: 8),
+                          _AudioReviewComposerChip(
+                            isRecording: _isRecordingAudioReview,
+                            durationMs: _isRecordingAudioReview
+                                ? _pendingAudioReviewDurationMs
+                                : (_pendingAudioReviewPath != null
+                                      ? _pendingAudioReviewDurationMs
+                                      : (_reviewAudioDurationMs ?? 0)),
+                            isPendingUpload: _pendingAudioReviewPath != null,
+                            textColor: theme.colorScheme.onSurface,
+                            metadataColor: theme.colorScheme.onSurfaceVariant,
+                            onStop: () => _stopAudioReviewRecording(
+                              () => setModalState(() {}),
+                            ),
+                            onDelete: () =>
+                                _removeAudioReview(() => setModalState(() {})),
                           ),
                         ],
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: _isSubmittingComment
+                                  ? null
+                                  : () => Navigator.of(
+                                      sheetContext,
+                                    ).pop(_ChapterReviewPromptResult.dismissed),
+                              child: Text(l10n.notNow),
+                            ),
+                            const Spacer(),
+                            FilledButton.icon(
+                              onPressed: _isSubmittingComment || !canSubmit
+                                  ? null
+                                  : submit,
+                              icon: _isSubmittingComment
+                                  ? const SizedBox.square(
+                                      dimension: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.send_rounded),
+                              label: Text(l10n.shareReview),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -2832,7 +2843,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
-  Future<void> _startAudioReviewRecording(VoidCallback? refreshUi) async {
+  Future<void> _startAudioReviewRecording(
+    VoidCallback? refreshUi, {
+    BuildContext? feedbackContext,
+  }) async {
     if (_isRecordingAudioReview) return;
     final editable =
         _replyingTo != null || _existingUserReview == null || _isReviewEditMode;
@@ -2843,7 +2857,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (!hasPermission) {
       final status = await Permission.microphone.status;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ModalFeedbackScope.show(
+        feedbackContext ?? context,
         SnackBar(
           content: Text(l10n.microphonePermissionRequired),
           action: status.isPermanentlyDenied
@@ -3057,7 +3072,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         );
   }
 
-  Future<void> _submitComment(dynamic chapter, {int? chapterIndex}) async {
+  Future<void> _submitComment(
+    dynamic chapter, {
+    int? chapterIndex,
+    BuildContext? feedbackContext,
+  }) async {
     final text = _commentController.value.text.trim();
     if (_isSubmittingComment) return;
     final wasReply = _replyingTo != null;
@@ -3114,15 +3133,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         });
       } else {
         if (_isOwnOriginalBook(user.id)) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ModalFeedbackScope.show(
+            feedbackContext ?? context,
             SnackBar(content: Text(l10n.authorsCannotReviewOwnBook)),
           );
           return;
         }
         if (_chapterRating <= 0) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectRating)));
+          ModalFeedbackScope.show(
+            feedbackContext ?? context,
+            SnackBar(content: Text(l10n.pleaseSelectRating)),
+          );
           return;
         }
         if (!_canSubmitReview) return;
@@ -3213,7 +3234,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ModalFeedbackScope.show(
+              feedbackContext ?? context,
               SnackBar(content: Text(l10n.saveFailed(e.toString()))),
             );
           }
@@ -3261,102 +3283,165 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       enableDrag: true,
       barrierColor: Colors.black.withValues(alpha: 0.01),
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: focusComposer ? 0.88 : 0.68,
-        minChildSize: 0.4,
-        maxChildSize: 0.98,
-        builder: (context, scrollController) {
-          final theme = Theme.of(context);
-          final colorScheme = theme.colorScheme;
-          // ignore: no_leading_underscores_for_local_identifiers
-          Color _getTextColor() => colorScheme.onSurface;
-          // ignore: no_leading_underscores_for_local_identifiers
-          Color _getSecondaryTextColor() => colorScheme.onSurfaceVariant;
-          // ignore: no_leading_underscores_for_local_identifiers
-          Color _getReaderActionColor() => colorScheme.primary;
+      builder: (context) => ModalFeedbackScope(
+        child: DraggableScrollableSheet(
+          initialChildSize: focusComposer ? 0.88 : 0.68,
+          minChildSize: 0.4,
+          maxChildSize: 0.98,
+          builder: (context, scrollController) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+            // ignore: no_leading_underscores_for_local_identifiers
+            Color _getTextColor() => colorScheme.onSurface;
+            // ignore: no_leading_underscores_for_local_identifiers
+            Color _getSecondaryTextColor() => colorScheme.onSurfaceVariant;
+            // ignore: no_leading_underscores_for_local_identifiers
+            Color _getReaderActionColor() => colorScheme.primary;
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: GlassSurface(
-              strong: true,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: _getSecondaryTextColor().withValues(
-                                  alpha: 0.3,
+              child: GlassSurface(
+                strong: true,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: _getSecondaryTextColor().withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
-                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            unawaited(AppHaptics.selection());
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
+                          IconButton(
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.all(20),
-                      children: [
-                        StatefulBuilder(
-                          builder: (context, setModalState) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (_selectedQuote != null)
-                                  GlassSurface(
-                                    borderRadius: BorderRadius.circular(14),
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.format_quote,
-                                              size: 16,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(20),
+                        children: [
+                          StatefulBuilder(
+                            builder: (context, setModalState) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (_selectedQuote != null)
+                                    GlassSurface(
+                                      borderRadius: BorderRadius.circular(14),
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.format_quote,
+                                                size: 16,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Text(
+                                                'Quote',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(
+                                                    () => _selectedQuote = null,
+                                                  );
+                                                  setModalState(() {});
+                                                },
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _selectedQuote!,
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              fontSize: 13,
+                                              color: _getSecondaryTextColor(),
                                             ),
-                                            const SizedBox(width: 4),
-                                            const Text(
-                                              'Quote',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (_replyingTo != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12.0,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer
+                                              .withValues(alpha: 0.3),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                                                style: TextStyle(
+                                                  fontStyle: FontStyle.italic,
+                                                  fontSize: 13,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                                ),
                                               ),
                                             ),
-                                            const Spacer(),
                                             GestureDetector(
                                               onTap: () {
-                                                setState(
-                                                  () => _selectedQuote = null,
-                                                );
+                                                setState(() {
+                                                  _replyingTo = null;
+                                                  _clearAudioReviewState();
+                                                });
                                                 setModalState(() {});
                                               },
                                               child: const Icon(
@@ -3366,434 +3451,391 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 4),
+                                      ),
+                                    )
+                                  else ...[
+                                    Row(
+                                      children: [
                                         Text(
-                                          _selectedQuote!,
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
+                                          'Your Rating:',
                                           style: TextStyle(
-                                            fontStyle: FontStyle.italic,
                                             fontSize: 13,
                                             color: _getSecondaryTextColor(),
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                if (_replyingTo != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: 12.0,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer
-                                            .withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
-                                              style: TextStyle(
-                                                fontStyle: FontStyle.italic,
-                                                fontSize: 13,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimaryContainer,
+                                        const SizedBox(width: 8),
+                                        ...List.generate(5, (index) {
+                                          final active = index < _chapterRating;
+                                          return GestureDetector(
+                                            onTap:
+                                                _existingUserReview != null &&
+                                                    !_isReviewEditMode
+                                                ? null
+                                                : () {
+                                                    setState(
+                                                      () => _chapterRating =
+                                                          index + 1,
+                                                    );
+                                                    setModalState(() {});
+                                                  },
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 2,
+                                                  ),
+                                              child: Icon(
+                                                active
+                                                    ? Icons.star_rounded
+                                                    : Icons.star_border_rounded,
+                                                color: active
+                                                    ? Colors.amber
+                                                    : _getSecondaryTextColor(),
+                                                size: 24,
                                               ),
                                             ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _replyingTo = null;
-                                                _clearAudioReviewState();
-                                              });
-                                              setModalState(() {});
-                                            },
-                                            child: const Icon(
-                                              Icons.close,
+                                          );
+                                        }),
+                                        if (_existingUserReview != null) ...[
+                                          const Spacer(),
+                                          TextButton.icon(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor:
+                                                  _getReaderActionColor(),
+                                              disabledForegroundColor:
+                                                  _getReaderActionColor()
+                                                      .withValues(alpha: 0.38),
+                                            ),
+                                            onPressed: _isReviewEditMode
+                                                ? null
+                                                : () {
+                                                    _isReviewEditMode = true;
+                                                    setModalState(() {});
+                                                    WidgetsBinding.instance
+                                                        .addPostFrameCallback((
+                                                          _,
+                                                        ) {
+                                                          if (mounted &&
+                                                              _isDiscussionOpen) {
+                                                            _commentFocusNode
+                                                                .requestFocus();
+                                                          }
+                                                        });
+                                                  },
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
                                               size: 16,
+                                            ),
+                                            label: const Text('Edit'),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                  TextField(
+                                    controller: _commentController.value,
+                                    focusNode: _commentFocusNode,
+                                    readOnly:
+                                        _replyingTo == null &&
+                                        _existingUserReview != null &&
+                                        !_isReviewEditMode,
+                                    minLines: 2,
+                                    maxLines: 4,
+                                    decoration: InputDecoration(
+                                      hintText: _replyingTo != null
+                                          ? 'Add a reply...'
+                                          : 'Add your review about this chapter',
+                                      hintStyle: TextStyle(
+                                        color: _getSecondaryTextColor(),
+                                      ),
+                                      suffixIcon: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            tooltip: _isRecordingAudioReview
+                                                ? 'Stop recording'
+                                                : 'Record audio',
+                                            icon: Icon(
+                                              _isRecordingAudioReview
+                                                  ? Icons.stop_circle_outlined
+                                                  : Icons.mic_none_rounded,
+                                              color: _isRecordingAudioReview
+                                                  ? Colors.red
+                                                  : _getReaderActionColor(),
+                                            ),
+                                            onPressed:
+                                                _isSubmittingComment ||
+                                                    (_replyingTo == null &&
+                                                        _existingUserReview !=
+                                                            null &&
+                                                        !_isReviewEditMode)
+                                                ? null
+                                                : () async {
+                                                    if (_isRecordingAudioReview) {
+                                                      await _stopAudioReviewRecording(
+                                                        () => setModalState(
+                                                          () {},
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      await _startAudioReviewRecording(
+                                                        () => setModalState(
+                                                          () {},
+                                                        ),
+                                                        feedbackContext:
+                                                            context,
+                                                      );
+                                                    }
+                                                  },
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8.0,
+                                            ),
+                                            child: IconButton(
+                                              tooltip: 'Send',
+                                              icon: _isSubmittingComment
+                                                  ? SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color:
+                                                            _getReaderActionColor(),
+                                                      ),
+                                                    )
+                                                  : Icon(
+                                                      Icons.send_rounded,
+                                                      color: _getReaderActionColor().withValues(
+                                                        alpha:
+                                                            (_replyingTo ==
+                                                                        null &&
+                                                                    ((_existingUserReview !=
+                                                                                null &&
+                                                                            !_isReviewEditMode) ||
+                                                                        !_canSubmitReview)) ||
+                                                                (_replyingTo !=
+                                                                        null &&
+                                                                    !_canSubmitReply)
+                                                            ? 0.35
+                                                            : 1,
+                                                      ),
+                                                    ),
+                                              onPressed:
+                                                  _isSubmittingComment ||
+                                                      (_replyingTo == null &&
+                                                          ((_existingUserReview !=
+                                                                      null &&
+                                                                  !_isReviewEditMode) ||
+                                                              !_canSubmitReview)) ||
+                                                      (_replyingTo != null &&
+                                                          !_canSubmitReply)
+                                                  ? null
+                                                  : () async {
+                                                      await _submitComment(
+                                                        chapter,
+                                                        chapterIndex:
+                                                            chapterIndex,
+                                                        feedbackContext:
+                                                            context,
+                                                      );
+                                                      setModalState(() {});
+                                                    },
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  )
-                                else ...[
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Your Rating:',
+                                    onChanged: (_) => setModalState(() {}),
+                                    style: TextStyle(color: _getTextColor()),
+                                  ),
+                                  if (_isRecordingAudioReview ||
+                                      (_replyingTo == null
+                                          ? _hasReviewAudio
+                                          : _pendingAudioReviewPath !=
+                                                null)) ...[
+                                    const SizedBox(height: 8),
+                                    _AudioReviewComposerChip(
+                                      isRecording: _isRecordingAudioReview,
+                                      durationMs: _isRecordingAudioReview
+                                          ? _pendingAudioReviewDurationMs
+                                          : (_pendingAudioReviewPath != null
+                                                ? _pendingAudioReviewDurationMs
+                                                : (_reviewAudioDurationMs ??
+                                                      0)),
+                                      isPendingUpload:
+                                          _pendingAudioReviewPath != null,
+                                      textColor: _getTextColor(),
+                                      metadataColor: _getSecondaryTextColor(),
+                                      onStop: () => _stopAudioReviewRecording(
+                                        () => setModalState(() {}),
+                                      ),
+                                      onDelete: () => _removeAudioReview(
+                                        () => setModalState(() {}),
+                                      ),
+                                    ),
+                                  ],
+                                  if (_replyingTo == null) ...[
+                                    const SizedBox(height: 8),
+                                    CheckboxListTile(
+                                      value: _shareReviewToFeed,
+                                      contentPadding: EdgeInsets.zero,
+                                      controlAffinity:
+                                          ListTileControlAffinity.leading,
+                                      title: Text(
+                                        'Share to feed',
                                         style: TextStyle(
+                                          color: _getTextColor(),
                                           fontSize: 13,
-                                          color: _getSecondaryTextColor(),
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      ...List.generate(5, (index) {
-                                        final active = index < _chapterRating;
-                                        return GestureDetector(
-                                          onTap:
-                                              _existingUserReview != null &&
-                                                  !_isReviewEditMode
-                                              ? null
-                                              : () {
-                                                  setState(
-                                                    () => _chapterRating =
-                                                        index + 1,
-                                                  );
-                                                  setModalState(() {});
-                                                },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 2,
-                                            ),
-                                            child: Icon(
-                                              active
-                                                  ? Icons.star_rounded
-                                                  : Icons.star_border_rounded,
-                                              color: active
-                                                  ? Colors.amber
-                                                  : _getSecondaryTextColor(),
-                                              size: 24,
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                      if (_existingUserReview != null) ...[
-                                        const Spacer(),
-                                        TextButton.icon(
-                                          style: TextButton.styleFrom(
-                                            foregroundColor:
-                                                _getReaderActionColor(),
-                                            disabledForegroundColor:
-                                                _getReaderActionColor()
-                                                    .withValues(alpha: 0.38),
-                                          ),
-                                          onPressed: _isReviewEditMode
-                                              ? null
-                                              : () {
-                                                  _isReviewEditMode = true;
-                                                  setModalState(() {});
-                                                  WidgetsBinding.instance
-                                                      .addPostFrameCallback((
-                                                        _,
-                                                      ) {
-                                                        if (mounted &&
-                                                            _isDiscussionOpen) {
-                                                          _commentFocusNode
-                                                              .requestFocus();
-                                                        }
-                                                      });
-                                                },
-                                          icon: const Icon(
-                                            Icons.edit_outlined,
-                                            size: 16,
-                                          ),
-                                          label: const Text('Edit'),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                ],
-                                TextField(
-                                  controller: _commentController.value,
-                                  focusNode: _commentFocusNode,
-                                  readOnly:
-                                      _replyingTo == null &&
-                                      _existingUserReview != null &&
-                                      !_isReviewEditMode,
-                                  minLines: 2,
-                                  maxLines: 4,
-                                  decoration: InputDecoration(
-                                    hintText: _replyingTo != null
-                                        ? 'Add a reply...'
-                                        : 'Add your review about this chapter',
-                                    hintStyle: TextStyle(
-                                      color: _getSecondaryTextColor(),
+                                      activeColor: _getReaderActionColor(),
+                                      checkColor: _getBackgroundColor(),
+                                      onChanged:
+                                          _existingUserReview != null &&
+                                              !_isReviewEditMode
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                _shareReviewToFeed =
+                                                    value ?? false;
+                                              });
+                                              setModalState(() {});
+                                            },
                                     ),
-                                    suffixIcon: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          tooltip: _isRecordingAudioReview
-                                              ? 'Stop recording'
-                                              : 'Record audio',
-                                          icon: Icon(
-                                            _isRecordingAudioReview
-                                                ? Icons.stop_circle_outlined
-                                                : Icons.mic_none_rounded,
-                                            color: _isRecordingAudioReview
-                                                ? Colors.red
-                                                : _getReaderActionColor(),
-                                          ),
-                                          onPressed:
-                                              _isSubmittingComment ||
-                                                  (_replyingTo == null &&
-                                                      _existingUserReview !=
-                                                          null &&
-                                                      !_isReviewEditMode)
-                                              ? null
-                                              : () async {
-                                                  if (_isRecordingAudioReview) {
-                                                    await _stopAudioReviewRecording(
-                                                      () =>
-                                                          setModalState(() {}),
-                                                    );
-                                                  } else {
-                                                    await _startAudioReviewRecording(
-                                                      () =>
-                                                          setModalState(() {}),
-                                                    );
-                                                  }
-                                                },
+                                  ],
+                                  const SizedBox(height: 24),
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final commentsAsync = ref.watch(
+                                        liveBookCommentsProvider(
+                                          widget.book.id,
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8.0,
-                                          ),
-                                          child: IconButton(
-                                            tooltip: 'Send',
-                                            icon: _isSubmittingComment
-                                                ? SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
+                                      );
+                                      return commentsAsync.when(
+                                        data: (items) {
+                                          final chapterId = chapter?.id
+                                              .toString();
+                                          final chapterComments = items.where((
+                                            comment,
+                                          ) {
+                                            if (chapterId != null &&
+                                                chapterId.isNotEmpty &&
+                                                comment.chapterId ==
+                                                    chapterId) {
+                                              return true;
+                                            }
+                                            return comment.chapterIndex ==
+                                                (chapterIndex ?? _chapterIndex);
+                                          }).toList();
+
+                                          if (chapterComments.isEmpty) {
+                                            return Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                  32.0,
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .chat_bubble_outline_rounded,
+                                                      size: 48,
                                                       color:
-                                                          _getReaderActionColor(),
+                                                          _getSecondaryTextColor()
+                                                              .withValues(
+                                                                alpha: 0.3,
+                                                              ),
                                                     ),
-                                                  )
-                                                : Icon(
-                                                    Icons.send_rounded,
-                                                    color: _getReaderActionColor().withValues(
-                                                      alpha:
-                                                          (_replyingTo ==
-                                                                      null &&
-                                                                  ((_existingUserReview !=
-                                                                              null &&
-                                                                          !_isReviewEditMode) ||
-                                                                      !_canSubmitReview)) ||
-                                                              (_replyingTo !=
-                                                                      null &&
-                                                                  !_canSubmitReply)
-                                                          ? 0.35
-                                                          : 1,
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'No comments for this chapter yet.',
+                                                      style: TextStyle(
+                                                        color:
+                                                            _getSecondaryTextColor(),
+                                                      ),
                                                     ),
-                                                  ),
-                                            onPressed:
-                                                _isSubmittingComment ||
-                                                    (_replyingTo == null &&
-                                                        ((_existingUserReview !=
-                                                                    null &&
-                                                                !_isReviewEditMode) ||
-                                                            !_canSubmitReview)) ||
-                                                    (_replyingTo != null &&
-                                                        !_canSubmitReply)
-                                                ? null
-                                                : () async {
-                                                    await _submitComment(
-                                                      chapter,
-                                                      chapterIndex:
-                                                          chapterIndex,
-                                                    );
-                                                    setModalState(() {});
-                                                  },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  onChanged: (_) => setModalState(() {}),
-                                  style: TextStyle(color: _getTextColor()),
-                                ),
-                                if (_isRecordingAudioReview ||
-                                    (_replyingTo == null
-                                        ? _hasReviewAudio
-                                        : _pendingAudioReviewPath != null)) ...[
-                                  const SizedBox(height: 8),
-                                  _AudioReviewComposerChip(
-                                    isRecording: _isRecordingAudioReview,
-                                    durationMs: _isRecordingAudioReview
-                                        ? _pendingAudioReviewDurationMs
-                                        : (_pendingAudioReviewPath != null
-                                              ? _pendingAudioReviewDurationMs
-                                              : (_reviewAudioDurationMs ?? 0)),
-                                    isPendingUpload:
-                                        _pendingAudioReviewPath != null,
-                                    textColor: _getTextColor(),
-                                    metadataColor: _getSecondaryTextColor(),
-                                    onStop: () => _stopAudioReviewRecording(
-                                      () => setModalState(() {}),
-                                    ),
-                                    onDelete: () => _removeAudioReview(
-                                      () => setModalState(() {}),
-                                    ),
-                                  ),
-                                ],
-                                if (_replyingTo == null) ...[
-                                  const SizedBox(height: 8),
-                                  CheckboxListTile(
-                                    value: _shareReviewToFeed,
-                                    contentPadding: EdgeInsets.zero,
-                                    controlAffinity:
-                                        ListTileControlAffinity.leading,
-                                    title: Text(
-                                      'Share to feed',
-                                      style: TextStyle(
-                                        color: _getTextColor(),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    activeColor: _getReaderActionColor(),
-                                    checkColor: _getBackgroundColor(),
-                                    onChanged:
-                                        _existingUserReview != null &&
-                                            !_isReviewEditMode
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              _shareReviewToFeed =
-                                                  value ?? false;
-                                            });
-                                            setModalState(() {});
-                                          },
-                                  ),
-                                ],
-                                const SizedBox(height: 24),
-                                Consumer(
-                                  builder: (context, ref, _) {
-                                    final commentsAsync = ref.watch(
-                                      liveBookCommentsProvider(widget.book.id),
-                                    );
-                                    return commentsAsync.when(
-                                      data: (items) {
-                                        final chapterId = chapter?.id
-                                            .toString();
-                                        final chapterComments = items.where((
-                                          comment,
-                                        ) {
-                                          if (chapterId != null &&
-                                              chapterId.isNotEmpty &&
-                                              comment.chapterId == chapterId) {
-                                            return true;
+                                                  ],
+                                                ),
+                                              ),
+                                            );
                                           }
-                                          return comment.chapterIndex ==
-                                              (chapterIndex ?? _chapterIndex);
-                                        }).toList();
 
-                                        if (chapterComments.isEmpty) {
-                                          return Center(
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(
-                                                32.0,
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Icon(
-                                                    Icons
-                                                        .chat_bubble_outline_rounded,
-                                                    size: 48,
-                                                    color:
-                                                        _getSecondaryTextColor()
-                                                            .withValues(
-                                                              alpha: 0.3,
-                                                            ),
+                                          return Column(
+                                            children: [
+                                              for (final comment
+                                                  in chapterComments)
+                                                CommentTile(
+                                                  key: ValueKey(
+                                                    'reader-comment-${comment.id ?? comment.timestamp}',
                                                   ),
-                                                  const SizedBox(height: 16),
-                                                  Text(
-                                                    'No comments for this chapter yet.',
-                                                    style: TextStyle(
-                                                      color:
-                                                          _getSecondaryTextColor(),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+                                                  comment: comment,
+                                                  bookId: widget.book.id,
+                                                  bookTitle: widget.book.title,
+                                                  bookAuthorName:
+                                                      bookAuthorName(
+                                                        widget.book,
+                                                      ),
+                                                  bookCover:
+                                                      widget.book.coverUrl,
+                                                  bookAuthorId: _bookAuthorId,
+                                                  chapterCount:
+                                                      widget
+                                                          .book
+                                                          .chapterCount ??
+                                                      widget
+                                                          .book
+                                                          .chapters
+                                                          ?.length,
+                                                  textColor: _getTextColor(),
+                                                  metadataColor:
+                                                      _getSecondaryTextColor(),
+                                                  actionColor:
+                                                      _getReaderActionColor(),
+                                                  onReply: () {
+                                                    unawaited(
+                                                      _showChapterReplySheet(
+                                                        comment,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                            ],
                                           );
-                                        }
-
-                                        return Column(
-                                          children: [
-                                            for (final comment
-                                                in chapterComments)
-                                              CommentTile(
-                                                key: ValueKey(
-                                                  'reader-comment-${comment.id ?? comment.timestamp}',
-                                                ),
-                                                comment: comment,
-                                                bookId: widget.book.id,
-                                                bookTitle: widget.book.title,
-                                                bookAuthorName: bookAuthorName(
-                                                  widget.book,
-                                                ),
-                                                bookCover: widget.book.coverUrl,
-                                                bookAuthorId: _bookAuthorId,
-                                                chapterCount:
-                                                    widget.book.chapterCount ??
-                                                    widget
-                                                        .book
-                                                        .chapters
-                                                        ?.length,
-                                                textColor: _getTextColor(),
-                                                metadataColor:
-                                                    _getSecondaryTextColor(),
-                                                actionColor:
-                                                    _getReaderActionColor(),
-                                                onReply: () {
-                                                  unawaited(
-                                                    _showChapterReplySheet(
-                                                      comment,
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                          ],
-                                        );
-                                      },
-                                      loading: () => const Center(
-                                        child: LinearProgressIndicator(),
-                                      ),
-                                      error: (error, stackTrace) {
-                                        logUiError(
-                                          'Reader comments load failed',
-                                          error,
-                                          stackTrace,
-                                        );
-                                        return Text(
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.somethingWentWrong,
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                                        },
+                                        loading: () => const Center(
+                                          child: LinearProgressIndicator(),
+                                        ),
+                                        error: (error, stackTrace) {
+                                          logUiError(
+                                            'Reader comments load failed',
+                                            error,
+                                            stackTrace,
+                                          );
+                                          return Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.somethingWentWrong,
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     ).whenComplete(() {
       _isDiscussionOpen = false;
@@ -3818,8 +3860,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) =>
-          CommentReplySheet(comment: comment, bookId: widget.book.id),
+      builder: (context) => ModalFeedbackScope(
+        child: CommentReplySheet(comment: comment, bookId: widget.book.id),
+      ),
     );
     if (mounted) {
       ref.invalidate(liveBookCommentsProvider(widget.book.id));
@@ -3830,100 +3873,105 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.readerSettings,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
-                Slider(
-                  value: _fontSize,
-                  min: 14,
-                  max: 28,
-                  onChanged: (value) {
-                    setState(() => _fontSize = value);
-                    setModalState(() {});
-                  },
-                  onChangeEnd: (value) {
-                    unawaited(AppHaptics.selection());
-                    ref
-                        .read(readerSettingsControllerProvider.notifier)
-                        .setFontSize(value);
-                  },
-                ),
-                Text(l10n.theme, style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _ThemeOption(
-                      label: l10n.systemDefault,
-                      color: Theme.of(context).colorScheme.surface,
-                      icon: Icons.brightness_auto_rounded,
-                      selected: _readerTheme == ReaderTheme.system,
-                      onTap: () {
-                        unawaited(AppHaptics.selection());
-                        setState(() => _readerTheme = ReaderTheme.system);
-                        ref
-                            .read(readerSettingsControllerProvider.notifier)
-                            .setTheme(_readerTheme);
-                        setModalState(() {});
-                      },
-                    ),
-                    _ThemeOption(
-                      label: l10n.light,
-                      color: Colors.white,
-                      selected: _readerTheme == ReaderTheme.light,
-                      onTap: () {
-                        unawaited(AppHaptics.selection());
-                        setState(() => _readerTheme = ReaderTheme.light);
-                        ref
-                            .read(readerSettingsControllerProvider.notifier)
-                            .setTheme(_readerTheme);
-                        setModalState(() {});
-                      },
-                    ),
-                    _ThemeOption(
-                      label: l10n.sepia,
-                      color: const Color(0xFFF4ECD8),
-                      selected: _readerTheme == ReaderTheme.sepia,
-                      onTap: () {
-                        unawaited(AppHaptics.selection());
-                        setState(() => _readerTheme = ReaderTheme.sepia);
-                        ref
-                            .read(readerSettingsControllerProvider.notifier)
-                            .setTheme(_readerTheme);
-                        setModalState(() {});
-                      },
-                    ),
-                    _ThemeOption(
-                      label: l10n.dark,
-                      color: const Color(0xFF1A1A1A),
-                      textColor: Colors.white,
-                      selected: _readerTheme == ReaderTheme.dark,
-                      onTap: () {
-                        unawaited(AppHaptics.selection());
-                        setState(() => _readerTheme = ReaderTheme.dark);
-                        ref
-                            .read(readerSettingsControllerProvider.notifier)
-                            .setTheme(_readerTheme);
-                        setModalState(() {});
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+      builder: (context) => ModalFeedbackScope(
+        child: StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.readerSettings,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
+                  Slider(
+                    value: _fontSize,
+                    min: 14,
+                    max: 28,
+                    onChanged: (value) {
+                      setState(() => _fontSize = value);
+                      setModalState(() {});
+                    },
+                    onChangeEnd: (value) {
+                      unawaited(AppHaptics.selection());
+                      ref
+                          .read(readerSettingsControllerProvider.notifier)
+                          .setFontSize(value);
+                    },
+                  ),
+                  Text(
+                    l10n.theme,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _ThemeOption(
+                        label: l10n.systemDefault,
+                        color: Theme.of(context).colorScheme.surface,
+                        icon: Icons.brightness_auto_rounded,
+                        selected: _readerTheme == ReaderTheme.system,
+                        onTap: () {
+                          unawaited(AppHaptics.selection());
+                          setState(() => _readerTheme = ReaderTheme.system);
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setTheme(_readerTheme);
+                          setModalState(() {});
+                        },
+                      ),
+                      _ThemeOption(
+                        label: l10n.light,
+                        color: Colors.white,
+                        selected: _readerTheme == ReaderTheme.light,
+                        onTap: () {
+                          unawaited(AppHaptics.selection());
+                          setState(() => _readerTheme = ReaderTheme.light);
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setTheme(_readerTheme);
+                          setModalState(() {});
+                        },
+                      ),
+                      _ThemeOption(
+                        label: l10n.sepia,
+                        color: const Color(0xFFF4ECD8),
+                        selected: _readerTheme == ReaderTheme.sepia,
+                        onTap: () {
+                          unawaited(AppHaptics.selection());
+                          setState(() => _readerTheme = ReaderTheme.sepia);
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setTheme(_readerTheme);
+                          setModalState(() {});
+                        },
+                      ),
+                      _ThemeOption(
+                        label: l10n.dark,
+                        color: const Color(0xFF1A1A1A),
+                        textColor: Colors.white,
+                        selected: _readerTheme == ReaderTheme.dark,
+                        onTap: () {
+                          unawaited(AppHaptics.selection());
+                          setState(() => _readerTheme = ReaderTheme.dark);
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setTheme(_readerTheme);
+                          setModalState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

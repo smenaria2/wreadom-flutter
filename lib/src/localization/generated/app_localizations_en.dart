@@ -1709,13 +1709,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'A published book must keep at least one chapter visible.';
 
   @override
-  String get restoreLocalDraftTitle => 'Restore unsaved draft?';
-
-  @override
-  String get restoreLocalDraftBody =>
-      'A newer unsaved draft was found on this device. Restoring it will replace the editor\'s current contents.';
-
-  @override
   String get discard => 'Discard';
 
   @override

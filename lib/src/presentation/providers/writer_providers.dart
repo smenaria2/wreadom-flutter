@@ -17,7 +17,7 @@ final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
   return CloudinaryUploadService();
 });
 
-final writerDraftServiceProvider = Provider<WriterDraftService>((ref) {
+final writerDraftServiceProvider = Provider<WriterDraftStore>((ref) {
   return WriterDraftService();
 });
 

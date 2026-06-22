@@ -9,6 +9,7 @@ import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
 import '../../utils/book_author_utils.dart';
+import '../../widgets/modal_feedback_scope.dart';
 
 class QuoteSharePreviewSheet extends ConsumerStatefulWidget {
   final Book book;
@@ -33,18 +34,21 @@ class QuoteSharePreviewSheet extends ConsumerStatefulWidget {
       _QuoteSharePreviewSheetState();
 }
 
-class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet> {
+class _QuoteSharePreviewSheetState
+    extends ConsumerState<QuoteSharePreviewSheet> {
   bool _isSharingToFeed = false;
 
   Future<void> _shareExternally() async {
     try {
       final authors = bookAuthorName(widget.book);
-      final caption = 'Read :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. ${widget.chapterLink} ::';
+      final caption =
+          'Read :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. ${widget.chapterLink} ::';
       await Share.shareXFiles(
         [
           XFile.fromData(
             widget.imageBytes,
-            name: '${widget.book.title.replaceAll(RegExp(r'[^\w\s\-]'), '')}-quote.png',
+            name:
+                '${widget.book.title.replaceAll(RegExp(r'[^\w\s\-]'), '')}-quote.png',
             mimeType: 'image/png',
           ),
         ],
@@ -56,7 +60,8 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text('Failed to share: $e')),
         );
       }
@@ -68,7 +73,8 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text(l10n.signInToShare)),
         );
       }
@@ -105,13 +111,14 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.quoteShared)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.quoteShared)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ModalFeedbackScope.show(
+          context,
           SnackBar(content: Text(l10n.failedToShareQuote(e.toString()))),
         );
       }
@@ -173,10 +180,7 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(
-                      widget.imageBytes,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.memory(widget.imageBytes, fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -228,7 +232,9 @@ class _QuoteSharePreviewSheetState extends ConsumerState<QuoteSharePreviewSheet>
                                 ),
                               )
                             : const Icon(Icons.forum_rounded),
-                        label: Text(_isSharingToFeed ? 'Sharing...' : 'Post to Feed'),
+                        label: Text(
+                          _isSharingToFeed ? 'Sharing...' : 'Post to Feed',
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           foregroundColor: Colors.white,
@@ -264,13 +270,15 @@ void showQuoteSharePreviewSheet({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => QuoteSharePreviewSheet(
-      book: book,
-      chapterTitle: chapterTitle,
-      quoteText: quoteText,
-      imageBytes: imageBytes,
-      shareText: shareText,
-      chapterLink: chapterLink,
+    builder: (context) => ModalFeedbackScope(
+      child: QuoteSharePreviewSheet(
+        book: book,
+        chapterTitle: chapterTitle,
+        quoteText: quoteText,
+        imageBytes: imageBytes,
+        shareText: shareText,
+        chapterLink: chapterLink,
+      ),
     ),
   );
 }

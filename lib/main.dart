@@ -155,9 +155,9 @@ Future<void> _configureFirebaseEmulators() async {
       ? '127.0.0.1'
       : EnvConfig.firebaseEmulatorHost.trim();
   debugPrint('Using emulator host: $host');
-  await FirebaseAuth.instance.useAuthEmulator(host, 9099);
-  FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-  FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+  await FirebaseAuth.instance.useAuthEmulator(host, EnvConfig.firebaseAuthEmulatorPort);
+  FirebaseFirestore.instance.useFirestoreEmulator(host, EnvConfig.firebaseFirestoreEmulatorPort);
+  FirebaseFunctions.instance.useFunctionsEmulator(host, EnvConfig.firebaseFunctionsEmulatorPort);
 }
 
 bool _shouldActivateAppCheck() {

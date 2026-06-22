@@ -947,8 +947,6 @@
   "hideChapter": "Hide chapter",
   "showChapter": "Show chapter",
   "keepOneChapterVisible": "A published book must keep at least one chapter visible.",
-  "restoreLocalDraftTitle": "Restore unsaved draft?",
-  "restoreLocalDraftBody": "A newer unsaved draft was found on this device. Restoring it will replace the editor's current contents.",
   "discard": "Discard",
   "couldNotSaveBeforeExit": "Your changes could not be saved. Please try again before leaving.",
   "localSaveFailed": "Local save failed",
