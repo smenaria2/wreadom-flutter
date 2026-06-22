@@ -111,6 +111,46 @@ void main() {
     );
   }
 
+  Widget routedWriterPadTestApp(
+    Book book, {
+    required WriterRepository writerRepository,
+    required WriterDraftStore writerDraftStore,
+  }) {
+    return ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+        writerRepositoryProvider.overrideWithValue(writerRepository),
+        writerDraftServiceProvider.overrideWithValue(writerDraftStore),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: const [
+          ...AppLocalizations.localizationsDelegates,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => WriterPadScreen(
+                    book: book,
+                    restoreLocalDrafts: false,
+                    showToolbar: false,
+                  ),
+                ),
+              ),
+              child: const Text('Open writer'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   testWidgets('WriterPad renders rich html content without literal tags', (
     tester,
   ) async {
@@ -347,6 +387,135 @@ void main() {
     await tester.tap(find.byTooltip('Chapters'));
     await tester.pumpAndSettle();
     expect(find.text('Hidden'), findsNothing);
+  });
+
+  testWidgets('failed remote save keeps editor open and offers exit choices', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
+    final draftStore = _FakeWriterDraftStore();
+    await tester.pumpWidget(
+      routedWriterPadTestApp(
+        testBook(status: 'draft'),
+        writerRepository: repository,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.tap(find.text('Open writer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Changed chapter');
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Save failed'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Save again'), findsOneWidget);
+    expect(find.text('Exit without saving'), findsOneWidget);
+    expect(find.text('Writing Editor'), findsOneWidget);
+    expect(await draftStore.getDraft('user-1:book-1'), isNotNull);
+  });
+
+  testWidgets('save again retries and exits only after remote save succeeds', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
+    final draftStore = _FakeWriterDraftStore();
+    await tester.pumpWidget(
+      routedWriterPadTestApp(
+        testBook(status: 'draft'),
+        writerRepository: repository,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.tap(find.text('Open writer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Changed chapter');
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save again'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updateAttempts, 2);
+    expect(find.text('Open writer'), findsOneWidget);
+    expect(find.text('Writing Editor'), findsNothing);
+  });
+
+  testWidgets('exit without saving closes and preserves local checkpoint', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
+    final draftStore = _FakeWriterDraftStore();
+    await tester.pumpWidget(
+      routedWriterPadTestApp(
+        testBook(status: 'draft'),
+        writerRepository: repository,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.tap(find.text('Open writer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Changed chapter');
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit without saving'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open writer'), findsOneWidget);
+    expect(find.text('Writing Editor'), findsNothing);
+    expect(await draftStore.getDraft('user-1:book-1'), isNotNull);
+  });
+
+  testWidgets('successful close saves remotely and exits automatically', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository();
+    final draftStore = _FakeWriterDraftStore();
+    await tester.pumpWidget(
+      routedWriterPadTestApp(
+        testBook(status: 'draft'),
+        writerRepository: repository,
+        writerDraftStore: draftStore,
+      ),
+    );
+    await tester.tap(find.text('Open writer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Changed chapter');
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+
+    expect(repository.updateAttempts, 1);
+    expect(find.text('Open writer'), findsOneWidget);
+    expect(find.text('Writing Editor'), findsNothing);
+  });
+
+  testWidgets('chapter sheet uses delete wording and compact import action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      writerPadTestApp(testBook(status: 'draft', chapterCount: 2)),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byTooltip('Chapters'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Delete chapter'), findsNWidgets(2));
+    expect(find.byTooltip('Import from drafts'), findsOneWidget);
+    expect(find.text('Import from drafts'), findsNothing);
+    expect(find.text('Add new chapter'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete chapter').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete chapter?'), findsOneWidget);
+    expect(
+      find.textContaining('moved to drafts as a single-chapter draft'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(FilledButton, 'Delete chapter'), findsOneWidget);
   });
 
   testWidgets('stale local draft is deleted and ignored', (tester) async {
@@ -661,9 +830,14 @@ class _FakeWriterDraftStore implements WriterDraftStore {
 }
 
 class _FakeWriterRepository implements WriterRepository {
-  _FakeWriterRepository({this.authoringChapters = const <Chapter>[]});
+  _FakeWriterRepository({
+    this.authoringChapters = const <Chapter>[],
+    this.updateFailuresRemaining = 0,
+  });
 
   final List<Chapter> authoringChapters;
+  int updateFailuresRemaining;
+  int updateAttempts = 0;
   Book? updatedBook;
 
   @override
@@ -674,6 +848,11 @@ class _FakeWriterRepository implements WriterRepository {
 
   @override
   Future<void> updateBook(String bookId, Book book) async {
+    updateAttempts += 1;
+    if (updateFailuresRemaining > 0) {
+      updateFailuresRemaining -= 1;
+      throw StateError('simulated remote save failure');
+    }
     updatedBook = book;
   }
 

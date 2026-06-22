@@ -87,7 +87,10 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
       topicName: leaf.certificateTopicName?.trim().isNotEmpty == true
           ? leaf.certificateTopicName!.trim()
           : l10n.dailyTopic,
-      date: formatCertificateDateFromMillis(issuedAt),
+      date: formatCertificateDateFromMillis(
+        issuedAt,
+        locale: Localizations.localeOf(context),
+      ),
       bookCoverUrl: widget.book.coverUrl,
     );
   }
@@ -97,7 +100,7 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
     if (fromLeaf != null && fromLeaf.isNotEmpty) return fromLeaf;
     final firstAuthor = widget.book.authors.firstOrNull?.name.trim();
     if (firstAuthor != null && firstAuthor.isNotEmpty) return firstAuthor;
-    return 'User';
+    return AppLocalizations.of(context)!.certificateDefaultParticipant;
   }
 
   Future<void> _shareCertificate() async {

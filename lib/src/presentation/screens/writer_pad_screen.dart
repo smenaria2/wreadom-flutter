@@ -691,16 +691,53 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final navigator = Navigator.of(context);
     if (!navigator.canPop()) return;
     _isHandlingBack = true;
-    final localSaved = await _saveLocalDraft();
-    final remoteSaved = await _syncDraftCheckpoint();
-    if (!mounted) return;
-    _isHandlingBack = false;
-    if (!localSaved && !remoteSaved && _hasSavableContent) {
-      _showSnack(AppLocalizations.of(context)!.couldNotSaveBeforeExit);
-      return;
+    try {
+      while (mounted) {
+        await _saveLocalDraft();
+        final remoteSaved = await _syncDraftCheckpoint();
+        if (!mounted) return;
+        if (remoteSaved || !_hasSavableContent) {
+          setState(() => _allowPop = true);
+          navigator.pop();
+          return;
+        }
+
+        final action = await _showExitSaveFailedDialog();
+        if (!mounted || action == null) return;
+        if (action == _ExitSaveFailureAction.exitWithoutSaving) {
+          setState(() => _allowPop = true);
+          navigator.pop();
+          return;
+        }
+      }
+    } finally {
+      if (mounted) _isHandlingBack = false;
     }
-    setState(() => _allowPop = true);
-    navigator.pop();
+  }
+
+  Future<_ExitSaveFailureAction?> _showExitSaveFailedDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<_ExitSaveFailureAction>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.exitSaveFailedTitle),
+        content: Text(l10n.exitSaveFailedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_ExitSaveFailureAction.exitWithoutSaving),
+            child: Text(l10n.exitWithoutSaving),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_ExitSaveFailureAction.saveAgain),
+            child: Text(l10n.saveAgain),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEditorStep() {
@@ -1327,47 +1364,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           ],
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                        child: GlassSurface(
-                          strong: true,
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: () async {
-                            final imported = await _showImportDraftsPicker();
-                            if (imported && context.mounted) {
-                              modalSetState(() {});
-                            }
-                          },
-                          semanticButton: true,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.file_download_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  l10n.importFromDrafts,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                       Expanded(
                         child: ReorderableListView.builder(
                           padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
@@ -1438,28 +1434,62 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                        child: GlassSurface(
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: () {
-                            _addChapter();
-                            unawaited(_syncDraftCheckpoint());
-                            modalSetState(() {});
-                          },
-                          semanticButton: true,
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Icon(Icons.add_rounded, color: onSheetColor),
-                              const SizedBox(width: 10),
-                              Text(
-                                l10n.addNewChapter,
-                                style: TextStyle(
-                                  color: onSheetColor,
-                                  fontWeight: FontWeight.w800,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GlassSurface(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () {
+                                  _addChapter();
+                                  unawaited(_syncDraftCheckpoint());
+                                  modalSetState(() {});
+                                },
+                                semanticButton: true,
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.add_rounded,
+                                      color: onSheetColor,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.addNewChapter,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: onSheetColor,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 10),
+                            Tooltip(
+                              message: l10n.importFromDrafts,
+                              child: GlassSurface(
+                                strong: true,
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () async {
+                                  final imported =
+                                      await _showImportDraftsPicker();
+                                  if (imported && context.mounted) {
+                                    modalSetState(() {});
+                                  }
+                                },
+                                semanticButton: true,
+                                padding: const EdgeInsets.all(16),
+                                child: Icon(
+                                  Icons.file_download_outlined,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1524,8 +1554,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.moveChapterToDraftsTitle),
-        content: Text(l10n.moveChapterToDraftsBody),
+        title: Text(l10n.deleteChapterTitle),
+        content: Text(l10n.deleteChapterMoveBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -1533,7 +1563,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.moveToDrafts),
+            child: Text(l10n.deleteChapter),
           ),
         ],
       ),
@@ -3468,10 +3498,10 @@ class _ChapterOverviewCard extends StatelessWidget {
                     icon: const Icon(Icons.history_rounded),
                   ),
                 IconButton(
-                  tooltip: l10n.moveToDrafts,
+                  tooltip: l10n.deleteChapter,
                   onPressed: canDelete ? onDelete : null,
                   color: textColor.withValues(alpha: 0.74),
-                  icon: const Icon(Icons.file_upload_outlined),
+                  icon: const Icon(Icons.close_rounded),
                 ),
               ],
             ),
@@ -3481,6 +3511,8 @@ class _ChapterOverviewCard extends StatelessWidget {
     );
   }
 }
+
+enum _ExitSaveFailureAction { saveAgain, exitWithoutSaving }
 
 enum _WriterMenuAction { addToBook, deleteBook, convertToDraft, printBook }
 

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 class ParticipationCertificate extends StatelessWidget {
   const ParticipationCertificate({
@@ -20,7 +21,12 @@ class ParticipationCertificate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = userName.trim().isEmpty ? 'User' : userName.trim();
+    final l10n = AppLocalizations.of(context)!;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final devanagariFamily = GoogleFonts.notoSansDevanagari().fontFamily;
+    final displayName = userName.trim().isEmpty
+        ? l10n.certificateDefaultParticipant
+        : userName.trim();
     return Material(
       color: Colors.white,
       child: Container(
@@ -39,7 +45,8 @@ class ParticipationCertificate extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: bookCoverUrl!,
                     fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => const SizedBox.shrink(),
+                    errorWidget: (context, url, error) =>
+                        const SizedBox.shrink(),
                   ),
                 ),
               ),
@@ -79,10 +86,11 @@ class ParticipationCertificate extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    'DATE',
+                  Text(
+                    l10n.certificateDateLabel,
                     style: TextStyle(
                       color: Color(0xFF94A3B8),
+                      fontFamily: isHindi ? devanagariFamily : null,
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.5,
@@ -103,138 +111,149 @@ class ParticipationCertificate extends StatelessWidget {
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(72, 32, 72, 128),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: SizedBox(
+                    width: 666,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/images/app_logo.png',
-                          width: 56,
-                          height: 56,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/app_logo.png',
+                              width: 56,
+                              height: 56,
+                            ),
+                            const SizedBox(width: 16),
+                            ClipOval(
+                              child: Image.asset(
+                                'assets/images/agaaz_logo.jpg',
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/images/agaaz_logo.jpg',
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.certificateTitle,
+                          style: TextStyle(
+                            color: Color(0xFF8B6B23),
+                            fontSize: 34,
+                            fontFamily: isHindi ? devanagariFamily : 'Serif',
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 6,
+                          ),
+                        ),
+                        Text(
+                          l10n.certificateParticipationSubtitle,
+                          style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontFamily: isHindi ? devanagariFamily : null,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 26),
+                        Text(
+                          l10n.certificateCertifyThat,
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontFamily: isHindi ? devanagariFamily : null,
+                            fontSize: 15,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        CircleAvatar(
+                          radius: 34,
+                          backgroundColor: const Color(0xFFFF8A65),
+                          backgroundImage:
+                              userPhotoUrl != null && userPhotoUrl!.isNotEmpty
+                              ? CachedNetworkImageProvider(userPhotoUrl!)
+                              : null,
+                          child: userPhotoUrl == null || userPhotoUrl!.isEmpty
+                              ? Text(
+                                  displayName.characters.first.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(42, 0, 42, 8),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color(0x55C5A059),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 30,
+                              fontFamily: isHindi ? devanagariFamily : 'Serif',
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          l10n.certificateParticipatedIn,
+                          style: TextStyle(
+                            color: Color(0xFF475569),
+                            fontFamily: isHindi ? devanagariFamily : null,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          topicName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontFamily: isHindi ? devanagariFamily : null,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: 470,
+                          child: Text(
+                            l10n.certificateAppreciationQuote,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontFamily: isHindi ? devanagariFamily : null,
+                              fontSize: 13,
+                              height: 1.45,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'CERTIFICATE',
-                      style: TextStyle(
-                        color: Color(0xFF8B6B23),
-                        fontSize: 34,
-                        fontFamily: 'Serif',
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                    const Text(
-                      'OF PARTICIPATION',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 26),
-                    const Text(
-                      'This is to certify that',
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    CircleAvatar(
-                      radius: 34,
-                      backgroundColor: const Color(0xFFFF8A65),
-                      backgroundImage:
-                          userPhotoUrl != null && userPhotoUrl!.isNotEmpty
-                          ? CachedNetworkImageProvider(userPhotoUrl!)
-                          : null,
-                      child: userPhotoUrl == null || userPhotoUrl!.isEmpty
-                          ? Text(
-                              displayName.characters.first.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(42, 0, 42, 8),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Color(0x55C5A059),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 30,
-                          fontFamily: 'Serif',
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'has successfully participated in the',
-                      style: TextStyle(
-                        color: Color(0xFF475569),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      topicName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF1E293B),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const SizedBox(
-                      width: 470,
-                      child: Text(
-                        '"We appreciate your participation and your contribution to the spirit of literature through your writing."',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 13,
-                          height: 1.45,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -243,7 +262,7 @@ class ParticipationCertificate extends StatelessWidget {
               bottom: 30,
               child: _CertificateSignature(
                 name: "Shraddha 'Meera'",
-                title: 'Agaaz Admin',
+                title: l10n.certificateAgaazAdmin,
               ),
             ),
             Positioned(
@@ -251,7 +270,7 @@ class ParticipationCertificate extends StatelessWidget {
               bottom: 30,
               child: _CertificateSignature(
                 name: 'Sumit Menaria',
-                title: 'Wreadom Admin',
+                title: l10n.certificateWreadomAdmin,
               ),
             ),
           ],
@@ -261,11 +280,25 @@ class ParticipationCertificate extends StatelessWidget {
   }
 }
 
-String formatCertificateDateFromMillis(int? millis) {
+String formatCertificateDateFromMillis(int? millis, {required Locale locale}) {
   final date = millis == null
       ? DateTime.now()
       : DateTime.fromMillisecondsSinceEpoch(millis);
-  const months = [
+  const hindiMonths = [
+    'जनवरी',
+    'फ़रवरी',
+    'मार्च',
+    'अप्रैल',
+    'मई',
+    'जून',
+    'जुलाई',
+    'अगस्त',
+    'सितंबर',
+    'अक्टूबर',
+    'नवंबर',
+    'दिसंबर',
+  ];
+  const englishMonths = [
     'January',
     'February',
     'March',
@@ -279,6 +312,7 @@ String formatCertificateDateFromMillis(int? millis) {
     'November',
     'December',
   ];
+  final months = locale.languageCode == 'hi' ? hindiMonths : englishMonths;
   return '${date.day} ${months[date.month - 1]} ${date.year}';
 }
 

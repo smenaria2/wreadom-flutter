@@ -3140,6 +3140,30 @@ abstract class AppLocalizations {
   /// **'Your changes could not be saved. Please try again before leaving.'**
   String get couldNotSaveBeforeExit;
 
+  /// No description provided for @exitSaveFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get exitSaveFailedTitle;
+
+  /// No description provided for @exitSaveFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your latest changes could not be saved online. You can try saving again or exit without saving.'**
+  String get exitSaveFailedBody;
+
+  /// No description provided for @saveAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Save again'**
+  String get saveAgain;
+
+  /// No description provided for @exitWithoutSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit without saving'**
+  String get exitWithoutSaving;
+
   /// No description provided for @localSaveFailed.
   ///
   /// In en, this message translates to:
@@ -3271,6 +3295,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move to drafts'**
   String get moveToDrafts;
+
+  /// No description provided for @deleteChapterMoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This chapter will be removed from this content and moved to drafts as a single-chapter draft. Its comments will move with it.'**
+  String get deleteChapterMoveBody;
 
   /// No description provided for @chapterMovedToDrafts.
   ///
@@ -4147,6 +4177,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Competition unavailable'**
   String get competitionUnavailableTitle;
+
+  /// No description provided for @certificateDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'DATE'**
+  String get certificateDateLabel;
+
+  /// No description provided for @certificateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CERTIFICATE'**
+  String get certificateTitle;
+
+  /// No description provided for @certificateParticipationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'OF PARTICIPATION'**
+  String get certificateParticipationSubtitle;
+
+  /// No description provided for @certificateCertifyThat.
+  ///
+  /// In en, this message translates to:
+  /// **'This is to certify that'**
+  String get certificateCertifyThat;
+
+  /// No description provided for @certificateParticipatedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'has successfully participated in the'**
+  String get certificateParticipatedIn;
+
+  /// No description provided for @certificateAppreciationQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'\"We appreciate your participation and your contribution to the spirit of literature through your writing.\"'**
+  String get certificateAppreciationQuote;
+
+  /// No description provided for @certificateAgaazAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Agaaz Admin'**
+  String get certificateAgaazAdmin;
+
+  /// No description provided for @certificateWreadomAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom Admin'**
+  String get certificateWreadomAdmin;
+
+  /// No description provided for @certificateDefaultParticipant.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get certificateDefaultParticipant;
 
   /// No description provided for @competitionUnavailableBody.
   ///

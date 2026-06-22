@@ -155,6 +155,7 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
       participantBook?.publishedAt ??
           participantBook?.createdAt ??
           participantBook?.updatedAt,
+      locale: Localizations.localeOf(context),
     );
 
     Future<void> refresh() async {

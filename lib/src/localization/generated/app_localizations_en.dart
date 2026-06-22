@@ -1716,6 +1716,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your changes could not be saved. Please try again before leaving.';
 
   @override
+  String get exitSaveFailedTitle => 'Save failed';
+
+  @override
+  String get exitSaveFailedBody =>
+      'Your latest changes could not be saved online. You can try saving again or exit without saving.';
+
+  @override
+  String get saveAgain => 'Save again';
+
+  @override
+  String get exitWithoutSaving => 'Exit without saving';
+
+  @override
   String get localSaveFailed => 'Local save failed';
 
   @override
@@ -1810,6 +1823,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moveToDrafts => 'Move to drafts';
+
+  @override
+  String get deleteChapterMoveBody =>
+      'This chapter will be removed from this content and moved to drafts as a single-chapter draft. Its comments will move with it.';
 
   @override
   String get chapterMovedToDrafts => 'Chapter moved to drafts.';
@@ -2334,6 +2351,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get competitionUnavailableTitle => 'Competition unavailable';
+
+  @override
+  String get certificateDateLabel => 'DATE';
+
+  @override
+  String get certificateTitle => 'CERTIFICATE';
+
+  @override
+  String get certificateParticipationSubtitle => 'OF PARTICIPATION';
+
+  @override
+  String get certificateCertifyThat => 'This is to certify that';
+
+  @override
+  String get certificateParticipatedIn =>
+      'has successfully participated in the';
+
+  @override
+  String get certificateAppreciationQuote =>
+      '\"We appreciate your participation and your contribution to the spirit of literature through your writing.\"';
+
+  @override
+  String get certificateAgaazAdmin => 'Agaaz Admin';
+
+  @override
+  String get certificateWreadomAdmin => 'Wreadom Admin';
+
+  @override
+  String get certificateDefaultParticipant => 'User';
 
   @override
   String get competitionUnavailableBody =>

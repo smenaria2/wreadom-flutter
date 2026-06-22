@@ -1716,6 +1716,19 @@ class AppLocalizationsHi extends AppLocalizations {
       'आपके बदलाव सेव नहीं हो सके। बाहर जाने से पहले फिर कोशिश करें।';
 
   @override
+  String get exitSaveFailedTitle => 'सेव नहीं हो सका';
+
+  @override
+  String get exitSaveFailedBody =>
+      'आपके नवीनतम बदलाव ऑनलाइन सेव नहीं हो सके। आप फिर से सेव करने की कोशिश कर सकते हैं या बिना सेव किए बाहर जा सकते हैं।';
+
+  @override
+  String get saveAgain => 'फिर से सेव करें';
+
+  @override
+  String get exitWithoutSaving => 'बिना सेव किए बाहर जाएं';
+
+  @override
   String get localSaveFailed => 'लोकल सेव असफल रहा';
 
   @override
@@ -1810,6 +1823,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get moveToDrafts => 'ड्राफ़्ट में भेजें';
+
+  @override
+  String get deleteChapterMoveBody =>
+      'यह अध्याय इस रचना से हटाकर एकल-अध्याय ड्राफ़्ट के रूप में ड्राफ़्ट्स में भेज दिया जाएगा। इसकी टिप्पणियाँ भी साथ जाएंगी।';
 
   @override
   String get chapterMovedToDrafts => 'अध्याय ड्राफ़्ट में भेज दिया गया।';
@@ -2339,6 +2356,34 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get competitionUnavailableTitle => 'प्रतियोगिता उपलब्ध नहीं';
+
+  @override
+  String get certificateDateLabel => 'दिनांक';
+
+  @override
+  String get certificateTitle => 'प्रमाणपत्र';
+
+  @override
+  String get certificateParticipationSubtitle => 'भागीदारी का';
+
+  @override
+  String get certificateCertifyThat => 'यह प्रमाणित किया जाता है कि';
+
+  @override
+  String get certificateParticipatedIn => 'ने सफलतापूर्वक भाग लिया';
+
+  @override
+  String get certificateAppreciationQuote =>
+      '\"हम आपकी भागीदारी और आपके लेखन द्वारा साहित्य की भावना में दिए गए योगदान की सराहना करते हैं।\"';
+
+  @override
+  String get certificateAgaazAdmin => 'आगाज़ व्यवस्थापक';
+
+  @override
+  String get certificateWreadomAdmin => 'रीडम व्यवस्थापक';
+
+  @override
+  String get certificateDefaultParticipant => 'उपयोगकर्ता';
 
   @override
   String get competitionUnavailableBody =>
