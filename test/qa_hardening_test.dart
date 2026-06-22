@@ -180,7 +180,7 @@ void main() {
     },
   );
 
-  test('writer dashboard and pad expose simple chapter draft flow', () {
+  test('writer dashboard and pad expose unified chapter creation', () {
     final dashboardSource = File(
       'lib/src/presentation/screens/writer_dashboard_screen.dart',
     ).readAsStringSync();
@@ -190,20 +190,15 @@ void main() {
     final routeSource = File(
       'lib/src/presentation/routing/writer_pad_mode.dart',
     ).readAsStringSync();
-    final english = englishL10n();
 
-    expect(routeSource, contains('enum WriterPadMode'));
-    expect(routeSource, contains('chapterDraft'));
-    expect(dashboardSource, contains('l10n.createDraft'));
-    expect(dashboardSource, contains('WriterPadMode.chapterDraft'));
-    expect(writerSource, contains('bool get _isChapterDraftMode'));
+    expect(routeSource, isNot(contains('WriterPadMode')));
+    expect(routeSource, isNot(contains('chapterDraft')));
+    expect(dashboardSource, contains('l10n.createContent'));
+    expect(dashboardSource, isNot(contains('l10n.createDraft')));
+    expect(writerSource, isNot(contains('_isChapterDraftMode')));
     expect(writerSource, contains('l10n.addToBook'));
-    expect(writerSource, contains('_chapterDraftTitleForSave'));
-    expect(writerSource, contains('_addChapterDraftToBook'));
     expect(writerSource, contains('importSingleDraftsToBook'));
-    expect(english['createDraft'], 'Create Draft Chapter');
-    expect(english['addToBook'], 'Add to book');
-    expect(english['draftAddedToBook'], 'Draft added to book.');
+    expect(writerSource, contains('onToggleVisibility'));
   });
 
   test('collab chapter draft moves create user-owned standalone drafts', () {

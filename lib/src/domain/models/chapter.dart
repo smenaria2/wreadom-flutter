@@ -27,6 +27,7 @@ abstract class Chapter with _$Chapter {
     int? lastSavedAt,
     bool? isTitleLocked,
     String? originalBookId,
+    @Default(false) bool isHidden,
   }) = _Chapter;
 
   factory Chapter.fromJson(Map<String, dynamic> json) =>

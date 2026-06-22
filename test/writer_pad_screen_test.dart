@@ -14,7 +14,6 @@ import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/domain/repositories/writer_repository.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
-import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
 
 void main() {
@@ -79,7 +78,6 @@ void main() {
 
   Widget writerPadTestApp(
     Book book, {
-    WriterPadMode mode = WriterPadMode.content,
     Future<bool> Function(Uri uri)? openPrintPage,
     WriterRepository? writerRepository,
   }) {
@@ -100,7 +98,6 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: WriterPadScreen(
           book: book,
-          mode: mode,
           restoreLocalDrafts: false,
           showToolbar: false,
           openPrintPage: openPrintPage,
@@ -172,7 +169,6 @@ void main() {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: const WriterPadScreen(
-            mode: WriterPadMode.chapterDraft,
             restoreLocalDrafts: false,
             showToolbar: false,
           ),
@@ -199,7 +195,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Next'), findsNothing);
-    expect(find.byTooltip('Chapters'), findsNothing);
+    expect(find.byTooltip('Chapters'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
@@ -250,6 +246,35 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('chapter visibility keeps at least one chapter visible', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository();
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'published', chapterCount: 2),
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byTooltip('Chapters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Hide chapter').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hidden'), findsOneWidget);
+    expect(find.byTooltip('Show chapter'), findsOneWidget);
+    expect(find.byTooltip('Hide chapter'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Hide chapter'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('A published book must keep at least one chapter visible.'),
+      findsOneWidget,
+    );
+  });
   testWidgets('content details shows one themed action set', (tester) async {
     await tester.pumpWidget(
       writerPadTestApp(testBook(status: 'draft', chapterCount: 2)),
@@ -293,11 +318,7 @@ void main() {
   testWidgets('draft save confirms draft saved', (tester) async {
     final repository = _FakeWriterRepository();
     await tester.pumpWidget(
-      writerPadTestApp(
-        testBook(status: 'draft'),
-        mode: WriterPadMode.chapterDraft,
-        writerRepository: repository,
-      ),
+      writerPadTestApp(testBook(status: 'draft'), writerRepository: repository),
     );
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -532,6 +553,11 @@ class _FakeWriterRepository implements WriterRepository {
   @override
   Future<void> updateBook(String bookId, Book book) async {
     updatedBook = book;
+  }
+
+  @override
+  Future<List<Chapter>> getAuthoringChapters(String bookId) async {
+    return const <Chapter>[];
   }
 
   @override

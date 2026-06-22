@@ -37,7 +37,6 @@ class WriterPadScreen extends ConsumerStatefulWidget {
     super.key,
     this.book,
     this.initialTopic,
-    this.mode = WriterPadMode.content,
     this.restoreLocalDrafts = true,
     this.showToolbar = true,
     this.optOutComplementary,
@@ -46,7 +45,6 @@ class WriterPadScreen extends ConsumerStatefulWidget {
 
   final Book? book;
   final String? initialTopic;
-  final WriterPadMode mode;
   final bool restoreLocalDrafts;
   final bool showToolbar;
   final bool? optOutComplementary;
@@ -96,6 +94,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _isDirty = false;
   bool _isLocalDirty = false;
   bool _isRestoringLocalDraft = false;
+  bool _allowPop = false;
+  bool _isHandlingBack = false;
   bool _metadataListenersAttached = false;
   bool _bookTitleEditedByUser = false;
   bool _syncingBookTitleFromChapter = false;
@@ -116,8 +116,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String? _selectedCollaboratorPhotoURL;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
-
-  bool get _isChapterDraftMode => widget.mode == WriterPadMode.chapterDraft;
 
   bool get _isPublished =>
       (_savedStatus ?? widget.book?.status)?.trim().toLowerCase() ==
@@ -194,8 +192,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   @override
-  String? get restorationId =>
-      'writer_pad_${widget.mode.name}_${widget.book?.id ?? 'new'}';
+  String? get restorationId => 'writer_pad_${widget.book?.id ?? 'new'}';
 
   @override
   void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
@@ -289,9 +286,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       (_) => _autosaveDraft(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.restoreLocalDrafts) {
-        unawaited(_restoreLocalDraft());
-      }
+      unawaited(_initializeAuthoringState());
     });
   }
 
@@ -310,6 +305,46 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return '$userId:${_bookId ?? widget.book?.id ?? _localDraftId}';
   }
 
+  Future<void> _initializeAuthoringState() async {
+    await _hydrateAuthoringChapters();
+    if (widget.restoreLocalDrafts) await _restoreLocalDraft();
+  }
+
+  Future<void> _hydrateAuthoringChapters() async {
+    final bookId = _bookId ?? widget.book?.id;
+    if (bookId == null || bookId.trim().isEmpty) return;
+    try {
+      final chapters = await ref
+          .read(writerRepositoryProvider)
+          .getAuthoringChapters(bookId);
+      if (!mounted || chapters.isEmpty) return;
+      final hydrated = <Chapter>[
+        for (final chapter in chapters)
+          if (_isPublished && chapter.status == 'draft' && !chapter.isHidden)
+            chapter.copyWith(isHidden: true)
+          else
+            chapter,
+      ];
+      setState(() {
+        for (final chapter in _chapters) {
+          chapter.dispose();
+        }
+        _chapters
+          ..clear()
+          ..addAll(
+            hydrated.map(
+              (chapter) => _ChapterDraft.fromChapter(chapter, _markDirty),
+            ),
+          );
+        _setCurrentChapterIndex(
+          _currentChapterIndex.clamp(0, _chapters.length - 1),
+        );
+      });
+    } catch (_) {
+      // Legacy books continue using their embedded visible chapter projection.
+    }
+  }
+
   Future<void> _restoreLocalDraft() async {
     final user = await _currentUserOrNull();
     if (!mounted || user == null) return;
@@ -318,6 +353,42 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         .read(writerDraftServiceProvider)
         .getDraft(_draftKey(user.id));
     if (!mounted || draft == null) return;
+
+    final serverUpdatedAt = widget.book?.updatedAt;
+    final localUpdatedAt = draft.updatedAt;
+    if (serverUpdatedAt != null &&
+        localUpdatedAt != null &&
+        localUpdatedAt <= serverUpdatedAt) {
+      await ref
+          .read(writerDraftServiceProvider)
+          .deleteDraft(_draftKey(user.id));
+      return;
+    }
+
+    final shouldRestore = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.restoreLocalDraftTitle),
+        content: Text(AppLocalizations.of(context)!.restoreLocalDraftBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(AppLocalizations.of(context)!.discard),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(AppLocalizations.of(context)!.restoreVersion),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (shouldRestore != true) {
+      await ref
+          .read(writerDraftServiceProvider)
+          .deleteDraft(_draftKey(user.id));
+      return;
+    }
 
     _isRestoringLocalDraft = true;
     setState(() {
@@ -423,42 +494,50 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       );
     }
 
-    return GlassScaffold(
-      appBar: glassAppBar(
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _step == 0 ? l10n.writerWritingEditor : l10n.writerContentDetails,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            Text(
-              _isSaving ? l10n.writerSaving : _saveStatus,
-              style: TextStyle(
-                color: _onWriterChromeColor(context).withValues(alpha: 0.58),
-                fontSize: 12,
+    return PopScope<Object?>(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_handleBack());
+      },
+      child: GlassScaffold(
+        appBar: glassAppBar(
+          titleSpacing: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _step == 0
+                    ? l10n.writerWritingEditor
+                    : l10n.writerContentDetails,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-            ),
-          ],
+              Text(
+                _isSaving ? l10n.writerSaving : _saveStatus,
+                style: TextStyle(
+                  color: _onWriterChromeColor(context).withValues(alpha: 0.58),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          leading: IconButton(
+            tooltip: l10n.back,
+            icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
+            onPressed: _handleBack,
+          ),
+          automaticallyImplyLeading: false,
+          actions: _step == 0 ? _buildEditorAppBarActions(l10n) : null,
         ),
-        leading: IconButton(
-          tooltip: l10n.back,
-          icon: Icon(_step == 0 ? Icons.close : Icons.arrow_back),
-          onPressed: _handleBack,
+        body: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
+          ),
         ),
-        automaticallyImplyLeading: false,
-        actions: _step == 0 ? _buildEditorAppBarActions(l10n) : null,
+        bottomNavigationBar: _step == 0 && widget.showToolbar
+            ? _buildToolbar(controller)
+            : null,
       ),
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
-        ),
-      ),
-      bottomNavigationBar: _step == 0 && widget.showToolbar
-          ? _buildToolbar(controller)
-          : null,
     );
   }
 
@@ -602,6 +681,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Future<void> _handleBack() async {
+    if (_isHandlingBack) return;
     FocusManager.instance.primaryFocus?.unfocus();
     if (_step == 1) {
       setState(() => _setStep(0));
@@ -609,11 +689,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
 
     final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      await _syncDraftCheckpoint();
-      if (!mounted) return;
-      navigator.pop();
+    if (!navigator.canPop()) return;
+    _isHandlingBack = true;
+    final localSaved = await _saveLocalDraft();
+    final remoteSaved = await _syncDraftCheckpoint();
+    if (!mounted) return;
+    _isHandlingBack = false;
+    if (!localSaved && !remoteSaved && _hasSavableContent) {
+      _showSnack(AppLocalizations.of(context)!.couldNotSaveBeforeExit);
+      return;
     }
+    setState(() => _allowPop = true);
+    navigator.pop();
   }
 
   Widget _buildEditorStep() {
@@ -653,14 +740,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   ),
                 ),
               ),
-              if (!_isChapterDraftMode) ...[
-                const SizedBox(width: 10),
-                IconButton.filledTonal(
-                  tooltip: l10n.writerChapters,
-                  onPressed: _showChapterSheet,
-                  icon: const Icon(Icons.view_list_rounded),
-                ),
-              ],
+              const SizedBox(width: 10),
+
+              IconButton.filledTonal(
+                tooltip: l10n.writerChapters,
+                onPressed: _showChapterSheet,
+                icon: const Icon(Icons.view_list_rounded),
+              ),
             ],
           ),
         ),
@@ -1316,12 +1402,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                               wordCount: chapter.wordCount,
                               versionCount: chapter.versions.length,
                               isCurrent: isCurrent,
+                              isHidden: chapter.isHidden,
                               canDelete: _chapters.length > 1,
                               textColor: onSheetColor,
                               onTap: () {
                                 setState(() => _setCurrentChapterIndex(i));
                                 unawaited(_syncDraftCheckpoint());
                                 Navigator.of(context).pop();
+                              },
+                              onToggleVisibility: () {
+                                if (_toggleChapterVisibility(i)) {
+                                  unawaited(_syncDraftCheckpoint());
+                                  modalSetState(() {});
+                                }
                               },
                               onDelete: () async {
                                 final moved = await _confirmDeleteChapter(i);
@@ -1400,6 +1493,24 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _isDirty = true;
     _isLocalDirty = true;
     _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
+  }
+
+  bool _toggleChapterVisibility(int index) {
+    if (index < 0 || index >= _chapters.length) return false;
+    final chapter = _chapters[index];
+    if (_isPublished &&
+        !chapter.isHidden &&
+        _chapters.where((item) => !item.isHidden).length <= 1) {
+      _showSnack(AppLocalizations.of(context)!.keepOneChapterVisible);
+      return false;
+    }
+    setState(() {
+      chapter.isHidden = !chapter.isHidden;
+      _isDirty = true;
+      _isLocalDirty = true;
+      _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
+    });
+    return true;
   }
 
   Future<bool> _confirmDeleteChapter(int index) async {
@@ -1868,26 +1979,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
   }
 
-  String _chapterDraftTitleForSave() {
-    final explicitTitle = _currentChapter.title.text.trim();
-    if (explicitTitle.isNotEmpty) return explicitTitle;
-
-    final content = plainTextFromHtml(
-      htmlFromDocument(_currentChapter.controller.document),
-    ).trim();
-    if (content.isEmpty) return AppLocalizations.of(context)!.untitledStory;
-
-    final words = content
-        .split(RegExp(r'\s+'))
-        .where((word) {
-          return word.trim().isNotEmpty;
-        })
-        .take(8)
-        .join(' ');
-    if (words.isEmpty) return AppLocalizations.of(context)!.untitledStory;
-    return words.length <= 72 ? words : '${words.substring(0, 72).trim()}...';
-  }
-
   Future<void> _addChapterDraftToBook() async {
     final l10n = AppLocalizations.of(context)!;
     final user = await _currentUserOrNull();
@@ -2330,19 +2421,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final l10n = AppLocalizations.of(context)!;
     final wasPublished = _isPublished;
 
-    var title = _titleController.value.text.trim();
-    if (_isChapterDraftMode) {
-      title = _chapterDraftTitleForSave();
-      if (title.isNotEmpty) {
-        _titleController.value.text = title;
-      }
-    }
+    final title = _titleController.value.text.trim();
 
     if (title.isEmpty && !allowUntitled) {
       _showSnack(l10n.addTitleBeforeSaving);
-      if (!_isChapterDraftMode) {
-        setState(() => _setStep(1));
-      }
+      setState(() => _setStep(1));
+      return false;
+    }
+
+    if (status == 'published' && !_hasVisibleSavableChapter) {
+      _showSnack(l10n.keepOneChapterVisible);
       return false;
     }
 
@@ -2408,7 +2496,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               : l10n.draftSaved,
         );
       }
-      if (closeAfterSave && mounted) Navigator.of(context).pop();
+      if (closeAfterSave && mounted) {
+        setState(() => _allowPop = true);
+        Navigator.of(context).pop();
+      }
       return true;
     } catch (error) {
       if (!mounted) return false;
@@ -2423,39 +2514,40 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
   }
 
-  Future<void> _syncDraftCheckpoint() async {
-    if (!_isDirty || _isSaving || !_hasSavableContent) return;
-    await _save(status: _statusForSave, allowUntitled: true, showSnack: false);
+  Future<bool> _syncDraftCheckpoint() async {
+    if (!_isDirty || _isSaving || !_hasSavableContent) return true;
+    return _save(status: _statusForSave, allowUntitled: true, showSnack: false);
   }
 
-  Future<void> _saveLocalDraft() async {
+  Future<bool> _saveLocalDraft() async {
+    if (!_hasSavableContent) return true;
     final user = await _currentUserOrNull();
-    if (user == null) return;
+    if (user == null) return false;
 
     try {
       final book = _buildBookForSave(user, status: 'draft');
       await ref
           .read(writerDraftServiceProvider)
           .saveDraft(draftKey: _draftKey(user.id), book: book);
-      if (!mounted) return;
+      if (!mounted) return true;
       setState(() {
         _isLocalDirty = false;
         _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
       });
+      return true;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(
         () => _saveStatus = AppLocalizations.of(context)!.localSaveFailed,
       );
+      return false;
     }
   }
 
   Book _buildBookForSave(UserModel user, {required String status}) {
     _syncBookTitleFromFirstChapter();
     final now = DateTime.now().millisecondsSinceEpoch;
-    final bookTitle = _isChapterDraftMode
-        ? _chapterDraftTitleForSave()
-        : _titleController.value.text.trim().isEmpty
+    final bookTitle = _titleController.value.text.trim().isEmpty
         ? AppLocalizations.of(context)!.untitledStory
         : _titleController.value.text.trim();
     final chapters = <Chapter>[];
@@ -2463,19 +2555,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       final draft = _chapters[i];
       final content = htmlFromDocument(draft.controller.document);
       final plainContent = plainTextFromHtml(content);
-      if (draft.title.text.trim().isEmpty &&
+      if (!draft.isHidden &&
+          draft.title.text.trim().isEmpty &&
           plainContent.isEmpty &&
           !hasMeaningfulWriterHtml(content)) {
         continue;
       }
       draft.lastSavedAt = now;
+      draft.id ??= 'chapter_${now}_$i';
       chapters.add(
         Chapter(
-          id: draft.id ?? 'chapter_${now}_$i',
+          id: draft.id!,
           title: draft.title.text.trim().isEmpty
-              ? _isChapterDraftMode && i == 0
-                    ? bookTitle
-                    : AppLocalizations.of(context)!.chapterNumber(i + 1)
+              ? AppLocalizations.of(context)!.chapterNumber(i + 1)
               : draft.title.text.trim(),
           content: content,
           index: i,
@@ -2484,6 +2576,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           versions: draft.versions,
           isTitleLocked: draft.original?.isTitleLocked,
           originalBookId: draft.original?.originalBookId,
+          isHidden: draft.isHidden,
         ),
       );
     }
@@ -2586,7 +2679,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       viewCount: widget.book?.viewCount,
       ratingsCount: widget.book?.ratingsCount,
       topics: topics,
-      chapterCount: chapters.length,
+      chapterCount: chapters.where((chapter) => !chapter.isHidden).length,
       collaborationStatus: collaborationStatus,
       collaboratorId: collaboratorId?.isEmpty == true ? null : collaboratorId,
       collaboratorName: collaboratorName?.isEmpty == true
@@ -2879,6 +2972,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool get _hasSavableContent {
     if (_titleController.value.text.trim().isNotEmpty) return true;
     return _chapters.any((chapter) {
+      final html = htmlFromDocument(chapter.controller.document);
+      return plainTextFromHtml(html).isNotEmpty ||
+          hasMeaningfulWriterHtml(html);
+    });
+  }
+
+  bool get _hasVisibleSavableChapter {
+    return _chapters.any((chapter) {
+      if (chapter.isHidden) return false;
+      if (chapter.title.text.trim().isNotEmpty) return true;
       final html = htmlFromDocument(chapter.controller.document);
       return plainTextFromHtml(html).isNotEmpty ||
           hasMeaningfulWriterHtml(html);
@@ -3194,9 +3297,11 @@ class _ChapterOverviewCard extends StatelessWidget {
     required this.wordCount,
     required this.versionCount,
     required this.isCurrent,
+    required this.isHidden,
     required this.canDelete,
     required this.textColor,
     required this.onTap,
+    required this.onToggleVisibility,
     required this.onDelete,
     required this.onHistory,
   });
@@ -3207,9 +3312,11 @@ class _ChapterOverviewCard extends StatelessWidget {
   final int wordCount;
   final int versionCount;
   final bool isCurrent;
+  final bool isHidden;
   final bool canDelete;
   final Color textColor;
   final VoidCallback onTap;
+  final VoidCallback onToggleVisibility;
   final VoidCallback onDelete;
   final VoidCallback? onHistory;
 
@@ -3277,6 +3384,24 @@ class _ChapterOverviewCard extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          if (isHidden) ...[
+                            const SizedBox(width: 6),
+                            GlassSurface(
+                              borderRadius: BorderRadius.circular(8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              child: Text(
+                                l10n.hiddenChapter,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -3312,6 +3437,16 @@ class _ChapterOverviewCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                IconButton(
+                  tooltip: isHidden ? l10n.showChapter : l10n.hideChapter,
+                  onPressed: onToggleVisibility,
+                  color: textColor.withValues(alpha: 0.74),
+                  icon: Icon(
+                    isHidden
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                ),
                 if (onHistory != null)
                   IconButton(
                     tooltip: l10n.versionHistory,
@@ -3344,6 +3479,7 @@ class _ChapterDraft {
     required this.id,
     required List<ChapterVersion> versions,
     required this.lastSavedAt,
+    required this.isHidden,
     required VoidCallback onChanged,
   }) : versions = List<ChapterVersion>.from(versions),
        _lastVersionContent = original?.content ?? '',
@@ -3363,6 +3499,7 @@ class _ChapterDraft {
       original: chapter,
       versions: chapter.versions ?? const <ChapterVersion>[],
       lastSavedAt: chapter.lastSavedAt,
+      isHidden: chapter.isHidden,
       onChanged: onChanged,
     );
   }
@@ -3375,17 +3512,19 @@ class _ChapterDraft {
       original: null,
       versions: const <ChapterVersion>[],
       lastSavedAt: null,
+      isHidden: false,
       onChanged: onChanged,
     );
   }
 
-  final String? id;
+  String? id;
   String get key => id ?? identityHashCode(this).toString();
   final TextEditingController title;
   final QuillController controller;
   final Chapter? original;
   final List<ChapterVersion> versions;
   int? lastSavedAt;
+  bool isHidden;
   final VoidCallback _onChanged;
   late StreamSubscription<dynamic> _documentChanges;
   late int wordCount;

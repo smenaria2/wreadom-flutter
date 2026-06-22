@@ -9,6 +9,7 @@ abstract class WriterRepository {
   });
   Future<String> createBook(Book book);
   Future<void> updateBook(String bookId, Book book);
+  Future<List<Chapter>> getAuthoringChapters(String bookId);
   Future<String> moveChapterToStandaloneDraft({
     required Book sourceBook,
     required Chapter chapter,

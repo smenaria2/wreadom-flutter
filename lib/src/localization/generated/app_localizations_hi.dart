@@ -1696,6 +1696,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get savedOnDevice => 'डिवाइस पर सेव हो गया';
 
   @override
+  String get hiddenChapter => 'छिपा हुआ';
+
+  @override
+  String get hideChapter => 'अध्याय छिपाएं';
+
+  @override
+  String get showChapter => 'अध्याय दिखाएं';
+
+  @override
+  String get keepOneChapterVisible =>
+      'प्रकाशित पुस्तक में कम से कम एक अध्याय दिखना चाहिए।';
+
+  @override
+  String get restoreLocalDraftTitle =>
+      'बिना सेव किया ड्राफ़्ट पुनर्स्थापित करें?';
+
+  @override
+  String get restoreLocalDraftBody =>
+      'इस डिवाइस पर एक नया बिना सेव किया ड्राफ़्ट मिला है। इसे पुनर्स्थापित करने पर एडिटर की वर्तमान सामग्री बदल जाएगी।';
+
+  @override
+  String get discard => 'हटाएं';
+
+  @override
+  String get couldNotSaveBeforeExit =>
+      'आपके बदलाव सेव नहीं हो सके। बाहर जाने से पहले फिर कोशिश करें।';
+
+  @override
   String get localSaveFailed => 'लोकल सेव असफल रहा';
 
   @override

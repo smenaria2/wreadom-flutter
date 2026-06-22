@@ -1696,6 +1696,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedOnDevice => 'Saved on device';
 
   @override
+  String get hiddenChapter => 'Hidden';
+
+  @override
+  String get hideChapter => 'Hide chapter';
+
+  @override
+  String get showChapter => 'Show chapter';
+
+  @override
+  String get keepOneChapterVisible =>
+      'A published book must keep at least one chapter visible.';
+
+  @override
+  String get restoreLocalDraftTitle => 'Restore unsaved draft?';
+
+  @override
+  String get restoreLocalDraftBody =>
+      'A newer unsaved draft was found on this device. Restoring it will replace the editor\'s current contents.';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get couldNotSaveBeforeExit =>
+      'Your changes could not be saved. Please try again before leaving.';
+
+  @override
   String get localSaveFailed => 'Local save failed';
 
   @override

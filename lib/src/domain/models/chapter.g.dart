@@ -32,6 +32,7 @@ _Chapter _$ChapterFromJson(Map<String, dynamic> json) => _Chapter(
   lastSavedAt: (json['lastSavedAt'] as num?)?.toInt(),
   isTitleLocked: json['isTitleLocked'] as bool?,
   originalBookId: json['originalBookId'] as String?,
+  isHidden: json['isHidden'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$ChapterToJson(_Chapter instance) => <String, dynamic>{
@@ -44,4 +45,5 @@ Map<String, dynamic> _$ChapterToJson(_Chapter instance) => <String, dynamic>{
   'lastSavedAt': instance.lastSavedAt,
   'isTitleLocked': instance.isTitleLocked,
   'originalBookId': instance.originalBookId,
+  'isHidden': instance.isHidden,
 };

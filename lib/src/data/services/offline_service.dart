@@ -136,6 +136,7 @@ class OfflineService {
           }
         })
         .whereType<Chapter>()
+        .where((chapter) => !chapter.isHidden && chapter.status != 'draft')
         .toList();
   }
 

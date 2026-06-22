@@ -344,7 +344,6 @@ class AppRouter {
           builder: (_) => WriterPadScreen(
             book: args?.book,
             initialTopic: args?.initialTopic,
-            mode: args?.mode ?? WriterPadMode.content,
             optOutComplementary: args?.optOutComplementary,
           ),
         );

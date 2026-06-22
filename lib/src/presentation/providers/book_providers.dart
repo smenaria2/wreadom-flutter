@@ -164,11 +164,18 @@ final booksByGenreProvider = FutureProvider.family<List<Book>, String>((
 ) async {
   return ref.watch(bookRepositoryProvider).getBooksByGenre(genre);
 });
+List<Chapter> _publicChapters(Iterable<Chapter> chapters) {
+  return chapters
+      .where((chapter) => !chapter.isHidden && chapter.status != 'draft')
+      .toList(growable: false);
+}
+
 final bookChaptersProvider = FutureProvider.family<List<Chapter>, String>((
   ref,
   bookId,
 ) async {
-  return ref.watch(bookRepositoryProvider).getChapters(bookId);
+  final chapters = await ref.watch(bookRepositoryProvider).getChapters(bookId);
+  return _publicChapters(chapters);
 });
 
 final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
@@ -176,7 +183,7 @@ final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
   bookId,
 ) async* {
   final initial = await ref.watch(bookRepositoryProvider).getChapters(bookId);
-  yield initial;
+  yield _publicChapters(initial);
 
   final book = await ref.read(bookRepositoryProvider).getBook(bookId);
   if (!_shouldWatchFirebaseBook(bookId, book)) return;
@@ -190,26 +197,29 @@ final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
       .asyncMap((snapshot) async {
         if (snapshot.docs.isEmpty) {
           final book = await ref.read(bookRepositoryProvider).getBook(bookId);
-          return book?.chapters ?? const <Chapter>[];
+          return _publicChapters(book?.chapters ?? const <Chapter>[]);
         }
-        return snapshot.docs.map((doc) {
-          final data = asStringMap(doc.data());
-          data['id'] = doc.id;
-          data['title'] = data['title']?.toString() ?? 'Chapter';
-          data['content'] = data['content']?.toString() ?? '';
-          data['index'] = data['index'] is num
-              ? (data['index'] as num).toInt()
-              : data['order'] is num
-              ? (data['order'] as num).toInt()
-              : int.tryParse(data['index']?.toString() ?? '') ??
-                    int.tryParse(data['order']?.toString() ?? '') ??
-                    0;
-          if (data['lastSavedAt'] is Timestamp) {
-            data['lastSavedAt'] =
-                (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
-          }
-          return Chapter.fromJson(data);
-        }).toList();
+        return snapshot.docs
+            .map((doc) {
+              final data = asStringMap(doc.data());
+              data['id'] = doc.id;
+              data['title'] = data['title']?.toString() ?? 'Chapter';
+              data['content'] = data['content']?.toString() ?? '';
+              data['index'] = data['index'] is num
+                  ? (data['index'] as num).toInt()
+                  : data['order'] is num
+                  ? (data['order'] as num).toInt()
+                  : int.tryParse(data['index']?.toString() ?? '') ??
+                        int.tryParse(data['order']?.toString() ?? '') ??
+                        0;
+              if (data['lastSavedAt'] is Timestamp) {
+                data['lastSavedAt'] =
+                    (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
+              }
+              return Chapter.fromJson(data);
+            })
+            .where((chapter) => !chapter.isHidden && chapter.status != 'draft')
+            .toList();
       });
 });
 

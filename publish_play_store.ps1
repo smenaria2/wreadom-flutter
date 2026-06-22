@@ -151,6 +151,16 @@ if ($releaseExitCode -eq 0) {
     Write-Host "--------------------------------------------------"
     Write-Host "Successfully published to Google Play Store (Internal)!" -ForegroundColor Green
     Write-Host "--------------------------------------------------"
+    
+    # 8. Deploy to Vercel
+    Write-Host "--------------------------------------------------"
+    Write-Host "Starting deployment to Vercel..." -ForegroundColor Cyan
+    Write-Host "--------------------------------------------------"
+    & .\deploy_vercel.ps1 -Production
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Vercel deployment failed."
+        exit 1
+    }
 } else {
     Write-Error "Play Store release failed with exit code $releaseExitCode"
     exit 1

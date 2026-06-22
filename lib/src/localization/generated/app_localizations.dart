@@ -3104,6 +3104,54 @@ abstract class AppLocalizations {
   /// **'Saved on device'**
   String get savedOnDevice;
 
+  /// No description provided for @hiddenChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get hiddenChapter;
+
+  /// No description provided for @hideChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide chapter'**
+  String get hideChapter;
+
+  /// No description provided for @showChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Show chapter'**
+  String get showChapter;
+
+  /// No description provided for @keepOneChapterVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'A published book must keep at least one chapter visible.'**
+  String get keepOneChapterVisible;
+
+  /// No description provided for @restoreLocalDraftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore unsaved draft?'**
+  String get restoreLocalDraftTitle;
+
+  /// No description provided for @restoreLocalDraftBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer unsaved draft was found on this device. Restoring it will replace the editor\'s current contents.'**
+  String get restoreLocalDraftBody;
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @couldNotSaveBeforeExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes could not be saved. Please try again before leaving.'**
+  String get couldNotSaveBeforeExit;
+
   /// No description provided for @localSaveFailed.
   ///
   /// In en, this message translates to:

@@ -6,6 +6,7 @@ import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
+import '../../utils/map_utils.dart';
 import '../utils/firestore_utils.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
@@ -19,14 +20,40 @@ class FirebaseWriterRepository implements WriterRepository {
 
   @override
   Future<String> createBook(Book book) async {
+    final bookRef = _firestore.collection('books').doc();
     final data = _bookToFirestoreJson(book)..remove('id');
     final now = DateTime.now().millisecondsSinceEpoch;
     data['createdAt'] ??= now;
     data['updatedAt'] = now;
     data['isOriginal'] = true;
     data['source'] = 'firestore';
-    final doc = await _firestore.collection('books').add(data);
-    return doc.id;
+    await _writeBookAndAuthorChapters(
+      bookRef: bookRef,
+      data: data,
+      chapters: book.chapters ?? const <Chapter>[],
+      mergeBook: false,
+      readExistingChapters: false,
+    );
+    return bookRef.id;
+  }
+
+  @override
+  Future<List<Chapter>> getAuthoringChapters(String bookId) async {
+    final snapshot = await _firestore
+        .collection('books')
+        .doc(bookId)
+        .collection('authorChapters')
+        .orderBy('index')
+        .get();
+    if (snapshot.docs.isEmpty) {
+      final book = await _firestore.collection('books').doc(bookId).get();
+      if (!book.exists) return const <Chapter>[];
+      final parsed = Book.fromJson(
+        normalizeBookMapForModel(book.data(), book.id),
+      );
+      return parsed.chapters ?? const <Chapter>[];
+    }
+    return snapshot.docs.map((doc) => _chapterFromFirestore(doc)).toList();
   }
 
   @override
@@ -109,17 +136,14 @@ class FirebaseWriterRepository implements WriterRepository {
       newBookTitle: movedTitle,
       chapterId: chapter.id,
     );
-    await _firestore.collection('books').doc(sourceBookId).set({
-      'chapters': remainingChapters.map((item) {
-        final data = item.toJson();
-        data['versions'] = item.versions
-            ?.map((version) => version.toJson())
-            .toList();
-        return data;
-      }).toList(),
-      'chapterCount': remainingChapters.length,
-      'updatedAt': now,
-    }, SetOptions(merge: true));
+    await updateBook(
+      sourceBookId,
+      sourceBook.copyWith(
+        chapters: remainingChapters,
+        chapterCount: remainingChapters.where((item) => !item.isHidden).length,
+        updatedAt: now,
+      ),
+    );
     return newBookId;
   }
 
@@ -170,17 +194,14 @@ class FirebaseWriterRepository implements WriterRepository {
     }
 
     if (imported.isNotEmpty) {
-      await _firestore.collection('books').doc(targetBookId).set({
-        'chapters': currentChapters.map((item) {
-          final data = item.toJson();
-          data['versions'] = item.versions
-              ?.map((version) => version.toJson())
-              .toList();
-          return data;
-        }).toList(),
-        'chapterCount': currentChapters.length,
-        'updatedAt': now,
-      }, SetOptions(merge: true));
+      await updateBook(
+        targetBookId,
+        targetBook.copyWith(
+          chapters: currentChapters,
+          chapterCount: currentChapters.where((item) => !item.isHidden).length,
+          updatedAt: now,
+        ),
+      );
     }
 
     return imported;
@@ -258,7 +279,13 @@ class FirebaseWriterRepository implements WriterRepository {
         data['removedCollaboratorId'] = null;
       }
     }
-    await bookRef.set(data, SetOptions(merge: true));
+    await _writeBookAndAuthorChapters(
+      bookRef: bookRef,
+      data: data,
+      chapters: book.chapters ?? const <Chapter>[],
+      mergeBook: true,
+      readExistingChapters: true,
+    );
   }
 
   @override
@@ -296,6 +323,84 @@ class FirebaseWriterRepository implements WriterRepository {
       }
       transaction.set(bookRef, update, SetOptions(merge: true));
     });
+  }
+
+  Future<void> _writeBookAndAuthorChapters({
+    required DocumentReference<Map<String, dynamic>> bookRef,
+    required Map<String, dynamic> data,
+    required List<Chapter> chapters,
+    required bool mergeBook,
+    required bool readExistingChapters,
+  }) async {
+    if (chapters.length > _batchChunkSize) {
+      throw StateError(
+        'A book cannot contain more than $_batchChunkSize chapters.',
+      );
+    }
+
+    final canonical = <Chapter>[
+      for (var i = 0; i < chapters.length; i++) chapters[i].copyWith(index: i),
+    ];
+    final visible = <Chapter>[
+      for (final chapter in canonical)
+        if (!chapter.isHidden) chapter,
+    ];
+    data['chapters'] = <Map<String, dynamic>>[
+      for (var i = 0; i < visible.length; i++)
+        _chapterToFirestore(visible[i].copyWith(index: i, isHidden: false)),
+    ];
+    data['chapterCount'] = visible.length;
+
+    final existing = readExistingChapters
+        ? await bookRef.collection('authorChapters').get()
+        : null;
+    final incomingIds = canonical.map((chapter) => chapter.id).toSet();
+    final writeCount = canonical.length + (existing?.docs.length ?? 0) + 1;
+    if (writeCount > 500) {
+      throw StateError(
+        'This book has too many chapter changes for one atomic save.',
+      );
+    }
+    final batch = _firestore.batch();
+    batch.set(bookRef, data, SetOptions(merge: mergeBook));
+    for (final chapter in canonical) {
+      batch.set(
+        bookRef.collection('authorChapters').doc(chapter.id),
+        _chapterToFirestore(chapter),
+      );
+    }
+    for (final stale in existing?.docs ?? const []) {
+      if (!incomingIds.contains(stale.id)) batch.delete(stale.reference);
+    }
+    await batch.commit();
+  }
+
+  Map<String, dynamic> _chapterToFirestore(Chapter chapter) {
+    final data = chapter.toJson();
+    data['versions'] = chapter.versions
+        ?.map((version) => version.toJson())
+        .toList();
+    data['order'] = chapter.index;
+    return data;
+  }
+
+  Chapter _chapterFromFirestore(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = asStringMap(doc.data());
+    data['id'] = doc.id;
+    data['title'] = data['title']?.toString() ?? 'Chapter';
+    data['content'] = data['content']?.toString() ?? '';
+    data['index'] = data['index'] is num
+        ? (data['index'] as num).toInt()
+        : data['order'] is num
+        ? (data['order'] as num).toInt()
+        : 0;
+    if (data['lastSavedAt'] is Timestamp) {
+      data['lastSavedAt'] =
+          (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
+    }
+    return Chapter.fromJson(data);
   }
 
   Map<String, dynamic> _bookToFirestoreJson(Book book) {
