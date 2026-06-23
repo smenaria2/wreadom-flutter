@@ -63,13 +63,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('प्रमाणपत्र'), findsOneWidget);
-    expect(find.text('भागीदारी का'), findsOneWidget);
+    expect(find.text('विषय लेखन'), findsOneWidget);
     expect(find.text('यह प्रमाणित किया जाता है कि'), findsOneWidget);
     expect(find.text('उपयोगकर्ता'), findsOneWidget);
-    expect(find.text('ने सफलतापूर्वक भाग लिया'), findsOneWidget);
+    expect(find.text('ने निम्न विषय पर उत्कृष्ट लेखन किया'), findsOneWidget);
     expect(find.text('22 जून 2026'), findsOneWidget);
     expect(find.text('आगाज़ व्यवस्थापक'), findsOneWidget);
-    expect(find.text('रीडम व्यवस्थापक'), findsOneWidget);
+    expect(find.text('रीडम् व्यवस्थापक'), findsOneWidget);
     expect(find.text('CERTIFICATE'), findsNothing);
     expect(find.text('OF PARTICIPATION'), findsNothing);
   });

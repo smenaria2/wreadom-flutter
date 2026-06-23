@@ -23,6 +23,7 @@ import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
 import '../components/animated_shelf_container.dart';
+import '../components/home_series_section.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -180,7 +181,7 @@ class HomeBooksScreen extends ConsumerWidget {
               const _ContinueReadingSection(),
               const _SavedBooksSection(),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: l10n.booksWithLeaves,
                 booksAsync: leavesAsync,
                 sectionId: 'books-with-leaves',
@@ -192,7 +193,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: l10n.contentOnAgaazTopics,
                 booksAsync: ref.watch(contentOnAgaazTopicsProvider),
                 sectionId: 'content-on-agaaz-topics',
@@ -204,7 +205,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: _HomeShelfDestination.originals.getLocalizedCategory(
                   l10n,
                 ),
@@ -218,7 +219,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: _HomeShelfDestination.trending.getLocalizedCategory(
                   l10n,
                 ),
@@ -232,7 +233,9 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BookshelfSection(
+              const HomeSeriesSection(),
+
+              BookshelfSection(
                 title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
                 booksAsync: popularAsync,
                 sectionId: _HomeShelfDestination.popular.sectionId,
@@ -244,7 +247,7 @@ class HomeBooksScreen extends ConsumerWidget {
                 ),
               ),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
                 booksAsync: recentAsync,
                 sectionId: _HomeShelfDestination.recent.sectionId,
@@ -258,7 +261,7 @@ class HomeBooksScreen extends ConsumerWidget {
 
               const _AuthorsSection(),
 
-              _BookshelfSection(
+              BookshelfSection(
                 title: _HomeShelfDestination.communityClassics
                     .getLocalizedCategory(l10n),
                 booksAsync: iaAsync,
@@ -823,7 +826,7 @@ class _LazyGenreSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booksAsync = ref.watch(homepageGenreProvider(providerKey));
-    return _BookshelfSection(
+    return BookshelfSection(
       title: title,
       booksAsync: booksAsync,
       sectionId: sectionId,
@@ -1032,7 +1035,7 @@ class _SavedBooksSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final remoteSavedAsync = ref.watch(homepageDownloadedBooksProvider);
 
-    return _BookshelfSection(
+    return BookshelfSection(
       title: l10n.yourShelf,
       booksAsync: remoteSavedAsync,
       sectionId: 'saved',
@@ -1246,14 +1249,15 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
   }
 }
 
-class _BookshelfSection extends StatelessWidget {
+class BookshelfSection extends StatelessWidget {
   final String title;
   final AsyncValue<List<Book>> booksAsync;
   final String? sectionId;
   final VoidCallback? onSeeAll;
   final VoidCallback? onRetry;
 
-  const _BookshelfSection({
+  const BookshelfSection({
+    super.key,
     required this.title,
     required this.booksAsync,
     this.sectionId,

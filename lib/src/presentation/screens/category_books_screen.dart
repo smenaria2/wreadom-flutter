@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/book_card.dart';
 import '../providers/homepage_providers.dart';
 import '../providers/book_providers.dart';
+import '../providers/series_books_provider.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
@@ -32,6 +33,7 @@ class CategoryBooksScreen extends ConsumerWidget {
     Future<void> refresh() async {
       await refreshHomepage(ref);
       ref.invalidate(homepageGenreProvider(category));
+      ref.invalidate(homepageSeriesBooksProvider);
     }
 
     final booksAsync = switch (normalized) {
@@ -54,6 +56,7 @@ class CategoryBooksScreen extends ConsumerWidget {
       'books with leaves' => ref.watch(booksWithLeavesProvider),
       'content-on-agaaz-topics' ||
       'content on agaaz topics' => ref.watch(contentOnAgaazTopicsProvider),
+      'series' => ref.watch(homepageSeriesBooksProvider),
       _ => ref.watch(homepageGenreProvider(category)),
     };
 

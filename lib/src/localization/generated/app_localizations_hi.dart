@@ -476,6 +476,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get shelfRecentlyAdded => 'हाल ही में जोड़े गए';
 
   @override
+  String get shelfSeries => 'श्रृंखला';
+
+  @override
   String get keepReading => 'पढ़ते रहें';
 
   @override
@@ -2364,23 +2367,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get certificateTitle => 'प्रमाणपत्र';
 
   @override
-  String get certificateParticipationSubtitle => 'भागीदारी का';
+  String get certificateParticipationSubtitle => 'विषय लेखन';
 
   @override
   String get certificateCertifyThat => 'यह प्रमाणित किया जाता है कि';
 
   @override
-  String get certificateParticipatedIn => 'ने सफलतापूर्वक भाग लिया';
+  String get certificateParticipatedIn => 'ने निम्न विषय पर उत्कृष्ट लेखन किया';
 
   @override
   String get certificateAppreciationQuote =>
-      '\"हम आपकी भागीदारी और आपके लेखन द्वारा साहित्य की भावना में दिए गए योगदान की सराहना करते हैं।\"';
+      '\"हम आपकी भागीदारी और आपके लेखन द्वारा साहित्य के क्षेत्र में दिए योगदान की सराहना करते हैं।\"';
 
   @override
   String get certificateAgaazAdmin => 'आगाज़ व्यवस्थापक';
 
   @override
-  String get certificateWreadomAdmin => 'रीडम व्यवस्थापक';
+  String get certificateWreadomAdmin => 'रीडम् व्यवस्थापक';
 
   @override
   String get certificateDefaultParticipant => 'उपयोगकर्ता';

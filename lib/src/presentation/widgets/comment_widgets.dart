@@ -533,12 +533,42 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                           onSave: _saveCommentEdit,
                         ),
                         const SizedBox(height: 6),
-                      ] else if (comment.text.trim().isNotEmpty) ...[
-                        Text(
-                          comment.text,
-                          style: TextStyle(color: widget.textColor),
-                        ),
-                        const SizedBox(height: 4),
+                      ] else ...[
+                        if (comment.quote != null && comment.quote!.trim().isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                              border: Border(
+                                left: BorderSide(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                                  width: 3.5,
+                                ),
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(8),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              '“${comment.quote!.trim()}”',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: widget.textColor?.withValues(alpha: 0.85) ?? theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (comment.text.trim().isNotEmpty) ...[
+                          Text(
+                            comment.text,
+                            style: TextStyle(color: widget.textColor),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                       ],
                       if (hasCommentAudio) ...[
                         _AudioCommentPlayer(

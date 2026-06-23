@@ -474,6 +474,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shelfRecentlyAdded => 'Recently Added';
 
   @override
+  String get shelfSeries => 'Series';
+
+  @override
   String get keepReading => 'Keep Reading';
 
   @override

@@ -992,6 +992,12 @@ abstract class AppLocalizations {
   /// **'Recently Added'**
   String get shelfRecentlyAdded;
 
+  /// No description provided for @shelfSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Series'**
+  String get shelfSeries;
+
   /// No description provided for @keepReading.
   ///
   /// In en, this message translates to:
