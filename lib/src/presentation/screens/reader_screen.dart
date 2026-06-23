@@ -1490,6 +1490,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _tts.setCancelHandler(() {
       if (!mounted) return;
+      if (_isTtsPaused) return;
       setState(() {
         _isTtsPreparing = false;
         _isTtsPlaying = false;

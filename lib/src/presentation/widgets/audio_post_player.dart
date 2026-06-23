@@ -8,7 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
 
+import '../../data/services/notification_service.dart';
 import '../../domain/models/feed_post.dart';
+import '../providers/audio_post_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import 'glass_surface.dart';
@@ -53,6 +55,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   double _dragCurrentValue = 0.0;
   double _lastDragAngle = 0.0;
   double _hapticAccumulator = 0.0;
+ 
+  late final StreamSubscription<String> _audioActionSubscription;
 
   @override
   void initState() {
@@ -75,14 +79,67 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       } else {
         _rotationController.stop();
       }
+      _syncAudioPostNotification();
+    });
+
+    // Listen to notification actions
+    _audioActionSubscription =
+        NotificationService.instance.audioActionEvents.listen((actionId) {
+      final activeUrl = ref.read(activeAudioPostUrlProvider);
+      if (activeUrl != widget.post.audioUrl) return;
+
+      if (actionId == NotificationService.audioActionPause) {
+        _player.pause();
+      } else if (actionId == NotificationService.audioActionResume) {
+        _player.play();
+      } else if (actionId == NotificationService.audioActionStop) {
+        _player.pause();
+        ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+        NotificationService.instance.cancelAudioPostMiniPlayer();
+      } else if (actionId == NotificationService.audioActionSkipBackward) {
+        _seekRelative(-10);
+      } else if (actionId == NotificationService.audioActionSkipForward) {
+        _seekRelative(10);
+      }
     });
   }
 
   @override
   void dispose() {
+    _audioActionSubscription.cancel();
     _rotationController.dispose();
+    final activeUrl = ref.read(activeAudioPostUrlProvider);
+    if (activeUrl == widget.post.audioUrl) {
+      NotificationService.instance.cancelAudioPostMiniPlayer();
+    }
     _player.dispose();
     super.dispose();
+  }
+
+  void _syncAudioPostNotification() {
+    final activeUrl = ref.read(activeAudioPostUrlProvider);
+    if (activeUrl != widget.post.audioUrl || !_isLoaded) {
+      return;
+    }
+
+    final isPlaying = _player.playing;
+    final isCompleted = _player.processingState == ProcessingState.completed;
+
+    if (isCompleted) {
+      NotificationService.instance.cancelAudioPostMiniPlayer();
+      return;
+    }
+
+    final title = widget.post.bookTitle ?? 'Audio Post';
+    final author = widget.post.bookAuthorName ?? '';
+    final username = widget.post.displayName ?? 'Anonymous';
+    final body = author.isNotEmpty ? 'by $author • $username' : username;
+
+    NotificationService.instance.showAudioPostMiniPlayer(
+      title: title,
+      body: body,
+      isPaused: !isPlaying,
+    );
   }
 
   /// Resolves the pre-signed Backblaze B2 download GET URL.
@@ -169,6 +226,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   void _onPanStart(DragStartDetails details, Duration totalDuration) {
     if (totalDuration == Duration.zero) return;
     
+    // Lock scroll/swipe in parent views during turntable jog seeking
+    ref.read(lockScrollProvider.notifier).setLock(true);
+    
     _wasPlayingBeforeDrag = _player.playing;
     if (_wasPlayingBeforeDrag) {
       _player.pause();
@@ -226,6 +286,14 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       _player.play();
     }
     AppHaptics.medium();
+    ref.read(lockScrollProvider.notifier).setLock(false);
+  }
+
+  void _onPanCancel() {
+    if (_wasPlayingBeforeDrag) {
+      _player.play();
+    }
+    ref.read(lockScrollProvider.notifier).setLock(false);
   }
 
   void _navigateToBook(BuildContext context) {
@@ -377,6 +445,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                           onPanStart: (details) => _onPanStart(details, totalDuration),
                           onPanUpdate: (details) => _onPanUpdate(details, totalDuration),
                           onPanEnd: _onPanEnd,
+                          onPanCancel: _onPanCancel,
                           child: RotationTransition(
                             turns: _rotationController,
                             child: Container(
@@ -566,7 +635,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: _isLoading || isBuffering
+                          child: (_isLoading || isBuffering) && !isPlaying
                               ? SizedBox(
                                   width: 22,
                                   height: 22,

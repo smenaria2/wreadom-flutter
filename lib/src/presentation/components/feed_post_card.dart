@@ -748,7 +748,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 },
               ),
             ] else if (post.type.toLowerCase() == 'post' &&
-                post.bookId != null) ...[
+                post.bookId != null &&
+                post.audioUrl == null) ...[
               if (post.text.isNotEmpty) ...[
                 Text(
                   post.text,

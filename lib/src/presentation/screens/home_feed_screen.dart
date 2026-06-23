@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../utils/app_haptics.dart';
+import '../providers/audio_post_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/notification_providers.dart';
 import '../components/feed_post_card.dart';
@@ -47,11 +48,14 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final lockScroll = ref.watch(lockScrollProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: lockScroll
+            ? const NeverScrollableScrollPhysics()
+            : const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
             floating: true,
@@ -130,6 +134,9 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
           ),
           SliverFillRemaining(
             child: PageView.builder(
+              physics: lockScroll
+                  ? const NeverScrollableScrollPhysics()
+                  : const BouncingScrollPhysics(),
               controller: _pageController,
               itemCount: FeedFilter.values.length,
               onPageChanged: (index) {
@@ -197,6 +204,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     final feedController = ref.read(
       pagedFeedPostsProvider(widget.filter).notifier,
     );
+    final lockScroll = ref.watch(lockScrollProvider);
     final l10n = AppLocalizations.of(context)!;
 
     Widget refreshable(Widget child) {
@@ -207,7 +215,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       return LayoutBuilder(
         builder: (context, constraints) {
           return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: lockScroll
+                ? const NeverScrollableScrollPhysics()
+                : const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 24),
             children: [
               SizedBox(
@@ -428,7 +438,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       );
     } else {
       body = ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: lockScroll
+            ? const NeverScrollableScrollPhysics()
+            : const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 132),
         itemCount: items.length + 1,
         itemBuilder: (context, index) {

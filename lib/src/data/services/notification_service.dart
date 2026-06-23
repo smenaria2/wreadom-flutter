@@ -46,8 +46,19 @@ class NotificationService {
   static const String ttsActionResume = 'reader_tts_resume';
   static const String ttsActionStop = 'reader_tts_stop';
 
+  static const int _audioNotificationId = 4102;
+  static const String audioActionPause = 'audio_post_pause';
+  static const String audioActionResume = 'audio_post_resume';
+  static const String audioActionStop = 'audio_post_stop';
+  static const String audioActionSkipBackward = 'audio_post_skip_backward';
+  static const String audioActionSkipForward = 'audio_post_skip_forward';
+
+  final StreamController<String> _audioActionEvents =
+      StreamController<String>.broadcast();
+
   Stream<String> get notificationEvents => _notificationEvents.stream;
   Stream<String> get ttsActionEvents => _ttsActionEvents.stream;
+  Stream<String> get audioActionEvents => _audioActionEvents.stream;
 
   @visibleForTesting
   void debugEmitNotificationEvent(String notificationId) {
@@ -233,12 +244,86 @@ class NotificationService {
     await _localNotifications.cancel(id: _ttsNotificationId);
   }
 
+  Future<void> showAudioPostMiniPlayer({
+    required String title,
+    required String body,
+    required bool isPaused,
+  }) async {
+    if (kIsWeb) return;
+
+    final playbackAction = isPaused
+        ? const AndroidNotificationAction(
+            audioActionResume,
+            'Play',
+            cancelNotification: false,
+            showsUserInterface: true,
+          )
+        : const AndroidNotificationAction(
+            audioActionPause,
+            'Pause',
+            cancelNotification: false,
+            showsUserInterface: true,
+          );
+
+    await _localNotifications.show(
+      id: _audioNotificationId,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'audio_post_channel',
+          'Audio post playback',
+          channelDescription: 'Controls for active audio post playback.',
+          importance: Importance.low,
+          priority: Priority.low,
+          category: AndroidNotificationCategory.transport,
+          ongoing: !isPaused,
+          autoCancel: false,
+          onlyAlertOnce: true,
+          showWhen: false,
+          actions: <AndroidNotificationAction>[
+            const AndroidNotificationAction(
+              audioActionSkipBackward,
+              'Skip -10s',
+              cancelNotification: false,
+              showsUserInterface: true,
+            ),
+            playbackAction,
+            const AndroidNotificationAction(
+              audioActionSkipForward,
+              'Skip +10s',
+              cancelNotification: false,
+              showsUserInterface: true,
+            ),
+            const AndroidNotificationAction(
+              audioActionStop,
+              'Stop',
+              cancelNotification: false,
+              showsUserInterface: true,
+            ),
+          ],
+        ),
+      ),
+      payload: 'audio_post',
+    );
+  }
+
+  Future<void> cancelAudioPostMiniPlayer() async {
+    if (kIsWeb) return;
+    await _localNotifications.cancel(id: _audioNotificationId);
+  }
+
   void _onTapNotification(NotificationResponse response) {
     if (_isTtsAction(response.actionId)) {
       _emitTtsAction(response.actionId!);
       return;
     }
+    if (_isAudioAction(response.actionId)) {
+      _emitAudioAction(response.actionId!);
+      return;
+    }
     if (response.payload == 'reader_tts') return;
+    if (response.payload == 'audio_post') return;
     if (response.payload != null) {
       final data = jsonDecode(response.payload!) as Map<String, dynamic>;
       if (kDebugMode) {
@@ -257,6 +342,20 @@ class NotificationService {
   void _emitTtsAction(String actionId) {
     if (!_ttsActionEvents.isClosed) {
       _ttsActionEvents.add(actionId);
+    }
+  }
+
+  bool _isAudioAction(String? actionId) {
+    return actionId == audioActionPause ||
+        actionId == audioActionResume ||
+        actionId == audioActionStop ||
+        actionId == audioActionSkipBackward ||
+        actionId == audioActionSkipForward;
+  }
+
+  void _emitAudioAction(String actionId) {
+    if (!_audioActionEvents.isClosed) {
+      _audioActionEvents.add(actionId);
     }
   }
 
