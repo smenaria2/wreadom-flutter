@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -11,6 +13,8 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import 'glass_surface.dart';
 
+/// Provider to track the active playing audio URL across the feed.
+/// Ensures that playing one audio post automatically pauses any other active post.
 class ActiveAudioPostUrl extends Notifier<String?> {
   @override
   String? build() => null;
@@ -47,6 +51,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   bool _wasPlayingBeforeDrag = false;
   double _dragStartValue = 0.0;
   double _dragCurrentValue = 0.0;
+  double _lastDragAngle = 0.0;
   double _hapticAccumulator = 0.0;
 
   @override
@@ -55,13 +60,13 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     _player = AudioPlayer();
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 8), // Slow, smooth vinyl spin
     );
 
-    // Sync player speed with local state
+    // Sync player speed
     _player.setSpeed(_playbackSpeed);
 
-    // Stop rotation when audio is not playing
+    // Coordinate rotation with playing state
     _player.playerStateStream.listen((state) {
       if (state.playing && state.processingState != ProcessingState.completed) {
         if (!_rotationController.isAnimating) {
@@ -80,6 +85,26 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     super.dispose();
   }
 
+  /// Resolves the pre-signed Backblaze B2 download GET URL.
+  Future<String> _getAudioUrl() async {
+    final objectKey = widget.post.audioObjectKey?.trim();
+    if (objectKey == null || objectKey.isEmpty) {
+      return widget.post.audioUrl ?? '';
+    }
+
+    try {
+      final response = await FirebaseFunctions.instance
+          .httpsCallable('createAudioPostDownloadUrl')
+          .call<Map<String, dynamic>>({'objectKey': objectKey});
+      
+      final downloadUrl = response.data['downloadUrl']?.toString();
+      return downloadUrl ?? widget.post.audioUrl ?? '';
+    } catch (e) {
+      debugPrint('Error getting pre-signed audio download URL: $e');
+      return widget.post.audioUrl ?? '';
+    }
+  }
+
   Future<void> _togglePlay() async {
     final audioUrl = widget.post.audioUrl;
     if (audioUrl == null || audioUrl.isEmpty) return;
@@ -95,11 +120,12 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         _error = null;
       });
 
-      // Update globally active audio post URL to pause others
+      // Update active player in the feed to mute others
       ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioUrl);
 
       if (!_isLoaded) {
-        await _player.setUrl(audioUrl);
+        final resolvedUrl = await _getAudioUrl();
+        await _player.setUrl(resolvedUrl);
         _isLoaded = true;
       }
 
@@ -128,43 +154,74 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     AppHaptics.light();
   }
 
-  // Horizontal Swipe seek handlers on vinyl disc
-  void _onDragStart(DragStartDetails details, Duration totalDuration) {
+  Future<void> _seekRelative(int seconds) async {
+    final currentPos = _player.position;
+    final totalDuration = _player.duration ?? Duration(milliseconds: widget.post.audioDurationMs ?? 0);
+    final targetPos = currentPos + Duration(seconds: seconds);
+    final clampedPos = targetPos < Duration.zero
+        ? Duration.zero
+        : (targetPos > totalDuration ? totalDuration : targetPos);
+    await _player.seek(clampedPos);
+    AppHaptics.light();
+  }
+
+  // DJ Turntable circular seeks logic
+  void _onPanStart(DragStartDetails details, Duration totalDuration) {
     if (totalDuration == Duration.zero) return;
+    
     _wasPlayingBeforeDrag = _player.playing;
     if (_wasPlayingBeforeDrag) {
       _player.pause();
     }
+
+    // Determine touch offset angle relative to center of a 204x204 container
+    final double dx = details.localPosition.dx - 102.0;
+    final double dy = details.localPosition.dy - 102.0;
+    
+    _lastDragAngle = math.atan2(dy, dx);
     _dragStartValue = _player.position.inMilliseconds.toDouble();
     _dragCurrentValue = _dragStartValue;
     _hapticAccumulator = 0.0;
   }
 
-  void _onDragUpdate(DragUpdateDetails details, Duration totalDuration) {
+  void _onPanUpdate(DragUpdateDetails details, Duration totalDuration) {
     if (totalDuration == Duration.zero) return;
-    // Map horizontal movement (pixels) to milliseconds
-    // Dragging 1px seeks by ~25ms
-    final double deltaMs = details.delta.dx * 25.0 * _playbackSpeed;
+
+    final double dx = details.localPosition.dx - 102.0;
+    final double dy = details.localPosition.dy - 102.0;
+    final double currentAngle = math.atan2(dy, dx);
+
+    // Calculate angular difference and handle wrap-around
+    double deltaAngle = currentAngle - _lastDragAngle;
+    if (deltaAngle > math.pi) {
+      deltaAngle -= 2 * math.pi;
+    } else if (deltaAngle < -math.pi) {
+      deltaAngle += 2 * math.pi;
+    }
+
+    _lastDragAngle = currentAngle;
+
+    // 1 full turn (2*pi radians) seeks by 30 seconds of audio
+    final double deltaMs = (deltaAngle / (2 * math.pi)) * 30000.0;
     final double maxMs = totalDuration.inMilliseconds.toDouble();
-    
+
     _dragCurrentValue = (_dragCurrentValue + deltaMs).clamp(0.0, maxMs);
 
-    // Rotate visual controller manually during drag
-    final double rotationDelta = details.delta.dx / 100.0;
-    _rotationController.value = (_rotationController.value + rotationDelta) % 1.0;
+    // Visually rotate turntable disc
+    _rotationController.value = (_rotationController.value + (deltaAngle / (2 * math.pi))) % 1.0;
 
-    // Trigger haptics periodically during drag
-    _hapticAccumulator += details.delta.dx.abs();
-    if (_hapticAccumulator >= 12.0) {
+    // Tactile notches feedback: tick every 15 degrees (~0.26 radians)
+    _hapticAccumulator += deltaAngle.abs();
+    if (_hapticAccumulator >= 0.26) {
       AppHaptics.light();
       _hapticAccumulator = 0.0;
     }
 
-    // Live seek during drag for interactive feedback
+    // Interactively seek player
     _player.seek(Duration(milliseconds: _dragCurrentValue.toInt()));
   }
 
-  void _onDragEnd(DragEndDetails details) {
+  void _onPanEnd(DragEndDetails details) {
     if (_wasPlayingBeforeDrag) {
       _player.play();
     }
@@ -196,7 +253,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       return const SizedBox.shrink();
     }
 
-    // Auto-pause if another post in the feed starts playing
+    // Auto-pause if another feed card starts playing
     final activePlayingUrl = ref.watch(activeAudioPostUrlProvider);
     if (activePlayingUrl != audioUrl && _player.playing) {
       _player.pause();
@@ -204,7 +261,6 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
     final coverUrl = widget.post.audioCoverUrl ?? widget.post.bookCover;
     final isBookReferred = widget.post.bookId != null;
-
     final defaultDuration = Duration(milliseconds: widget.post.audioDurationMs ?? 0);
 
     return StreamBuilder<Duration>(
@@ -212,6 +268,10 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       builder: (context, posSnapshot) {
         final position = posSnapshot.data ?? Duration.zero;
         final totalDuration = _player.duration ?? defaultDuration;
+        
+        final double progress = totalDuration.inMilliseconds > 0
+            ? (position.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0)
+            : 0.0;
 
         return StreamBuilder<PlayerState>(
           stream: _player.playerStateStream,
@@ -222,257 +282,333 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                 playerState?.processingState == ProcessingState.loading;
 
             return GlassSurface(
-              borderRadius: BorderRadius.circular(20),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              margin: const EdgeInsets.only(top: 8, bottom: 8),
-              child: Row(
+              borderRadius: BorderRadius.circular(24),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
                 children: [
-                  // ─── TACTILE VINYL DISC ──────────────────────
-                  GestureDetector(
-                    onHorizontalDragStart: (details) => _onDragStart(details, totalDuration),
-                    onHorizontalDragUpdate: (details) => _onDragUpdate(details, totalDuration),
-                    onHorizontalDragEnd: _onDragEnd,
-                    onTap: () {
-                      if (isBookReferred) {
-                        _navigateToBook(context);
-                      }
-                    },
-                    child: RotationTransition(
-                      turns: _rotationController,
+                  // 1. PREMIUM REFERRED BOOK HEADER
+                  if (isBookReferred) ...[
+                    GestureDetector(
+                      onTap: () => _navigateToBook(context),
                       child: Container(
-                        width: 74,
-                        height: 74,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                          gradient: const RadialGradient(
-                            colors: [
-                              Color(0xFF2C2C2C),
-                              Color(0xFF151515),
-                              Color(0xFF000000),
-                            ],
-                            stops: [0.0, 0.7, 1.0],
+                          color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: Stack(
-                          alignment: Alignment.center,
+                        child: Row(
                           children: [
-                            // Concentric vinyl grooves (concentric borders)
-                            Container(
-                              width: 62,
-                              height: 62,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  width: 1.0,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.03),
-                                  width: 1.0,
-                                ),
-                              ),
-                            ),
-                            // Clip cover art in the center
-                            ClipOval(
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
                               child: coverUrl != null && coverUrl.isNotEmpty
                                   ? CachedNetworkImage(
                                       imageUrl: coverUrl,
-                                      width: 42,
-                                      height: 42,
+                                      width: 36,
+                                      height: 50,
                                       fit: BoxFit.cover,
-                                      placeholder: (_, _) => Container(
-                                        color: Colors.grey.shade900,
-                                        child: const Icon(Icons.music_note_rounded,
-                                            color: Colors.white24, size: 20),
-                                      ),
-                                      errorWidget: (_, _, _) => Container(
-                                        color: Colors.grey.shade900,
-                                        child: const Icon(Icons.music_note_rounded,
-                                            color: Colors.white24, size: 20),
-                                      ),
                                     )
                                   : Container(
-                                      color: theme.colorScheme.primaryContainer,
-                                      width: 42,
-                                      height: 42,
-                                      child: Icon(
-                                        Icons.music_note_rounded,
-                                        color: theme.colorScheme.onPrimaryContainer,
-                                        size: 20,
-                                      ),
+                                      color: theme.colorScheme.surfaceContainerHighest,
+                                      width: 36,
+                                      height: 50,
+                                      child: const Icon(Icons.book_rounded, size: 18),
                                     ),
                             ),
-                            // Center spindle hole
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.colorScheme.surface,
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 1,
-                                    spreadRadius: 0.5,
-                                    offset: Offset(0, 0.5),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.post.bookTitle ?? 'Book Reference',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.post.bookAuthorName ?? 'Unknown Author',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: theme.colorScheme.primary.withValues(alpha: 0.7),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
+                  ],
 
-                  // ─── PLAYER CONTROLS & TIMELINE ───────────────
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // 2. LARGE TURNTABLE DISC WITH CIRCULAR PROGRESS
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        // Title / Subtitle
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                widget.post.bookTitle ?? 'Audio Update',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            // Speed badge
-                            GestureDetector(
-                              onTap: _cycleSpeed,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${_playbackSpeed.toStringAsFixed(2).replaceAll('.00', '')}x',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.colorScheme.primary,
+                        // Custom Painted Circular Progress Ring
+                        CustomPaint(
+                          size: const Size(204, 204),
+                          painter: CircularProgressPainter(
+                            progress: progress,
+                            trackColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                            progressColor: theme.colorScheme.primary,
+                          ),
+                        ),
+
+                        // Vinyl turntable disc
+                        GestureDetector(
+                          onPanStart: (details) => _onPanStart(details, totalDuration),
+                          onPanUpdate: (details) => _onPanUpdate(details, totalDuration),
+                          onPanEnd: _onPanEnd,
+                          child: RotationTransition(
+                            turns: _rotationController,
+                            child: Container(
+                              width: 180,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
                                   ),
+                                ],
+                                gradient: const RadialGradient(
+                                  colors: [
+                                    Color(0xFF333333),
+                                    Color(0xFF1C1C1C),
+                                    Color(0xFF070707),
+                                    Color(0xFF000000),
+                                  ],
+                                  stops: [0.0, 0.5, 0.85, 1.0],
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        if (widget.post.bookAuthorName != null) ...[
-                          Text(
-                            widget.post.bookAuthorName!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 4),
-
-                        // Timeline Seek Slider
-                        SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 12,
-                            ),
-                            activeTrackColor: theme.colorScheme.primary,
-                            inactiveTrackColor:
-                                theme.colorScheme.primary.withValues(alpha: 0.15),
-                            thumbColor: theme.colorScheme.primary,
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Slider(
-                            value: position.inMilliseconds.toDouble(),
-                            max: totalDuration.inMilliseconds.toDouble(),
-                            onChanged: (val) {
-                              _player.seek(Duration(milliseconds: val.toInt()));
-                            },
-                          ),
-                        ),
-
-                        // Time label + error state / play button row
-                        Row(
-                          children: [
-                            Text(
-                              '${_formatDuration(position)} / ${_formatDuration(totalDuration)}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_error != null)
-                              Text(
-                                _error!,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: theme.colorScheme.error,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              )
-                            else
-                              IconButton(
-                                icon: _isLoading || isBuffering
-                                    ? SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: theme.colorScheme.primary,
+                              alignment: Alignment.center,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Vinyl Grooves
+                                  for (double r in [160.0, 140.0, 120.0, 100.0, 80.0])
+                                    Container(
+                                      width: r,
+                                      height: r,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white.withValues(alpha: 0.04),
+                                          width: 0.8,
                                         ),
-                                      )
-                                    : Icon(
-                                        isPlaying
-                                            ? Icons.pause_rounded
-                                            : Icons.play_arrow_rounded,
                                       ),
-                                iconSize: 22,
-                                color: theme.colorScheme.primary,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 32,
-                                  minHeight: 32,
-                                ),
-                                onPressed: _togglePlay,
+                                    ),
+                                  
+                                  // Cover image clipped circular in the center
+                                  ClipOval(
+                                    child: coverUrl != null && coverUrl.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: coverUrl,
+                                            width: 78,
+                                            height: 78,
+                                            fit: BoxFit.cover,
+                                            placeholder: (_, _) => Container(
+                                              color: Colors.grey.shade900,
+                                              child: const Icon(Icons.music_note_rounded,
+                                                  color: Colors.white30, size: 32),
+                                            ),
+                                            errorWidget: (_, _, _) => Container(
+                                              color: Colors.grey.shade900,
+                                              child: const Icon(Icons.music_note_rounded,
+                                                  color: Colors.white30, size: 32),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: theme.colorScheme.primaryContainer,
+                                            width: 78,
+                                            height: 78,
+                                            child: Icon(
+                                              Icons.music_note_rounded,
+                                              color: theme.colorScheme.onPrimaryContainer,
+                                              size: 32,
+                                            ),
+                                          ),
+                                  ),
+
+                                  // Center spindle hole
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: theme.colorScheme.surface,
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black45,
+                                          blurRadius: 1.5,
+                                          spreadRadius: 0.5,
+                                          offset: Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                          ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // 3. TIME INDICATORS BELOW THE TURNTABLE
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDuration(position),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(totalDuration),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 4. MULTIMEDIA MEDIA CONTROLS ROW
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Speed indicator (on the left)
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: _cycleSpeed,
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${_playbackSpeed.toStringAsFixed(2).replaceAll('.00', '')}x',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Skip Backward 10s
+                      IconButton(
+                        icon: const Icon(Icons.replay_10_rounded),
+                        iconSize: 28,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                        onPressed: () => _seekRelative(-10),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Circular glowing play/pause button
+                      GestureDetector(
+                        onTap: _togglePlay,
+                        child: Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: _isLoading || isBuffering
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                  size: 32,
+                                  color: theme.colorScheme.primary,
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Skip Forward 10s
+                      IconButton(
+                        icon: const Icon(Icons.forward_10_rounded),
+                        iconSize: 28,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                        onPressed: () => _seekRelative(10),
+                      ),
+
+                      // Empty balancing space (on the right)
+                      const Expanded(child: SizedBox.shrink()),
+                    ],
+                  ),
+
+                  // Display Load Errors
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -480,5 +616,56 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         );
       },
     );
+  }
+}
+
+/// Painter to draw a circular progress ring.
+class CircularProgressPainter extends CustomPainter {
+  final double progress;
+  final Color trackColor;
+  final Color progressColor;
+
+  CircularProgressPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double strokeWidth = 5.0;
+    final Offset center = Offset(size.width / 2, size.height / 2);
+    final double radius = (size.width - strokeWidth) / 2;
+
+    // Draw background track
+    final Paint trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Draw progress arc
+    if (progress > 0.0) {
+      final Paint progressPaint = Paint()
+        ..color = progressColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, // Start at the top center
+        2 * math.pi * progress,
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.progressColor != progressColor;
   }
 }
