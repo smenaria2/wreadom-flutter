@@ -155,7 +155,7 @@ class ParticipationCertificate extends StatelessWidget {
                             fontFamily: isHindi ? devanagariFamily : null,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 4,
+                            letterSpacing: isHindi ? 0 : 4,
                             fontStyle: FontStyle.italic,
                           ),
                         ),

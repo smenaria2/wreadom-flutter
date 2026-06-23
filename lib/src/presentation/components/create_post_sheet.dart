@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../domain/models/book.dart';
+import '../providers/audio_post_providers.dart';
+import 'audio_post_creator.dart';
 
 import '../../data/services/analytics_service.dart';
 import '../../domain/models/feed_post.dart';
@@ -83,6 +86,13 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   bool _isAnsweringQuestion = false;
   bool _isQuestionDynamic = false;
 
+  String? _audioPath;
+  int _audioDurationMs = 0;
+  int _audioSizeBytes = 0;
+  String _audioMimeType = '';
+  XFile? _audioCoverImage;
+  Book? _referredBook;
+
   @override
   void initState() {
     super.initState();
@@ -140,7 +150,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
 
   Future<void> _submit() async {
     final text = _textController.text.trim();
-    if (text.isEmpty) {
+    if (text.isEmpty && _audioPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.writeSomethingFirst),
@@ -169,6 +179,37 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             .uploadPostImage(bytes, _pickedImage!.name);
       }
 
+      String? audioUrl;
+      String? audioObjectKey;
+      int? audioDurationMs;
+      int? audioSizeBytes;
+      String? audioMimeType;
+      String? audioCoverUrl;
+
+      if (_audioPath != null) {
+        final uploadResult = await ref
+            .read(audioPostUploadServiceProvider)
+            .uploadAudioPost(
+              filePath: _audioPath!,
+              userId: user.id,
+              mimeType: _audioMimeType,
+              durationMs: _audioDurationMs,
+              sizeBytes: _audioSizeBytes,
+            );
+        audioUrl = uploadResult.audioUrl;
+        audioObjectKey = uploadResult.audioObjectKey;
+        audioDurationMs = uploadResult.audioDurationMs;
+        audioSizeBytes = uploadResult.audioSizeBytes;
+        audioMimeType = uploadResult.audioMimeType;
+
+        if (_audioCoverImage != null) {
+          final bytes = await _audioCoverImage!.readAsBytes();
+          audioCoverUrl = await ref
+              .read(feedRepositoryProvider)
+              .uploadPostImage(bytes, _audioCoverImage!.name);
+        }
+      }
+
       final post = FeedPost(
         userId: user.id,
         username: user.username,
@@ -184,10 +225,24 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         imageUrl: imageUrl,
         question: _isAnsweringQuestion ? _currentQuestion : null,
         questionLeafId: _isAnsweringQuestion ? widget.questionLeafId : null,
-        bookId: widget.bookId,
-        bookTitle: widget.bookTitle,
-        bookAuthorName: widget.bookAuthorName,
-        bookCover: widget.bookCover,
+        bookId: _audioPath != null
+            ? _referredBook?.id
+            : widget.bookId,
+        bookTitle: _audioPath != null
+            ? _referredBook?.title
+            : widget.bookTitle,
+        bookAuthorName: _audioPath != null
+            ? _referredBook?.authors.map((a) => a.name.trim()).join(', ')
+            : widget.bookAuthorName,
+        bookCover: _audioPath != null
+            ? _referredBook?.coverUrl
+            : widget.bookCover,
+        audioUrl: audioUrl,
+        audioObjectKey: audioObjectKey,
+        audioDurationMs: audioDurationMs,
+        audioSizeBytes: audioSizeBytes,
+        audioMimeType: audioMimeType,
+        audioCoverUrl: audioCoverUrl,
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
@@ -547,6 +602,31 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     ),
                   ),
 
+                  // Audio creator/editor subpanel
+                  if (_pickedImage == null) ...[
+                    const SizedBox(height: 10),
+                    AudioPostCreator(
+                      onAudioChanged: (path, durationMs, sizeBytes, mimeType) {
+                        setState(() {
+                          _audioPath = path;
+                          _audioDurationMs = durationMs;
+                          _audioSizeBytes = sizeBytes;
+                          _audioMimeType = mimeType;
+                        });
+                      },
+                      onCoverChanged: (cover) {
+                        setState(() {
+                          _audioCoverImage = cover;
+                        });
+                      },
+                      onBookReferred: (book) {
+                        setState(() {
+                          _referredBook = book;
+                        });
+                      },
+                    ),
+                  ],
+
                   // Image preview
                   if (_pickedImage != null) ...[
                     const SizedBox(height: 8),
@@ -594,40 +674,42 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ],
 
                   // Divider + image picker
-                  const Divider(height: 18),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _pickImage,
-                        icon: Icon(
-                          Icons.image_outlined,
-                          color: theme.colorScheme.primary,
-                          size: 22,
-                        ),
-                        tooltip: l10n.addImage,
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _pickedImage == null
-                              ? l10n.addImage
-                              : _pickedImage!.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 12,
+                  if (_audioPath == null) ...[
+                    const Divider(height: 18),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _pickImage,
+                          icon: Icon(
+                            Icons.image_outlined,
+                            color: theme.colorScheme.primary,
+                            size: 22,
+                          ),
+                          tooltip: l10n.addImage,
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _pickedImage == null
+                                ? l10n.addImage
+                                : _pickedImage!.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

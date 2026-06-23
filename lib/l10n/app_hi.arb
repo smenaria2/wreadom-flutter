@@ -79,6 +79,7 @@
   "noSuggestedBooks": "कोई सुझाई गई रचनाएँ नहीं मिलीं।",
   "noBooksFoundIn": "{genre} में कोई रचनाएँ नहीं मिलीं।",
   "noResultsFor": "\"{query}\" के लिए कोई परिणाम नहीं मिले",
+  "noResultsFound": "कोई परिणाम नहीं मिला",
   "searchUnavailable": "खोज सेवा अभी उपलब्ध नहीं है।",
   "searchPartialResults": "कुछ खोज स्रोत उपलब्ध नहीं हैं। उपलब्ध परिणाम दिखाए जा रहे हैं।",
   "originalBooks": "मूल रचनाएँ",

@@ -22,6 +22,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'book/gradient_quote_card.dart';
 import 'book/gradient_book_card.dart';
 import 'book/gradient_review_card.dart';
+import '../widgets/audio_post_player.dart';
 
 /// Maps post type → accent colour
 Color _typeColor(String type, ColorScheme scheme) {
@@ -808,6 +809,11 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 post.text,
                 style: const TextStyle(fontSize: 14, height: 1.45),
               ),
+            ],
+
+            if (post.audioUrl != null) ...[
+              AudioPostPlayer(post: post),
+              const SizedBox(height: 10),
             ],
 
             const SizedBox(height: 10),

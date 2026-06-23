@@ -53,6 +53,12 @@ abstract class FeedPost with _$FeedPost {
     Map<String, String>? mentions,
     String? question,
     String? questionLeafId,
+    String? audioUrl,
+    int? audioDurationMs,
+    int? audioSizeBytes,
+    String? audioMimeType,
+    String? audioObjectKey,
+    String? audioCoverUrl,
   }) = _FeedPost;
 
   factory FeedPost.fromJson(Map<String, dynamic> json) =>

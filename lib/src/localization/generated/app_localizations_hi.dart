@@ -254,6 +254,9 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get noResultsFound => 'कोई परिणाम नहीं मिला';
+
+  @override
   String get searchUnavailable => 'खोज सेवा अभी उपलब्ध नहीं है।';
 
   @override

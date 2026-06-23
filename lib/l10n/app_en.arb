@@ -89,6 +89,7 @@
     }
   },
   "noResultsFor": "No results for \"{query}\"",
+  "noResultsFound": "No results found",
   "searchUnavailable": "Search is temporarily unavailable.",
   "searchPartialResults": "Some search sources could not be reached. Showing available results.",
   "@noResultsFor": {

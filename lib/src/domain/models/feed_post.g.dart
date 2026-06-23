@@ -60,6 +60,12 @@ _FeedPost _$FeedPostFromJson(Map<String, dynamic> json) => _FeedPost(
   ),
   question: json['question'] as String?,
   questionLeafId: json['questionLeafId'] as String?,
+  audioUrl: json['audioUrl'] as String?,
+  audioDurationMs: (json['audioDurationMs'] as num?)?.toInt(),
+  audioSizeBytes: (json['audioSizeBytes'] as num?)?.toInt(),
+  audioMimeType: json['audioMimeType'] as String?,
+  audioObjectKey: json['audioObjectKey'] as String?,
+  audioCoverUrl: json['audioCoverUrl'] as String?,
 );
 
 Map<String, dynamic> _$FeedPostToJson(_FeedPost instance) => <String, dynamic>{
@@ -95,4 +101,10 @@ Map<String, dynamic> _$FeedPostToJson(_FeedPost instance) => <String, dynamic>{
   'mentions': instance.mentions,
   'question': instance.question,
   'questionLeafId': instance.questionLeafId,
+  'audioUrl': instance.audioUrl,
+  'audioDurationMs': instance.audioDurationMs,
+  'audioSizeBytes': instance.audioSizeBytes,
+  'audioMimeType': instance.audioMimeType,
+  'audioObjectKey': instance.audioObjectKey,
+  'audioCoverUrl': instance.audioCoverUrl,
 };

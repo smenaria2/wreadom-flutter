@@ -578,6 +578,12 @@ abstract class AppLocalizations {
   /// **'No results for \"{query}\"'**
   String noResultsFor(String query);
 
+  /// No description provided for @noResultsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noResultsFound;
+
   /// No description provided for @searchUnavailable.
   ///
   /// In en, this message translates to:
