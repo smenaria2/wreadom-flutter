@@ -76,6 +76,13 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
 }
 
 class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
+  final _audioCreatorKey = GlobalKey<AudioPostCreatorState>();
+  bool _isRecording = false;
+  bool _isAudioUploading = false;
+  String? _uploadedAudioUrl;
+  String? _uploadedAudioObjectKey;
+  bool _isPosted = false;
+  bool _isDisposed = false;
   final _textController = TextEditingController();
   final _picker = ImagePicker();
   bool _isSubmitting = false;
@@ -103,7 +110,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _textController.dispose();
+    if (_uploadedAudioObjectKey != null && !_isPosted) {
+      ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(_uploadedAudioObjectKey!);
+    }
     super.dispose();
   }
 
@@ -179,29 +190,14 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             .uploadPostImage(bytes, _pickedImage!.name);
       }
 
-      String? audioUrl;
-      String? audioObjectKey;
-      int? audioDurationMs;
-      int? audioSizeBytes;
-      String? audioMimeType;
+      String? audioUrl = _uploadedAudioUrl;
+      String? audioObjectKey = _uploadedAudioObjectKey;
+      int? audioDurationMs = _audioDurationMs;
+      int? audioSizeBytes = _audioSizeBytes;
+      String? audioMimeType = _audioMimeType;
       String? audioCoverUrl;
 
       if (_audioPath != null) {
-        final uploadResult = await ref
-            .read(audioPostUploadServiceProvider)
-            .uploadAudioPost(
-              filePath: _audioPath!,
-              userId: user.id,
-              mimeType: _audioMimeType,
-              durationMs: _audioDurationMs,
-              sizeBytes: _audioSizeBytes,
-            );
-        audioUrl = uploadResult.audioUrl;
-        audioObjectKey = uploadResult.audioObjectKey;
-        audioDurationMs = uploadResult.audioDurationMs;
-        audioSizeBytes = uploadResult.audioSizeBytes;
-        audioMimeType = uploadResult.audioMimeType;
-
         if (_audioCoverImage != null) {
           final bytes = await _audioCoverImage!.readAsBytes();
           audioCoverUrl = await ref
@@ -246,6 +242,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
+      _isPosted = true;
       AnalyticsService.logPostCreate();
       await AppHaptics.light();
       unawaited(AppReviewHelper.incrementActionAndCheck());
@@ -310,7 +307,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     final photoUrl = user?.photoURL;
     final name =
         user?.displayName ?? user?.penName ?? user?.username ?? 'Reader';
-    final username = user?.username ?? 'reader';
 
     // Loading state
     if (currentUserAsync.isLoading) {
@@ -368,9 +364,18 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             _DragHandle(),
             const SizedBox(height: 10),
 
-            // Header row: title + close + post button
+            // Header row: close + title + post button (close X on left)
             Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: (_isSubmitting || _isAudioUploading)
+                      ? null
+                      : () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   l10n.shareAnUpdate,
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -378,25 +383,55 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  tooltip: l10n.close,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 4),
                 _GlassPostButton(
                   label: l10n.postBtn,
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submit,
+                  isLoading: _isSubmitting || _isAudioUploading,
+                  onPressed: (_isSubmitting || _isAudioUploading) ? null : _submit,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // Main card
+            // User info row (moved outside and above card, username below display name removed)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 17,
+                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(photoUrl)
+                      : null,
+                  child: photoUrl == null || photoUrl.isEmpty
+                      ? Text(
+                          name.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                _VisibilitySelector(
+                  value: _visibility,
+                  onChanged: (val) => setState(() => _visibility = val!),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Main card containing question, text input, audio creator/editor, and image preview
             GlassSurface(
               borderRadius: BorderRadius.circular(18),
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -477,121 +512,19 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     ),
                   ],
 
-                  // User info row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 17,
-                        backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                            ? CachedNetworkImageProvider(photoUrl)
-                            : null,
-                        child: photoUrl == null || photoUrl.isEmpty
-                            ? Text(
-                                name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
-                            ),
-                            Text(
-                              '@$username',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _VisibilitySelector(
-                        value: _visibility,
-                        onChanged: (val) => setState(() => _visibility = val!),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Option to answer question (only when initialQuestion is null)
-                  if (widget.initialQuestion == null) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.help_outline_rounded,
-                          size: 18,
-                          color: _isAnsweringQuestion
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.answerLeafQuestion,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _isAnsweringQuestion
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            value: _isAnsweringQuestion,
-                            onChanged: (val) async {
-                              setState(() {
-                                _isAnsweringQuestion = val;
-                                _isQuestionDynamic = val;
-                              });
-                              if (_isAnsweringQuestion) {
-                                if (_currentQuestion == null) {
-                                  await _changeQuestion();
-                                }
-                              } else {
-                                setState(() {
-                                  _currentQuestion = null;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-
-                  // Text input
+                  // Text input (made taller height-wise)
                   TextField(
                     controller: _textController,
-                    maxLines: 6,
-                    minLines: 3,
+                    maxLines: 10,
+                    minLines: 6,
                     autofocus: true,
                     style: const TextStyle(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: _isAnsweringQuestion
-                          ? l10n.answerQuestionHint
-                          : l10n.postHint,
+                      hintText: _audioPath != null
+                          ? 'Say something about this audio.'
+                          : _isAnsweringQuestion
+                              ? l10n.answerQuestionHint
+                              : l10n.postHint,
                       hintStyle: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 13,
@@ -602,17 +535,106 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     ),
                   ),
 
-                  // Audio creator/editor subpanel
+                  // Audio upload progress indicator
+                  if (_isAudioUploading) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Uploading audio...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // Audio creator/editor subpanel (renders preview/recording state/etc.)
                   if (_pickedImage == null) ...[
-                    const SizedBox(height: 10),
                     AudioPostCreator(
-                      onAudioChanged: (path, durationMs, sizeBytes, mimeType) {
+                      key: _audioCreatorKey,
+                      onAudioChanged: (path, durationMs, sizeBytes, mimeType) async {
                         setState(() {
                           _audioPath = path;
                           _audioDurationMs = durationMs;
                           _audioSizeBytes = sizeBytes;
                           _audioMimeType = mimeType;
                         });
+
+                        if (path != null) {
+                          // Delete any previously uploaded audio first
+                          if (_uploadedAudioObjectKey != null) {
+                            final keyToDelete = _uploadedAudioObjectKey!;
+                            setState(() {
+                              _uploadedAudioUrl = null;
+                              _uploadedAudioObjectKey = null;
+                            });
+                            ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(keyToDelete);
+                          }
+
+                          // Start uploading immediately
+                          setState(() {
+                            _isAudioUploading = true;
+                          });
+                          try {
+                            final user = await ref.read(currentUserProvider.future);
+                            if (user != null) {
+                              final result = await ref
+                                  .read(audioPostUploadServiceProvider)
+                                  .uploadAudioPost(
+                                    filePath: path,
+                                    userId: user.id,
+                                    mimeType: mimeType,
+                                    durationMs: durationMs,
+                                    sizeBytes: sizeBytes,
+                                  );
+                              
+                              if (_isDisposed) {
+                                // Delete it immediately since user closed the sheet while it was uploading!
+                                ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(result.audioObjectKey);
+                                return;
+                              }
+
+                              setState(() {
+                                _uploadedAudioUrl = result.audioUrl;
+                                _uploadedAudioObjectKey = result.audioObjectKey;
+                                _isAudioUploading = false;
+                              });
+                            }
+                          } catch (e) {
+                            setState(() {
+                              _isAudioUploading = false;
+                            });
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Audio upload failed: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } else {
+                          // Audio removed by user
+                          if (_uploadedAudioObjectKey != null) {
+                            final keyToDelete = _uploadedAudioObjectKey!;
+                            setState(() {
+                              _uploadedAudioUrl = null;
+                              _uploadedAudioObjectKey = null;
+                            });
+                            // Fire-and-forget delete
+                            ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(keyToDelete);
+                          }
+                        }
                       },
                       onCoverChanged: (cover) {
                         setState(() {
@@ -622,6 +644,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                       onBookReferred: (book) {
                         setState(() {
                           _referredBook = book;
+                        });
+                      },
+                      onRecordingStateChanged: (rec) {
+                        setState(() {
+                          _isRecording = rec;
                         });
                       },
                     ),
@@ -672,42 +699,74 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                       ],
                     ),
                   ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
 
-                  // Divider + image picker
-                  if (_audioPath == null) ...[
-                    const Divider(height: 18),
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: _pickImage,
-                          icon: Icon(
-                            Icons.image_outlined,
-                            color: theme.colorScheme.primary,
-                            size: 22,
-                          ),
-                          tooltip: l10n.addImage,
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _pickedImage == null
-                                ? l10n.addImage
-                                : _pickedImage!.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
+            // Bottom actions bar
+            GlassSurface(
+              borderRadius: BorderRadius.circular(16),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  // Add Image Button
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.image_outlined,
+                      label: 'Add image',
+                      disabled: _audioPath != null || _isRecording,
+                      onTap: _pickImage,
+                    ),
+                  ),
+                  _VerticalDivider(),
+                  // Record Button
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.mic_none_outlined,
+                      label: 'Record',
+                      disabled: _pickedImage != null,
+                      onTap: () {
+                        _audioCreatorKey.currentState?.startRecording();
+                      },
+                    ),
+                  ),
+                  _VerticalDivider(),
+                  // Upload Button (upload Audio)
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.audio_file_outlined,
+                      label: 'Upload',
+                      disabled: _pickedImage != null,
+                      onTap: () {
+                        _audioCreatorKey.currentState?.pickAudioFile();
+                      },
+                    ),
+                  ),
+                  if (widget.initialQuestion == null) ...[
+                    _VerticalDivider(),
+                    // Answer Question Button
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.help_outline_rounded,
+                        label: 'Answer Question',
+                        active: _isAnsweringQuestion,
+                        onTap: () async {
+                          setState(() {
+                            _isAnsweringQuestion = !_isAnsweringQuestion;
+                            _isQuestionDynamic = _isAnsweringQuestion;
+                          });
+                          if (_isAnsweringQuestion) {
+                            if (_currentQuestion == null) {
+                              await _changeQuestion();
+                            }
+                          } else {
+                            setState(() {
+                              _currentQuestion = null;
+                            });
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ],
@@ -876,3 +935,77 @@ class _GlassPostButton extends StatelessWidget {
     );
   }
 }
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.disabled = false,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool disabled;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = disabled
+        ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.38)
+        : active
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: disabled ? null : onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: active
+            ? BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VerticalDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 24,
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+    );
+  }
+}
+

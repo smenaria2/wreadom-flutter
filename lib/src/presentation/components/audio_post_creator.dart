@@ -22,17 +22,26 @@ class AudioPostCreator extends StatefulWidget {
     required this.onAudioChanged,
     required this.onCoverChanged,
     required this.onBookReferred,
+    this.onRecordingStateChanged,
   });
 
   final Function(String? path, int durationMs, int sizeBytes, String mimeType) onAudioChanged;
   final ValueChanged<XFile?> onCoverChanged;
   final ValueChanged<Book?> onBookReferred;
+  final ValueChanged<bool>? onRecordingStateChanged;
 
   @override
-  State<AudioPostCreator> createState() => _AudioPostCreatorState();
+  State<AudioPostCreator> createState() => AudioPostCreatorState();
 }
 
-class _AudioPostCreatorState extends State<AudioPostCreator> {
+class AudioPostCreatorState extends State<AudioPostCreator> {
+  // Public methods to control from parent sheet
+  Future<void> startRecording() => _startRecording();
+  Future<void> cancelRecording() => _cancelRecording();
+  Future<void> stopRecording() => _stopRecording();
+  Future<void> pickAudioFile() => _pickAudioFile();
+  bool get isRecording => _isRecording;
+  String? get audioPath => _audioPath;
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
@@ -123,6 +132,7 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
         _isRecording = true;
         _audioPath = null;
       });
+      widget.onRecordingStateChanged?.call(true);
       AppHaptics.medium();
     } catch (e) {
       debugPrint('Error starting audio recording: $e');
@@ -137,6 +147,7 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
     final path = await _audioRecorder.stop();
     if (path == null) {
       setState(() => _isRecording = false);
+      widget.onRecordingStateChanged?.call(false);
       return;
     }
 
@@ -151,6 +162,7 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
       _audioMimeType = 'audio/m4a';
     });
 
+    widget.onRecordingStateChanged?.call(false);
     widget.onAudioChanged(_audioPath, _audioDurationMs, _audioSizeBytes, _audioMimeType);
     AppHaptics.medium();
   }
@@ -163,6 +175,7 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
     setState(() {
       _isRecording = false;
     });
+    widget.onRecordingStateChanged?.call(false);
     AppHaptics.light();
   }
 
@@ -194,11 +207,6 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
         return;
       }
 
-      // Read audio duration using a temporary AudioPlayer load
-      setState(() {
-        _isLoadingDuration = true;
-      });
-      
       int durationMs = 0;
       try {
         final duration = await _previewPlayer.setUrl(path);
@@ -220,7 +228,6 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
       }
 
       setState(() {
-        _isLoadingDuration = false;
         _audioPath = path;
         _audioDurationMs = durationMs;
         _audioSizeBytes = size;
@@ -230,14 +237,9 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
       widget.onAudioChanged(_audioPath, _audioDurationMs, _audioSizeBytes, _audioMimeType);
       AppHaptics.medium();
     } catch (e) {
-      setState(() {
-        _isLoadingDuration = false;
-      });
       debugPrint('Error picking audio file: $e');
     }
   }
-
-  bool _isLoadingDuration = false;
 
   void _removeAudio() {
     _previewPlayer.stop();
@@ -377,68 +379,7 @@ class _AudioPostCreatorState extends State<AudioPostCreator> {
 
     // 2. NO AUDIO ATTACHED STATE
     if (_audioPath == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: GlassSurface(
-                  borderRadius: BorderRadius.circular(14),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  onTap: _startRecording,
-                  child: Column(
-                    children: [
-                      Icon(Icons.mic_rounded, color: theme.colorScheme.primary, size: 20),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Record Audio',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GlassSurface(
-                  borderRadius: BorderRadius.circular(14),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  onTap: _isLoadingDuration ? null : _pickAudioFile,
-                  child: Column(
-                    children: [
-                      _isLoadingDuration
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(Icons.audio_file_rounded,
-                              color: theme.colorScheme.primary, size: 20),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Upload File',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              'Supports MP3, M4A, WAV up to 10MB',
-              style: TextStyle(
-                fontSize: 10,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-        ],
-      );
+      return const SizedBox.shrink();
     }
 
     // 3. AUDIO ATTACHED STATE
