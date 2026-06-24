@@ -242,7 +242,7 @@ void main() {
     expect(find.text('Publish'), findsNothing);
     expect(find.byTooltip('Chapters'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('Add to book'), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('Convert to Draft'), findsOneWidget);
@@ -663,7 +663,7 @@ void main() {
     expect(find.byTooltip('Save Draft'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
     expect(find.text('Delete Book'), findsOneWidget);
     expect(find.text('Add to book'), findsNothing);
@@ -712,7 +712,7 @@ void main() {
     expect(find.byTooltip('Save'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
     expect(find.text('Convert to Draft'), findsOneWidget);
     expect(find.text('Print'), findsOneWidget);

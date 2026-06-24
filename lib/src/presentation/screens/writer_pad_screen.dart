@@ -29,6 +29,7 @@ import '../utils/writer_media_utils.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/writer_custom_toolbar.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../data/services/cover_image_service.dart';
 
@@ -500,6 +501,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         if (!didPop) unawaited(_handleBack());
       },
       child: GlassScaffold(
+        extendBody: true,
+        extendBodyBehindAppBar: true,
         appBar: glassAppBar(
           titleSpacing: 0,
           title: Column(
@@ -542,41 +545,101 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   List<Widget> _buildEditorAppBarActions(AppLocalizations l10n) {
-    final saveTooltip = _isPublished ? l10n.save : l10n.saveDraft;
-    final saveButton = Tooltip(
-      message: saveTooltip,
-      child: _isSingleChapter && !_isPublished
-          ? FilledButton(
-              style: _writerAppBarActionStyle(primary: true, iconOnly: true),
-              onPressed: _isSaving
-                  ? null
-                  : () => _save(status: _statusForSave, allowUntitled: true),
-              child: const Icon(Icons.save_rounded),
-            )
-          : OutlinedButton(
-              style: _writerAppBarActionStyle(primary: false, iconOnly: true),
-              onPressed: _isSaving ? null : () => _save(status: _statusForSave),
-              child: const Icon(Icons.save_rounded),
-            ),
-    );
+    final saveAction = _isSingleChapter && !_isPublished
+        ? () => _save(status: _statusForSave, allowUntitled: true)
+        : () => _save(status: _statusForSave);
+
+    final theme = Theme.of(context);
+
+    Widget buildSaveButton({required bool isFilled}) {
+      final style = (isFilled
+              ? FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  foregroundColor: theme.colorScheme.onPrimaryContainer,
+                )
+              : OutlinedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  foregroundColor: theme.colorScheme.onPrimaryContainer,
+                  side: BorderSide.none,
+                ))
+          .copyWith(
+        minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
+        fixedSize: const WidgetStatePropertyAll(Size(40, 40)),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+
+      if (isFilled) {
+        return Tooltip(
+          message: _isPublished ? l10n.save : l10n.saveDraft,
+          child: FilledButton(
+            style: style,
+            onPressed: _isSaving ? null : saveAction,
+            child: const Icon(Icons.save_rounded, size: 22),
+          ),
+        );
+      } else {
+        return Tooltip(
+          message: _isPublished ? l10n.save : l10n.saveDraft,
+          child: OutlinedButton(
+            style: style,
+            onPressed: _isSaving ? null : saveAction,
+            child: const Icon(Icons.save_rounded, size: 22),
+          ),
+        );
+      }
+    }
+
+    Widget buildNextButton({required bool isFilled}) {
+      final style = (isFilled
+              ? FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                  foregroundColor: theme.colorScheme.onSurface,
+                )
+              : OutlinedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                  foregroundColor: theme.colorScheme.onSurface,
+                  side: BorderSide.none,
+                ))
+          .copyWith(
+        minimumSize: const WidgetStatePropertyAll(Size(68, 36)),
+        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
+        shape: const WidgetStatePropertyAll(StadiumBorder()),
+        elevation: const WidgetStatePropertyAll(0),
+      );
+
+      if (isFilled) {
+        return FilledButton(
+          style: style,
+          onPressed: _isSaving ? null : _goToDetails,
+          child: Text(
+            l10n.writerNext,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        );
+      } else {
+        return OutlinedButton(
+          style: style,
+          onPressed: _isSaving ? null : _goToDetails,
+          child: Text(
+            l10n.writerNext,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        );
+      }
+    }
 
     return [
       if (_isSingleChapter && !_isPublished) ...[
-        OutlinedButton(
-          style: _writerAppBarActionStyle(primary: false),
-          onPressed: _isSaving ? null : _goToDetails,
-          child: Text(l10n.writerNext),
-        ),
-        const SizedBox(width: 6),
-        saveButton,
+        buildNextButton(isFilled: false),
+        const SizedBox(width: 8),
+        buildSaveButton(isFilled: true),
       ] else ...[
-        saveButton,
-        const SizedBox(width: 6),
-        FilledButton(
-          style: _writerAppBarActionStyle(primary: true),
-          onPressed: _isSaving ? null : _goToDetails,
-          child: Text(l10n.writerNext),
-        ),
+        buildSaveButton(isFilled: false),
+        const SizedBox(width: 8),
+        buildNextButton(isFilled: true),
       ],
       _buildEditorMenu(l10n),
       const SizedBox(width: 4),
@@ -614,6 +677,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     ];
 
     return PopupMenuButton<_WriterMenuAction>(
+      icon: const Icon(Icons.more_horiz_rounded),
       tooltip: MaterialLocalizations.of(context).showMenuTooltip,
       enabled: !_isSaving,
       onSelected: _handleWriterMenuAction,
@@ -750,39 +814,70 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       key: const ValueKey('editor-step'),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: _surface(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: TextField(
-                    controller: _currentChapter.title,
-                    style: TextStyle(
-                      color: _onWriterSurfaceColor(context),
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
+                child: TextField(
+                  controller: _currentChapter.title,
+                  style: TextStyle(
+                    color: _onWriterSurfaceColor(context),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
                     ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: l10n.writerChapterTitleHint(
-                        _currentChapterIndex + 1,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2.0,
                       ),
-                      hintStyle: TextStyle(
-                        color: _onWriterSurfaceColor(
-                          context,
-                        ).withValues(alpha: 0.36),
-                      ),
+                    ),
+                    contentPadding: const EdgeInsets.only(bottom: 6),
+                    hintText: l10n.writerChapterTitleHint(
+                      _currentChapterIndex + 1,
+                    ),
+                    hintStyle: TextStyle(
+                      color: _onWriterSurfaceColor(context).withValues(alpha: 0.36),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-
-              IconButton.filledTonal(
-                tooltip: l10n.writerChapters,
-                onPressed: _showChapterSheet,
-                icon: const Icon(Icons.view_list_rounded),
+              const SizedBox(width: 16),
+              Tooltip(
+                message: l10n.writerChapters,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    shape: const StadiumBorder(),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                  onPressed: _showChapterSheet,
+                  icon: Icon(
+                    Icons.list_rounded,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  label: Text(
+                    l10n.writerChapters,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -794,9 +889,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: paperColor,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
             ),
             child: QuillEditor(
@@ -1109,76 +1204,20 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildToolbar(QuillController controller) {
-    final l10n = AppLocalizations.of(context)!;
-    final onToolbarColor = _onWriterSurfaceColor(context);
     return SafeArea(
       child: GlassSurface(
         strong: true,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: l10n.insertImage,
-              color: onToolbarColor,
-              onPressed: _isUploadingInlineImage ? null : _pickInlineImage,
-              icon: _isUploadingInlineImage
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.image_outlined),
-            ),
-            IconButton(
-              tooltip: l10n.insertMedia,
-              color: onToolbarColor,
-              onPressed: _showMediaInsertDialog,
-              icon: const Icon(Icons.smart_display_outlined),
-            ),
-            IconButton(
-              tooltip: l10n.versionHistory,
-              color: onToolbarColor,
-              onPressed: _currentChapter.versions.isEmpty
-                  ? null
-                  : () => _showVersionHistory(_currentChapterIndex),
-              icon: const Icon(Icons.history_rounded),
-            ),
-            Expanded(
-              child: QuillSimpleToolbar(
-                controller: controller,
-                config: QuillSimpleToolbarConfig(
-                  axis: Axis.horizontal,
-                  multiRowsDisplay: false,
-                  showDividers: false,
-                  showFontFamily: false,
-                  showFontSize: false,
-                  showSmallButton: false,
-                  showStrikeThrough: false,
-                  showInlineCode: false,
-                  showColorButton: false,
-                  showBackgroundColorButton: false,
-                  showClearFormat: false,
-                  showAlignmentButtons: false,
-                  showLeftAlignment: false,
-                  showCenterAlignment: false,
-                  showRightAlignment: false,
-                  showJustifyAlignment: false,
-                  showListCheck: false,
-                  showCodeBlock: false,
-                  showIndent: false,
-                  showUndo: true,
-                  showRedo: true,
-                  showDirection: false,
-                  showSearchButton: false,
-                  showLink: false,
-                  showSubscript: false,
-                  showSuperscript: false,
-                  color: Colors.transparent,
-                  toolbarSectionSpacing: 2,
-                ),
-              ),
-            ),
-          ],
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        borderRadius: BorderRadius.circular(24),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: WriterCustomToolbar(
+          controller: controller,
+          onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
+          isUploadingInlineImage: _isUploadingInlineImage,
+          onInsertVideo: _showMediaInsertDialog,
+          onVersionHistory: _currentChapter.versions.isEmpty
+              ? null
+              : () => _showVersionHistory(_currentChapterIndex),
         ),
       ),
     );
