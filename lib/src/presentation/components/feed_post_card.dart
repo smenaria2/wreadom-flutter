@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -89,6 +90,18 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   bool _editing = false;
   bool? _optimisticLiked;
   int? _optimisticLikesCount;
+
+  @override
+  void didUpdateWidget(covariant FeedPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.id != widget.post.id) {
+      _liking = false;
+      _deleting = false;
+      _editing = false;
+      _optimisticLiked = null;
+      _optimisticLikesCount = null;
+    }
+  }
 
   Future<void> _toggleLike() async {
     if (_liking) return;
@@ -240,6 +253,39 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (pickedImage != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(pickedImage!.path),
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ] else if (imageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl!,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        height: 150,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => const SizedBox(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty) ...[
+                  AudioPostPlayer(post: widget.post),
+                  const SizedBox(height: 12),
+                ],
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,

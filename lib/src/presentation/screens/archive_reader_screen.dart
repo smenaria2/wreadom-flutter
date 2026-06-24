@@ -1,24 +1,74 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../data/services/reader_ad_service.dart';
 import '../../domain/models/book.dart';
+import '../../utils/app_haptics.dart';
+import '../providers/book_providers.dart';
+import '../utils/book_share_utils.dart';
+import '../utils/share_text_helper.dart';
 import 'webview_platform_helper.dart';
 
-class ArchiveReaderScreen extends StatefulWidget {
-  const ArchiveReaderScreen({super.key, required this.book});
+class ArchiveReaderScreen extends ConsumerWidget {
+  const ArchiveReaderScreen({
+    super.key,
+    this.book,
+    this.bookId,
+  }) : assert(book != null || bookId != null);
+
+  final Book? book;
+  final String? bookId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (book != null) {
+      return _ArchiveReaderContent(book: book!);
+    }
+
+    final bookAsync = ref.watch(bookDetailProvider(bookId!));
+    return bookAsync.when(
+      data: (loadedBook) {
+        if (loadedBook == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Internet Archive Reader'),
+            ),
+            body: const Center(child: Text('Book not found')),
+          );
+        }
+        return _ArchiveReaderContent(book: loadedBook);
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          title: const Text('Internet Archive Reader'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Internet Archive Reader'),
+        ),
+        body: Center(child: Text('Error loading book: $error')),
+      ),
+    );
+  }
+}
+
+class _ArchiveReaderContent extends StatefulWidget {
+  const _ArchiveReaderContent({required this.book});
 
   final Book book;
 
   @override
-  State<ArchiveReaderScreen> createState() => _ArchiveReaderScreenState();
+  State<_ArchiveReaderContent> createState() => _ArchiveReaderContentState();
 }
 
-class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
+class _ArchiveReaderContentState extends State<_ArchiveReaderContent> {
   WebViewController? _controller;
   final ReaderAdService _readerAdService = ReaderAdService();
   bool _isLoading = true;
@@ -159,6 +209,23 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
               tooltip: AppLocalizations.of(context)!.viewPdf,
               onPressed: _launchPdf,
             ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined, size: 20),
+            tooltip: 'Share',
+            onPressed: () async {
+              unawaited(AppHaptics.selection());
+              final text = generateBookShareText(
+                book: widget.book,
+                link: 'https://wreadom.in/?book=${widget.book.id}&mode=pdf',
+              );
+              await shareBookLinkWithCover(
+                text: text,
+                subject: widget.book.title,
+                coverUrl: widget.book.coverUrl,
+                fileNameBase: widget.book.title,
+              );
+            },
+          ),
         ],
       ),
       body: Stack(
@@ -177,7 +244,6 @@ class _ArchiveReaderScreenState extends State<ArchiveReaderScreen> {
                 ),
               ),
             ),
-
           if (_hasError)
             Center(
               child: Padding(

@@ -774,7 +774,11 @@ class _PublicPostsSection extends ConsumerWidget {
         else
           Column(
             children: [
-              for (final post in state.items) FeedPostCard(post: post),
+              for (final post in state.items)
+                FeedPostCard(
+                  key: ValueKey(post.id ?? ''),
+                  post: post,
+                ),
               if (state.hasMore)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),

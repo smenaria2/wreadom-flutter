@@ -7,6 +7,7 @@ class WriterCustomToolbar extends StatefulWidget {
   const WriterCustomToolbar({
     super.key,
     required this.controller,
+    required this.focusNode,
     required this.onInsertImage,
     required this.isUploadingInlineImage,
     required this.onInsertVideo,
@@ -14,6 +15,7 @@ class WriterCustomToolbar extends StatefulWidget {
   });
 
   final QuillController controller;
+  final FocusNode focusNode;
   final VoidCallback? onInsertImage;
   final bool isUploadingInlineImage;
   final VoidCallback? onInsertVideo;
@@ -62,6 +64,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   String _getUnderlineLabel(BuildContext context) => _isHindi(context) ? 'अंडरलाइन' : 'Underline';
 
   void _toggleFormat(Attribute attribute) {
+    if (!widget.focusNode.hasFocus) return;
     final styles = widget.controller.getSelectionStyle();
     final hasAttr = styles.containsKey(attribute.key);
     widget.controller.formatSelection(
@@ -89,30 +92,44 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.image_outlined),
-          label: l10n.insertImage ?? 'Add image',
-          onTap: widget.isUploadingInlineImage ? null : widget.onInsertImage,
+          label: l10n.insertImage,
+          onTap: widget.isUploadingInlineImage
+              ? null
+              : () {
+                  if (!widget.focusNode.hasFocus) return;
+                  widget.onInsertImage?.call();
+                },
         ),
         _buildItem(
           icon: const Icon(Icons.play_circle_outline_rounded),
-          label: l10n.insertMedia ?? 'Add video',
-          onTap: widget.onInsertVideo,
+          label: l10n.insertMedia,
+          onTap: () {
+            if (!widget.focusNode.hasFocus) return;
+            widget.onInsertVideo?.call();
+          },
         ),
         _buildDivider(),
         _buildItem(
           icon: const Icon(Icons.access_time_rounded),
-          label: l10n.versionHistory ?? 'History',
+          label: l10n.versionHistory,
           onTap: widget.onVersionHistory,
         ),
         _buildDivider(),
         _buildItem(
           icon: const Icon(Icons.undo_rounded),
           label: _getUndoLabel(context),
-          onTap: () => widget.controller.undo(),
+          onTap: () {
+            if (!widget.focusNode.hasFocus) return;
+            widget.controller.undo();
+          },
         ),
         _buildItem(
           icon: const Icon(Icons.redo_rounded),
           label: _getRedoLabel(context),
-          onTap: () => widget.controller.redo(),
+          onTap: () {
+            if (!widget.focusNode.hasFocus) return;
+            widget.controller.redo();
+          },
         ),
         _buildDivider(),
         _buildItem(
@@ -184,6 +201,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     return Expanded(
       child: InkWell(
         onTap: onTap,
+        canRequestFocus: false,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),

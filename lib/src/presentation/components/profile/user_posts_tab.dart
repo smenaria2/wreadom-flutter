@@ -51,7 +51,10 @@ class UserPostsTab extends ConsumerWidget {
               ),
             );
           }
-          return FeedPostCard(post: state.items[index]);
+          return FeedPostCard(
+            key: ValueKey(state.items[index].id ?? ''),
+            post: state.items[index],
+          );
         },
         itemCount: state.items.length + 1,
       ),

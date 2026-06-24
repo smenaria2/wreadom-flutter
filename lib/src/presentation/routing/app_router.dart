@@ -491,13 +491,18 @@ class AppRouter {
         );
       case AppRoutes.archiveReader:
         final args = resolvedArguments;
-        if (args is! Book) {
-          return _notFound('Book details are missing for Archive Reader.');
+        if (args is Book) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => ArchiveReaderScreen(book: args),
+          );
+        } else if (args is String) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => ArchiveReaderScreen(bookId: args),
+          );
         }
-        return MaterialPageRoute(
-          settings: routeSettings,
-          builder: (_) => ArchiveReaderScreen(book: args),
-        );
+        return _notFound('Book details are missing for Archive Reader.');
       case AppRoutes.adminDailyTopics:
         return MaterialPageRoute(
           settings: routeSettings,

@@ -1043,7 +1043,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             accentColor: chromeScheme.primary,
             onSelect: (index) {
               unawaited(AppHaptics.selection());
-              _goToChapter(index);
+              if (index > _chapterIndex) {
+                unawaited(_showNextChapterAdAndGoTo(index));
+              } else {
+                _goToChapter(index);
+              }
               Navigator.of(context).pop();
             },
             onOpenComments: (index) {

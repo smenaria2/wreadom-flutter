@@ -25,7 +25,8 @@ class AuthorStatsPanel extends ConsumerWidget {
 
     return booksAsync.when(
       data: (books) {
-        final stats = _AuthorStats.fromBooks(books);
+        final publishedBooks = books.where((b) => b.status == 'published').toList();
+        final stats = _AuthorStats.fromBooks(publishedBooks);
         return _StatsGrid(
           items: [
             _StatsItem(

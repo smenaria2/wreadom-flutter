@@ -48,6 +48,7 @@ class AppLinkHelper {
       final queryTopicId = uri.queryParameters['id'];
       final queryLeafId = uri.queryParameters['leaf'];
       final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
+      final queryMode = uri.queryParameters['mode']?.trim().toLowerCase();
       if (segments.isEmpty) {
         if (queryPage == 'writer') {
           return const ResolvedAppLink(AppRoutes.writerDashboard, null);
@@ -56,6 +57,9 @@ class AppLinkHelper {
           return const ResolvedAppLink(AppRoutes.discovery, null);
         }
         if (_hasValue(queryBookId)) {
+          if (queryMode == 'pdf') {
+            return ResolvedAppLink(AppRoutes.archiveReader, queryBookId!);
+          }
           return ResolvedAppLink(
             AppRoutes.bookDetail,
             queryBookId,
@@ -80,6 +84,9 @@ class AppLinkHelper {
         case 'b':
           id ??= queryBookId ?? queryTopicId;
           if (_hasValue(id)) {
+            if (queryMode == 'pdf') {
+              return ResolvedAppLink(AppRoutes.archiveReader, id!);
+            }
             return ResolvedAppLink(
               AppRoutes.bookDetail,
               id!,

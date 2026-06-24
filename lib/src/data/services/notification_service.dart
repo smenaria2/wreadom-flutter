@@ -46,7 +46,6 @@ class NotificationService {
   static const String ttsActionResume = 'reader_tts_resume';
   static const String ttsActionStop = 'reader_tts_stop';
 
-  static const int _audioNotificationId = 4102;
   static const String audioActionPause = 'audio_post_pause';
   static const String audioActionResume = 'audio_post_resume';
   static const String audioActionStop = 'audio_post_stop';
@@ -224,6 +223,7 @@ class NotificationService {
           autoCancel: false,
           onlyAlertOnce: true,
           showWhen: false,
+          styleInformation: const MediaStyleInformation(),
           actions: <AndroidNotificationAction>[
             playbackAction,
             const AndroidNotificationAction(
@@ -242,75 +242,6 @@ class NotificationService {
   Future<void> cancelTtsMiniPlayer() async {
     if (kIsWeb) return;
     await _localNotifications.cancel(id: _ttsNotificationId);
-  }
-
-  Future<void> showAudioPostMiniPlayer({
-    required String title,
-    required String body,
-    required bool isPaused,
-  }) async {
-    if (kIsWeb) return;
-
-    final playbackAction = isPaused
-        ? const AndroidNotificationAction(
-            audioActionResume,
-            'Play',
-            cancelNotification: false,
-            showsUserInterface: true,
-          )
-        : const AndroidNotificationAction(
-            audioActionPause,
-            'Pause',
-            cancelNotification: false,
-            showsUserInterface: true,
-          );
-
-    await _localNotifications.show(
-      id: _audioNotificationId,
-      title: title,
-      body: body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          'audio_post_channel',
-          'Audio post playback',
-          channelDescription: 'Controls for active audio post playback.',
-          importance: Importance.low,
-          priority: Priority.low,
-          category: AndroidNotificationCategory.transport,
-          ongoing: !isPaused,
-          autoCancel: false,
-          onlyAlertOnce: true,
-          showWhen: false,
-          actions: <AndroidNotificationAction>[
-            const AndroidNotificationAction(
-              audioActionSkipBackward,
-              'Skip -10s',
-              cancelNotification: false,
-              showsUserInterface: true,
-            ),
-            playbackAction,
-            const AndroidNotificationAction(
-              audioActionSkipForward,
-              'Skip +10s',
-              cancelNotification: false,
-              showsUserInterface: true,
-            ),
-            const AndroidNotificationAction(
-              audioActionStop,
-              'Stop',
-              cancelNotification: false,
-              showsUserInterface: true,
-            ),
-          ],
-        ),
-      ),
-      payload: 'audio_post',
-    );
-  }
-
-  Future<void> cancelAudioPostMiniPlayer() async {
-    if (kIsWeb) return;
-    await _localNotifications.cancel(id: _audioNotificationId);
   }
 
   void _onTapNotification(NotificationResponse response) {

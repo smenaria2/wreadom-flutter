@@ -43,10 +43,16 @@ import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.ryanheise.audioservice.channel.audio',
+      androidNotificationChannelName: 'Audio Playback',
+      androidNotificationOngoing: true,
+    );
     AppLogCollector.init();
     FlutterError.onError = (details) {
       AppLogCollector.recordFlutterError(details);

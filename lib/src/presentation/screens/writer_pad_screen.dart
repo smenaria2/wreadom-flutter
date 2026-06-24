@@ -646,27 +646,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     ];
   }
 
-  ButtonStyle _writerAppBarActionStyle({
-    required bool primary,
-    bool iconOnly = false,
-  }) {
-    final theme = Theme.of(context);
-    final base = primary
-        ? theme.filledButtonTheme.style
-        : theme.outlinedButtonTheme.style;
-    return (base ?? const ButtonStyle()).copyWith(
-      minimumSize: WidgetStatePropertyAll(Size(iconOnly ? 40 : 58, 40)),
-      fixedSize: iconOnly ? const WidgetStatePropertyAll(Size(40, 40)) : null,
-      padding: WidgetStatePropertyAll(
-        iconOnly ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
-      ),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-    );
-  }
+
 
   Widget _buildEditorMenu(AppLocalizations l10n) {
     final actions = <_WriterMenuAction>[
@@ -1212,6 +1192,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: WriterCustomToolbar(
           controller: controller,
+          focusNode: _editorFocusNode,
           onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
           isUploadingInlineImage: _isUploadingInlineImage,
           onInsertVideo: _showMediaInsertDialog,

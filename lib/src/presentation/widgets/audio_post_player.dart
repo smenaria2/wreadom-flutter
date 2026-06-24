@@ -6,9 +6,9 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
 
-import '../../data/services/notification_service.dart';
 import '../../domain/models/feed_post.dart';
 import '../providers/audio_post_providers.dart';
 import '../routing/app_router.dart';
@@ -55,8 +55,6 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   double _dragCurrentValue = 0.0;
   double _lastDragAngle = 0.0;
   double _hapticAccumulator = 0.0;
- 
-  late final StreamSubscription<String> _audioActionSubscription;
 
   @override
   void initState() {
@@ -79,67 +77,20 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       } else {
         _rotationController.stop();
       }
-      _syncAudioPostNotification();
-    });
-
-    // Listen to notification actions
-    _audioActionSubscription =
-        NotificationService.instance.audioActionEvents.listen((actionId) {
-      final activeUrl = ref.read(activeAudioPostUrlProvider);
-      if (activeUrl != widget.post.audioUrl) return;
-
-      if (actionId == NotificationService.audioActionPause) {
-        _player.pause();
-      } else if (actionId == NotificationService.audioActionResume) {
-        _player.play();
-      } else if (actionId == NotificationService.audioActionStop) {
-        _player.pause();
-        ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
-        NotificationService.instance.cancelAudioPostMiniPlayer();
-      } else if (actionId == NotificationService.audioActionSkipBackward) {
-        _seekRelative(-10);
-      } else if (actionId == NotificationService.audioActionSkipForward) {
-        _seekRelative(10);
+      if (state.processingState == ProcessingState.completed) {
+        final activeUrl = ref.read(activeAudioPostUrlProvider);
+        if (activeUrl == widget.post.audioUrl) {
+          ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    _audioActionSubscription.cancel();
     _rotationController.dispose();
-    final activeUrl = ref.read(activeAudioPostUrlProvider);
-    if (activeUrl == widget.post.audioUrl) {
-      NotificationService.instance.cancelAudioPostMiniPlayer();
-    }
     _player.dispose();
     super.dispose();
-  }
-
-  void _syncAudioPostNotification() {
-    final activeUrl = ref.read(activeAudioPostUrlProvider);
-    if (activeUrl != widget.post.audioUrl || !_isLoaded) {
-      return;
-    }
-
-    final isPlaying = _player.playing;
-    final isCompleted = _player.processingState == ProcessingState.completed;
-
-    if (isCompleted) {
-      NotificationService.instance.cancelAudioPostMiniPlayer();
-      return;
-    }
-
-    final title = widget.post.bookTitle ?? 'Audio Post';
-    final author = widget.post.bookAuthorName ?? '';
-    final username = widget.post.displayName ?? 'Anonymous';
-    final body = author.isNotEmpty ? 'by $author • $username' : username;
-
-    NotificationService.instance.showAudioPostMiniPlayer(
-      title: title,
-      body: body,
-      isPaused: !isPlaying,
-    );
   }
 
   /// Resolves the pre-signed Backblaze B2 download GET URL.
@@ -182,7 +133,23 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
       if (!_isLoaded) {
         final resolvedUrl = await _getAudioUrl();
-        await _player.setUrl(resolvedUrl);
+        final audioCoverUrl = widget.post.audioCoverUrl;
+        final bookCover = widget.post.bookCover;
+        await _player.setAudioSource(
+          AudioSource.uri(
+            Uri.parse(resolvedUrl),
+            tag: MediaItem(
+              id: widget.post.id ?? widget.post.audioUrl ?? '',
+              album: widget.post.bookTitle ?? 'Audio Post',
+              title: widget.post.text,
+              artUri: audioCoverUrl != null && audioCoverUrl.isNotEmpty
+                  ? Uri.tryParse(audioCoverUrl)
+                  : (bookCover != null && bookCover.isNotEmpty
+                      ? Uri.tryParse(bookCover)
+                      : null),
+            ),
+          ),
+        );
         _isLoaded = true;
       }
 
@@ -322,10 +289,11 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     }
 
     // Auto-pause if another feed card starts playing
-    final activePlayingUrl = ref.watch(activeAudioPostUrlProvider);
-    if (activePlayingUrl != audioUrl && _player.playing) {
-      _player.pause();
-    }
+    ref.listen<String?>(activeAudioPostUrlProvider, (previous, next) {
+      if (next != audioUrl && _player.playing) {
+        _player.pause();
+      }
+    });
 
     final coverUrl = widget.post.audioCoverUrl ?? widget.post.bookCover;
     final isBookReferred = widget.post.bookId != null;

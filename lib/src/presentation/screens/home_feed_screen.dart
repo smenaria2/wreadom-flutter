@@ -452,6 +452,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             );
           }
           return FeedPostCard(
+            key: ValueKey(items[index].id ?? ''),
             post: items[index],
             onReplyToQuestion: (post) {
               showCreatePostSheet(

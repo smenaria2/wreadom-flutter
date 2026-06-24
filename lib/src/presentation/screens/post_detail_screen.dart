@@ -78,6 +78,7 @@ class PostDetailScreen extends ConsumerWidget {
             child: ListView(
               children: [
                 FeedPostCard(
+                  key: ValueKey(effectivePost.id ?? ''),
                   post: effectivePost,
                   openOnTap: false,
                   onReplyToQuestion: (post) {
@@ -118,6 +119,7 @@ class PostDetailScreen extends ConsumerWidget {
             ? ListView(
                 children: [
                   FeedPostCard(
+                    key: ValueKey(preloadedPost!.id ?? ''),
                     post: preloadedPost!,
                     openOnTap: false,
                     onReplyToQuestion: (post) {
