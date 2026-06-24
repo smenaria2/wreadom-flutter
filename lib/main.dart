@@ -48,11 +48,21 @@ import 'package:just_audio_background/just_audio_background.dart';
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.ryanheise.audioservice.channel.audio',
-      androidNotificationChannelName: 'Audio Playback',
-      androidNotificationOngoing: true,
-    );
+    try {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+           defaultTargetPlatform == TargetPlatform.iOS ||
+           defaultTargetPlatform == TargetPlatform.macOS)) {
+        await JustAudioBackground.init(
+          androidNotificationChannelId: 'com.ryanheise.audioservice.channel.audio',
+          androidNotificationChannelName: 'Audio Playback',
+          androidNotificationOngoing: true,
+        );
+      }
+    } catch (e, stack) {
+      // Log error but do not block app startup
+      AppLogCollector.recordZoneError(e, stack);
+    }
     AppLogCollector.init();
     FlutterError.onError = (details) {
       AppLogCollector.recordFlutterError(details);
