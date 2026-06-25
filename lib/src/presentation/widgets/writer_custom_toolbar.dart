@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 import '../../localization/generated/app_localizations.dart';
@@ -57,19 +58,50 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     return Localizations.localeOf(context).languageCode == 'hi';
   }
 
-  String _getUndoLabel(BuildContext context) => _isHindi(context) ? 'पूर्ववत' : 'Undo';
-  String _getRedoLabel(BuildContext context) => _isHindi(context) ? 'फिर से' : 'Redo';
-  String _getBoldLabel(BuildContext context) => _isHindi(context) ? 'बोल्ड' : 'Bold';
-  String _getItalicLabel(BuildContext context) => _isHindi(context) ? 'इटैलिक' : 'Italic';
-  String _getUnderlineLabel(BuildContext context) => _isHindi(context) ? 'अंडरलाइन' : 'Underline';
+  String _getUndoLabel(BuildContext context) =>
+      _isHindi(context) ? 'पूर्ववत' : 'Undo';
+  String _getRedoLabel(BuildContext context) =>
+      _isHindi(context) ? 'फिर से' : 'Redo';
+  String _getBoldLabel(BuildContext context) =>
+      _isHindi(context) ? 'बोल्ड' : 'Bold';
+  String _getItalicLabel(BuildContext context) =>
+      _isHindi(context) ? 'इटैलिक' : 'Italic';
+  String _getUnderlineLabel(BuildContext context) =>
+      _isHindi(context) ? 'अंडरलाइन' : 'Underline';
+  String _getVersionLabel(BuildContext context) =>
+      _isHindi(context) ? 'संस्करण' : 'Version';
+
+  void _hideTextInput() {
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  }
+
+  void _hideKeyboardAfterToolbarTap() {
+    _hideTextInput();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hideTextInput();
+    });
+  }
+
+  void _runToolbarAction(
+    VoidCallback? action, {
+    bool requireEditorFocus = true,
+    bool hideAfterAction = true,
+  }) {
+    if (action == null) return;
+    if (requireEditorFocus && !widget.focusNode.hasFocus) return;
+    _hideTextInput();
+    action();
+    if (hideAfterAction) _hideKeyboardAfterToolbarTap();
+  }
 
   void _toggleFormat(Attribute attribute) {
-    if (!widget.focusNode.hasFocus) return;
-    final styles = widget.controller.getSelectionStyle();
-    final hasAttr = styles.containsKey(attribute.key);
-    widget.controller.formatSelection(
-      hasAttr ? Attribute.clone(attribute, null) : attribute,
-    );
+    _runToolbarAction(() {
+      final styles = widget.controller.getSelectionStyle();
+      final hasAttr = styles.containsKey(attribute.key);
+      widget.controller.formatSelection(
+        hasAttr ? Attribute.clone(attribute, null) : attribute,
+      );
+    });
   }
 
   @override
@@ -95,41 +127,35 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
           label: l10n.insertImage,
           onTap: widget.isUploadingInlineImage
               ? null
-              : () {
-                  if (!widget.focusNode.hasFocus) return;
-                  widget.onInsertImage?.call();
-                },
+              : () => _runToolbarAction(widget.onInsertImage),
         ),
         _buildItem(
           icon: const Icon(Icons.play_circle_outline_rounded),
           label: l10n.insertMedia,
-          onTap: () {
-            if (!widget.focusNode.hasFocus) return;
-            widget.onInsertVideo?.call();
-          },
+          onTap: () =>
+              _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
         ),
         _buildDivider(),
         _buildItem(
           icon: const Icon(Icons.access_time_rounded),
-          label: l10n.versionHistory,
-          onTap: widget.onVersionHistory,
+          label: _getVersionLabel(context),
+          onTap: widget.onVersionHistory == null
+              ? null
+              : () => _runToolbarAction(
+                  widget.onVersionHistory,
+                  requireEditorFocus: false,
+                ),
         ),
         _buildDivider(),
         _buildItem(
           icon: const Icon(Icons.undo_rounded),
           label: _getUndoLabel(context),
-          onTap: () {
-            if (!widget.focusNode.hasFocus) return;
-            widget.controller.undo();
-          },
+          onTap: () => _runToolbarAction(widget.controller.undo),
         ),
         _buildItem(
           icon: const Icon(Icons.redo_rounded),
           label: _getRedoLabel(context),
-          onTap: () {
-            if (!widget.focusNode.hasFocus) return;
-            widget.controller.redo();
-          },
+          onTap: () => _runToolbarAction(widget.controller.redo),
         ),
         _buildDivider(),
         _buildItem(
@@ -195,8 +221,8 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     final baseColor = isActive
         ? theme.colorScheme.primary
         : isEnabled
-            ? theme.colorScheme.onSurface
-            : theme.colorScheme.onSurface.withValues(alpha: 0.38);
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
     return Expanded(
       child: InkWell(
@@ -209,25 +235,29 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconTheme(
-                data: IconThemeData(
-                  color: baseColor,
-                  size: 23,
-                ),
+                data: IconThemeData(color: baseColor, size: 23),
                 child: icon,
               ),
               const SizedBox(height: 4),
               SizedBox(
-                height: 22,
+                height: 14,
+                width: double.infinity,
                 child: Center(
-                  child: Text(
-                    label,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 8.5,
-                      height: 1.1,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: baseColor,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        height: 1,
+                        fontWeight: isActive
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: baseColor,
+                      ),
                     ),
                   ),
                 ),

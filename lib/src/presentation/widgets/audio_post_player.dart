@@ -29,6 +29,14 @@ class ActiveAudioPostUrl extends Notifier<String?> {
 final activeAudioPostUrlProvider =
     NotifierProvider<ActiveAudioPostUrl, String?>(ActiveAudioPostUrl.new);
 
+final audioPostPlayerProvider = Provider<AudioPlayer>((ref) {
+  final player = AudioPlayer();
+  ref.onDispose(player.dispose);
+  return player;
+});
+
+String? _loadedAudioPostIdentity;
+
 class AudioPostPlayer extends ConsumerStatefulWidget {
   const AudioPostPlayer({super.key, required this.post});
 
@@ -42,10 +50,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     with SingleTickerProviderStateMixin {
   late final AudioPlayer _player;
   late final AnimationController _rotationController;
+  late final StreamSubscription<PlayerState> _playerStateSubscription;
 
   bool _isLoading = false;
-  bool _isLoaded = false;
-  String? _loadedIdentity;
   String? _error;
 
   double _playbackSpeed = 1.0;
@@ -58,7 +65,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
+    _player = ref.read(audioPostPlayerProvider);
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8), // Slow, smooth vinyl spin
@@ -68,15 +75,18 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     _player.setSpeed(_playbackSpeed);
 
     // Coordinate rotation with playing state
-    _player.playerStateStream.listen((state) {
-      if (state.playing && state.processingState != ProcessingState.completed) {
+    _playerStateSubscription = _player.playerStateStream.listen((state) {
+      final isCurrent = ref.read(activeAudioPostUrlProvider) == _audioIdentity;
+      if (isCurrent &&
+          state.playing &&
+          state.processingState != ProcessingState.completed) {
         if (!_rotationController.isAnimating) {
           _rotationController.repeat();
         }
       } else {
         _rotationController.stop();
       }
-      if (state.processingState == ProcessingState.completed) {
+      if (isCurrent && state.processingState == ProcessingState.completed) {
         final activeUrl = ref.read(activeAudioPostUrlProvider);
         if (activeUrl == _audioIdentity) {
           ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
@@ -95,8 +105,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
   @override
   void dispose() {
+    _playerStateSubscription.cancel();
     _rotationController.dispose();
-    _player.dispose();
     super.dispose();
   }
 
@@ -124,7 +134,10 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     final audioIdentity = _audioIdentity;
     if (audioIdentity == null || audioIdentity.isEmpty) return;
 
-    if (_player.playing) {
+    final activeIdentity = ref.read(activeAudioPostUrlProvider);
+    final isCurrent = activeIdentity == audioIdentity;
+
+    if (isCurrent && _player.playing) {
       await _player.pause();
       return;
     }
@@ -138,7 +151,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       // Update active player in the feed to mute others.
       ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
 
-      if (!_isLoaded || _loadedIdentity != audioIdentity) {
+      if (_loadedAudioPostIdentity != audioIdentity) {
         final resolvedUrl = (await _getAudioUrl()).trim();
         if (resolvedUrl.isEmpty) {
           throw StateError('Audio URL was empty.');
@@ -162,8 +175,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
             ),
           ),
         );
-        _isLoaded = true;
-        _loadedIdentity = audioIdentity;
+        _loadedAudioPostIdentity = audioIdentity;
+      } else if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
       }
 
       await _player.play();
@@ -182,6 +196,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   }
 
   void _cycleSpeed() {
+    if (ref.read(activeAudioPostUrlProvider) != _audioIdentity) return;
     final speeds = [1.0, 1.25, 1.5, 2.0];
     final nextIndex = (speeds.indexOf(_playbackSpeed) + 1) % speeds.length;
     setState(() {
@@ -192,6 +207,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   }
 
   Future<void> _seekRelative(int seconds) async {
+    if (ref.read(activeAudioPostUrlProvider) != _audioIdentity) return;
     final currentPos = _player.position;
     final totalDuration =
         _player.duration ??
@@ -207,6 +223,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   // DJ Turntable circular seeks logic
   void _onPanStart(DragStartDetails details, Duration totalDuration) {
     if (totalDuration == Duration.zero) return;
+    if (ref.read(activeAudioPostUrlProvider) != _audioIdentity) return;
 
     // Lock scroll/swipe in parent views during turntable jog seeking
     ref.read(lockScrollProvider.notifier).setLock(true);
@@ -304,6 +321,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       return const SizedBox.shrink();
     }
 
+    final activeIdentity = ref.watch(activeAudioPostUrlProvider);
+    final isCurrent = activeIdentity == audioIdentity;
+
     // Auto-pause if another feed card starts playing
     ref.listen<String?>(activeAudioPostUrlProvider, (previous, next) {
       if (next != audioIdentity && _player.playing) {
@@ -320,8 +340,12 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     return StreamBuilder<Duration>(
       stream: _player.positionStream,
       builder: (context, posSnapshot) {
-        final position = posSnapshot.data ?? Duration.zero;
-        final totalDuration = _player.duration ?? defaultDuration;
+        final position = isCurrent
+            ? (posSnapshot.data ?? Duration.zero)
+            : Duration.zero;
+        final totalDuration = isCurrent
+            ? (_player.duration ?? defaultDuration)
+            : defaultDuration;
 
         final double progress = totalDuration.inMilliseconds > 0
             ? (position.inMilliseconds / totalDuration.inMilliseconds).clamp(
@@ -334,10 +358,11 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
           stream: _player.playerStateStream,
           builder: (context, stateSnapshot) {
             final playerState = stateSnapshot.data;
-            final isPlaying = playerState?.playing ?? false;
+            final isPlaying = isCurrent && (playerState?.playing ?? false);
             final isBuffering =
-                playerState?.processingState == ProcessingState.buffering ||
-                playerState?.processingState == ProcessingState.loading;
+                isCurrent &&
+                (playerState?.processingState == ProcessingState.buffering ||
+                    playerState?.processingState == ProcessingState.loading);
 
             return GlassSurface(
               borderRadius: BorderRadius.circular(24),
