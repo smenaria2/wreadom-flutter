@@ -198,13 +198,13 @@ class NotificationService {
             ttsActionResume,
             'Resume',
             cancelNotification: false,
-            showsUserInterface: true,
+            showsUserInterface: false,
           )
         : const AndroidNotificationAction(
             ttsActionPause,
             'Pause',
             cancelNotification: false,
-            showsUserInterface: true,
+            showsUserInterface: false,
           );
 
     await _localNotifications.show(
@@ -230,7 +230,7 @@ class NotificationService {
               ttsActionStop,
               'Stop',
               cancelNotification: false,
-              showsUserInterface: true,
+              showsUserInterface: false,
             ),
           ],
         ),

@@ -26,13 +26,11 @@ class ActiveAudioPostUrl extends Notifier<String?> {
   }
 }
 
-final activeAudioPostUrlProvider = NotifierProvider<ActiveAudioPostUrl, String?>(ActiveAudioPostUrl.new);
+final activeAudioPostUrlProvider =
+    NotifierProvider<ActiveAudioPostUrl, String?>(ActiveAudioPostUrl.new);
 
 class AudioPostPlayer extends ConsumerStatefulWidget {
-  const AudioPostPlayer({
-    super.key,
-    required this.post,
-  });
+  const AudioPostPlayer({super.key, required this.post});
 
   final FeedPost post;
 
@@ -44,9 +42,10 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     with SingleTickerProviderStateMixin {
   late final AudioPlayer _player;
   late final AnimationController _rotationController;
-  
+
   bool _isLoading = false;
   bool _isLoaded = false;
+  String? _loadedIdentity;
   String? _error;
 
   double _playbackSpeed = 1.0;
@@ -79,11 +78,19 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       }
       if (state.processingState == ProcessingState.completed) {
         final activeUrl = ref.read(activeAudioPostUrlProvider);
-        if (activeUrl == widget.post.audioUrl) {
+        if (activeUrl == _audioIdentity) {
           ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
         }
       }
     });
+  }
+
+  String? get _audioIdentity {
+    final objectKey = widget.post.audioObjectKey?.trim();
+    if (objectKey != null && objectKey.isNotEmpty) return objectKey;
+    final audioUrl = widget.post.audioUrl?.trim();
+    if (audioUrl != null && audioUrl.isNotEmpty) return audioUrl;
+    return null;
   }
 
   @override
@@ -104,7 +111,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       final response = await FirebaseFunctions.instance
           .httpsCallable('createAudioPostDownloadUrl')
           .call<Map<String, dynamic>>({'objectKey': objectKey});
-      
+
       final downloadUrl = response.data['downloadUrl']?.toString();
       return downloadUrl ?? widget.post.audioUrl ?? '';
     } catch (e) {
@@ -114,8 +121,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   }
 
   Future<void> _togglePlay() async {
-    final audioUrl = widget.post.audioUrl;
-    if (audioUrl == null || audioUrl.isEmpty) return;
+    final audioIdentity = _audioIdentity;
+    if (audioIdentity == null || audioIdentity.isEmpty) return;
 
     if (_player.playing) {
       await _player.pause();
@@ -128,29 +135,35 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         _error = null;
       });
 
-      // Update active player in the feed to mute others
-      ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioUrl);
+      // Update active player in the feed to mute others.
+      ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
 
-      if (!_isLoaded) {
-        final resolvedUrl = await _getAudioUrl();
+      if (!_isLoaded || _loadedIdentity != audioIdentity) {
+        final resolvedUrl = (await _getAudioUrl()).trim();
+        if (resolvedUrl.isEmpty) {
+          throw StateError('Audio URL was empty.');
+        }
         final audioCoverUrl = widget.post.audioCoverUrl;
         final bookCover = widget.post.bookCover;
         await _player.setAudioSource(
           AudioSource.uri(
             Uri.parse(resolvedUrl),
             tag: MediaItem(
-              id: widget.post.id ?? widget.post.audioUrl ?? '',
+              id: widget.post.id ?? audioIdentity,
               album: widget.post.bookTitle ?? 'Audio Post',
-              title: widget.post.text,
+              title: widget.post.text.trim().isEmpty
+                  ? 'Audio Post'
+                  : widget.post.text.trim(),
               artUri: audioCoverUrl != null && audioCoverUrl.isNotEmpty
                   ? Uri.tryParse(audioCoverUrl)
                   : (bookCover != null && bookCover.isNotEmpty
-                      ? Uri.tryParse(bookCover)
-                      : null),
+                        ? Uri.tryParse(bookCover)
+                        : null),
             ),
           ),
         );
         _isLoaded = true;
+        _loadedIdentity = audioIdentity;
       }
 
       await _player.play();
@@ -180,7 +193,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
   Future<void> _seekRelative(int seconds) async {
     final currentPos = _player.position;
-    final totalDuration = _player.duration ?? Duration(milliseconds: widget.post.audioDurationMs ?? 0);
+    final totalDuration =
+        _player.duration ??
+        Duration(milliseconds: widget.post.audioDurationMs ?? 0);
     final targetPos = currentPos + Duration(seconds: seconds);
     final clampedPos = targetPos < Duration.zero
         ? Duration.zero
@@ -192,10 +207,10 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   // DJ Turntable circular seeks logic
   void _onPanStart(DragStartDetails details, Duration totalDuration) {
     if (totalDuration == Duration.zero) return;
-    
+
     // Lock scroll/swipe in parent views during turntable jog seeking
     ref.read(lockScrollProvider.notifier).setLock(true);
-    
+
     _wasPlayingBeforeDrag = _player.playing;
     if (_wasPlayingBeforeDrag) {
       _player.pause();
@@ -204,7 +219,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     // Determine touch offset angle relative to center of a 204x204 container
     final double dx = details.localPosition.dx - 102.0;
     final double dy = details.localPosition.dy - 102.0;
-    
+
     _lastDragAngle = math.atan2(dy, dx);
     _dragStartValue = _player.position.inMilliseconds.toDouble();
     _dragCurrentValue = _dragStartValue;
@@ -235,7 +250,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     _dragCurrentValue = (_dragCurrentValue + deltaMs).clamp(0.0, maxMs);
 
     // Visually rotate turntable disc
-    _rotationController.value = (_rotationController.value + (deltaAngle / (2 * math.pi))) % 1.0;
+    _rotationController.value =
+        (_rotationController.value + (deltaAngle / (2 * math.pi))) % 1.0;
 
     // Tactile notches feedback: tick every 15 degrees (~0.26 radians)
     _hapticAccumulator += deltaAngle.abs();
@@ -282,31 +298,36 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final audioUrl = widget.post.audioUrl;
+    final audioIdentity = _audioIdentity;
 
-    if (audioUrl == null || audioUrl.isEmpty) {
+    if (audioIdentity == null || audioIdentity.isEmpty) {
       return const SizedBox.shrink();
     }
 
     // Auto-pause if another feed card starts playing
     ref.listen<String?>(activeAudioPostUrlProvider, (previous, next) {
-      if (next != audioUrl && _player.playing) {
+      if (next != audioIdentity && _player.playing) {
         _player.pause();
       }
     });
 
     final coverUrl = widget.post.audioCoverUrl ?? widget.post.bookCover;
     final isBookReferred = widget.post.bookId != null;
-    final defaultDuration = Duration(milliseconds: widget.post.audioDurationMs ?? 0);
+    final defaultDuration = Duration(
+      milliseconds: widget.post.audioDurationMs ?? 0,
+    );
 
     return StreamBuilder<Duration>(
       stream: _player.positionStream,
       builder: (context, posSnapshot) {
         final position = posSnapshot.data ?? Duration.zero;
         final totalDuration = _player.duration ?? defaultDuration;
-        
+
         final double progress = totalDuration.inMilliseconds > 0
-            ? (position.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0)
+            ? (position.inMilliseconds / totalDuration.inMilliseconds).clamp(
+                0.0,
+                1.0,
+              )
             : 0.0;
 
         return StreamBuilder<PlayerState>(
@@ -314,7 +335,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
           builder: (context, stateSnapshot) {
             final playerState = stateSnapshot.data;
             final isPlaying = playerState?.playing ?? false;
-            final isBuffering = playerState?.processingState == ProcessingState.buffering ||
+            final isBuffering =
+                playerState?.processingState == ProcessingState.buffering ||
                 playerState?.processingState == ProcessingState.loading;
 
             return GlassSurface(
@@ -328,13 +350,20 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                     GestureDetector(
                       onTap: () => _navigateToBook(context),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.05,
+                          ),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -349,10 +378,15 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                                       fit: BoxFit.cover,
                                     )
                                   : Container(
-                                      color: theme.colorScheme.surfaceContainerHighest,
+                                      color: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
                                       width: 36,
                                       height: 50,
-                                      child: const Icon(Icons.book_rounded, size: 18),
+                                      child: const Icon(
+                                        Icons.book_rounded,
+                                        size: 18,
+                                      ),
                                     ),
                             ),
                             const SizedBox(width: 10),
@@ -371,7 +405,8 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    widget.post.bookAuthorName ?? 'Unknown Author',
+                                    widget.post.bookAuthorName ??
+                                        'Unknown Author',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -385,7 +420,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                             Icon(
                               Icons.arrow_forward_ios_rounded,
                               size: 14,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ],
                         ),
@@ -403,15 +440,19 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                           size: const Size(204, 204),
                           painter: CircularProgressPainter(
                             progress: progress,
-                            trackColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                            trackColor: theme.colorScheme.primary.withValues(
+                              alpha: 0.08,
+                            ),
                             progressColor: theme.colorScheme.primary,
                           ),
                         ),
 
                         // Vinyl turntable disc
                         GestureDetector(
-                          onPanStart: (details) => _onPanStart(details, totalDuration),
-                          onPanUpdate: (details) => _onPanUpdate(details, totalDuration),
+                          onPanStart: (details) =>
+                              _onPanStart(details, totalDuration),
+                          onPanUpdate: (details) =>
+                              _onPanUpdate(details, totalDuration),
                           onPanEnd: _onPanEnd,
                           onPanCancel: _onPanCancel,
                           child: RotationTransition(
@@ -444,22 +485,31 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                                 alignment: Alignment.center,
                                 children: [
                                   // Vinyl Grooves
-                                  for (double r in [160.0, 140.0, 120.0, 100.0, 80.0])
+                                  for (double r in [
+                                    160.0,
+                                    140.0,
+                                    120.0,
+                                    100.0,
+                                    80.0,
+                                  ])
                                     Container(
                                       width: r,
                                       height: r,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: Colors.white.withValues(alpha: 0.04),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.04,
+                                          ),
                                           width: 0.8,
                                         ),
                                       ),
                                     ),
-                                  
+
                                   // Cover image clipped circular in the center
                                   ClipOval(
-                                    child: coverUrl != null && coverUrl.isNotEmpty
+                                    child:
+                                        coverUrl != null && coverUrl.isNotEmpty
                                         ? CachedNetworkImage(
                                             imageUrl: coverUrl,
                                             width: 78,
@@ -467,22 +517,32 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                                             fit: BoxFit.cover,
                                             placeholder: (_, _) => Container(
                                               color: Colors.grey.shade900,
-                                              child: const Icon(Icons.music_note_rounded,
-                                                  color: Colors.white30, size: 32),
+                                              child: const Icon(
+                                                Icons.music_note_rounded,
+                                                color: Colors.white30,
+                                                size: 32,
+                                              ),
                                             ),
                                             errorWidget: (_, _, _) => Container(
                                               color: Colors.grey.shade900,
-                                              child: const Icon(Icons.music_note_rounded,
-                                                  color: Colors.white30, size: 32),
+                                              child: const Icon(
+                                                Icons.music_note_rounded,
+                                                color: Colors.white30,
+                                                size: 32,
+                                              ),
                                             ),
                                           )
                                         : Container(
-                                            color: theme.colorScheme.primaryContainer,
+                                            color: theme
+                                                .colorScheme
+                                                .primaryContainer,
                                             width: 78,
                                             height: 78,
                                             child: Icon(
                                               Icons.music_note_rounded,
-                                              color: theme.colorScheme.onPrimaryContainer,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onPrimaryContainer,
                                               size: 32,
                                             ),
                                           ),
@@ -554,9 +614,14 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                             onTap: _cycleSpeed,
                             child: Container(
                               margin: const EdgeInsets.only(left: 16),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -589,14 +654,20 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                           height: 58,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
                             border: Border.all(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.35,
+                              ),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 blurRadius: 10,
                                 spreadRadius: 1,
                               ),
@@ -613,7 +684,9 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                                   ),
                                 )
                               : Icon(
-                                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                  isPlaying
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
                                   size: 32,
                                   color: theme.colorScheme.primary,
                                 ),

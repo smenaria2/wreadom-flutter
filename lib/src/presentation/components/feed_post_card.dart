@@ -4,9 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/feed_post.dart';
+import '../../domain/models/book.dart';
 import '../../domain/models/comment.dart';
 import '../../data/services/analytics_service.dart';
 import '../providers/feed_providers.dart';
+import '../providers/audio_post_providers.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -24,6 +26,7 @@ import 'book/gradient_quote_card.dart';
 import 'book/gradient_book_card.dart';
 import 'book/gradient_review_card.dart';
 import '../widgets/audio_post_player.dart';
+import 'audio_post_creator.dart';
 
 /// Maps post type → accent colour
 Color _typeColor(String type, ColorScheme scheme) {
@@ -218,9 +221,26 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   Future<void> _showEditPostSheet() async {
     final postId = widget.post.id;
     if (_editing || postId == null) return;
+
     final textController = TextEditingController(text: widget.post.text);
-    String? imageUrl = widget.post.imageUrl;
+    final audioCreatorKey = GlobalKey<AudioPostCreatorState>();
+    var imageUrl = widget.post.imageUrl;
     XFile? pickedImage;
+    var audioUrl = widget.post.audioUrl;
+    var audioObjectKey = widget.post.audioObjectKey;
+    int? audioDurationMs = widget.post.audioDurationMs;
+    int? audioSizeBytes = widget.post.audioSizeBytes;
+    var audioMimeType = widget.post.audioMimeType;
+    var audioCoverUrl = widget.post.audioCoverUrl;
+    String? audioPath;
+    String? uploadedAudioUrl;
+    String? uploadedAudioObjectKey;
+    XFile? audioCoverImage;
+    Book? referredBook;
+    var audioCoverTouched = false;
+    var isAudioUploading = false;
+    var isRecordingAudio = false;
+    var audioUploadCommitted = false;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -230,149 +250,428 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         builder: (context, setModalState) {
           final l10n = AppLocalizations.of(context)!;
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          final hasExistingAudio =
+              audioUrl != null && audioUrl!.isNotEmpty && audioPath == null;
+          final canSave = !_editing && !isAudioUploading && !isRecordingAudio;
+
           return Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.editPost,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: textController,
-                  minLines: 3,
-                  maxLines: 8,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    hintText: l10n.updateYourPost,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (pickedImage != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      File(pickedImage!.path),
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.editPost,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 12),
-                ] else if (imageUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl!,
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
+                  TextField(
+                    controller: textController,
+                    minLines: 3,
+                    maxLines: 8,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: l10n.updateYourPost,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (pickedImage != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(pickedImage!.path),
                         height: 150,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: const Center(child: CircularProgressIndicator()),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
-                      errorWidget: (context, url, error) => const SizedBox(),
                     ),
+                    const SizedBox(height: 12),
+                  ] else if (imageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl!,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          height: 150,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => const SizedBox(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (hasExistingAudio) ...[
+                    AudioPostPlayer(
+                      post: widget.post.copyWith(
+                        audioUrl: audioUrl,
+                        audioObjectKey: audioObjectKey,
+                        audioDurationMs: audioDurationMs,
+                        audioSizeBytes: audioSizeBytes,
+                        audioMimeType: audioMimeType,
+                        audioCoverUrl: audioCoverUrl,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  AudioPostCreator(
+                    key: audioCreatorKey,
+                    onAudioChanged:
+                        (path, durationMs, sizeBytes, mimeType) async {
+                          setModalState(() {
+                            audioPath = path;
+                            audioDurationMs = path == null
+                                ? widget.post.audioDurationMs
+                                : durationMs;
+                            audioSizeBytes = path == null
+                                ? widget.post.audioSizeBytes
+                                : sizeBytes;
+                            audioMimeType = path == null
+                                ? widget.post.audioMimeType
+                                : mimeType;
+                          });
+
+                          if (path == null) {
+                            final keyToDelete = uploadedAudioObjectKey;
+                            setModalState(() {
+                              uploadedAudioUrl = null;
+                              uploadedAudioObjectKey = null;
+                              isAudioUploading = false;
+                            });
+                            if (keyToDelete != null) {
+                              await ref
+                                  .read(audioPostUploadServiceProvider)
+                                  .deleteAudioPostObject(keyToDelete);
+                            }
+                            return;
+                          }
+
+                          final previousUploadedKey = uploadedAudioObjectKey;
+                          setModalState(() {
+                            uploadedAudioUrl = null;
+                            uploadedAudioObjectKey = null;
+                            isAudioUploading = true;
+                          });
+                          if (previousUploadedKey != null) {
+                            await ref
+                                .read(audioPostUploadServiceProvider)
+                                .deleteAudioPostObject(previousUploadedKey);
+                          }
+
+                          try {
+                            final user = await ref.read(
+                              currentUserProvider.future,
+                            );
+                            if (user == null) {
+                              throw Exception(
+                                'Login is required to upload audio.',
+                              );
+                            }
+                            final result = await ref
+                                .read(audioPostUploadServiceProvider)
+                                .uploadAudioPost(
+                                  filePath: path,
+                                  userId: user.id,
+                                  mimeType: mimeType,
+                                  durationMs: durationMs,
+                                  sizeBytes: sizeBytes,
+                                );
+                            if (!sheetContext.mounted) {
+                              await ref
+                                  .read(audioPostUploadServiceProvider)
+                                  .deleteAudioPostObject(result.audioObjectKey);
+                              return;
+                            }
+                            setModalState(() {
+                              uploadedAudioUrl = result.audioUrl;
+                              uploadedAudioObjectKey = result.audioObjectKey;
+                              audioObjectKey = result.audioObjectKey;
+                              isAudioUploading = false;
+                            });
+                          } catch (e) {
+                            if (sheetContext.mounted) {
+                              setModalState(() => isAudioUploading = false);
+                            }
+                            if (mounted) {
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Audio upload failed: ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                    onCoverChanged: (cover) {
+                      setModalState(() {
+                        audioCoverTouched = true;
+                        audioCoverImage = cover;
+                      });
+                    },
+                    onBookReferred: (book) {
+                      setModalState(() {
+                        audioCoverTouched = true;
+                        referredBook = book;
+                      });
+                    },
+                    onRecordingStateChanged: (recording) {
+                      setModalState(() => isRecordingAudio = recording);
+                    },
+                  ),
+                  if (isAudioUploading) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Uploading audio...',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final image = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 88,
+                          );
+                          if (image == null) return;
+                          setModalState(() => pickedImage = image);
+                        },
+                        icon: const Icon(Icons.image_outlined),
+                        label: Text(
+                          imageUrl == null && pickedImage == null
+                              ? l10n.addImage
+                              : l10n.replaceImage,
+                        ),
+                      ),
+                      if (imageUrl != null || pickedImage != null)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setModalState(() {
+                              imageUrl = null;
+                              pickedImage = null;
+                            });
+                          },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: Text(l10n.removeImage),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: isRecordingAudio
+                            ? null
+                            : () => audioCreatorKey.currentState
+                                  ?.startRecording(),
+                        icon: const Icon(Icons.mic_none_outlined),
+                        label: const Text('Record audio'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: isRecordingAudio
+                            ? null
+                            : () =>
+                                  audioCreatorKey.currentState?.pickAudioFile(),
+                        icon: const Icon(Icons.upload_file_outlined),
+                        label: Text(
+                          audioUrl == null && audioPath == null
+                              ? 'Add audio'
+                              : 'Replace audio',
+                        ),
+                      ),
+                      if (audioUrl != null || audioPath != null)
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final keyToDelete = uploadedAudioObjectKey;
+                            await audioCreatorKey.currentState
+                                ?.cancelRecording();
+                            setModalState(() {
+                              audioUrl = null;
+                              audioObjectKey = null;
+                              audioDurationMs = null;
+                              audioSizeBytes = null;
+                              audioMimeType = null;
+                              audioCoverUrl = null;
+                              audioPath = null;
+                              uploadedAudioUrl = null;
+                              uploadedAudioObjectKey = null;
+                              audioCoverImage = null;
+                              referredBook = null;
+                              audioCoverTouched = false;
+                              isAudioUploading = false;
+                              isRecordingAudio = false;
+                            });
+                            if (keyToDelete != null) {
+                              await ref
+                                  .read(audioPostUploadServiceProvider)
+                                  .deleteAudioPostObject(keyToDelete);
+                            }
+                          },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Remove audio'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: canSave
+                        ? () async {
+                            final text = textController.text.trim();
+                            final nextAudioUrl = uploadedAudioUrl ?? audioUrl;
+                            if (text.isEmpty &&
+                                (nextAudioUrl == null ||
+                                    nextAudioUrl.isEmpty)) {
+                              return;
+                            }
+                            setState(() => _editing = true);
+                            try {
+                              var nextImageUrl = imageUrl;
+                              if (pickedImage != null) {
+                                final bytes = await pickedImage!.readAsBytes();
+                                nextImageUrl = await ref
+                                    .read(feedRepositoryProvider)
+                                    .uploadPostImage(bytes, pickedImage!.name);
+                              }
+
+                              final isReplacingAudio = uploadedAudioUrl != null;
+                              final nextAudioObjectKey = isReplacingAudio
+                                  ? uploadedAudioObjectKey
+                                  : (nextAudioUrl == null
+                                        ? null
+                                        : widget.post.audioObjectKey);
+                              final nextAudioDurationMs = isReplacingAudio
+                                  ? audioDurationMs
+                                  : (nextAudioUrl == null
+                                        ? null
+                                        : widget.post.audioDurationMs);
+                              final nextAudioSizeBytes = isReplacingAudio
+                                  ? audioSizeBytes
+                                  : (nextAudioUrl == null
+                                        ? null
+                                        : widget.post.audioSizeBytes);
+                              final nextAudioMimeType = isReplacingAudio
+                                  ? audioMimeType
+                                  : (nextAudioUrl == null
+                                        ? null
+                                        : widget.post.audioMimeType);
+                              var nextAudioCoverUrl = nextAudioUrl == null
+                                  ? null
+                                  : widget.post.audioCoverUrl;
+                              if (isReplacingAudio) {
+                                nextAudioCoverUrl = audioCoverUrl;
+                                if (audioCoverImage != null) {
+                                  final bytes = await audioCoverImage!
+                                      .readAsBytes();
+                                  nextAudioCoverUrl = await ref
+                                      .read(feedRepositoryProvider)
+                                      .uploadPostImage(
+                                        bytes,
+                                        audioCoverImage!.name,
+                                      );
+                                } else if (audioCoverTouched) {
+                                  nextAudioCoverUrl = null;
+                                }
+                              }
+
+                              final updates = <String, dynamic>{
+                                'text': text,
+                                'imageUrl': nextImageUrl,
+                                'audioUrl': nextAudioUrl,
+                                'audioObjectKey': nextAudioObjectKey,
+                                'audioDurationMs': nextAudioDurationMs,
+                                'audioSizeBytes': nextAudioSizeBytes,
+                                'audioMimeType': nextAudioMimeType,
+                                'audioCoverUrl': nextAudioCoverUrl,
+                                'updatedAt':
+                                    DateTime.now().millisecondsSinceEpoch,
+                              };
+                              if (isReplacingAudio && referredBook != null) {
+                                updates.addAll({
+                                  'bookId': referredBook!.id,
+                                  'bookTitle': referredBook!.title,
+                                  'bookAuthorName': referredBook!.authors
+                                      .map((author) => author.name.trim())
+                                      .where((name) => name.isNotEmpty)
+                                      .join(', '),
+                                  'bookCover': referredBook!.coverUrl,
+                                });
+                              }
+
+                              await ref
+                                  .read(feedRepositoryProvider)
+                                  .updateFeedPost(postId, updates);
+                              audioUploadCommitted = true;
+                              final oldAudioObjectKey =
+                                  widget.post.audioObjectKey;
+                              if (oldAudioObjectKey != null &&
+                                  oldAudioObjectKey != nextAudioObjectKey) {
+                                await ref
+                                    .read(audioPostUploadServiceProvider)
+                                    .deleteAudioPostObject(oldAudioObjectKey);
+                              }
+                              _invalidateFeed(postId);
+                              if (sheetContext.mounted) {
+                                Navigator.of(sheetContext).pop();
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                final innerL10n = AppLocalizations.of(
+                                  this.context,
+                                )!;
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      innerL10n.couldNotDeletePost(
+                                        e.toString(),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            } finally {
+                              if (mounted) setState(() => _editing = false);
+                            }
+                          }
+                        : null,
+                    icon: _editing
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(l10n.save),
+                  ),
                 ],
-                if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty) ...[
-                  AudioPostPlayer(post: widget.post),
-                  const SizedBox(height: 12),
-                ],
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final image = await ImagePicker().pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 88,
-                        );
-                        if (image == null) return;
-                        setModalState(() => pickedImage = image);
-                      },
-                      icon: const Icon(Icons.image_outlined),
-                      label: Text(
-                        imageUrl == null && pickedImage == null
-                            ? l10n.addImage
-                            : l10n.replaceImage,
-                      ),
-                    ),
-                    if (imageUrl != null || pickedImage != null)
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          setModalState(() {
-                            imageUrl = null;
-                            pickedImage = null;
-                          });
-                        },
-                        icon: const Icon(Icons.delete_outline_rounded),
-                        label: Text(l10n.removeImage),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () async {
-                    final text = textController.text.trim();
-                    if (text.isEmpty) return;
-                    setState(() => _editing = true);
-                    try {
-                      var nextImageUrl = imageUrl;
-                      if (pickedImage != null) {
-                        final bytes = await pickedImage!.readAsBytes();
-                        nextImageUrl = await ref
-                            .read(feedRepositoryProvider)
-                            .uploadPostImage(bytes, pickedImage!.name);
-                      }
-                      await ref
-                          .read(feedRepositoryProvider)
-                          .updateFeedPost(postId, {
-                            'text': text,
-                            'imageUrl': nextImageUrl,
-                            'updatedAt': DateTime.now().millisecondsSinceEpoch,
-                          });
-                      _invalidateFeed(postId);
-                      if (sheetContext.mounted) {
-                        Navigator.of(sheetContext).pop();
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        final innerL10n = AppLocalizations.of(this.context)!;
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              innerL10n.couldNotDeletePost(e.toString()),
-                            ),
-                          ), // Using delete error key as generic error for now or add edit error key
-                        );
-                      }
-                    } finally {
-                      if (mounted) setState(() => _editing = false);
-                    }
-                  },
-                  icon: _editing
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: Text(l10n.save),
-                ),
-              ],
+              ),
             ),
           );
         },
       ),
     );
+
+    if (!audioUploadCommitted && uploadedAudioObjectKey != null) {
+      await ref
+          .read(audioPostUploadServiceProvider)
+          .deleteAudioPostObject(uploadedAudioObjectKey!);
+    }
     textController.dispose();
   }
 

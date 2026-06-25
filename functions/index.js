@@ -19,6 +19,16 @@ const MAX_BATCH_WRITES = 450;
 const MAX_AUDIO_REVIEW_DURATION_MS = 120000;
 const MAX_AUDIO_REVIEW_BYTES = 2 * 1024 * 1024;
 const AUDIO_REVIEW_MIME_TYPES = new Set(["audio/mp4", "audio/m4a", "audio/aac"]);
+const MAX_AUDIO_POST_BYTES = 10 * 1024 * 1024;
+const AUDIO_POST_MIME_TYPES = new Set([
+  "audio/mp4",
+  "audio/m4a",
+  "audio/aac",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+]);
 const AUTHOR_READ_MILESTONES = [
   100,
   500,
@@ -144,6 +154,27 @@ function audioReviewObjectKey({userId, bookId, chapterId}) {
   ].join("/");
 }
 
+
+function audioPostObjectKey({userId}) {
+  return [
+    "audio-posts",
+    safeObjectSegment(userId, "user"),
+    `${Date.now()}.m4a`,
+  ].join("/");
+}
+
+function validateAudioPostRequest(data = {}) {
+  const durationMs = Number.parseInt(`${data.durationMs || 0}`, 10) || 0;
+  const sizeBytes = Number.parseInt(`${data.sizeBytes || 0}`, 10) || 0;
+  const mimeType = normalizeString(data.mimeType).toLowerCase();
+  if (sizeBytes <= 0 || sizeBytes > MAX_AUDIO_POST_BYTES) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Audio post must be 10MB or smaller.");
+  }
+  if (!AUDIO_POST_MIME_TYPES.has(mimeType)) {
+    throw new functionsV1.https.HttpsError("invalid-argument", "Unsupported audio type.");
+  }
+  return {durationMs, sizeBytes, mimeType};
+}
 function validateAudioReviewRequest(data = {}) {
   const bookId = normalizeString(data.bookId);
   const chapterId = normalizeString(data.chapterId);
@@ -2044,6 +2075,74 @@ exports.sendAdminContentNotification = functionsV1
       return {success: true, ...result};
     });
 
+
+exports.createAudioPostUploadTarget = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data, context) => {
+      if (!context.auth?.uid) {
+        throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+      }
+
+      const {mimeType} = validateAudioPostRequest(data);
+      const config = requireB2Config();
+      const objectKey = audioPostObjectKey({userId: context.auth.uid});
+      const command = new PutObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+        ContentType: mimeType,
+      });
+      const uploadUrl = await getSignedUrl(audioReviewS3Client(config), command, {
+        expiresIn: 10 * 60,
+      });
+      const baseUrl = config.downloadBaseUrl.replace(/\/+$/, "");
+
+      return {
+        uploadUrl,
+        headers: {"content-type": mimeType},
+        objectKey,
+        audioUrl: `${baseUrl}/${encodedObjectPath(objectKey)}`,
+      };
+    });
+
+exports.deleteAudioPostObject = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data, context) => {
+      if (!context.auth?.uid) {
+        throw new functionsV1.https.HttpsError("unauthenticated", "Authentication required.");
+      }
+
+      const objectKey = normalizeString(data?.objectKey);
+      const prefix = `audio-posts/${safeObjectSegment(context.auth.uid, "user")}/`;
+      if (!objectKey || !objectKey.startsWith(prefix)) {
+        throw new functionsV1.https.HttpsError("permission-denied", "Audio object does not belong to this user.");
+      }
+
+      const config = requireB2Config();
+      await audioReviewS3Client(config).send(new DeleteObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+      }));
+      return {deleted: true};
+    });
+
+exports.createAudioPostDownloadUrl = functionsV1
+    .runWith({secrets: B2_SECRET_NAMES})
+    .https.onCall(async (data) => {
+      const objectKey = normalizeString(data?.objectKey);
+      if (!objectKey || !objectKey.startsWith("audio-posts/")) {
+        throw new functionsV1.https.HttpsError("invalid-argument", "Missing audio object key.");
+      }
+
+      const config = requireB2Config();
+      const command = new GetObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+      });
+      const downloadUrl = await getSignedUrl(audioReviewS3Client(config), command, {
+        expiresIn: 10 * 60,
+      });
+      return {downloadUrl};
+    });
 exports.createAudioReviewUploadTarget = functionsV1
     .runWith({secrets: B2_SECRET_NAMES})
     .https.onCall(async (data, context) => {

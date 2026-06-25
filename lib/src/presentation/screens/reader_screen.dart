@@ -704,7 +704,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           builder: (context) => AlertDialog(
             title: const Text('Watch Video Ad'),
             content: const Text(
-              'Please watch the video completely to unlock the next chapter.',
+              'The video ad is still loading. Please try again in a moment.',
             ),
             actions: [
               TextButton(

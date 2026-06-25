@@ -53,12 +53,13 @@ class ReaderAdService {
   }
 
   Future<bool> showNextChapterAdIfReady() async {
-    if (!_canShowAds || _isDisposed) return true;
+    if (!_canShowAds) return true;
+    if (_isDisposed) return false;
 
     final ad = _rewardedInterstitialAd;
     if (ad == null) {
       unawaited(preloadNextChapterAd());
-      return true;
+      return false;
     }
 
     _rewardedInterstitialAd = null;
