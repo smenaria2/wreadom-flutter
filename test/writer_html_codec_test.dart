@@ -25,16 +25,22 @@ void main() {
       expect(html, contains('<ul><li>First</li></ul>'));
     });
 
-    test('round trips trusted image embeds', () {
-      const image =
+    test('round trips trusted Cloudinary and Backblaze image embeds', () {
+      const cloudinary =
           'https://res.cloudinary.com/demo/image/upload/f_auto/sample.jpg';
+      const backblaze =
+          'https://wreadom-images.smenaria2.workers.dev/images/books/sample.jpg';
 
-      final html = htmlFromDocument(
-        documentFromHtml('<p><img src="$image" alt="Sample"></p>'),
+      final cloudinaryHtml = htmlFromDocument(
+        documentFromHtml('<p><img src="$cloudinary" alt="Sample"></p>'),
+      );
+      final backblazeHtml = htmlFromDocument(
+        documentFromHtml('<p><img src="$backblaze" alt="Sample"></p>'),
       );
 
-      expect(html, contains('<img src="$image">'));
-      expect(html, isNot(contains('alt=')));
+      expect(cloudinaryHtml, contains('<img src="$cloudinary">'));
+      expect(backblazeHtml, contains('<img src="$backblaze">'));
+      expect(cloudinaryHtml, isNot(contains('alt=')));
     });
 
     test('round trips supported media links as embeds', () {

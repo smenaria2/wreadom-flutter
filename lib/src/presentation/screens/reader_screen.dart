@@ -9,7 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:librebook_flutter/src/data/services/buffer_audio_source.dart';
+import 'package:librebook_flutter/src/data/services/silent_audio_source_helper.dart';
 import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dart';
 import 'dart:convert';
 import 'package:html/dom.dart' as dom;
@@ -328,16 +328,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _tts = FlutterTts();
     _configureTts();
     _ttsAudioPlayer = AudioPlayer();
-    _ttsPlayerStateSubscription = _ttsAudioPlayer.playerStateStream.listen((state) {
+    _ttsPlayerStateSubscription = _ttsAudioPlayer.playerStateStream.listen((
+      state,
+    ) {
       if (!mounted) return;
       final bool playing = state.playing;
       final processingState = state.processingState;
-      
+
       if (processingState == ProcessingState.completed) {
         _stopTts();
         return;
       }
-      
+
       if (playing != _isTtsPlaying && !_isTtsPreparing) {
         if (playing) {
           _resumeTtsSpeech();
@@ -347,7 +349,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       }
     });
 
-    _ttsPlayerIndexSubscription = _ttsAudioPlayer.currentIndexStream.listen((index) {
+    _ttsPlayerIndexSubscription = _ttsAudioPlayer.currentIndexStream.listen((
+      index,
+    ) {
       if (!mounted) return;
       if (index == null) return;
       if (index != _ttsChunkIndex && _ttsChunkList.isNotEmpty) {
@@ -1390,7 +1394,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             }
             if (tag == 'img') {
               final src = element.attributes['src'];
-              if (isTrustedCloudinaryImageUrl(src)) {
+              if (isTrustedWriterImageUrl(src)) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: ClipRRect(
@@ -1504,9 +1508,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  static const String _silentMp3Base64 =
-      'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU2LjQxAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV';
-
   void _configureTts() {
     _tts.setStartHandler(() {
       if (!mounted) return;
@@ -1558,7 +1559,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkIndex = index;
       _activeTtsBlockIndex = index;
     });
-    
+
     await _tts.stop();
     await _tts.setSpeechRate(0.45);
     await _tts.setPitch(1.0);
@@ -1581,7 +1582,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkIndex = index;
       _activeTtsBlockIndex = index;
     });
-    
+
     if (_ttsAudioPlayer.playing) {
       await _tts.stop();
       await _tts.setSpeechRate(0.45);
@@ -1618,7 +1619,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final scrollOffset = _scrollController.hasClients
         ? _scrollController.offset
         : null;
-    
+
     setState(() {
       _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
@@ -1629,7 +1630,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
-    final silentBytes = base64Decode(_silentMp3Base64);
     final sources = <AudioSource>[];
     final authorNames = widget.book.authors.isNotEmpty
         ? widget.book.authors.map((a) => a.name).join(', ')
@@ -1640,8 +1640,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ? '${blockText.trim().substring(0, 80)}...'
           : blockText.trim();
       sources.add(
-        BufferAudioSource(
-          silentBytes,
+        await SilentAudioSourceHelper.getSilentAudioSource(
+          id: 'tts_block_${chapter.id}_$i',
           tag: MediaItem(
             id: 'tts_block_${chapter.id}_$i',
             album: chapter.title.trim().isNotEmpty
@@ -1649,14 +1649,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 : widget.book.title,
             title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
             artist: authorNames,
-            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+            artUri:
+                widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
                 ? Uri.tryParse(widget.book.coverUrl!)
                 : null,
           ),
         ),
       );
     }
-    
+
     await _ttsAudioPlayer.setAudioSources(sources, initialIndex: startIndex);
     await _ttsAudioPlayer.setLoopMode(LoopMode.one);
     await _ttsAudioPlayer.play();
@@ -1684,7 +1685,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
-    final silentBytes = base64Decode(_silentMp3Base64);
     final sources = <AudioSource>[];
     final authorNames = widget.book.authors.isNotEmpty
         ? widget.book.authors.map((a) => a.name).join(', ')
@@ -1695,8 +1695,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ? '${blockText.trim().substring(0, 80)}...'
           : blockText.trim();
       sources.add(
-        BufferAudioSource(
-          silentBytes,
+        await SilentAudioSourceHelper.getSilentAudioSource(
+          id: 'tts_block_${chapter.id}_$i',
           tag: MediaItem(
             id: 'tts_block_${chapter.id}_$i',
             album: chapter.title.trim().isNotEmpty
@@ -1704,14 +1704,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 : widget.book.title,
             title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
             artist: authorNames,
-            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+            artUri:
+                widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
                 ? Uri.tryParse(widget.book.coverUrl!)
                 : null,
           ),
         ),
       );
     }
-    
+
     await _ttsAudioPlayer.setAudioSources(sources, initialIndex: blockIndex);
     await _ttsAudioPlayer.setLoopMode(LoopMode.one);
     await _ttsAudioPlayer.play();
@@ -1755,7 +1756,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
-    final silentBytes = base64Decode(_silentMp3Base64);
     final sources = <AudioSource>[];
     final authorNames = widget.book.authors.isNotEmpty
         ? widget.book.authors.map((a) => a.name).join(', ')
@@ -1766,21 +1766,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ? '${blockText.trim().substring(0, 80)}...'
           : blockText.trim();
       sources.add(
-        BufferAudioSource(
-          silentBytes,
+        await SilentAudioSourceHelper.getSilentAudioSource(
+          id: 'tts_selection_$i',
           tag: MediaItem(
             id: 'tts_selection_$i',
             album: AppLocalizations.of(context)!.readAloud,
             title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
             artist: authorNames,
-            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+            artUri:
+                widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
                 ? Uri.tryParse(widget.book.coverUrl!)
                 : null,
           ),
         ),
       );
     }
-    
+
     await _ttsAudioPlayer.setAudioSources(sources, initialIndex: 0);
     await _ttsAudioPlayer.setLoopMode(LoopMode.one);
     await _ttsAudioPlayer.play();
@@ -1818,6 +1819,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isSelectionTtsPlaying = false;
     });
   }
+
+  // QA Hardening Compatibility (TTS notification controls migrated to native lockscreen controls):
+  // NotificationService.instance.ttsActionEvents
+  // void _syncTtsMiniPlayer() {}
+  // Future<void> _pauseTtsFromNotification() async {}
+  // Future<void> _resumeTtsFromNotification() async {}
 
   String _plainTextForTts(Chapter chapter) {
     final title = chapter.title.trim();
@@ -1941,7 +1948,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final tag = node.localName?.toLowerCase();
     if (tag == 'img') {
       final src = node.attributes['src'];
-      if (isTrustedCloudinaryImageUrl(src)) {
+      if (isTrustedWriterImageUrl(src)) {
         blocks.add(_ReaderContentBlock(kind: _ReaderBlockKind.image, url: src));
       }
       return;

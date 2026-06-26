@@ -1406,21 +1406,26 @@ void main() {
     expect(functionsSource, contains('registryWithoutToken'));
   });
 
-  test('feed image uploads use Cloudinary instead of Firebase Storage', () {
-    final feedRepositorySource = File(
-      'lib/src/data/repositories/firebase_feed_repository.dart',
-    ).readAsStringSync();
-    final cloudinaryUploadSource = File(
-      'lib/src/data/services/cloudinary_upload_service.dart',
-    ).readAsStringSync();
+  test(
+    'feed image uploads use Backblaze signed targets instead of Firebase Storage',
+    () {
+      final feedRepositorySource = File(
+        'lib/src/data/repositories/firebase_feed_repository.dart',
+      ).readAsStringSync();
+      final imageUploadSource = File(
+        'lib/src/data/services/image_upload_service.dart',
+      ).readAsStringSync();
 
-    expect(feedRepositorySource, contains('CloudinaryUploadService'));
-    expect(feedRepositorySource, contains("folder: 'feed_posts'"));
-    expect(feedRepositorySource, isNot(contains('FirebaseStorage.instance')));
-    expect(feedRepositorySource, isNot(contains('feed_images')));
-    expect(cloudinaryUploadSource, contains('f_auto,q_auto,w_1200,c_limit'));
-    expect(cloudinaryUploadSource, contains('_withDeliveryTransform'));
-  });
+      expect(feedRepositorySource, contains('ImageUploadService'));
+      expect(feedRepositorySource, contains("folder: 'feed_posts'"));
+      expect(feedRepositorySource, isNot(contains('CloudinaryUploadService')));
+      expect(feedRepositorySource, isNot(contains('FirebaseStorage.instance')));
+      expect(feedRepositorySource, isNot(contains('feed_images')));
+      expect(imageUploadSource, contains('createImageUploadTarget'));
+      expect(imageUploadSource, contains('uploadUrl'));
+      expect(imageUploadSource, contains('imageUrl'));
+    },
+  );
 
   test('profile privacy and collab localization hardening stays wired', () {
     final profileSource = File(

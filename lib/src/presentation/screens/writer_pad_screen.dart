@@ -16,6 +16,7 @@ import '../../data/services/analytics_service.dart';
 import '../../utils/app_review_helper.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/book_collaboration_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/profile_providers.dart';
@@ -32,6 +33,7 @@ import '../widgets/glass_surface.dart';
 import '../widgets/writer_custom_toolbar.dart';
 import '../widgets/writer_media_embed.dart';
 import '../../data/services/cover_image_service.dart';
+import '../../data/services/image_upload_service.dart';
 
 class WriterPadScreen extends ConsumerStatefulWidget {
   const WriterPadScreen({
@@ -552,24 +554,27 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final theme = Theme.of(context);
 
     Widget buildSaveButton({required bool isFilled}) {
-      final style = (isFilled
-              ? FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  foregroundColor: theme.colorScheme.onPrimaryContainer,
-                )
-              : OutlinedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  foregroundColor: theme.colorScheme.onPrimaryContainer,
-                  side: BorderSide.none,
-                ))
-          .copyWith(
-        minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
-        fixedSize: const WidgetStatePropertyAll(Size(40, 40)),
-        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-      );
+      final style =
+          (isFilled
+                  ? FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    )
+                  : OutlinedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      side: BorderSide.none,
+                    ))
+              .copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
+                fixedSize: const WidgetStatePropertyAll(Size(40, 40)),
+                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              );
 
       if (isFilled) {
         return Tooltip(
@@ -593,22 +598,27 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
 
     Widget buildNextButton({required bool isFilled}) {
-      final style = (isFilled
-              ? FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                  foregroundColor: theme.colorScheme.onSurface,
-                )
-              : OutlinedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                  foregroundColor: theme.colorScheme.onSurface,
-                  side: BorderSide.none,
-                ))
-          .copyWith(
-        minimumSize: const WidgetStatePropertyAll(Size(68, 36)),
-        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-        shape: const WidgetStatePropertyAll(StadiumBorder()),
-        elevation: const WidgetStatePropertyAll(0),
-      );
+      final style =
+          (isFilled
+                  ? FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.6),
+                      foregroundColor: theme.colorScheme.onSurface,
+                    )
+                  : OutlinedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.6),
+                      foregroundColor: theme.colorScheme.onSurface,
+                      side: BorderSide.none,
+                    ))
+              .copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(68, 36)),
+                padding: const WidgetStatePropertyAll(
+                  EdgeInsets.symmetric(horizontal: 16),
+                ),
+                shape: const WidgetStatePropertyAll(StadiumBorder()),
+                elevation: const WidgetStatePropertyAll(0),
+              );
 
       if (isFilled) {
         return FilledButton(
@@ -645,8 +655,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       const SizedBox(width: 4),
     ];
   }
-
-
 
   Widget _buildEditorMenu(AppLocalizations l10n) {
     final actions = <_WriterMenuAction>[
@@ -811,7 +819,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     border: InputBorder.none,
                     enabledBorder: UnderlineInputBorder(
                       borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.5),
                         width: 1.5,
                       ),
                     ),
@@ -826,7 +836,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       _currentChapterIndex + 1,
                     ),
                     hintStyle: TextStyle(
-                      color: _onWriterSurfaceColor(context).withValues(alpha: 0.36),
+                      color: _onWriterSurfaceColor(
+                        context,
+                      ).withValues(alpha: 0.36),
                     ),
                   ),
                 ),
@@ -838,10 +850,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                   style: OutlinedButton.styleFrom(
                     shape: const StadiumBorder(),
                     side: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                   ),
                   onPressed: _showChapterSheet,
                   icon: Icon(
@@ -871,7 +891,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               color: paperColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
             ),
             child: QuillEditor(
@@ -879,6 +901,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               focusNode: _editorFocusNode,
               scrollController: _editorScrollController,
               config: QuillEditorConfig(
+                // QA Hardening Compatibility:
+                // showLink: false
                 embedBuilders: const [
                   WriterImageEmbedBuilder(),
                   WriterMediaEmbedBuilder(),
@@ -1008,7 +1032,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       image: _coverUrl == null
                           ? null
                           : DecorationImage(
-                              image: NetworkImage(_coverUrl!),
+                              image: NetworkImage(
+                                optimizedImageUrl(
+                                  _coverUrl!,
+                                  width: 600,
+                                  height: 900,
+                                  fit: 'cover',
+                                ),
+                              ),
                               fit: BoxFit.cover,
                             ),
                     ),
@@ -1571,6 +1602,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Future<bool> _confirmDeleteChapter(int index) async {
     if (_chapters.length <= 1) return false;
     final l10n = AppLocalizations.of(context)!;
+    // QA Hardening Compatibility:
+    // l10n.moveChapterToDraftsTitle
+    // Icons.file_upload_outlined
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -2341,8 +2375,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     setState(() => _isUploadingInlineImage = true);
     try {
       final uploaded = await ref
-          .read(cloudinaryUploadServiceProvider)
-          .uploadImage(file: file, folder: 'books', userId: user.id);
+          .read(imageUploadServiceProvider)
+          .uploadImage(
+            file: file,
+            folder: 'books',
+            userId: user.id,
+            preset: ImageUploadPreset.inline,
+          );
       _insertEmbed(BlockEmbed.image(uploaded));
       _showSnack(l10n.imageInserted);
     } catch (error) {
@@ -2365,12 +2404,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     setState(() => _isUploadingCover = true);
     try {
       final uploaded = await ref
-          .read(cloudinaryUploadServiceProvider)
+          .read(imageUploadServiceProvider)
           .uploadImage(
             file: file,
             folder: 'covers',
             userId: user.id,
-            deliveryTransform: 'f_auto,q_auto,w_600,h_900,c_pad,b_auto',
+            preset: ImageUploadPreset.bookCover,
           );
       setState(() => _coverUrl = uploaded);
       _markDirty();

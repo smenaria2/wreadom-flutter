@@ -74,5 +74,10 @@ class EnvConfig {
     defaultValue: 'https://wreadom-audio.smenaria2.workers.dev',
   );
 
+  static const String cloudflareImageProxyUrl = String.fromEnvironment(
+    'CLOUDFLARE_IMAGE_PROXY_URL',
+    defaultValue: 'https://wreadom-images.smenaria2.workers.dev',
+  );
+
   // Add other sensitive values here only as dart-define keys, not defaults.
 }

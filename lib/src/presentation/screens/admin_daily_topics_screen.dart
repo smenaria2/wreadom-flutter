@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
-import '../../data/services/cloudinary_upload_service.dart';
+import '../../data/services/image_upload_service.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../providers/admin_topic_providers.dart';
 import '../providers/auth_providers.dart';
@@ -23,7 +23,7 @@ class AdminDailyTopicsScreen extends ConsumerStatefulWidget {
 class _AdminDailyTopicsScreenState
     extends ConsumerState<AdminDailyTopicsScreen> {
   final _imagePicker = ImagePicker();
-  final _cloudinary = CloudinaryUploadService();
+  final _imageUpload = ImageUploadService();
   bool _saving = false;
   bool _uploading = false;
   int _visibleTopicCount = 7;
@@ -141,11 +141,11 @@ class _AdminDailyTopicsScreenState
     try {
       final user = await ref.read(currentUserProvider.future);
       if (user == null) throw Exception(l10n.signInAgainToUploadImages);
-      final url = await _cloudinary.uploadImage(
+      final url = await _imageUpload.uploadImage(
         file: image,
         folder: 'daily_topics',
         userId: user.id,
-        deliveryTransform: 'f_auto,q_auto,w_1200,c_fill,ar_16:9',
+        preset: ImageUploadPreset.dailyTopic,
       );
       if (!mounted) return;
       setState(() => _editing = topic.copyWith(coverImageUrl: url));

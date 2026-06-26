@@ -13,13 +13,14 @@ import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/services/audio_review_upload_service.dart';
-import '../../../data/services/cloudinary_upload_service.dart';
+import '../../../data/services/image_upload_service.dart';
 import '../../../domain/models/book.dart';
 import '../../../domain/models/feed_post.dart';
 import '../../../domain/models/leaf_attachment.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../utils/app_haptics.dart';
 import '../../../utils/app_link_helper.dart';
+import '../../../utils/image_proxy_utils.dart';
 import '../../components/create_post_sheet.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
@@ -221,7 +222,12 @@ class _LeafIconChipState extends State<_LeafIconChip> {
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: CachedNetworkImage(
-                              imageUrl: widget.leaf.imageUrl!,
+                              imageUrl: optimizedImageUrl(
+                                widget.leaf.imageUrl!,
+                                width: 96,
+                                height: 114,
+                                fit: 'cover',
+                              ),
                               width: 32,
                               height: 38,
                               fit: BoxFit.cover,
@@ -387,7 +393,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   final _imagePicker = image_picker.ImagePicker();
   final _audioRecorder = AudioRecorder();
   final _noteController = QuillController.basic();
-  final _cloudinary = CloudinaryUploadService();
+  final _imageUpload = ImageUploadService();
   Timer? _audioTimer;
   LeafType _type = LeafType.text;
   image_picker.XFile? _image;
@@ -488,10 +494,11 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
       case LeafType.image:
         final image = _image;
         if (image == null) throw const LeafInputException('Choose an image.');
-        final imageUrl = await _cloudinary.uploadImage(
+        final imageUrl = await _imageUpload.uploadImage(
           file: image,
           folder: 'leaf-images',
           userId: userId,
+          preset: ImageUploadPreset.leaf,
         );
         return {'type': 'image', 'imageUrl': imageUrl};
       case LeafType.link:
@@ -993,7 +1000,15 @@ void _showImageLeaf(BuildContext context, LeafAttachment leaf) {
           child: InteractiveViewer(
             minScale: 0.8,
             maxScale: 4,
-            child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            child: CachedNetworkImage(
+              imageUrl: optimizedImageUrl(
+                url,
+                width: 1600,
+                quality: 90,
+                fit: 'contain',
+              ),
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
@@ -1153,7 +1168,12 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                        imageUrl: widget.book.coverUrl!,
+                        imageUrl: optimizedImageUrl(
+                          widget.book.coverUrl!,
+                          width: 144,
+                          height: 204,
+                          fit: 'cover',
+                        ),
                         width: 48,
                         height: 68,
                         fit: BoxFit.cover,

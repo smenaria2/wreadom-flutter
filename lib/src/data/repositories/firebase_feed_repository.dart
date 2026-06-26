@@ -5,7 +5,7 @@ import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
-import '../services/cloudinary_upload_service.dart';
+import '../services/image_upload_service.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 
@@ -476,16 +476,15 @@ class FirebaseFeedRepository implements FeedRepository {
   Future<String> uploadPostImage(Uint8List bytes, String fileName) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null || userId.trim().isEmpty) {
-      throw const CloudinaryUploadException(
-        'Login is required to upload images.',
-      );
+      throw const ImageUploadException('Login is required to upload images.');
     }
 
-    return CloudinaryUploadService().uploadImageBytes(
+    return ImageUploadService().uploadImageBytes(
       bytes: bytes,
       fileName: fileName,
       folder: 'feed_posts',
       userId: userId,
+      preset: ImageUploadPreset.feed,
     );
   }
 

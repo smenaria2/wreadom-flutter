@@ -1,4 +1,5 @@
 import '../../utils/app_link_helper.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../routing/app_routes.dart';
 
 enum WriterMediaType {
@@ -153,6 +154,12 @@ bool isTrustedCloudinaryImageUrl(String? value) {
   return host == 'res.cloudinary.com' && uri.path.contains('/image/upload/');
 }
 
+bool isTrustedBackblazeImageUrl(String? value) =>
+    isBackblazeImageWorkerUrl(value);
+
+bool isTrustedWriterImageUrl(String? value) =>
+    isTrustedCloudinaryImageUrl(value) || isTrustedBackblazeImageUrl(value);
+
 String optimizeCloudinaryImageUrl(
   String url, {
   String transform = 'f_auto,q_auto,w_1200,c_limit',
@@ -160,6 +167,25 @@ String optimizeCloudinaryImageUrl(
   if (!isTrustedCloudinaryImageUrl(url)) return url;
   if (url.contains('/upload/$transform/')) return url;
   return url.replaceFirst('/upload/', '/upload/$transform/');
+}
+
+String optimizeWriterImageUrl(
+  String url, {
+  int width = 1200,
+  int? height,
+  int quality = 85,
+  String fit = 'contain',
+}) {
+  if (isTrustedBackblazeImageUrl(url)) {
+    return optimizedImageUrl(
+      url,
+      width: width,
+      height: height,
+      quality: quality,
+      fit: fit,
+    );
+  }
+  return optimizeCloudinaryImageUrl(url);
 }
 
 bool hasMeaningfulWriterHtml(String html) {

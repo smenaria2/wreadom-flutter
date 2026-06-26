@@ -91,7 +91,7 @@ String _richContentSignature(String html) {
       }
       if (tag == 'img') {
         final src = node.attributes['src'];
-        if (isTrustedCloudinaryImageUrl(src)) {
+        if (isTrustedWriterImageUrl(src)) {
           parts.add('img:${src!.trim()}');
         }
       } else if (tag == 'a') {

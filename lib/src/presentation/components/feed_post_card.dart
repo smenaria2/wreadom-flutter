@@ -19,6 +19,7 @@ import '../routing/app_routes.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -293,7 +294,12 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                        imageUrl: imageUrl!,
+                        imageUrl: optimizedImageUrl(
+                          imageUrl!,
+                          width: 600,
+                          height: 300,
+                          fit: 'cover',
+                        ),
                         height: 150,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -781,7 +787,14 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         CircleAvatar(
                           radius: 20,
                           backgroundImage: post.userPhotoURL != null
-                              ? CachedNetworkImageProvider(post.userPhotoURL!)
+                              ? CachedNetworkImageProvider(
+                                  optimizedImageUrl(
+                                    post.userPhotoURL!,
+                                    width: 120,
+                                    height: 120,
+                                    fit: 'cover',
+                                  ),
+                                )
                               : null,
                           backgroundColor: Theme.of(
                             context,
@@ -965,7 +978,12 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: CachedNetworkImage(
-                            imageUrl: post.bookCover!,
+                            imageUrl: optimizedImageUrl(
+                              post.bookCover!,
+                              width: 72,
+                              height: 104,
+                              fit: 'cover',
+                            ),
                             width: 36,
                             height: 52,
                             fit: BoxFit.cover,
@@ -1169,7 +1187,12 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
-                  imageUrl: post.imageUrl!,
+                  imageUrl: optimizedImageUrl(
+                    post.imageUrl!,
+                    width: 1000,
+                    quality: 90,
+                    fit: 'cover',
+                  ),
                   placeholder: (context, url) => Container(
                     height: 200,
                     color: colorScheme.surfaceContainerHighest,

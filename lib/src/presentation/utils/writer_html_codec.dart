@@ -130,7 +130,7 @@ void _appendNode(
 
   if (tag == 'img') {
     final src = node.attributes['src'];
-    if (isTrustedCloudinaryImageUrl(src)) {
+    if (isTrustedWriterImageUrl(src)) {
       if (!state.endsWithNewline && !state.isEmpty) delta.insert('\n');
       delta.insert(BlockEmbed.image(src!.trim()).toJson());
       delta.insert('\n');
@@ -235,7 +235,7 @@ String _formatInline(String text, Map<String, dynamic> attributes) {
 
 String? _formatEmbed(Map<dynamic, dynamic> data) {
   final image = data[BlockEmbed.imageType];
-  if (image is String && isTrustedCloudinaryImageUrl(image)) {
+  if (image is String && isTrustedWriterImageUrl(image)) {
     return '<p><img src="${_escapeAttribute(image)}"></p>';
   }
   final video = data[BlockEmbed.videoType];
@@ -291,7 +291,7 @@ String _sanitizeNode(dom.Node node) {
   }
   if (tag == 'img') {
     final src = node.attributes['src'];
-    if (!isTrustedCloudinaryImageUrl(src)) return '';
+    if (!isTrustedWriterImageUrl(src)) return '';
     attrs.add('src="${_escapeAttribute(src!)}"');
     final alt = node.attributes['alt'];
     if (alt != null && alt.trim().isNotEmpty) {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/services/cloudinary_upload_service.dart';
+import '../../data/services/image_upload_service.dart';
 import '../../data/services/writer_draft_service.dart';
 import '../../data/repositories/firebase_writer_repository.dart';
 import '../../domain/models/book.dart';
@@ -11,10 +11,8 @@ final writerRepositoryProvider = Provider<WriterRepository>((ref) {
   return FirebaseWriterRepository();
 });
 
-final cloudinaryUploadServiceProvider = Provider<CloudinaryUploadService>((
-  ref,
-) {
-  return CloudinaryUploadService();
+final imageUploadServiceProvider = Provider<ImageUploadService>((ref) {
+  return ImageUploadService();
 });
 
 final writerDraftServiceProvider = Provider<WriterDraftStore>((ref) {

@@ -10,6 +10,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/models/user_model.dart';
+import '../../data/services/image_upload_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_controller.dart';
 import '../providers/app_update_provider.dart';
@@ -27,6 +28,7 @@ import '../widgets/glass_surface.dart';
 import '../widgets/share_app_dialog.dart';
 import '../widgets/social_links_menu.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../../utils/app_log_collector.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
@@ -335,14 +337,14 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
 
     try {
       final url = await ref
-          .read(cloudinaryUploadServiceProvider)
+          .read(imageUploadServiceProvider)
           .uploadImage(
             file: file,
             folder: isCover ? 'profile_covers' : 'profile_photos',
             userId: widget.user.id,
-            deliveryTransform: isCover
-                ? 'f_auto,q_auto,w_1600,h_600,c_fill'
-                : 'f_auto,q_auto,w_600,h_600,c_fill',
+            preset: isCover
+                ? ImageUploadPreset.profileCover
+                : ImageUploadPreset.profilePhoto,
           );
       if (isCover) {
         await ref
@@ -408,7 +410,13 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                 sigmaY: coverBlur,
               ),
               child: CachedNetworkImage(
-                imageUrl: coverUrl,
+                imageUrl: optimizedImageUrl(
+                  coverUrl,
+                  width: 1600,
+                  height: 600,
+                  quality: 90,
+                  fit: 'cover',
+                ),
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
               ),
@@ -490,7 +498,14 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                             backgroundColor: theme.colorScheme.primary
                                 .withValues(alpha: 0.1),
                             backgroundImage: user.photoURL != null
-                                ? CachedNetworkImageProvider(user.photoURL!)
+                                ? CachedNetworkImageProvider(
+                                    optimizedImageUrl(
+                                      user.photoURL!,
+                                      width: 240,
+                                      height: 240,
+                                      fit: 'cover',
+                                    ),
+                                  )
                                 : null,
                             child: user.photoURL == null
                                 ? Text(

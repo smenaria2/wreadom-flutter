@@ -29,7 +29,7 @@ void main() {
 
     test('snapshots image and media edits before five minutes', () {
       const image =
-          'https://res.cloudinary.com/demo/image/upload/f_auto/sample.jpg';
+          'https://wreadom-images.smenaria2.workers.dev/images/books/sample.jpg';
       const media = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
       final shouldSnapshotImage = shouldCreateChapterVersion(
@@ -112,7 +112,7 @@ void main() {
 
     test('restore snapshots sanitized rich html with media and formatting', () {
       const image =
-          'https://res.cloudinary.com/demo/image/upload/f_auto/sample.jpg';
+          'https://wreadom-images.smenaria2.workers.dev/images/books/sample.jpg';
       const media = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
       final versions = restoreChapterVersionHistory(
         versions: const [],
