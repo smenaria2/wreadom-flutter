@@ -8,6 +8,7 @@ import '../providers/navigation_providers.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/audio_post_mini_player.dart';
 import 'messages_screen.dart';
 import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
@@ -110,6 +111,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         children: [
           const Positioned.fill(child: AppBackground()),
           IndexedStack(index: selectedIndex, children: _screens),
+          const AudioPostMiniPlayer(),
         ],
       ),
       bottomNavigationBar: GlassSurface(

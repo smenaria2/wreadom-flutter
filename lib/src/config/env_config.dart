@@ -69,5 +69,10 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  static const String cloudflareAudioProxyUrl = String.fromEnvironment(
+    'CLOUDFLARE_AUDIO_PROXY_URL',
+    defaultValue: 'https://wreadom-audio.smenaria2.workers.dev',
+  );
+
   // Add other sensitive values here only as dart-define keys, not defaults.
 }

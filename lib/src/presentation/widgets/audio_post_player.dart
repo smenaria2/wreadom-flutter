@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -110,23 +111,24 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     super.dispose();
   }
 
-  /// Resolves the pre-signed Backblaze B2 download GET URL.
-  Future<String> _getAudioUrl() async {
+  /// Resolves the audio URL and headers (e.g. for Cloudflare Worker authentication).
+  Future<(String, Map<String, String>?)> _getAudioUrl() async {
     final objectKey = widget.post.audioObjectKey?.trim();
     if (objectKey == null || objectKey.isEmpty) {
-      return widget.post.audioUrl ?? '';
+      return (widget.post.audioUrl ?? '', null);
     }
 
     try {
-      final response = await FirebaseFunctions.instance
-          .httpsCallable('createAudioPostDownloadUrl')
-          .call<Map<String, dynamic>>({'objectKey': objectKey});
+      final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(RegExp(r'/+$'), '');
+      final downloadUrl = '$baseUrl/$objectKey';
 
-      final downloadUrl = response.data['downloadUrl']?.toString();
-      return downloadUrl ?? widget.post.audioUrl ?? '';
+      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      final headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+
+      return (downloadUrl, headers);
     } catch (e) {
-      debugPrint('Error getting pre-signed audio download URL: $e');
-      return widget.post.audioUrl ?? '';
+      debugPrint('Error preparing Cloudflare Worker audio request: $e');
+      return (widget.post.audioUrl ?? '', null);
     }
   }
 
@@ -152,7 +154,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
 
       if (_loadedAudioPostIdentity != audioIdentity) {
-        final resolvedUrl = (await _getAudioUrl()).trim();
+        final (resolvedUrl, headers) = await _getAudioUrl();
         if (resolvedUrl.isEmpty) {
           throw StateError('Audio URL was empty.');
         }
@@ -161,6 +163,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         await _player.setAudioSource(
           AudioSource.uri(
             Uri.parse(resolvedUrl),
+            headers: headers,
             tag: MediaItem(
               id: widget.post.id ?? audioIdentity,
               album: widget.post.bookTitle ?? 'Audio Post',

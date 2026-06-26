@@ -7,6 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:librebook_flutter/src/data/services/buffer_audio_source.dart';
+import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dart';
+import 'dart:convert';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -261,19 +266,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isTtsPlaying = false;
   bool _isTtsPreparing = false;
   bool _isTtsPaused = false;
-  bool _isTtsSequencing = false;
-  bool _stopTtsRequested = false;
   bool _isSelectionTtsPlaying = false;
-  bool _pausedSelectionTts = false;
-  int _ttsSession = 0;
   late final FlutterTts _tts;
   final AudioRecorder _audioRecorder = AudioRecorder();
-  late final StreamSubscription<String> _ttsActionSubscription;
+  late final AudioPlayer _ttsAudioPlayer;
+  StreamSubscription<PlayerState>? _ttsPlayerStateSubscription;
+  StreamSubscription<int?>? _ttsPlayerIndexSubscription;
   Timer? _audioRecordingTimer;
   List<String> _ttsChunkList = const [];
   int _ttsChunkIndex = 0;
   int _activeTtsBlockIndex = -1;
-  String? _ttsNotificationChapterTitle;
   final GlobalKey _quoteImageKey = GlobalKey();
   late final ReaderAdService _readerAdService;
   _QuoteSharePayload? _quoteSharePayload;
@@ -325,8 +327,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
     _tts = FlutterTts();
     _configureTts();
-    _ttsActionSubscription = NotificationService.instance.ttsActionEvents
-        .listen(_handleTtsNotificationAction);
+    _ttsAudioPlayer = AudioPlayer();
+    _ttsPlayerStateSubscription = _ttsAudioPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      final bool playing = state.playing;
+      final processingState = state.processingState;
+      
+      if (processingState == ProcessingState.completed) {
+        _stopTts();
+        return;
+      }
+      
+      if (playing != _isTtsPlaying && !_isTtsPreparing) {
+        if (playing) {
+          _resumeTtsSpeech();
+        } else {
+          _pauseTtsSpeech();
+        }
+      }
+    });
+
+    _ttsPlayerIndexSubscription = _ttsAudioPlayer.currentIndexStream.listen((index) {
+      if (!mounted) return;
+      if (index == null) return;
+      if (index != _ttsChunkIndex && _ttsChunkList.isNotEmpty) {
+        _handleTtsIndexChange(index);
+      }
+    });
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
     AnalyticsService.logReaderOpen(widget.book);
@@ -759,8 +786,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _activeTtsBlockIndex = -1;
       _ttsChunkList = const [];
       _isTtsPaused = false;
-      _pausedSelectionTts = false;
-      _ttsNotificationChapterTitle = null;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -787,7 +812,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _scrollController.dispose();
     _commentFocusNode.dispose();
     _audioRecordingTimer?.cancel();
-    unawaited(_ttsActionSubscription.cancel());
+    unawaited(_ttsPlayerStateSubscription?.cancel() ?? Future.value());
+    unawaited(_ttsPlayerIndexSubscription?.cancel() ?? Future.value());
+    unawaited(_ttsAudioPlayer.dispose());
     unawaited(_audioRecorder.dispose());
     unawaited(_tts.stop());
     unawaited(NotificationService.instance.cancelTtsMiniPlayer());
@@ -798,6 +825,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String?>(activeAudioPostUrlProvider, (previous, next) {
+      if (next != null && (_isTtsPlaying || _isTtsPreparing)) {
+        unawaited(_stopTts());
+      }
+    });
+
     final latestBookAsync = ref.watch(liveBookDetailProvider(widget.book.id));
     final chaptersAsync = ref.watch(liveBookChaptersProvider(widget.book.id));
     final offlineChaptersAsync = ref.watch(
@@ -1471,6 +1504,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  static const String _silentMp3Base64 =
+      'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU2LjQxAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV';
+
   void _configureTts() {
     _tts.setStartHandler(() {
       if (!mounted) return;
@@ -1479,56 +1515,80 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _isTtsPlaying = true;
         _isTtsPaused = false;
       });
-      _syncTtsMiniPlayer();
     });
     _tts.setCompletionHandler(() {
       if (!mounted) return;
-      if (_isTtsSequencing) return;
-      setState(() {
-        _isTtsPreparing = false;
-        _isTtsPlaying = false;
-        _isTtsPaused = false;
-        _isSelectionTtsPlaying = false;
-      });
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+      if (_ttsAudioPlayer.playing) {
+        if (_ttsAudioPlayer.hasNext) {
+          unawaited(_ttsAudioPlayer.seekToNext());
+        } else {
+          unawaited(_stopTts());
+        }
+      }
     });
     _tts.setCancelHandler(() {
       if (!mounted) return;
-      if (_isTtsPaused) return;
-      setState(() {
-        _isTtsPreparing = false;
-        _isTtsPlaying = false;
-        _isTtsPaused = false;
-        _isSelectionTtsPlaying = false;
-      });
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
     });
     _tts.setErrorHandler((message) {
       if (!mounted) return;
 
-      // On web, 'interrupted' errors are common and expected when we manually
-      // call stop() to seek or change chapters. We ignore them to avoid
-      // showing annoying snackbars during normal interactions.
       final msg = message.toString();
       if (msg.toLowerCase().contains('interrupted') ||
           msg.contains('[object SpeechSynthesisErrorEvent]')) {
         return;
       }
 
-      _stopTtsRequested = true;
-      _ttsSession++;
-      setState(() {
-        _isTtsPreparing = false;
-        _isTtsPlaying = false;
-        _isTtsPaused = false;
-        _isSelectionTtsPlaying = false;
-      });
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
+      unawaited(_stopTts());
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.readAloudFailed)));
     });
+  }
+
+  Future<void> _resumeTtsSpeech() async {
+    if (_ttsChunkList.isEmpty) return;
+    final index = _ttsAudioPlayer.currentIndex ?? 0;
+    if (index < 0 || index >= _ttsChunkList.length) return;
+
+    setState(() {
+      _isTtsPlaying = true;
+      _isTtsPaused = false;
+      _isTtsPreparing = false;
+      _ttsChunkIndex = index;
+      _activeTtsBlockIndex = index;
+    });
+    
+    await _tts.stop();
+    await _tts.setSpeechRate(0.45);
+    await _tts.setPitch(1.0);
+    await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
+    await _tts.speak(_ttsChunkList[index]);
+  }
+
+  Future<void> _pauseTtsSpeech() async {
+    setState(() {
+      _isTtsPlaying = false;
+      _isTtsPaused = true;
+      _isTtsPreparing = false;
+    });
+    await _tts.stop();
+  }
+
+  Future<void> _handleTtsIndexChange(int index) async {
+    if (index < 0 || index >= _ttsChunkList.length) return;
+    setState(() {
+      _ttsChunkIndex = index;
+      _activeTtsBlockIndex = index;
+    });
+    
+    if (_ttsAudioPlayer.playing) {
+      await _tts.stop();
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
+      await _tts.speak(_ttsChunkList[index]);
+    }
   }
 
   Future<void> _toggleTts(Chapter chapter) async {
@@ -1537,7 +1597,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
     if (_isTtsPaused) {
-      await _resumeTtsFromNotification();
+      await _ttsAudioPlayer.play();
       return;
     }
 
@@ -1551,11 +1611,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    // Always start from beginning when explicitly toggled on
+    ref.read(audioPostPlayerProvider).stop();
+    ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+
     final startIndex = 0;
     final scrollOffset = _scrollController.hasClients
         ? _scrollController.offset
         : null;
+    
     setState(() {
       _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
@@ -1563,18 +1626,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _activeTtsBlockIndex = startIndex;
       _isTtsPreparing = true;
       _isTtsPaused = false;
-      _pausedSelectionTts = false;
-      _ttsNotificationChapterTitle = chapter.title.trim().isNotEmpty
-          ? chapter.title.trim()
-          : widget.book.title;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
-    await _runTtsFromIndex(chapter, startIndex);
+    final silentBytes = base64Decode(_silentMp3Base64);
+    final sources = <AudioSource>[];
+    final authorNames = widget.book.authors.isNotEmpty
+        ? widget.book.authors.map((a) => a.name).join(', ')
+        : 'Librebook';
+    for (int i = 0; i < blocks.length; i++) {
+      final blockText = blocks[i];
+      final displayedTitle = blockText.trim().length > 80
+          ? '${blockText.trim().substring(0, 80)}...'
+          : blockText.trim();
+      sources.add(
+        BufferAudioSource(
+          silentBytes,
+          tag: MediaItem(
+            id: 'tts_block_${chapter.id}_$i',
+            album: chapter.title.trim().isNotEmpty
+                ? chapter.title.trim()
+                : widget.book.title,
+            title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
+            artist: authorNames,
+            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+                ? Uri.tryParse(widget.book.coverUrl!)
+                : null,
+          ),
+        ),
+      );
+    }
+    
+    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: startIndex);
+    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
+    await _ttsAudioPlayer.play();
   }
 
-  /// Seek TTS to a position based on scroll fraction [0.0–1.0].
-  /// Stops current speech and restarts from the nearest chunk.
   Future<void> _startTtsFromBlock(Chapter chapter, int blockIndex) async {
     final blocks = _ttsBlocksForChapter(chapter);
     if (blocks.isEmpty || blockIndex < 0 || blockIndex >= blocks.length) return;
@@ -1582,12 +1669,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final scrollOffset = _scrollController.hasClients
         ? _scrollController.offset
         : null;
-    _stopTtsRequested = true;
-    _ttsSession++;
-    await _tts.stop();
-    await Future.delayed(const Duration(milliseconds: 100));
 
-    if (!mounted) return;
+    ref.read(audioPostPlayerProvider).stop();
+    ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+
     setState(() {
       _isSelectionTtsPlaying = false;
       _ttsChunkList = blocks;
@@ -1596,14 +1681,40 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isTtsPlaying = false;
       _isTtsPreparing = true;
       _isTtsPaused = false;
-      _pausedSelectionTts = false;
-      _ttsNotificationChapterTitle = chapter.title.trim().isNotEmpty
-          ? chapter.title.trim()
-          : widget.book.title;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
 
-    await _runTtsFromIndex(chapter, blockIndex);
+    final silentBytes = base64Decode(_silentMp3Base64);
+    final sources = <AudioSource>[];
+    final authorNames = widget.book.authors.isNotEmpty
+        ? widget.book.authors.map((a) => a.name).join(', ')
+        : 'Librebook';
+    for (int i = 0; i < blocks.length; i++) {
+      final blockText = blocks[i];
+      final displayedTitle = blockText.trim().length > 80
+          ? '${blockText.trim().substring(0, 80)}...'
+          : blockText.trim();
+      sources.add(
+        BufferAudioSource(
+          silentBytes,
+          tag: MediaItem(
+            id: 'tts_block_${chapter.id}_$i',
+            album: chapter.title.trim().isNotEmpty
+                ? chapter.title.trim()
+                : widget.book.title,
+            title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
+            artist: authorNames,
+            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+                ? Uri.tryParse(widget.book.coverUrl!)
+                : null,
+          ),
+        ),
+      );
+    }
+    
+    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: blockIndex);
+    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
+    await _ttsAudioPlayer.play();
   }
 
   void _restoreScrollOffsetAfterModeSwitch(double? scrollOffset) {
@@ -1627,11 +1738,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    _stopTtsRequested = true;
-    _ttsSession++;
-    await _tts.stop();
-    await Future.delayed(const Duration(milliseconds: 80));
-    if (!mounted) return;
+    ref.read(audioPostPlayerProvider).stop();
+    ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+
     final scrollOffset = _scrollController.hasClients
         ? _scrollController.offset
         : null;
@@ -1643,25 +1752,43 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isTtsPlaying = false;
       _isTtsPreparing = true;
       _isTtsPaused = false;
-      _pausedSelectionTts = false;
-      _ttsNotificationChapterTitle = AppLocalizations.of(context)!.readAloud;
     });
     _restoreScrollOffsetAfterModeSwitch(scrollOffset);
-    await _runTtsFromIndex(
-      Chapter(
-        id: 'selection',
-        title: '',
-        content: selected,
-        index: _chapterIndex,
-      ),
-      0,
-    );
+
+    final silentBytes = base64Decode(_silentMp3Base64);
+    final sources = <AudioSource>[];
+    final authorNames = widget.book.authors.isNotEmpty
+        ? widget.book.authors.map((a) => a.name).join(', ')
+        : 'Librebook';
+    for (int i = 0; i < chunks.length; i++) {
+      final blockText = chunks[i];
+      final displayedTitle = blockText.trim().length > 80
+          ? '${blockText.trim().substring(0, 80)}...'
+          : blockText.trim();
+      sources.add(
+        BufferAudioSource(
+          silentBytes,
+          tag: MediaItem(
+            id: 'tts_selection_$i',
+            album: AppLocalizations.of(context)!.readAloud,
+            title: displayedTitle.isNotEmpty ? displayedTitle : 'Reading...',
+            artist: authorNames,
+            artUri: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+                ? Uri.tryParse(widget.book.coverUrl!)
+                : null,
+          ),
+        ),
+      );
+    }
+    
+    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: 0);
+    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
+    await _ttsAudioPlayer.play();
   }
 
   Future<void> _seekTtsToFraction(Chapter chapter, double fraction) async {
     if (!_isTtsPlaying && !_isTtsPreparing) return;
 
-    // Build chunk list if not yet available
     if (_ttsChunkList.isEmpty) {
       final text = _plainTextForTts(chapter);
       if (text.isEmpty) return;
@@ -1676,99 +1803,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkList.length - 1,
     );
 
-    final scrollOffset = _scrollController.hasClients
-        ? _scrollController.offset
-        : null;
-    // Stop current playback
-    _stopTtsRequested = true;
-    _ttsSession++;
-    await _tts.stop();
-
-    // Small delay helps browser Speech API stabilize after stop()
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    if (!mounted) return;
-
-    setState(() {
-      _ttsChunkIndex = targetIndex;
-      _activeTtsBlockIndex = targetIndex;
-      _isTtsPlaying = false;
-      _isTtsPreparing = true;
-      _isTtsPaused = false;
-    });
-    _restoreScrollOffsetAfterModeSwitch(scrollOffset);
-
-    await _runTtsFromIndex(chapter, targetIndex);
-  }
-
-  Future<void> _runTtsFromIndex(Chapter chapter, int startIndex) async {
-    final chunks = _ttsChunkList.isNotEmpty
-        ? _ttsChunkList
-        : _ttsChunks(_plainTextForTts(chapter));
-
-    if (chunks.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _isTtsPreparing = false;
-          _isTtsPlaying = false;
-        });
-      }
-      return;
-    }
-
-    try {
-      final session = ++_ttsSession;
-      _stopTtsRequested = false;
-      _isTtsSequencing = true;
-      await _tts.awaitSpeakCompletion(true);
-      await _tts.setSpeechRate(0.45);
-      await _tts.setPitch(1.0);
-
-      for (int i = startIndex; i < chunks.length; i++) {
-        if (_stopTtsRequested || session != _ttsSession) break;
-        await _tts.setLanguage(_ttsLanguageForText(chunks[i]));
-        setState(() {
-          _ttsChunkIndex = i;
-          _activeTtsBlockIndex = i;
-        });
-        _syncTtsMiniPlayer();
-        await _tts.speak(chunks[i]);
-      }
-
-      if (!mounted || session != _ttsSession) return;
-      setState(() {
-        _isTtsPreparing = false;
-        _isTtsPlaying = false;
-        _isTtsPaused = false;
-        // Reset chunk index so next play starts from beginning
-        _ttsChunkIndex = 0;
-        _activeTtsBlockIndex = -1;
-        _isSelectionTtsPlaying = false;
-      });
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
-    } catch (error, stackTrace) {
-      if (!mounted) return;
-      logUiError('Read aloud failed', error, stackTrace);
-      setState(() {
-        _isTtsPreparing = false;
-        _isTtsPlaying = false;
-        _isTtsPaused = false;
-        _activeTtsBlockIndex = -1;
-        _isSelectionTtsPlaying = false;
-      });
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.readAloudFailed)),
-      );
-    } finally {
-      _isTtsSequencing = false;
-    }
+    await _ttsAudioPlayer.seek(Duration.zero, index: targetIndex);
   }
 
   Future<void> _stopTts() async {
-    _stopTtsRequested = true;
-    _ttsSession++;
     await _tts.stop();
+    await _ttsAudioPlayer.stop();
     if (!mounted) return;
     setState(() {
       _isTtsPreparing = false;
@@ -1776,87 +1816,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _isTtsPaused = false;
       _activeTtsBlockIndex = -1;
       _isSelectionTtsPlaying = false;
-      _pausedSelectionTts = false;
-      _ttsNotificationChapterTitle = null;
     });
-    await NotificationService.instance.cancelTtsMiniPlayer();
-  }
-
-  void _handleTtsNotificationAction(String actionId) {
-    if (actionId == NotificationService.ttsActionPause) {
-      unawaited(_pauseTtsFromNotification());
-    } else if (actionId == NotificationService.ttsActionResume) {
-      unawaited(_resumeTtsFromNotification());
-    } else if (actionId == NotificationService.ttsActionStop) {
-      unawaited(_stopTts());
-    }
-  }
-
-  Future<void> _pauseTtsFromNotification() async {
-    if (!_isTtsPlaying && !_isTtsPreparing) return;
-    _stopTtsRequested = true;
-    _ttsSession++;
-    await _tts.stop();
-    if (!mounted) return;
-    setState(() {
-      _isTtsPreparing = false;
-      _isTtsPlaying = false;
-      _isTtsPaused = true;
-      _pausedSelectionTts = _isSelectionTtsPlaying;
-      _isSelectionTtsPlaying = false;
-    });
-    _syncTtsMiniPlayer();
-  }
-
-  Future<void> _resumeTtsFromNotification() async {
-    if (!_isTtsPaused || _ttsChunkList.isEmpty) return;
-    if (!mounted) return;
-    final startIndex = _ttsChunkIndex.clamp(0, _ttsChunkList.length - 1);
-    setState(() {
-      _isTtsPaused = false;
-      _isTtsPreparing = true;
-      _isTtsPlaying = false;
-      _isSelectionTtsPlaying = _pausedSelectionTts;
-      _pausedSelectionTts = false;
-      if (!_isSelectionTtsPlaying) {
-        _activeTtsBlockIndex = startIndex;
-      }
-    });
-    _syncTtsMiniPlayer();
-    await _runTtsFromIndex(
-      Chapter(
-        id: 'tts-resume',
-        title: _ttsNotificationChapterTitle ?? widget.book.title,
-        content: _ttsChunkList.join('\n\n'),
-        index: _chapterIndex,
-      ),
-      startIndex,
-    );
-  }
-
-  void _syncTtsMiniPlayer() {
-    if (!_isTtsPlaying && !_isTtsPreparing && !_isTtsPaused) {
-      unawaited(NotificationService.instance.cancelTtsMiniPlayer());
-      return;
-    }
-
-    final chapterTitle = _ttsNotificationChapterTitle?.trim();
-    final blockLabel = _ttsChunkList.isNotEmpty
-        ? 'Block ${_ttsChunkIndex + 1}/${_ttsChunkList.length}'
-        : 'Read aloud';
-    final prefix = _isTtsPaused ? 'Paused' : 'Reading';
-    final body = [
-      if (chapterTitle != null && chapterTitle.isNotEmpty) chapterTitle,
-      '$prefix: $blockLabel',
-    ].join(' - ');
-
-    unawaited(
-      NotificationService.instance.showTtsMiniPlayer(
-        title: widget.book.title,
-        body: body,
-        isPaused: _isTtsPaused,
-      ),
-    );
   }
 
   String _plainTextForTts(Chapter chapter) {
