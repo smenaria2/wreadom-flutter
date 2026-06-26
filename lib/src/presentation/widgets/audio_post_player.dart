@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -120,10 +121,21 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
     try {
       final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(RegExp(r'/+$'), '');
-      final downloadUrl = '$baseUrl/$objectKey';
-
       final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-      final headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+
+      final String downloadUrl;
+      Map<String, String>? headers;
+
+      // HTML5 Audio element on Web cannot send custom HTTP headers like 'Authorization'.
+      // We pass the token via a secure query parameter instead on Web.
+      if (kIsWeb) {
+        downloadUrl = token != null 
+            ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}' 
+            : '$baseUrl/$objectKey';
+      } else {
+        downloadUrl = '$baseUrl/$objectKey';
+        headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+      }
 
       return (downloadUrl, headers);
     } catch (e) {
