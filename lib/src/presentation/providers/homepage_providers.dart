@@ -743,11 +743,17 @@ final homepageRankedAuthorsProvider =
         }
       }
 
+      final recentAuthorCutoff = DateTime.now()
+          .subtract(const Duration(days: 30))
+          .millisecondsSinceEpoch;
       final authors = metadata.authors.where((author) {
         final authorStats = stats[author.id];
         if (authorStats == null) return false;
         if (ranking == HomeAuthorRanking.newAuthors) {
-          return authorStats.works >= 2;
+          final registeredAt = _normalizedEpochMillis(author.createdAt);
+          return authorStats.works >= 2 &&
+              registeredAt != null &&
+              registeredAt >= recentAuthorCutoff;
         }
         return true;
       }).toList();
@@ -755,15 +761,16 @@ final homepageRankedAuthorsProvider =
       double score(UserModel author) {
         final authorStats = stats[author.id] ?? _AuthorStats();
         return switch (ranking) {
-          HomeAuthorRanking.newAuthors => (author.createdAt ?? 0).toDouble(),
+          HomeAuthorRanking.newAuthors =>
+            (_normalizedEpochMillis(author.createdAt) ?? 0).toDouble(),
           HomeAuthorRanking.mostRead => authorStats.reads.toDouble(),
           HomeAuthorRanking.mostPublished => authorStats.works.toDouble(),
         };
       }
 
       authors.sort((a, b) {
-        final createdA = a.createdAt ?? 0;
-        final createdB = b.createdAt ?? 0;
+        final createdA = _normalizedEpochMillis(a.createdAt) ?? 0;
+        final createdB = _normalizedEpochMillis(b.createdAt) ?? 0;
         if (ranking == HomeAuthorRanking.newAuthors) {
           final createdCompare = createdB.compareTo(createdA);
           if (createdCompare != 0) return createdCompare;
@@ -816,6 +823,17 @@ final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
     ..sort((a, b) => score(b).compareTo(score(a)));
   return sorted.take(24).toList();
 });
+
+int? _normalizedEpochMillis(int? value) {
+  if (value == null || value <= 0) return null;
+  return value < 100000000000 ? value * 1000 : value;
+}
+
+bool _isPublicFeedPost(FeedPost post) {
+  final visibility = post.visibility.trim().toLowerCase();
+  final privacy = post.privacy?.trim().toLowerCase();
+  return visibility == 'public' && (privacy == null || privacy == 'public');
+}
 
 bool _hasCertificateLeaf(Book book) {
   return book.leaves?.any((leaf) => leaf.type == LeafType.certificate) == true;
@@ -898,7 +916,10 @@ final homepageOriginalsProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final homepageAudioPostsProvider = FutureProvider<List<FeedPost>>((ref) async {
-  return ref.watch(feedRepositoryProvider).getAudioFeedPosts(limit: 12);
+  final posts = await ref
+      .watch(feedRepositoryProvider)
+      .getAudioFeedPosts(limit: 12);
+  return posts.where(_isPublicFeedPost).toList(growable: false);
 });
 final homepagePopularProvider = FutureProvider<List<Book>>((ref) async {
   final metadata = await ref.watch(homepageMetadataProvider.future);

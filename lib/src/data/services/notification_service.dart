@@ -193,20 +193,6 @@ class NotificationService {
   }) async {
     if (kIsWeb) return;
 
-    final playbackAction = isPaused
-        ? const AndroidNotificationAction(
-            ttsActionResume,
-            'Resume',
-            cancelNotification: false,
-            showsUserInterface: false,
-          )
-        : const AndroidNotificationAction(
-            ttsActionPause,
-            'Pause',
-            cancelNotification: false,
-            showsUserInterface: false,
-          );
-
     await _localNotifications.show(
       id: _ttsNotificationId,
       title: title,
@@ -218,15 +204,25 @@ class NotificationService {
           channelDescription: 'Controls for active read-aloud playback.',
           importance: Importance.low,
           priority: Priority.low,
-          category: AndroidNotificationCategory.transport,
+          category: AndroidNotificationCategory.status,
           ongoing: true,
           autoCancel: false,
           onlyAlertOnce: true,
           showWhen: false,
-          styleInformation: const MediaStyleInformation(),
-          actions: <AndroidNotificationAction>[
-            playbackAction,
-            const AndroidNotificationAction(
+          actions: const <AndroidNotificationAction>[
+            AndroidNotificationAction(
+              ttsActionResume,
+              'Play',
+              cancelNotification: false,
+              showsUserInterface: false,
+            ),
+            AndroidNotificationAction(
+              ttsActionPause,
+              'Pause',
+              cancelNotification: false,
+              showsUserInterface: false,
+            ),
+            AndroidNotificationAction(
               ttsActionStop,
               'Stop',
               cancelNotification: false,

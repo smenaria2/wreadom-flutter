@@ -570,8 +570,6 @@ class _QuestionPromptCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
             ],
           ),
         ),
