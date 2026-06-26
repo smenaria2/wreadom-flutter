@@ -772,7 +772,7 @@ void main() {
       );
       expect(
         homeScreenSource,
-        contains('homepageRankedAuthorsProvider(HomeAuthorRanking.topRated)'),
+        contains('homepageRankedAuthorsProvider(HomeAuthorRanking.newAuthors)'),
       );
     },
   );
@@ -1592,18 +1592,18 @@ void main() {
       ).existsSync(),
       isFalse,
     );
-    expect(homeProviderSource, contains('HomeAuthorRanking.topRated'));
+    expect(homeProviderSource, contains('HomeAuthorRanking.newAuthors'));
     expect(homeProviderSource, contains('homepageRankedAuthorsProvider'));
     expect(homeProviderSource, contains('homepageTrendingWorksProvider'));
     expect(homeProviderSource, contains('viewCount'));
     expect(homeProviderSource, contains('ratingsCount'));
     expect(homeProviderSource, isNot(contains('FieldValue')));
     final l10n = englishL10n();
-    expect(homeScreenSource, contains('l10n.topRatedAuthors'));
+    expect(homeScreenSource, contains('l10n.newAuthors'));
     expect(homeScreenSource, contains('l10n.mostReadAuthors'));
     expect(homeScreenSource, contains('l10n.mostPublishedAuthors'));
     expect(homeScreenSource, contains('l10n.shelfTrending'));
-    expect(l10n['topRatedAuthors'], 'Top Rated Authors');
+    expect(l10n['newAuthors'], 'New Authors');
     expect(l10n['mostReadAuthors'], 'Most Read Authors');
     expect(l10n['mostPublishedAuthors'], 'Most Published Authors');
     expect(l10n['shelfTrending'], 'Trending Works');

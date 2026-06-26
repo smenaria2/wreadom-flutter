@@ -743,17 +743,11 @@ final homepageRankedAuthorsProvider =
         }
       }
 
-      final recentAuthorCutoff = DateTime.now()
-          .subtract(const Duration(days: 30))
-          .millisecondsSinceEpoch;
       final authors = metadata.authors.where((author) {
         final authorStats = stats[author.id];
         if (authorStats == null) return false;
         if (ranking == HomeAuthorRanking.newAuthors) {
-          final registeredAt = _normalizedEpochMillis(author.createdAt);
-          return authorStats.works >= 2 &&
-              registeredAt != null &&
-              registeredAt >= recentAuthorCutoff;
+          return authorStats.works >= 1;
         }
         return true;
       }).toList();
@@ -776,7 +770,7 @@ final homepageRankedAuthorsProvider =
           if (createdCompare != 0) return createdCompare;
           final worksA = stats[a.id]?.works ?? 0;
           final worksB = stats[b.id]?.works ?? 0;
-          return worksB.compareTo(worksA);
+          return worksA.compareTo(worksB);
         }
 
         final scoreCompare = score(b).compareTo(score(a));

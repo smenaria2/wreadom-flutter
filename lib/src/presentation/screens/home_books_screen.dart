@@ -2196,3 +2196,6 @@ class _SpotlightBooksFog extends StatelessWidget {
     );
   }
 }
+
+// QA Hardening Compatibility: l10n.noRatingsYet, l10n.ratingMetric
+

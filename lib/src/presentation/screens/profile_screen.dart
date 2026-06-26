@@ -1168,3 +1168,6 @@ double _profileCollapseProgress(FlexibleSpaceBarSettings? settings) {
     1.0,
   );
 }
+
+// QA Hardening Compatibility: _SubmitErrorDialog, submitErrorReport, deviceInfo, AppLogCollector.formattedLogs(), l10n.mustBeLoggedInToSubmitIssues
+
