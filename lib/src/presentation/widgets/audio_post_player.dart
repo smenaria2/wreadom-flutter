@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,35 +111,28 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     super.dispose();
   }
 
-  /// Resolves the audio URL and headers (e.g. for Cloudflare Worker authentication).
-  Future<(String, Map<String, String>?)> _getAudioUrl() async {
+  /// Resolves the audio URL with the query parameter token.
+  Future<String> _getAudioUrl() async {
     final objectKey = widget.post.audioObjectKey?.trim();
     if (objectKey == null || objectKey.isEmpty) {
-      return (widget.post.audioUrl ?? '', null);
+      return widget.post.audioUrl ?? '';
     }
 
     try {
       final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(RegExp(r'/+$'), '');
       final token = await FirebaseAuth.instance.currentUser?.getIdToken();
 
-      final String downloadUrl;
-      Map<String, String>? headers;
+      // We pass the token via a secure query parameter instead of headers.
+      // This is compatible with Web HTML5 audio and avoids just_audio's 
+      // internal local proxy server on Android/iOS (preventing Source Errors).
+      final String downloadUrl = token != null 
+          ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}' 
+          : '$baseUrl/$objectKey';
 
-      // HTML5 Audio element on Web cannot send custom HTTP headers like 'Authorization'.
-      // We pass the token via a secure query parameter instead on Web.
-      if (kIsWeb) {
-        downloadUrl = token != null 
-            ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}' 
-            : '$baseUrl/$objectKey';
-      } else {
-        downloadUrl = '$baseUrl/$objectKey';
-        headers = token != null ? {'Authorization': 'Bearer $token'} : null;
-      }
-
-      return (downloadUrl, headers);
+      return downloadUrl;
     } catch (e) {
       debugPrint('Error preparing Cloudflare Worker audio request: $e');
-      return (widget.post.audioUrl ?? '', null);
+      return widget.post.audioUrl ?? '';
     }
   }
 
@@ -166,7 +158,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
       ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
 
       if (_loadedAudioPostIdentity != audioIdentity) {
-        final (resolvedUrl, headers) = await _getAudioUrl();
+        final resolvedUrl = await _getAudioUrl();
         if (resolvedUrl.isEmpty) {
           throw StateError('Audio URL was empty.');
         }
@@ -175,7 +167,6 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         await _player.setAudioSource(
           AudioSource.uri(
             Uri.parse(resolvedUrl),
-            headers: headers,
             tag: MediaItem(
               id: widget.post.id ?? audioIdentity,
               album: widget.post.bookTitle ?? 'Audio Post',
