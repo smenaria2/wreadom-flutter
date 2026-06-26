@@ -1451,4 +1451,11 @@
     }
   },
   "shareReview": "Share review"
+
+,
+  "audioPosts": "Audio Posts",
+  "newAuthors": "New Authors",
+  "dragRecordToSeek": "Drag record to seek",
+  "completeVideoAdToUnlockChapter": "Watch the complete video ad to unlock the chapter. Ads help keep this app free for you.",
+  "tapToAnswerQuestion": "Tap to answer"
 }

@@ -2704,4 +2704,20 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get shareReview => 'समीक्षा साझा करें';
+
+  @override
+  String get audioPosts => 'ऑडियो पोस्ट';
+
+  @override
+  String get newAuthors => 'नए लेखक';
+
+  @override
+  String get dragRecordToSeek => 'सीक करने के लिए रिकॉर्ड घुमाएँ';
+
+  @override
+  String get completeVideoAdToUnlockChapter =>
+      'अध्याय अनलॉक करने के लिए पूरा वीडियो विज्ञापन देखें। विज्ञापन इस ऐप को आपके लिए मुफ़्त रखने में मदद करते हैं।';
+
+  @override
+  String get tapToAnswerQuestion => 'जवाब देने के लिए टैप करें';
 }

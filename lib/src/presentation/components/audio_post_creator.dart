@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -25,7 +26,8 @@ class AudioPostCreator extends StatefulWidget {
     this.onRecordingStateChanged,
   });
 
-  final Function(String? path, int durationMs, int sizeBytes, String mimeType) onAudioChanged;
+  final Function(String? path, int durationMs, int sizeBytes, String mimeType)
+  onAudioChanged;
   final ValueChanged<XFile?> onCoverChanged;
   final ValueChanged<Book?> onBookReferred;
   final ValueChanged<bool>? onRecordingStateChanged;
@@ -65,7 +67,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     _previewPlayer.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
-          _isPreviewPlaying = state.playing &&
+          _isPreviewPlaying =
+              state.playing &&
               state.processingState != ProcessingState.completed;
         });
       }
@@ -92,10 +95,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
         SnackBar(
           content: const Text('Microphone permission is needed to record.'),
           action: status.isPermanentlyDenied
-              ? SnackBarAction(
-                  label: l10n.settings,
-                  onPressed: openAppSettings,
-                )
+              ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
               : null,
         ),
       );
@@ -104,7 +104,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
     try {
       final tempDir = await getTemporaryDirectory();
-      final path = '${tempDir.path}/audio_post_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${tempDir.path}/audio_post_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _audioRecorder.start(
         const RecordConfig(
@@ -153,7 +154,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
     final file = File(path);
     final size = await file.length();
-    
+
     setState(() {
       _isRecording = false;
       _audioPath = path;
@@ -163,7 +164,12 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     });
 
     widget.onRecordingStateChanged?.call(false);
-    widget.onAudioChanged(_audioPath, _audioDurationMs, _audioSizeBytes, _audioMimeType);
+    widget.onAudioChanged(
+      _audioPath,
+      _audioDurationMs,
+      _audioSizeBytes,
+      _audioMimeType,
+    );
     AppHaptics.medium();
   }
 
@@ -209,8 +215,18 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
       int durationMs = 0;
       try {
-        final duration = await _previewPlayer.setUrl(path);
+        final duration = await _previewPlayer.setAudioSource(
+          AudioSource.file(
+            path,
+            tag: const MediaItem(
+              id: 'audio_post_upload_preview',
+              title: 'Audio upload preview',
+              album: 'Wreadom audio post',
+            ),
+          ),
+        );
         durationMs = duration?.inMilliseconds ?? 0;
+        await _previewPlayer.stop();
       } catch (e) {
         debugPrint('Could not read audio duration, fallback to 0: $e');
       }
@@ -234,7 +250,12 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
         _audioMimeType = mime;
       });
 
-      widget.onAudioChanged(_audioPath, _audioDurationMs, _audioSizeBytes, _audioMimeType);
+      widget.onAudioChanged(
+        _audioPath,
+        _audioDurationMs,
+        _audioSizeBytes,
+        _audioMimeType,
+      );
       AppHaptics.medium();
     } catch (e) {
       debugPrint('Error picking audio file: $e');
@@ -262,7 +283,16 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     if (_previewPlayer.playing) {
       await _previewPlayer.pause();
     } else {
-      await _previewPlayer.setUrl(_audioPath!);
+      await _previewPlayer.setAudioSource(
+        AudioSource.file(
+          _audioPath!,
+          tag: const MediaItem(
+            id: 'audio_post_creator_preview',
+            title: 'Audio post preview',
+            album: 'Wreadom audio post',
+          ),
+        ),
+      );
       await _previewPlayer.play();
     }
   }
@@ -341,7 +371,10 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                 const SizedBox(width: 12),
                 Text(
                   'Recording voice note... ${_formatDuration(_recordingDurationMs)}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
                 const Spacer(),
                 // Bouncing active dot
@@ -400,7 +433,11 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.audiotrack_rounded, color: theme.colorScheme.primary, size: 20),
+                child: Icon(
+                  Icons.audiotrack_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -409,7 +446,10 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                   children: [
                     const Text(
                       'Audio Clip Attached',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       'Duration: ${_formatDuration(_audioDurationMs)} • Size: ${_formatSize(_audioSizeBytes)}',
@@ -424,7 +464,9 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
               // Play preview button
               IconButton(
                 icon: Icon(
-                  _isPreviewPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  _isPreviewPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
                 ),
                 onPressed: _togglePreview,
                 color: theme.colorScheme.primary,
@@ -464,7 +506,10 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
               const SizedBox(width: 8),
               ActionChip(
                 avatar: const Icon(Icons.image_rounded, size: 14),
-                label: const Text('Custom Cover', style: TextStyle(fontSize: 11)),
+                label: const Text(
+                  'Custom Cover',
+                  style: TextStyle(fontSize: 11),
+                ),
                 onPressed: _pickCustomCover,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
@@ -484,18 +529,19 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                     borderRadius: BorderRadius.circular(8),
                     child: _referredBook != null
                         ? (coverPreviewUrl != null && coverPreviewUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: coverPreviewUrl,
-                                width: 40,
-                                height: 56,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                width: 40,
-                                height: 56,
-                                child: const Icon(Icons.book, size: 18),
-                              ))
+                              ? CachedNetworkImage(
+                                  imageUrl: coverPreviewUrl,
+                                  width: 40,
+                                  height: 56,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  width: 40,
+                                  height: 56,
+                                  child: const Icon(Icons.book, size: 18),
+                                ))
                         : Image.file(
                             File(_customCover!.path),
                             width: 40,
@@ -509,10 +555,15 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _referredBook != null ? _referredBook!.title : 'Custom Cover Art',
+                          _referredBook != null
+                              ? _referredBook!.title
+                              : 'Custom Cover Art',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
                         ),
                         Text(
                           _referredBook != null

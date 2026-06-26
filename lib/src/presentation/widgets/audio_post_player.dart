@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -35,6 +36,87 @@ final audioPostPlayerProvider = Provider<AudioPlayer>((ref) {
   ref.onDispose(player.dispose);
   return player;
 });
+
+String? audioPostIdentityFor(FeedPost post) {
+  final objectKey = post.audioObjectKey?.trim();
+  if (objectKey != null && objectKey.isNotEmpty) return objectKey;
+  final audioUrl = post.audioUrl?.trim();
+  if (audioUrl != null && audioUrl.isNotEmpty) return audioUrl;
+  return null;
+}
+
+Future<String> resolveAudioPostUrl(FeedPost post) async {
+  final objectKey = post.audioObjectKey?.trim();
+  if (objectKey == null || objectKey.isEmpty) {
+    return post.audioUrl ?? '';
+  }
+
+  try {
+    final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    return token != null
+        ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}'
+        : '$baseUrl/$objectKey';
+  } catch (e) {
+    debugPrint('Error preparing Cloudflare Worker audio request: $e');
+    return post.audioUrl ?? '';
+  }
+}
+
+MediaItem audioPostMediaItemFor(FeedPost post, String audioIdentity) {
+  final audioCoverUrl = post.audioCoverUrl;
+  final bookCover = post.bookCover;
+  return MediaItem(
+    id: post.id ?? audioIdentity,
+    album: post.bookTitle ?? 'Audio Post',
+    title: post.text.trim().isEmpty ? 'Audio Post' : post.text.trim(),
+    artUri: audioCoverUrl != null && audioCoverUrl.isNotEmpty
+        ? Uri.tryParse(audioCoverUrl)
+        : (bookCover != null && bookCover.isNotEmpty
+              ? Uri.tryParse(bookCover)
+              : null),
+    extras: {
+      if (post.id != null && post.id!.trim().isNotEmpty) 'postId': post.id,
+    },
+  );
+}
+
+Future<void> playAudioPost(WidgetRef ref, FeedPost post) async {
+  final audioIdentity = audioPostIdentityFor(post);
+  if (audioIdentity == null || audioIdentity.isEmpty) return;
+
+  final player = ref.read(audioPostPlayerProvider);
+  final activeIdentity = ref.read(activeAudioPostUrlProvider);
+  final isCurrent = activeIdentity == audioIdentity;
+
+  if (isCurrent && player.playing) {
+    await player.pause();
+    return;
+  }
+
+  ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
+
+  if (_loadedAudioPostIdentity != audioIdentity) {
+    final resolvedUrl = await resolveAudioPostUrl(post);
+    if (resolvedUrl.isEmpty) {
+      throw StateError('Audio URL was empty.');
+    }
+    await player.setAudioSource(
+      AudioSource.uri(
+        Uri.parse(resolvedUrl),
+        tag: audioPostMediaItemFor(post, audioIdentity),
+      ),
+    );
+    _loadedAudioPostIdentity = audioIdentity;
+  } else if (player.processingState == ProcessingState.completed) {
+    await player.seek(Duration.zero);
+  }
+
+  await player.play();
+}
 
 String? _loadedAudioPostIdentity;
 
@@ -96,44 +178,13 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     });
   }
 
-  String? get _audioIdentity {
-    final objectKey = widget.post.audioObjectKey?.trim();
-    if (objectKey != null && objectKey.isNotEmpty) return objectKey;
-    final audioUrl = widget.post.audioUrl?.trim();
-    if (audioUrl != null && audioUrl.isNotEmpty) return audioUrl;
-    return null;
-  }
+  String? get _audioIdentity => audioPostIdentityFor(widget.post);
 
   @override
   void dispose() {
     _playerStateSubscription.cancel();
     _rotationController.dispose();
     super.dispose();
-  }
-
-  /// Resolves the audio URL with the query parameter token.
-  Future<String> _getAudioUrl() async {
-    final objectKey = widget.post.audioObjectKey?.trim();
-    if (objectKey == null || objectKey.isEmpty) {
-      return widget.post.audioUrl ?? '';
-    }
-
-    try {
-      final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(RegExp(r'/+$'), '');
-      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-
-      // We pass the token via a secure query parameter instead of headers.
-      // This is compatible with Web HTML5 audio and avoids just_audio's 
-      // internal local proxy server on Android/iOS (preventing Source Errors).
-      final String downloadUrl = token != null 
-          ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}' 
-          : '$baseUrl/$objectKey';
-
-      return downloadUrl;
-    } catch (e) {
-      debugPrint('Error preparing Cloudflare Worker audio request: $e');
-      return widget.post.audioUrl ?? '';
-    }
   }
 
   Future<void> _togglePlay() async {
@@ -154,39 +205,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         _error = null;
       });
 
-      // Update active player in the feed to mute others.
-      ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
-
-      if (_loadedAudioPostIdentity != audioIdentity) {
-        final resolvedUrl = await _getAudioUrl();
-        if (resolvedUrl.isEmpty) {
-          throw StateError('Audio URL was empty.');
-        }
-        final audioCoverUrl = widget.post.audioCoverUrl;
-        final bookCover = widget.post.bookCover;
-        await _player.setAudioSource(
-          AudioSource.uri(
-            Uri.parse(resolvedUrl),
-            tag: MediaItem(
-              id: widget.post.id ?? audioIdentity,
-              album: widget.post.bookTitle ?? 'Audio Post',
-              title: widget.post.text.trim().isEmpty
-                  ? 'Audio Post'
-                  : widget.post.text.trim(),
-              artUri: audioCoverUrl != null && audioCoverUrl.isNotEmpty
-                  ? Uri.tryParse(audioCoverUrl)
-                  : (bookCover != null && bookCover.isNotEmpty
-                        ? Uri.tryParse(bookCover)
-                        : null),
-            ),
-          ),
-        );
-        _loadedAudioPostIdentity = audioIdentity;
-      } else if (_player.processingState == ProcessingState.completed) {
-        await _player.seek(Duration.zero);
-      }
-
-      await _player.play();
+      await playAudioPost(ref, widget.post);
     } catch (e) {
       setState(() {
         _error = 'Could not load audio';
@@ -321,6 +340,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final audioIdentity = _audioIdentity;
 
     if (audioIdentity == null || audioIdentity.isEmpty) {
@@ -486,117 +506,133 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                               _onPanUpdate(details, totalDuration),
                           onPanEnd: _onPanEnd,
                           onPanCancel: _onPanCancel,
-                          child: RotationTransition(
-                            turns: _rotationController,
-                            child: Container(
-                              width: 180,
-                              height: 180,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.black,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.35),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
+                          behavior: HitTestBehavior.translucent,
+                          child: SizedBox(
+                            width: 204,
+                            height: 204,
+                            child: Center(
+                              child: RotationTransition(
+                                turns: _rotationController,
+                                child: Container(
+                                  width: 180,
+                                  height: 180,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                    gradient: const RadialGradient(
+                                      colors: [
+                                        Color(0xFF333333),
+                                        Color(0xFF1C1C1C),
+                                        Color(0xFF070707),
+                                        Color(0xFF000000),
+                                      ],
+                                      stops: [0.0, 0.5, 0.85, 1.0],
+                                    ),
                                   ),
-                                ],
-                                gradient: const RadialGradient(
-                                  colors: [
-                                    Color(0xFF333333),
-                                    Color(0xFF1C1C1C),
-                                    Color(0xFF070707),
-                                    Color(0xFF000000),
-                                  ],
-                                  stops: [0.0, 0.5, 0.85, 1.0],
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Vinyl Grooves
-                                  for (double r in [
-                                    160.0,
-                                    140.0,
-                                    120.0,
-                                    100.0,
-                                    80.0,
-                                  ])
-                                    Container(
-                                      width: r,
-                                      height: r,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.04,
+                                  alignment: Alignment.center,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // Vinyl Grooves
+                                      for (double r in [
+                                        160.0,
+                                        140.0,
+                                        120.0,
+                                        100.0,
+                                        80.0,
+                                      ])
+                                        Container(
+                                          width: r,
+                                          height: r,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.04,
+                                              ),
+                                              width: 0.8,
+                                            ),
                                           ),
-                                          width: 0.8,
+                                        ),
+
+                                      // Cover image clipped circular in the center
+                                      ClipOval(
+                                        child:
+                                            coverUrl != null &&
+                                                coverUrl.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: coverUrl,
+                                                width: 78,
+                                                height: 78,
+                                                fit: BoxFit.cover,
+                                                placeholder: (_, _) =>
+                                                    Container(
+                                                      color:
+                                                          Colors.grey.shade900,
+                                                      child: const Icon(
+                                                        Icons
+                                                            .music_note_rounded,
+                                                        color: Colors.white30,
+                                                        size: 32,
+                                                      ),
+                                                    ),
+                                                errorWidget: (_, _, _) =>
+                                                    Container(
+                                                      color:
+                                                          Colors.grey.shade900,
+                                                      child: const Icon(
+                                                        Icons
+                                                            .music_note_rounded,
+                                                        color: Colors.white30,
+                                                        size: 32,
+                                                      ),
+                                                    ),
+                                              )
+                                            : Container(
+                                                color: theme
+                                                    .colorScheme
+                                                    .primaryContainer,
+                                                width: 78,
+                                                height: 78,
+                                                child: Icon(
+                                                  Icons.music_note_rounded,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                      ),
+
+                                      // Center spindle hole
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: theme.colorScheme.surface,
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black45,
+                                              blurRadius: 1.5,
+                                              spreadRadius: 0.5,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-
-                                  // Cover image clipped circular in the center
-                                  ClipOval(
-                                    child:
-                                        coverUrl != null && coverUrl.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: coverUrl,
-                                            width: 78,
-                                            height: 78,
-                                            fit: BoxFit.cover,
-                                            placeholder: (_, _) => Container(
-                                              color: Colors.grey.shade900,
-                                              child: const Icon(
-                                                Icons.music_note_rounded,
-                                                color: Colors.white30,
-                                                size: 32,
-                                              ),
-                                            ),
-                                            errorWidget: (_, _, _) => Container(
-                                              color: Colors.grey.shade900,
-                                              child: const Icon(
-                                                Icons.music_note_rounded,
-                                                color: Colors.white30,
-                                                size: 32,
-                                              ),
-                                            ),
-                                          )
-                                        : Container(
-                                            color: theme
-                                                .colorScheme
-                                                .primaryContainer,
-                                            width: 78,
-                                            height: 78,
-                                            child: Icon(
-                                              Icons.music_note_rounded,
-                                              color: theme
-                                                  .colorScheme
-                                                  .onPrimaryContainer,
-                                              size: 32,
-                                            ),
-                                          ),
+                                    ],
                                   ),
-
-                                  // Center spindle hole
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: theme.colorScheme.surface,
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black45,
-                                          blurRadius: 1.5,
-                                          spreadRadius: 0.5,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -604,7 +640,33 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.rotate_left_rounded,
+                        size: 15,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        l10n.dragRecordToSeek,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.rotate_right_rounded,
+                        size: 15,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
                   // 3. TIME INDICATORS BELOW THE TURNTABLE
                   Padding(

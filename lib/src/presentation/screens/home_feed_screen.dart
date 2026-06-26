@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -195,6 +197,17 @@ class _FeedFilterPage extends ConsumerStatefulWidget {
 
 class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
   String _selectedType = 'all';
+  String? _randomQuestion;
+
+  String? _questionPrompt(List<String> questions) {
+    if (questions.isEmpty) return null;
+    if (_randomQuestion != null && questions.contains(_randomQuestion)) {
+      return _randomQuestion;
+    }
+    final pool = List<String>.from(questions)..shuffle(math.Random());
+    _randomQuestion = pool.first;
+    return _randomQuestion;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +219,13 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     );
     final lockScroll = ref.watch(lockScrollProvider);
     final l10n = AppLocalizations.of(context)!;
+    final activeQuestions = widget.filter == FeedFilter.following
+        ? (ref.watch(activeQuestionsProvider).value ?? const <String>[])
+        : const <String>[];
+    final questionPrompt =
+        widget.filter == FeedFilter.following && _selectedType == 'all'
+        ? _questionPrompt(activeQuestions)
+        : null;
 
     Widget refreshable(Widget child) {
       return RefreshIndicator(onRefresh: feedController.refresh, child: child);
@@ -341,63 +361,72 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
 
     Widget body;
     if (feedState.items.isEmpty) {
-      body = centeredScrollable(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.feed_outlined,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+      final emptyState = Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.feed_outlined,
+            size: 64,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            widget.filter == FeedFilter.following
+                ? l10n.noFollowingPosts
+                : l10n.noPosts,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.filter == FeedFilter.following
-                  ? l10n.noFollowingPosts
-                  : l10n.noPosts,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.beFirstToPost,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
             ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.beFirstToPost,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-              ),
-            ),
-            const SizedBox(height: 24),
-            GlassSurface(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => showCreatePostSheet(context),
-              semanticButton: true,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.edit_rounded, color: colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.createAPost,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
+          ),
+          const SizedBox(height: 24),
+          GlassSurface(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => showCreatePostSheet(context),
+            semanticButton: true,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit_rounded, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.createAPost,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
+      if (questionPrompt != null) {
+        body = ListView(
+          physics: lockScroll
+              ? const NeverScrollableScrollPhysics()
+              : const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 132),
+          children: [
+            _QuestionPromptCard(question: questionPrompt),
+            SizedBox(height: 360, child: Center(child: emptyState)),
+          ],
+        );
+      } else {
+        body = centeredScrollable(emptyState);
+      }
     } else if (items.isEmpty) {
       body = centeredScrollable(
         Column(
@@ -437,14 +466,19 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         ),
       );
     } else {
+      final leadingPromptCount = questionPrompt == null ? 0 : 1;
       body = ListView.builder(
         physics: lockScroll
             ? const NeverScrollableScrollPhysics()
             : const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 132),
-        itemCount: items.length + 1,
+        itemCount: items.length + 1 + leadingPromptCount,
         itemBuilder: (context, index) {
-          if (index == items.length) {
+          if (questionPrompt != null && index == 0) {
+            return _QuestionPromptCard(question: questionPrompt);
+          }
+          final itemIndex = index - leadingPromptCount;
+          if (itemIndex == items.length) {
             return _LoadMoreFeedButton(
               isLoading: feedState.isLoadingMore,
               hasMore: feedState.hasMore,
@@ -452,8 +486,8 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             );
           }
           return FeedPostCard(
-            key: ValueKey(items[index].id ?? ''),
-            post: items[index],
+            key: ValueKey(items[itemIndex].id ?? ''),
+            post: items[itemIndex],
             onReplyToQuestion: (post) {
               showCreatePostSheet(
                 context,
@@ -477,6 +511,71 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         filterChips,
         Expanded(child: refreshable(body)),
       ],
+    );
+  }
+}
+
+class _QuestionPromptCard extends StatelessWidget {
+  const _QuestionPromptCard({required this.question});
+
+  final String question;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      child: GlassSurface(
+        strong: true,
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => showCreatePostSheet(
+          context,
+          initialQuestion: question,
+          lockQuestion: false,
+        ),
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                foregroundColor: theme.colorScheme.onPrimaryContainer,
+                child: const Icon(Icons.help_outline_rounded, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      question,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      AppLocalizations.of(context)!.tapToAnswerQuestion,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

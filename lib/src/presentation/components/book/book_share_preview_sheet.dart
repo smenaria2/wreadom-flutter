@@ -14,10 +14,7 @@ import '../../../utils/app_link_helper.dart';
 class BookSharePreviewSheet extends ConsumerStatefulWidget {
   final Book book;
 
-  const BookSharePreviewSheet({
-    super.key,
-    required this.book,
-  });
+  const BookSharePreviewSheet({super.key, required this.book});
 
   @override
   ConsumerState<BookSharePreviewSheet> createState() =>
@@ -64,9 +61,9 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
       }
     }
   }
@@ -76,9 +73,9 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.signInToShare)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.signInToShare)));
       }
       return;
     }
@@ -116,22 +113,19 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       await AppHaptics.light();
-      ref.invalidate(feedPostsProvider);
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedUserFeedPostsProvider(user.id));
+      refreshFeedAfterPostPublish(ref, userId: user.id);
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.sharedToFeed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share to feed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to share to feed: $e')));
       }
     } finally {
       if (mounted) {
@@ -181,7 +175,8 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty) ...[
+                  if (widget.book.coverUrl != null &&
+                      widget.book.coverUrl!.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
@@ -280,7 +275,9 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
                                 ),
                               )
                             : const Icon(Icons.forum_rounded),
-                        label: Text(_isSharingToFeed ? 'Sharing...' : l10n.shareToFeed),
+                        label: Text(
+                          _isSharingToFeed ? 'Sharing...' : l10n.shareToFeed,
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           foregroundColor: Colors.white,

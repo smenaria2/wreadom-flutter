@@ -51,6 +51,45 @@ void main() {
   });
 
   test(
+    'feed controller in-place refresh keeps visible posts on empty reload',
+    () async {
+      final repo = _FakeFeedRepository(
+        publicPages: [
+          PagedResult(
+            items: [_post('p1', 3), _post('p2', 2)],
+            hasMore: true,
+            nextCursor: 'page-2',
+          ),
+          const PagedResult(items: [], hasMore: false),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [feedRepositoryProvider.overrideWith((ref) => repo)],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        pagedFeedPostsProvider(FeedFilter.public),
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+
+      await _waitFor(() {
+        return container
+            .read(pagedFeedPostsProvider(FeedFilter.public))
+            .items
+            .isNotEmpty;
+      });
+
+      await container
+          .read(pagedFeedPostsProvider(FeedFilter.public).notifier)
+          .refreshInPlace();
+      final state = container.read(pagedFeedPostsProvider(FeedFilter.public));
+
+      expect(state.items.map((post) => post.id), ['p1', 'p2']);
+      expect(state.hasMore, isTrue);
+    },
+  );
+  test(
     'following feed controller uses followed ids and timestamp cursor',
     () async {
       final repo = _FakeFeedRepository(
@@ -604,16 +643,19 @@ Conversation _conversation(
 
 class _FakeFeedRepository implements FeedRepository {
   _FakeFeedRepository({
+    this.publicPages = const [],
     this.followingPages = const [],
     this.userPages = const {},
     this.throwOnFollowing = false,
   });
 
+  final List<PagedResult<FeedPost>> publicPages;
   final List<PagedResult<FeedPost>> followingPages;
   final Map<String, List<PagedResult<FeedPost>>> userPages;
   final bool throwOnFollowing;
   final followingRequests = <({List<String> ids, Object? cursor})>[];
   final userFeedRequests = <String>[];
+  int _publicPageIndex = 0;
   int _followingPageIndex = 0;
   final _userPageIndexes = <String, int>{};
 
@@ -622,6 +664,11 @@ class _FakeFeedRepository implements FeedRepository {
     int limit = 10,
     Object? cursor,
   }) async {
+    if (publicPages.isNotEmpty) {
+      return publicPages[_publicPageIndex++ >= publicPages.length
+          ? publicPages.length - 1
+          : _publicPageIndex - 1];
+    }
     if (cursor == null) {
       return PagedResult(
         items: [_post('p1', 3), _post('p2', 2)],
@@ -686,6 +733,11 @@ class _FakeFeedRepository implements FeedRepository {
     int limit = 10,
     dynamic lastDoc,
   }) async {
+    return const [];
+  }
+
+  @override
+  Future<List<FeedPost>> getAudioFeedPosts({int limit = 12}) async {
     return const [];
   }
 

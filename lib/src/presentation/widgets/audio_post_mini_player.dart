@@ -7,6 +7,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
+import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
+import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
 
 class AudioPostMiniPlayer extends ConsumerWidget {
@@ -40,7 +42,9 @@ class AudioPostMiniPlayer extends ConsumerWidget {
         return Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 86.0), // Float directly above the bottom navigation bar
+            padding: const EdgeInsets.only(
+              bottom: 86.0,
+            ), // Float directly above the bottom navigation bar
             child: GlassSurface(
               strong: true,
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -49,29 +53,47 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
                         // Cover Art / Book Image
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: mediaItem.artUri != null
-                                ? CachedNetworkImage(
-                                    imageUrl: mediaItem.artUri.toString(),
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const ColoredBox(color: Colors.grey),
-                                    errorWidget: (context, url, error) => const Icon(Icons.music_note_rounded),
-                                  )
-                                : Container(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                    child: Icon(
-                                      Icons.music_note_rounded,
-                                      color: theme.colorScheme.primary,
+                        GestureDetector(
+                          onTap: () {
+                            final postId =
+                                mediaItem.extras?['postId'] as String? ??
+                                mediaItem.id;
+                            if (postId.trim().isEmpty) return;
+                            Navigator.of(context).pushNamed(
+                              AppRoutes.postDetail,
+                              arguments: PostDetailArguments(postId: postId),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: mediaItem.artUri != null
+                                  ? CachedNetworkImage(
+                                      imageUrl: mediaItem.artUri.toString(),
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const ColoredBox(color: Colors.grey),
+                                      errorWidget: (context, url, error) =>
+                                          const Icon(Icons.music_note_rounded),
+                                    )
+                                  : Container(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.1),
+                                      child: Icon(
+                                        Icons.music_note_rounded,
+                                        color: theme.colorScheme.primary,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -108,11 +130,14 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                         StreamBuilder<PlayerState>(
                           stream: player.playerStateStream,
                           builder: (context, stateSnapshot) {
-                            final playerState = stateSnapshot.data ?? player.playerState;
+                            final playerState =
+                                stateSnapshot.data ?? player.playerState;
                             final playing = playerState.playing;
                             return IconButton(
                               icon: Icon(
-                                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                playing
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
                                 size: 28,
                               ),
                               onPressed: () async {
@@ -132,7 +157,9 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                           onPressed: () async {
                             unawaited(AppHaptics.light());
                             await player.stop();
-                            ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+                            ref
+                                .read(activeAudioPostUrlProvider.notifier)
+                                .setActiveUrl(null);
                           },
                         ),
                       ],
@@ -145,13 +172,16 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                       final position = posSnapshot.data ?? player.position;
                       final duration = player.duration ?? Duration.zero;
                       final double progress = duration.inMilliseconds > 0
-                          ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+                          ? (position.inMilliseconds / duration.inMilliseconds)
+                                .clamp(0.0, 1.0)
                           : 0.0;
                       return SizedBox(
                         height: 3,
                         child: LinearProgressIndicator(
                           value: progress,
-                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.12,
+                          ),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             theme.colorScheme.primary,
                           ),

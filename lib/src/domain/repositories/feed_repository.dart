@@ -24,6 +24,7 @@ abstract class FeedRepository {
     int limit = 10,
     dynamic lastDoc,
   });
+  Future<List<FeedPost>> getAudioFeedPosts({int limit = 12});
   Future<PagedResult<FeedPost>> getUserFeedPostsPage(
     String userId, {
     int limit = 10,

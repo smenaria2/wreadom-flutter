@@ -4801,6 +4801,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share review'**
   String get shareReview;
+
+  /// No description provided for @audioPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Posts'**
+  String get audioPosts;
+
+  /// No description provided for @newAuthors.
+  ///
+  /// In en, this message translates to:
+  /// **'New Authors'**
+  String get newAuthors;
+
+  /// No description provided for @dragRecordToSeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag record to seek'**
+  String get dragRecordToSeek;
+
+  /// No description provided for @completeVideoAdToUnlockChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch the complete video ad to unlock the chapter. Ads help keep this app free for you.'**
+  String get completeVideoAdToUnlockChapter;
+
+  /// No description provided for @tapToAnswerQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to answer'**
+  String get tapToAnswerQuestion;
 }
 
 class _AppLocalizationsDelegate

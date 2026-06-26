@@ -106,10 +106,7 @@ class _CommentSharePreviewSheetState
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       await AppHaptics.light();
-      ref.invalidate(feedPostsProvider);
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedUserFeedPostsProvider(user.id));
+      refreshFeedAfterPostPublish(ref, userId: user.id);
 
       if (mounted) {
         Navigator.pop(context);

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../domain/models/home_banner.dart';
@@ -10,6 +11,7 @@ import '../../utils/app_haptics.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/feed_post.dart';
 import 'book_detail_screen.dart';
 import 'category_books_screen.dart';
 import 'daily_topic_screen.dart';
@@ -22,6 +24,7 @@ import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/audio_post_player.dart';
 import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
 
@@ -232,6 +235,8 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
+
+              const _AudioPostsSection(),
 
               const HomeSeriesSection(),
 
@@ -1056,11 +1061,11 @@ class _AuthorsSection extends ConsumerStatefulWidget {
 }
 
 class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
-  HomeAuthorRanking _ranking = HomeAuthorRanking.topRated;
+  HomeAuthorRanking _ranking = HomeAuthorRanking.newAuthors;
 
   String _rankingLabel(HomeAuthorRanking ranking, AppLocalizations l10n) {
     return switch (ranking) {
-      HomeAuthorRanking.topRated => l10n.topRatedAuthors,
+      HomeAuthorRanking.newAuthors => l10n.newAuthors,
       HomeAuthorRanking.mostRead => l10n.mostReadAuthors,
       HomeAuthorRanking.mostPublished => l10n.mostPublishedAuthors,
     };
@@ -1075,10 +1080,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
   String _metricLabel(RankedHomeAuthor ranked, AppLocalizations l10n) {
     final metrics = ranked.metrics;
     return switch (_ranking) {
-      HomeAuthorRanking.topRated =>
-        metrics.ratingWeight == 0
-            ? l10n.noRatingsYet
-            : l10n.ratingMetric(metrics.averageRating.toStringAsFixed(1)),
+      HomeAuthorRanking.newAuthors => l10n.worksMetric(metrics.works),
       HomeAuthorRanking.mostRead => l10n.readsMetric(
         _compactCount(metrics.reads),
       ),
@@ -1245,6 +1247,218 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
               ],
             )
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+class _AudioPostsSection extends ConsumerWidget {
+  const _AudioPostsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final postsAsync = ref.watch(homepageAudioPostsProvider);
+    final posts = postsAsync.value ?? const <FeedPost>[];
+    if (!postsAsync.hasValue || posts.isEmpty) return const SizedBox.shrink();
+
+    return AnimatedShelfContainer(
+      visible: posts.isNotEmpty,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.audioPosts,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 176,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: posts.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemBuilder: (context, index) =>
+                  _AudioPostRecordCard(post: posts[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AudioPostRecordCard extends ConsumerStatefulWidget {
+  const _AudioPostRecordCard({required this.post});
+
+  final FeedPost post;
+
+  @override
+  ConsumerState<_AudioPostRecordCard> createState() =>
+      _AudioPostRecordCardState();
+}
+
+class _AudioPostRecordCardState extends ConsumerState<_AudioPostRecordCard> {
+  bool _loading = false;
+
+  Future<void> _togglePlay() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await playAudioPost(ref, widget.post);
+      await AppHaptics.light();
+    } catch (error) {
+      debugPrint('Error playing home audio post: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not load audio')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final identity = audioPostIdentityFor(widget.post);
+    final isCurrent = ref.watch(activeAudioPostUrlProvider) == identity;
+    final coverUrl = widget.post.audioCoverUrl ?? widget.post.bookCover;
+    final title = widget.post.text.trim().isEmpty
+        ? 'Audio Post'
+        : widget.post.text.trim();
+    final subtitle =
+        widget.post.bookTitle ??
+        widget.post.displayName ??
+        widget.post.penName ??
+        widget.post.username;
+
+    return SizedBox(
+      width: 136,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: _togglePlay,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 126,
+                  height: 126,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(
+                      colors: [
+                        Color(0xFF424242),
+                        Color(0xFF161616),
+                        Color(0xFF050505),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.24),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      for (final size in const [108.0, 88.0, 68.0])
+                        Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                          ),
+                        ),
+                      ClipOval(
+                        child: SizedBox(
+                          width: 54,
+                          height: 54,
+                          child: coverUrl != null && coverUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: coverUrl,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => const Icon(
+                                    Icons.music_note_rounded,
+                                    color: Colors.white70,
+                                  ),
+                                )
+                              : ColoredBox(
+                                  color: theme.colorScheme.primaryContainer,
+                                  child: Icon(
+                                    Icons.music_note_rounded,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: StreamBuilder<PlayerState>(
+                    stream: ref.read(audioPostPlayerProvider).playerStateStream,
+                    builder: (context, snapshot) {
+                      final player = ref.read(audioPostPlayerProvider);
+                      final state = snapshot.data ?? player.playerState;
+                      final playing = isCurrent && state.playing;
+                      return CircleAvatar(
+                        radius: 18,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        child: _loading
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                playing
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                                size: 22,
+                              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1646,7 +1860,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authorsAsync = ref.watch(
-      homepageRankedAuthorsProvider(HomeAuthorRanking.topRated),
+      homepageRankedAuthorsProvider(HomeAuthorRanking.newAuthors),
     );
 
     return authorsAsync.when(

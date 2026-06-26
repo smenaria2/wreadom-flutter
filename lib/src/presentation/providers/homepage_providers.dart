@@ -6,12 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/book.dart';
+import '../../domain/models/feed_post.dart';
+import '../../domain/models/leaf_attachment.dart';
 import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 import 'book_providers.dart';
+import 'feed_providers.dart';
 import 'theme_provider.dart';
 
 import 'dart:math' as math;
@@ -62,6 +65,7 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ref.invalidate(homepageIABooksProvider);
   ref.invalidate(homepageAuthorsProvider);
   ref.invalidate(homepageTrendingWorksProvider);
+  ref.invalidate(homepageAudioPostsProvider);
   ref.invalidate(homepageDownloadedBooksProvider);
   ref.invalidate(readingHistoryBooksProvider);
   ref.invalidate(homepageOriginalsProvider);
@@ -551,7 +555,9 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (cached != null && _hasHomepageMetadataContent(cached) && !_isCacheStale(prefs)) {
+  if (cached != null &&
+      _hasHomepageMetadataContent(cached) &&
+      !_isCacheStale(prefs)) {
     if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
     return cached;
   }
@@ -654,7 +660,7 @@ final homepageAuthorsProvider = FutureProvider((ref) async {
   return metadata.authors;
 });
 
-enum HomeAuthorRanking { topRated, mostRead, mostPublished }
+enum HomeAuthorRanking { newAuthors, mostRead, mostPublished }
 
 final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -738,46 +744,36 @@ final homepageRankedAuthorsProvider =
       }
 
       final authors = metadata.authors.where((author) {
-        return stats.containsKey(author.id);
+        final authorStats = stats[author.id];
+        if (authorStats == null) return false;
+        if (ranking == HomeAuthorRanking.newAuthors) {
+          return authorStats.works >= 2;
+        }
+        return true;
       }).toList();
 
       double score(UserModel author) {
         final authorStats = stats[author.id] ?? _AuthorStats();
         return switch (ranking) {
-          HomeAuthorRanking.topRated => authorStats.weightedRatingScore,
+          HomeAuthorRanking.newAuthors => (author.createdAt ?? 0).toDouble(),
           HomeAuthorRanking.mostRead => authorStats.reads.toDouble(),
           HomeAuthorRanking.mostPublished => authorStats.works.toDouble(),
         };
       }
 
-      final now = DateTime.now().millisecondsSinceEpoch;
-      const newThreshold = 90 * 24 * 60 * 60 * 1000;
-
-      bool isNew(UserModel user) {
-        final created = user.createdAt ?? 0;
-        return (now - created) < newThreshold;
-      }
-
       authors.sort((a, b) {
-        final scoreA = score(a);
-        final scoreB = score(b);
-
-        final hasScoreA = scoreA > 0;
-        final hasScoreB = scoreB > 0;
-
-        if (hasScoreA && hasScoreB) {
-          final isNewA = isNew(a);
-          final isNewB = isNew(b);
-          if (isNewA != isNewB) {
-            return isNewA ? -1 : 1;
-          }
-        }
-
-        final scoreCompare = scoreB.compareTo(scoreA);
-        if (scoreCompare != 0) return scoreCompare;
-
         final createdA = a.createdAt ?? 0;
         final createdB = b.createdAt ?? 0;
+        if (ranking == HomeAuthorRanking.newAuthors) {
+          final createdCompare = createdB.compareTo(createdA);
+          if (createdCompare != 0) return createdCompare;
+          final worksA = stats[a.id]?.works ?? 0;
+          final worksB = stats[b.id]?.works ?? 0;
+          return worksB.compareTo(worksA);
+        }
+
+        final scoreCompare = score(b).compareTo(score(a));
+        if (scoreCompare != 0) return scoreCompare;
         return createdB.compareTo(createdA);
       });
 
@@ -820,6 +816,10 @@ final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
     ..sort((a, b) => score(b).compareTo(score(a)));
   return sorted.take(24).toList();
 });
+
+bool _hasCertificateLeaf(Book book) {
+  return book.leaves?.any((leaf) => leaf.type == LeafType.certificate) == true;
+}
 
 bool _isPublishedOriginal(Book book) {
   if (book.isOriginal != true) return false;
@@ -883,15 +883,23 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
 // Category Providers powered by the Homepage combined list
 final homepageOriginalsProvider = FutureProvider<List<Book>>((ref) async {
   final books = await ref.watch(homepageBooksProvider.future);
-  final originals = books.where(_isPublishedOriginal).toList()
-    ..sort((a, b) {
-      final aTime = a.updatedAt ?? a.createdAt ?? 0;
-      final bTime = b.updatedAt ?? b.createdAt ?? 0;
-      return bTime.compareTo(aTime);
-    });
+  final originals =
+      books
+          .where(
+            (book) => _isPublishedOriginal(book) && !_hasCertificateLeaf(book),
+          )
+          .toList()
+        ..sort((a, b) {
+          final aTime = a.updatedAt ?? a.createdAt ?? 0;
+          final bTime = b.updatedAt ?? b.createdAt ?? 0;
+          return bTime.compareTo(aTime);
+        });
   return originals.take(24).toList();
 });
 
+final homepageAudioPostsProvider = FutureProvider<List<FeedPost>>((ref) async {
+  return ref.watch(feedRepositoryProvider).getAudioFeedPosts(limit: 12);
+});
 final homepagePopularProvider = FutureProvider<List<Book>>((ref) async {
   final metadata = await ref.watch(homepageMetadataProvider.future);
   final books = await ref.watch(homepageBooksProvider.future);

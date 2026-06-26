@@ -760,11 +760,7 @@ class _BookDetailBody extends ConsumerWidget {
                       ),
                     );
                 await AppHaptics.light();
-                ref.invalidate(feedPostsProvider);
-                ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
-                ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
-                ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-                ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+                refreshFeedAfterPostPublish(ref, userId: sender.id);
                 if (!sheetContext.mounted) return;
                 Navigator.of(sheetContext).pop();
                 if (!rootContext.mounted) return;

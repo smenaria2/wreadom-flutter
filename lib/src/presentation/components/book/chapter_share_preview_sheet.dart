@@ -27,7 +27,8 @@ class ChapterSharePreviewSheet extends ConsumerStatefulWidget {
       _ChapterSharePreviewSheetState();
 }
 
-class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSheet> {
+class _ChapterSharePreviewSheetState
+    extends ConsumerState<ChapterSharePreviewSheet> {
   late final TextEditingController _messageController;
   bool _isSharingToFeed = false;
 
@@ -68,9 +69,9 @@ class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSh
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
       }
     }
   }
@@ -80,9 +81,9 @@ class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSh
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.signInToShare)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.signInToShare)));
       }
       return;
     }
@@ -121,22 +122,19 @@ class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSh
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       await AppHaptics.light();
-      ref.invalidate(feedPostsProvider);
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedUserFeedPostsProvider(user.id));
+      refreshFeedAfterPostPublish(ref, userId: user.id);
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.sharedToFeed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share to feed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to share to feed: $e')));
       }
     } finally {
       if (mounted) {
@@ -186,7 +184,8 @@ class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSh
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty) ...[
+                  if (widget.book.coverUrl != null &&
+                      widget.book.coverUrl!.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
@@ -295,7 +294,9 @@ class _ChapterSharePreviewSheetState extends ConsumerState<ChapterSharePreviewSh
                                 ),
                               )
                             : const Icon(Icons.forum_rounded),
-                        label: Text(_isSharingToFeed ? 'Sharing...' : l10n.shareToFeed),
+                        label: Text(
+                          _isSharingToFeed ? 'Sharing...' : l10n.shareToFeed,
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           foregroundColor: Colors.white,

@@ -2697,4 +2697,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareReview => 'Share review';
+
+  @override
+  String get audioPosts => 'Audio Posts';
+
+  @override
+  String get newAuthors => 'New Authors';
+
+  @override
+  String get dragRecordToSeek => 'Drag record to seek';
+
+  @override
+  String get completeVideoAdToUnlockChapter =>
+      'Watch the complete video ad to unlock the chapter. Ads help keep this app free for you.';
+
+  @override
+  String get tapToAnswerQuestion => 'Tap to answer';
 }

@@ -11,7 +11,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/data/services/silent_audio_source_helper.dart';
 import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dart';
-import 'dart:convert';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -267,6 +266,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isTtsPreparing = false;
   bool _isTtsPaused = false;
   bool _isSelectionTtsPlaying = false;
+  bool _isSyncingTtsBackgroundIndex = false;
   late final FlutterTts _tts;
   final AudioRecorder _audioRecorder = AudioRecorder();
   late final AudioPlayer _ttsAudioPlayer;
@@ -1519,13 +1519,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     _tts.setCompletionHandler(() {
       if (!mounted) return;
-      if (_ttsAudioPlayer.playing) {
-        if (_ttsAudioPlayer.hasNext) {
-          unawaited(_ttsAudioPlayer.seekToNext());
-        } else {
-          unawaited(_stopTts());
-        }
-      }
+      unawaited(_advanceTtsAfterCompletion());
     });
     _tts.setCancelHandler(() {
       if (!mounted) return;
@@ -1547,24 +1541,83 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  Future<void> _resumeTtsSpeech() async {
-    if (_ttsChunkList.isEmpty) return;
-    final index = _ttsAudioPlayer.currentIndex ?? 0;
-    if (index < 0 || index >= _ttsChunkList.length) return;
+  Future<void> _advanceTtsAfterCompletion() async {
+    if (_ttsChunkList.isEmpty) {
+      await _stopTts();
+      return;
+    }
+    final nextIndex = _ttsChunkIndex + 1;
+    if (nextIndex >= _ttsChunkList.length) {
+      await _stopTts();
+      return;
+    }
+    await _syncOptionalTtsBackgroundIndex(nextIndex);
+    await _speakTtsChunk(nextIndex);
+  }
 
-    setState(() {
-      _isTtsPlaying = true;
-      _isTtsPaused = false;
-      _isTtsPreparing = false;
-      _ttsChunkIndex = index;
-      _activeTtsBlockIndex = index;
-    });
+  Future<void> _syncOptionalTtsBackgroundIndex(int index) async {
+    _isSyncingTtsBackgroundIndex = true;
+    try {
+      await _ttsAudioPlayer.seek(Duration.zero, index: index);
+    } catch (error) {
+      debugPrint('TTS background seek unavailable: $error');
+    } finally {
+      _isSyncingTtsBackgroundIndex = false;
+    }
+  }
 
+  Future<void> _startOptionalTtsBackground(
+    List<AudioSource> sources, {
+    required int initialIndex,
+  }) async {
+    if (sources.isEmpty) return;
+    try {
+      await _ttsAudioPlayer.setAudioSources(
+        sources,
+        initialIndex: initialIndex,
+      );
+      await _ttsAudioPlayer.setLoopMode(LoopMode.one);
+      await _ttsAudioPlayer.play();
+    } catch (error) {
+      debugPrint('TTS background audio unavailable: $error');
+      try {
+        await _ttsAudioPlayer.stop();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _speakTtsChunk(int index) async {
+    if (_ttsChunkList.isEmpty || index < 0 || index >= _ttsChunkList.length) {
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _isTtsPreparing = true;
+        _isTtsPlaying = false;
+        _isTtsPaused = false;
+        _ttsChunkIndex = index;
+        if (!_isSelectionTtsPlaying) {
+          _activeTtsBlockIndex = index;
+        }
+      });
+    }
     await _tts.stop();
     await _tts.setSpeechRate(0.45);
     await _tts.setPitch(1.0);
     await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
     await _tts.speak(_ttsChunkList[index]);
+  }
+
+  Future<void> _resumeTtsSpeech() async {
+    if (_ttsChunkList.isEmpty) return;
+    final playerIndex = _ttsAudioPlayer.currentIndex;
+    final index =
+        playerIndex != null &&
+            playerIndex >= 0 &&
+            playerIndex < _ttsChunkList.length
+        ? playerIndex
+        : _ttsChunkIndex.clamp(0, _ttsChunkList.length - 1);
+    await _speakTtsChunk(index);
   }
 
   Future<void> _pauseTtsSpeech() async {
@@ -1580,15 +1633,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (index < 0 || index >= _ttsChunkList.length) return;
     setState(() {
       _ttsChunkIndex = index;
-      _activeTtsBlockIndex = index;
+      if (!_isSelectionTtsPlaying) {
+        _activeTtsBlockIndex = index;
+      }
     });
 
-    if (_ttsAudioPlayer.playing) {
-      await _tts.stop();
-      await _tts.setSpeechRate(0.45);
-      await _tts.setPitch(1.0);
-      await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
-      await _tts.speak(_ttsChunkList[index]);
+    if (_isSyncingTtsBackgroundIndex) return;
+
+    if (_ttsAudioPlayer.playing || _isTtsPlaying || _isTtsPreparing) {
+      await _speakTtsChunk(index);
     }
   }
 
@@ -1598,7 +1651,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
     if (_isTtsPaused) {
-      await _ttsAudioPlayer.play();
+      await _resumeTtsSpeech();
+      try {
+        await _ttsAudioPlayer.play();
+      } catch (error) {
+        debugPrint('TTS background resume unavailable: $error');
+      }
       return;
     }
 
@@ -1658,9 +1716,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
     }
 
-    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: startIndex);
-    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
-    await _ttsAudioPlayer.play();
+    await _startOptionalTtsBackground(sources, initialIndex: startIndex);
+    await _speakTtsChunk(startIndex);
   }
 
   Future<void> _startTtsFromBlock(Chapter chapter, int blockIndex) async {
@@ -1713,9 +1770,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
     }
 
-    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: blockIndex);
-    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
-    await _ttsAudioPlayer.play();
+    await _startOptionalTtsBackground(sources, initialIndex: blockIndex);
+    await _speakTtsChunk(blockIndex);
   }
 
   void _restoreScrollOffsetAfterModeSwitch(double? scrollOffset) {
@@ -1782,9 +1838,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
     }
 
-    await _ttsAudioPlayer.setAudioSources(sources, initialIndex: 0);
-    await _ttsAudioPlayer.setLoopMode(LoopMode.one);
-    await _ttsAudioPlayer.play();
+    await _startOptionalTtsBackground(sources, initialIndex: 0);
+    await _speakTtsChunk(0);
   }
 
   Future<void> _seekTtsToFraction(Chapter chapter, double fraction) async {
@@ -1804,7 +1859,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _ttsChunkList.length - 1,
     );
 
-    await _ttsAudioPlayer.seek(Duration.zero, index: targetIndex);
+    await _syncOptionalTtsBackgroundIndex(targetIndex);
+    await _speakTtsChunk(targetIndex);
   }
 
   Future<void> _stopTts() async {
@@ -3175,10 +3231,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               now: now,
               chapter: chapter,
             );
-            ref.invalidate(feedPostsProvider);
-            ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-            ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
-            ref.invalidate(pagedUserFeedPostsProvider(user.id));
+            refreshFeedAfterPostPublish(ref, userId: user.id);
           }
 
           setState(() {

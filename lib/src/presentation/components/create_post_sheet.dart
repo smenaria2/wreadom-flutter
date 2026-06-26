@@ -11,6 +11,7 @@ import '../providers/audio_post_providers.dart';
 import 'audio_post_creator.dart';
 
 import '../../data/services/analytics_service.dart';
+import '../../data/services/audio_post_upload_service.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/app_review_helper.dart';
@@ -77,6 +78,7 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
 
 class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   final _audioCreatorKey = GlobalKey<AudioPostCreatorState>();
+  late final AudioPostUploadService _audioUploadService;
   bool _isRecording = false;
   bool _isAudioUploading = false;
   String? _uploadedAudioUrl;
@@ -103,6 +105,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   @override
   void initState() {
     super.initState();
+    _audioUploadService = ref.read(audioPostUploadServiceProvider);
     _currentQuestion = widget.initialQuestion;
     _isAnsweringQuestion = widget.initialQuestion != null;
     _isQuestionDynamic = false;
@@ -113,7 +116,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     _isDisposed = true;
     _textController.dispose();
     if (_uploadedAudioObjectKey != null && !_isPosted) {
-      ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(_uploadedAudioObjectKey!);
+      _audioUploadService.deleteAudioPostObject(_uploadedAudioObjectKey!);
     }
     super.dispose();
   }
@@ -221,12 +224,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         imageUrl: imageUrl,
         question: _isAnsweringQuestion ? _currentQuestion : null,
         questionLeafId: _isAnsweringQuestion ? widget.questionLeafId : null,
-        bookId: _audioPath != null
-            ? _referredBook?.id
-            : widget.bookId,
-        bookTitle: _audioPath != null
-            ? _referredBook?.title
-            : widget.bookTitle,
+        bookId: _audioPath != null ? _referredBook?.id : widget.bookId,
+        bookTitle: _audioPath != null ? _referredBook?.title : widget.bookTitle,
         bookAuthorName: _audioPath != null
             ? _referredBook?.authors.map((a) => a.name.trim()).join(', ')
             : widget.bookAuthorName,
@@ -246,13 +245,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       AnalyticsService.logPostCreate();
       await AppHaptics.light();
       unawaited(AppReviewHelper.incrementActionAndCheck());
-      ref.invalidate(feedPostsProvider);
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      refreshFeedAfterPostPublish(ref, userId: user.id);
       final questionLeafId = widget.questionLeafId?.trim();
       final bookId = widget.bookId?.trim();
       final question = widget.initialQuestion?.trim();
@@ -386,7 +379,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                 _GlassPostButton(
                   label: l10n.postBtn,
                   isLoading: _isSubmitting || _isAudioUploading,
-                  onPressed: (_isSubmitting || _isAudioUploading) ? null : _submit,
+                  onPressed: (_isSubmitting || _isAudioUploading)
+                      ? null
+                      : _submit,
                 ),
               ],
             ),
@@ -523,8 +518,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                       hintText: _audioPath != null
                           ? 'Say something about this audio.'
                           : _isAnsweringQuestion
-                              ? l10n.answerQuestionHint
-                              : l10n.postHint,
+                          ? l10n.answerQuestionHint
+                          : l10n.postHint,
                       hintStyle: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 13,
@@ -562,80 +557,91 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   if (_pickedImage == null) ...[
                     AudioPostCreator(
                       key: _audioCreatorKey,
-                      onAudioChanged: (path, durationMs, sizeBytes, mimeType) async {
-                        setState(() {
-                          _audioPath = path;
-                          _audioDurationMs = durationMs;
-                          _audioSizeBytes = sizeBytes;
-                          _audioMimeType = mimeType;
-                        });
-
-                        if (path != null) {
-                          // Delete any previously uploaded audio first
-                          if (_uploadedAudioObjectKey != null) {
-                            final keyToDelete = _uploadedAudioObjectKey!;
+                      onAudioChanged:
+                          (path, durationMs, sizeBytes, mimeType) async {
                             setState(() {
-                              _uploadedAudioUrl = null;
-                              _uploadedAudioObjectKey = null;
+                              _audioPath = path;
+                              _audioDurationMs = durationMs;
+                              _audioSizeBytes = sizeBytes;
+                              _audioMimeType = mimeType;
                             });
-                            ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(keyToDelete);
-                          }
 
-                          // Start uploading immediately
-                          setState(() {
-                            _isAudioUploading = true;
-                          });
-                          try {
-                            final user = await ref.read(currentUserProvider.future);
-                            if (user != null) {
-                              final result = await ref
-                                  .read(audioPostUploadServiceProvider)
-                                  .uploadAudioPost(
-                                    filePath: path,
-                                    userId: user.id,
-                                    mimeType: mimeType,
-                                    durationMs: durationMs,
-                                    sizeBytes: sizeBytes,
-                                  );
-                              
-                              if (_isDisposed) {
-                                // Delete it immediately since user closed the sheet while it was uploading!
-                                ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(result.audioObjectKey);
-                                return;
+                            if (path != null) {
+                              // Delete any previously uploaded audio first
+                              if (_uploadedAudioObjectKey != null) {
+                                final keyToDelete = _uploadedAudioObjectKey!;
+                                setState(() {
+                                  _uploadedAudioUrl = null;
+                                  _uploadedAudioObjectKey = null;
+                                });
+                                _audioUploadService.deleteAudioPostObject(
+                                  keyToDelete,
+                                );
                               }
 
+                              // Start uploading immediately
                               setState(() {
-                                _uploadedAudioUrl = result.audioUrl;
-                                _uploadedAudioObjectKey = result.audioObjectKey;
-                                _isAudioUploading = false;
+                                _isAudioUploading = true;
                               });
+                              try {
+                                final user = await ref.read(
+                                  currentUserProvider.future,
+                                );
+                                if (user != null) {
+                                  final result = await _audioUploadService
+                                      .uploadAudioPost(
+                                        filePath: path,
+                                        userId: user.id,
+                                        mimeType: mimeType,
+                                        durationMs: durationMs,
+                                        sizeBytes: sizeBytes,
+                                      );
+
+                                  if (_isDisposed) {
+                                    // Delete it immediately since user closed the sheet while it was uploading!
+                                    _audioUploadService.deleteAudioPostObject(
+                                      result.audioObjectKey,
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    _uploadedAudioUrl = result.audioUrl;
+                                    _uploadedAudioObjectKey =
+                                        result.audioObjectKey;
+                                    _isAudioUploading = false;
+                                  });
+                                }
+                              } catch (e) {
+                                setState(() {
+                                  _isAudioUploading = false;
+                                });
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Audio upload failed: ${e.toString()}',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            } else {
+                              // Audio removed by user
+                              if (_uploadedAudioObjectKey != null) {
+                                final keyToDelete = _uploadedAudioObjectKey!;
+                                setState(() {
+                                  _uploadedAudioUrl = null;
+                                  _uploadedAudioObjectKey = null;
+                                });
+                                // Fire-and-forget delete
+                                _audioUploadService.deleteAudioPostObject(
+                                  keyToDelete,
+                                );
+                              }
                             }
-                          } catch (e) {
-                            setState(() {
-                              _isAudioUploading = false;
-                            });
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Audio upload failed: ${e.toString()}'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        } else {
-                          // Audio removed by user
-                          if (_uploadedAudioObjectKey != null) {
-                            final keyToDelete = _uploadedAudioObjectKey!;
-                            setState(() {
-                              _uploadedAudioUrl = null;
-                              _uploadedAudioObjectKey = null;
-                            });
-                            // Fire-and-forget delete
-                            ref.read(audioPostUploadServiceProvider).deleteAudioPostObject(keyToDelete);
-                          }
-                        }
-                      },
+                          },
                       onCoverChanged: (cover) {
                         setState(() {
                           _audioCoverImage = cover;
@@ -725,7 +731,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     child: _ActionButton(
                       icon: Icons.mic_none_outlined,
                       label: 'Record',
-                      disabled: _pickedImage != null,
+                      disabled:
+                          _pickedImage != null ||
+                          _audioPath != null ||
+                          _isRecording ||
+                          _isAudioUploading,
                       onTap: () {
                         _audioCreatorKey.currentState?.startRecording();
                       },
@@ -737,7 +747,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     child: _ActionButton(
                       icon: Icons.audio_file_outlined,
                       label: 'Upload',
-                      disabled: _pickedImage != null,
+                      disabled:
+                          _pickedImage != null ||
+                          _audioPath != null ||
+                          _isRecording ||
+                          _isAudioUploading,
                       onTap: () {
                         _audioCreatorKey.currentState?.pickAudioFile();
                       },
@@ -957,8 +971,8 @@ class _ActionButton extends StatelessWidget {
     final color = disabled
         ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.38)
         : active
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant;
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: disabled ? null : onTap,
@@ -975,11 +989,7 @@ class _ActionButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: color,
-            ),
+            Icon(icon, size: 20, color: color),
             const SizedBox(height: 4),
             Text(
               label,
@@ -1004,8 +1014,9 @@ class _VerticalDivider extends StatelessWidget {
     return Container(
       width: 1,
       height: 24,
-      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+      color: Theme.of(
+        context,
+      ).colorScheme.outlineVariant.withValues(alpha: 0.4),
     );
   }
 }
-

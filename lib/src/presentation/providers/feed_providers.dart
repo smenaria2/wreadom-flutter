@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
@@ -160,6 +162,28 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     await _load(reset: true);
   }
 
+  Future<void> refreshInPlace() async {
+    _cursor = null;
+    _loadGeneration++;
+    final fallbackItems = state.items;
+    final fallbackHasMore = state.hasMore;
+    if (state.items.isEmpty) {
+      state = const PagedListState(isInitialLoading: true);
+    } else {
+      state = state.copyWith(
+        isInitialLoading: false,
+        isLoadingMore: false,
+        hasMore: true,
+        clearError: true,
+      );
+    }
+    await _load(
+      reset: true,
+      fallbackItemsOnEmptyReset: fallbackItems,
+      fallbackHasMoreOnEmptyReset: fallbackHasMore,
+    );
+  }
+
   Future<void> loadMore() => _load();
 
   void removePost(String postId) {
@@ -171,7 +195,11 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     state = state.copyWith(items: nextItems, clearError: true);
   }
 
-  Future<void> _load({bool reset = false}) async {
+  Future<void> _load({
+    bool reset = false,
+    List<FeedPost>? fallbackItemsOnEmptyReset,
+    bool? fallbackHasMoreOnEmptyReset,
+  }) async {
     if (state.isLoadingMore || (state.isInitialLoading && !reset)) return;
     if (!reset && !state.hasMore) return;
     if (!reset) {
@@ -191,9 +219,17 @@ class PagedFeedPostsController extends Notifier<PagedListState<FeedPost>> {
       };
       if (!ref.mounted || generation != _loadGeneration) return;
       _cursor = page.nextCursor;
+      final nextItems = reset ? page.items : [...state.items, ...page.items];
+      final useFallbackItems =
+          reset &&
+          nextItems.isEmpty &&
+          fallbackItemsOnEmptyReset != null &&
+          fallbackItemsOnEmptyReset.isNotEmpty;
       state = PagedListState(
-        items: reset ? page.items : [...state.items, ...page.items],
-        hasMore: page.hasMore,
+        items: useFallbackItems ? fallbackItemsOnEmptyReset : nextItems,
+        hasMore: useFallbackItems
+            ? fallbackHasMoreOnEmptyReset ?? page.hasMore
+            : page.hasMore,
       );
     } catch (error) {
       if (!ref.mounted || generation != _loadGeneration) return;
@@ -253,6 +289,27 @@ class PagedUserFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     await _load(reset: true);
   }
 
+  Future<void> refreshInPlace() async {
+    _cursor = null;
+    final fallbackItems = state.items;
+    final fallbackHasMore = state.hasMore;
+    if (state.items.isEmpty) {
+      state = const PagedListState(isInitialLoading: true);
+    } else {
+      state = state.copyWith(
+        isInitialLoading: false,
+        isLoadingMore: false,
+        hasMore: true,
+        clearError: true,
+      );
+    }
+    await _load(
+      reset: true,
+      fallbackItemsOnEmptyReset: fallbackItems,
+      fallbackHasMoreOnEmptyReset: fallbackHasMore,
+    );
+  }
+
   Future<void> loadMore() => _load();
 
   void removePost(String postId) {
@@ -264,7 +321,11 @@ class PagedUserFeedPostsController extends Notifier<PagedListState<FeedPost>> {
     state = state.copyWith(items: nextItems, clearError: true);
   }
 
-  Future<void> _load({bool reset = false}) async {
+  Future<void> _load({
+    bool reset = false,
+    List<FeedPost>? fallbackItemsOnEmptyReset,
+    bool? fallbackHasMoreOnEmptyReset,
+  }) async {
     if (state.isLoadingMore || (state.isInitialLoading && !reset)) return;
     if (!reset && !state.hasMore) return;
     if (!reset) {
@@ -277,9 +338,17 @@ class PagedUserFeedPostsController extends Notifier<PagedListState<FeedPost>> {
           .getUserFeedPostsPage(_userId, limit: feedPageSize, cursor: _cursor);
       if (!ref.mounted) return;
       _cursor = page.nextCursor;
+      final nextItems = reset ? page.items : [...state.items, ...page.items];
+      final useFallbackItems =
+          reset &&
+          nextItems.isEmpty &&
+          fallbackItemsOnEmptyReset != null &&
+          fallbackItemsOnEmptyReset.isNotEmpty;
       state = PagedListState(
-        items: reset ? page.items : [...state.items, ...page.items],
-        hasMore: page.hasMore,
+        items: useFallbackItems ? fallbackItemsOnEmptyReset : nextItems,
+        hasMore: useFallbackItems
+            ? fallbackHasMoreOnEmptyReset ?? page.hasMore
+            : page.hasMore,
       );
     } catch (error) {
       if (!ref.mounted) return;
@@ -305,6 +374,26 @@ Future<List<FeedPost>> feedPosts(Ref ref) async {
 @riverpod
 Future<List<FeedPost>> userFeedPosts(Ref ref, String userId) async {
   return ref.watch(feedRepositoryProvider).getUserFeedPosts(userId);
+}
+
+void refreshFeedAfterPostPublish(WidgetRef ref, {String? userId}) {
+  ref.invalidate(feedPostsProvider);
+  for (final filter in FeedFilter.values) {
+    ref.invalidate(filteredFeedPostsProvider(filter));
+    unawaited(
+      ref.read(pagedFeedPostsProvider(filter).notifier).refreshInPlace(),
+    );
+  }
+
+  final trimmedUserId = userId?.trim();
+  if (trimmedUserId != null && trimmedUserId.isNotEmpty) {
+    ref.invalidate(userFeedPostsProvider(trimmedUserId));
+    unawaited(
+      ref
+          .read(pagedUserFeedPostsProvider(trimmedUserId).notifier)
+          .refreshInPlace(),
+    );
+  }
 }
 
 @riverpod

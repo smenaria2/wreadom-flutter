@@ -195,6 +195,47 @@ class FirebaseFeedRepository implements FeedRepository {
   }
 
   @override
+  Future<List<FeedPost>> getAudioFeedPosts({int limit = 12}) async {
+    try {
+      Query query = _firestore
+          .collection(_collection)
+          .where('visibility', isEqualTo: 'public')
+          .where('userIsDeactivated', isNotEqualTo: true)
+          .orderBy('userIsDeactivated')
+          .orderBy('timestamp', descending: true)
+          .limit(limit * 4);
+
+      final snapshot = await query.get();
+      final posts = snapshot.docs
+          .map((doc) {
+            try {
+              final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
+              return FeedPost.fromJson(data);
+            } catch (error) {
+              debugPrint(
+                '[FirebaseFeedRepository] ERROR parsing audio post ${doc.id}: $error',
+              );
+              return null;
+            }
+          })
+          .whereType<FeedPost>()
+          .where((post) {
+            final audioUrl = post.audioUrl?.trim();
+            final objectKey = post.audioObjectKey?.trim();
+            return (audioUrl != null && audioUrl.isNotEmpty) ||
+                (objectKey != null && objectKey.isNotEmpty);
+          })
+          .take(limit)
+          .toList(growable: false);
+      return posts;
+    } catch (e, stack) {
+      debugPrint('[FirebaseFeedRepository] Error fetching audio posts: $e');
+      debugPrint(stack.toString());
+      return const <FeedPost>[];
+    }
+  }
+
+  @override
   Future<List<FeedPost>> getUserFeedPosts(
     String userId, {
     int limit = 10,
