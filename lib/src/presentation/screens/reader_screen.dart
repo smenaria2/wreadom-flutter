@@ -879,7 +879,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         }
 
         return chaptersAsync.when(
-          data: (chapters) => _buildReader(
+          data: (chapters) => _buildReaderOrArchiveTextError(
             context,
             chapters,
             commentsAsync,
@@ -891,17 +891,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             appBar: AppBar(title: Text(widget.book.title)),
             body: _buildLoadingBody(),
           ),
-          error: (err, stack) {
-            logUiError('Reader content load failed', err, stack);
-            return Scaffold(
-              appBar: AppBar(title: Text(widget.book.title)),
-              body: SectionError(title: widget.book.title),
-            );
-          },
+          error: _buildReaderLoadErrorScaffold,
         );
       },
       loading: () => chaptersAsync.when(
-        data: (chapters) => _buildReader(
+        data: (chapters) => _buildReaderOrArchiveTextError(
           context,
           chapters,
           commentsAsync,
@@ -913,16 +907,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           appBar: AppBar(title: Text(widget.book.title)),
           body: _buildLoadingBody(),
         ),
-        error: (err, stack) {
-          logUiError('Reader content load failed', err, stack);
-          return Scaffold(
-            appBar: AppBar(title: Text(widget.book.title)),
-            body: SectionError(title: widget.book.title),
-          );
-        },
+        error: _buildReaderLoadErrorScaffold,
       ),
       error: (_, _) => chaptersAsync.when(
-        data: (chapters) => _buildReader(
+        data: (chapters) => _buildReaderOrArchiveTextError(
           context,
           chapters,
           commentsAsync,
@@ -934,13 +922,110 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           appBar: AppBar(title: Text(widget.book.title)),
           body: _buildLoadingBody(),
         ),
-        error: (err, stack) {
-          logUiError('Reader content load failed', err, stack);
-          return Scaffold(
-            appBar: AppBar(title: Text(widget.book.title)),
-            body: SectionError(title: widget.book.title),
-          );
-        },
+        error: _buildReaderLoadErrorScaffold,
+      ),
+    );
+  }
+
+  Widget _buildReaderOrArchiveTextError(
+    BuildContext context,
+    List<Chapter> chapters,
+    AsyncValue<List<Comment>> commentsAsync,
+    AsyncValue<dynamic> userAsync, {
+    required bool isOffline,
+    required bool isAdmin,
+  }) {
+    if (_isInternetArchiveBook && chapters.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.book.title)),
+        body: _buildArchiveTextErrorBody(
+          'No readable public-domain text was found.',
+        ),
+      );
+    }
+    return _buildReader(
+      context,
+      chapters,
+      commentsAsync,
+      userAsync,
+      isOffline: isOffline,
+      isAdmin: isAdmin,
+    );
+  }
+
+  Widget _buildReaderLoadErrorScaffold(Object err, StackTrace stack) {
+    logUiError('Reader content load failed', err, stack);
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.book.title)),
+      body: _isInternetArchiveBook
+          ? _buildArchiveTextErrorBody(err)
+          : SectionError(title: widget.book.title),
+    );
+  }
+
+  Widget _buildArchiveTextErrorBody(Object? error) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.article_outlined,
+              size: 56,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Text reader unavailable',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'We could not prepare the public-domain text for this Internet Archive book. You can retry or continue in the PDF reader.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () {
+                    ref.invalidate(liveBookChaptersProvider(widget.book.id));
+                    ref.invalidate(bookChaptersProvider(widget.book.id));
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _openArchivePdfViewer,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text(AppLocalizations.of(context)!.viewPdf),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).pushReplacementNamed(
+                    AppRoutes.bookDetail,
+                    arguments: BookDetailArguments(
+                      bookId: widget.book.id,
+                      book: widget.book,
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Back to book'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1407,6 +1492,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 : null,
             onViewComments: () => _showDiscussion(chapter),
             onShare: () => _handleShareChapter(chapter),
+            onReaction: (reaction) => _showDiscussion(
+              chapter,
+              focusComposer: true,
+              prefillText: reaction,
+            ),
             book: widget.book,
             chromeTheme: _getReaderChromeTheme(),
           ),
@@ -1460,6 +1550,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 : null,
             onViewComments: () => _showDiscussion(chapter),
             onShare: () => _handleShareChapter(chapter),
+            onReaction: (reaction) => _showDiscussion(
+              chapter,
+              focusComposer: true,
+              prefillText: reaction,
+            ),
             book: widget.book,
             chromeTheme: _getReaderChromeTheme(),
           ),
@@ -3150,6 +3245,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     dynamic chapter, {
     int? chapterIndex,
     bool focusComposer = false,
+    String? prefillText,
   }) {
     unawaited(AppHaptics.selection());
     _prepareReviewComposer(
@@ -3157,6 +3253,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       chapterIndex: chapterIndex,
       focusComposer: focusComposer,
     );
+    final trimmedPrefill = prefillText?.trim();
+    if (trimmedPrefill != null && trimmedPrefill.isNotEmpty) {
+      _replyingTo = null;
+      _isReviewEditMode = true;
+      _commentController.value.text = trimmedPrefill;
+      _commentController.value.selection = TextSelection.collapsed(
+        offset: trimmedPrefill.length,
+      );
+    }
     if (_isDiscussionOpen) {
       if (focusComposer) {
         _commentFocusNode.requestFocus();
@@ -4403,6 +4508,7 @@ class _ChapterEndActions extends StatelessWidget {
     required this.onNextChapter,
     required this.onViewComments,
     required this.onShare,
+    required this.onReaction,
     required this.book,
     required this.chromeTheme,
   });
@@ -4413,6 +4519,7 @@ class _ChapterEndActions extends StatelessWidget {
   final VoidCallback? onNextChapter;
   final VoidCallback onViewComments;
   final VoidCallback onShare;
+  final ValueChanged<String> onReaction;
   final Book book;
   final ThemeData chromeTheme;
 
@@ -4461,6 +4568,8 @@ class _ChapterEndActions extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          _ChapterReactionRow(actionColor: actionColor, onReaction: onReaction),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -4543,6 +4652,8 @@ class _ChapterEndActions extends StatelessWidget {
           book.leaves!.isNotEmpty;
       return Column(
         children: [
+          _ChapterReactionRow(actionColor: actionColor, onReaction: onReaction),
+          const SizedBox(height: 12),
           GlassSurface(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
@@ -4614,6 +4725,62 @@ class _ChapterEndActions extends StatelessWidget {
         ],
       );
     }
+  }
+}
+
+class _ChapterReactionRow extends StatelessWidget {
+  const _ChapterReactionRow({
+    required this.actionColor,
+    required this.onReaction,
+  });
+
+  static const _reactions = [
+    '\u{2764}\u{FE0F}',
+    '\u{1F44F}',
+    '\u{1F64F}',
+    '\u{1F602}',
+    '\u{1F614}',
+  ];
+
+  final Color actionColor;
+  final ValueChanged<String> onReaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: 'Quick reactions',
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          for (final reaction in _reactions)
+            InkWell(
+              onTap: () {
+                unawaited(AppHaptics.selection());
+                onReaction(reaction);
+              },
+              customBorder: const CircleBorder(),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: actionColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: actionColor.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: SizedBox.square(
+                  dimension: 44,
+                  child: Center(
+                    child: Text(reaction, style: theme.textTheme.titleLarge),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -5089,4 +5256,3 @@ class _ReaderBottomBar extends StatelessWidget {
 }
 
 // QA Hardening Compatibility: _pauseTtsFromNotification, _resumeTtsFromNotification
-

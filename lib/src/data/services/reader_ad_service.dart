@@ -8,14 +8,31 @@ class ReaderAdService {
       'ca-app-pub-7031076798250177/5021226142';
   static const String archiveLoadingInterstitialAdUnitId =
       'ca-app-pub-7031076798250177/4531194994';
+  static const Duration fullScreenAdCooldown = Duration(minutes: 3);
+  static DateTime? _lastFullScreenAdShownAt;
 
   RewardedInterstitialAd? _rewardedInterstitialAd;
   bool _isLoadingRewardedInterstitial = false;
   bool _isShowingArchiveLoadingInterstitial = false;
   bool _isDisposed = false;
+  final bool? _adsEnabledOverride;
+
+  ReaderAdService({bool? adsEnabledForTesting})
+    : _adsEnabledOverride = adsEnabledForTesting;
 
   bool get _canShowAds =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      _adsEnabledOverride ??
+      (!kIsWeb && defaultTargetPlatform == TargetPlatform.android);
+
+  bool _isInFullScreenAdCooldown() {
+    final lastShown = _lastFullScreenAdShownAt;
+    if (lastShown == null) return false;
+    return DateTime.now().difference(lastShown) < fullScreenAdCooldown;
+  }
+
+  void _markFullScreenAdShown() {
+    _lastFullScreenAdShownAt = DateTime.now();
+  }
 
   Future<void> preloadNextChapterAd() async {
     if (!_canShowAds ||
@@ -54,12 +71,13 @@ class ReaderAdService {
 
   Future<bool> showNextChapterAdIfReady() async {
     if (!_canShowAds) return true;
-    if (_isDisposed) return false;
+    if (_isDisposed) return true;
+    if (_isInFullScreenAdCooldown()) return true;
 
     final ad = _rewardedInterstitialAd;
     if (ad == null) {
       unawaited(preloadNextChapterAd());
-      return false;
+      return true;
     }
 
     _rewardedInterstitialAd = null;
@@ -87,6 +105,7 @@ class ReaderAdService {
         );
 
     try {
+      _markFullScreenAdShown();
       await ad.show(
         onUserEarnedReward: (ad, reward) {
           debugPrint(
@@ -108,7 +127,10 @@ class ReaderAdService {
   }
 
   Future<void> showArchiveLoadingAd() async {
-    if (!_canShowAds || _isDisposed || _isShowingArchiveLoadingInterstitial) {
+    if (!_canShowAds ||
+        _isDisposed ||
+        _isShowingArchiveLoadingInterstitial ||
+        _isInFullScreenAdCooldown()) {
       return;
     }
 
@@ -144,6 +166,7 @@ class ReaderAdService {
                 );
 
             try {
+              _markFullScreenAdShown();
               await ad.show();
               await completer.future.timeout(const Duration(seconds: 45));
             } catch (error) {

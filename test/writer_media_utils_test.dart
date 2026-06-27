@@ -24,6 +24,12 @@ void main() {
         classifyWriterMediaUrl('https://en.wikipedia.org/wiki/Flutter').type,
         WriterMediaType.wikipedia,
       );
+      expect(
+        classifyWriterMediaUrl(
+          'https://wreadom.in/?page=feed&post=post123',
+        ).type,
+        WriterMediaType.wreadomPost,
+      );
     });
 
     test('rejects unsupported links', () {

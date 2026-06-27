@@ -1,8 +1,11 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/repositories/archive_book_repository.dart';
 import 'package:librebook_flutter/src/data/services/archive_book_service.dart';
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
+import 'package:librebook_flutter/src/domain/models/chapter.dart';
 
 void main() {
   group('ArchiveBookService search scope', () {
@@ -86,6 +89,38 @@ void main() {
         expect(results.map((book) => book.id), ['outside-collection']);
       },
     );
+
+    test(
+      'archive chapter fetching times out instead of stalling forever',
+      () async {
+        final service = _FakeArchiveBookService(
+          chaptersFuture: Completer<List<Chapter>>().future,
+        );
+        final repository = ArchiveBookRepository(
+          service: service,
+          chapterFetchTimeout: const Duration(milliseconds: 1),
+        );
+
+        await expectLater(
+          repository.getChapters('slow-book'),
+          throwsA(isA<TimeoutException>()),
+        );
+      },
+    );
+
+    test('archive book primary action opens Archive reader', () {
+      final source = File(
+        'lib/src/presentation/screens/book_detail_screen.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('onTap: _isArchiveBook(book)'));
+      expect(source, contains('() => _openArchivePdf(context, book)'));
+      expect(
+        source,
+        contains('onPressed: () => _openReader(context, ref, userAsync)'),
+      );
+      expect(source, contains("label: const Text('Text reader')"));
+    });
   });
 }
 
@@ -109,10 +144,12 @@ class _FakeArchiveBookService extends ArchiveBookService {
   _FakeArchiveBookService({
     this.searchResults = const [],
     this.idResults = const [],
+    this.chaptersFuture,
   });
 
   final List<Book> searchResults;
   final List<Book> idResults;
+  final Future<List<Chapter>>? chaptersFuture;
   int searchCallCount = 0;
   String? lastQuery;
 
@@ -136,5 +173,12 @@ class _FakeArchiveBookService extends ArchiveBookService {
   @override
   Future<List<Book>> getBooksByIds(List<String> ids) async {
     return idResults;
+  }
+
+  @override
+  Future<List<Chapter>> fetchBookChapters(String identifier) async {
+    final future = chaptersFuture;
+    if (future == null) return super.fetchBookChapters(identifier);
+    return future;
   }
 }

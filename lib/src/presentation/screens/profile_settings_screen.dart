@@ -24,6 +24,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   String _privacy = 'public';
   NotificationSettings? _notificationSettings;
   Map<String, bool> _notificationAppValues = const {};
+  bool _isSaving = false;
   String? _populatedUserId;
 
   @override
@@ -126,28 +127,77 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 const SizedBox(height: 20),
               ],
               FilledButton(
-                onPressed: () async {
-                  final repository = ref.read(profileRepositoryProvider);
-                  await repository.updateProfileDetails(
-                    userId: user.id,
-                    bio: _bioController.text.trim(),
-                    penName: _blankToNull(_penNameController.text),
-                    displayName: _blankToNull(_displayNameController.text),
-                  );
-                  await repository.updatePrivacyLevel(user.id, _privacy);
-                  if (_notificationSettings != null) {
-                    await repository.updateNotificationSettings(
-                      user.id,
-                      _settingsWithAppValues(
-                        _notificationSettings!,
-                        _notificationAppValues,
-                      ),
-                    );
-                  }
-                  ref.invalidate(currentUserProvider);
-                  if (context.mounted) Navigator.of(context).pop();
-                },
-                child: Text(l10n.saveSettings),
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        final repository = ref.read(profileRepositoryProvider);
+                        final nextBio = _bioController.text.trim();
+                        final nextPenName = _blankToNull(
+                          _penNameController.text,
+                        );
+                        final nextDisplayName = _blankToNull(
+                          _displayNameController.text,
+                        );
+                        final nextSettings = _notificationSettings == null
+                            ? null
+                            : _settingsWithAppValues(
+                                _notificationSettings!,
+                                _notificationAppValues,
+                              );
+                        final profileChanged =
+                            _normalizeNullable(user.bio) !=
+                                _normalizeNullable(nextBio) ||
+                            _normalizeNullable(user.penName) !=
+                                _normalizeNullable(nextPenName) ||
+                            _normalizeNullable(user.displayName) !=
+                                _normalizeNullable(nextDisplayName);
+                        final privacyChanged =
+                            (user.privacyLevel ?? 'public') != _privacy;
+                        final notificationsChanged =
+                            nextSettings != null &&
+                            nextSettings != user.notificationSettings;
+
+                        setState(() => _isSaving = true);
+                        try {
+                          if (privacyChanged) {
+                            await repository.updatePrivacyLevel(
+                              user.id,
+                              _privacy,
+                            );
+                          }
+                          if (profileChanged) {
+                            await repository.updateProfileDetails(
+                              userId: user.id,
+                              bio: nextBio,
+                              penName: nextPenName,
+                              displayName: nextDisplayName,
+                            );
+                          }
+                          if (notificationsChanged) {
+                            await repository.updateNotificationSettings(
+                              user.id,
+                              nextSettings,
+                            );
+                          }
+                          ref.invalidate(currentUserProvider);
+                          if (context.mounted) Navigator.of(context).pop();
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.saveFailed(e.toString())),
+                            ),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _isSaving = false);
+                        }
+                      },
+                child: _isSaving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.saveSettings),
               ),
             ],
           );
@@ -159,6 +209,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
     );
   }
+}
+
+String? _normalizeNullable(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
 String? _blankToNull(String value) {

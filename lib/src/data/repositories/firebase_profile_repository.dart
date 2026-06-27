@@ -273,30 +273,39 @@ class FirebaseProfileRepository implements ProfileRepository {
     final current = await _firestore.collection('users').doc(userId).get();
     final currentData = current.data() ?? const <String, dynamic>{};
     final updates = <String, dynamic>{};
-    updates['bio'] = _emptyStringDeletes(bio);
-    updates['penName'] = _emptyStringDeletes(penName);
-    updates['displayName'] = _emptyStringDeletes(displayName);
-    updates['searchTerms'] = buildProfileSearchTerms(
-      username: currentData['username']?.toString() ?? '',
-      email: currentData['email']?.toString() ?? '',
-      displayName: _resolvedSearchValue(
-        displayName,
-        currentData['displayName']?.toString(),
-      ),
-      penName: _resolvedSearchValue(
-        penName,
-        currentData['penName']?.toString(),
-      ),
-    );
+    final currentBio = _normalizedOptional(currentData['bio']);
+    final currentPenName = _normalizedOptional(currentData['penName']);
+    final currentDisplayName = _normalizedOptional(currentData['displayName']);
+    final nextBio = _normalizedOptional(bio);
+    final nextPenName = _normalizedOptional(penName);
+    final nextDisplayName = _normalizedOptional(displayName);
+
+    if (currentBio != nextBio) {
+      updates['bio'] = _emptyStringDeletes(bio);
+    }
+    if (currentPenName != nextPenName) {
+      updates['penName'] = _emptyStringDeletes(penName);
+    }
+    if (currentDisplayName != nextDisplayName) {
+      updates['displayName'] = _emptyStringDeletes(displayName);
+    }
+    if (currentPenName != nextPenName ||
+        currentDisplayName != nextDisplayName) {
+      updates['searchTerms'] = buildProfileSearchTerms(
+        username: currentData['username']?.toString() ?? '',
+        email: currentData['email']?.toString() ?? '',
+        displayName: nextDisplayName,
+        penName: nextPenName,
+      );
+    }
     if (updates.isNotEmpty) {
       await _firestore.collection('users').doc(userId).update(updates);
     }
   }
 
-  String? _resolvedSearchValue(String? next, String? current) {
-    if (next == null) return current;
-    final trimmed = next.trim();
-    return trimmed.isEmpty ? null : trimmed;
+  String? _normalizedOptional(Object? value) {
+    final trimmed = value?.toString().trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   Object _emptyStringDeletes(String? value) {

@@ -153,7 +153,7 @@ class ArchiveBookService {
   }
 
   Future<List<Chapter>> fetchBookChapters(String identifier) async {
-    // 1. Get metadata to find the right text file
+    // 1. Get metadata to find the best available readable file.
     final metaUrl = Uri.parse('$metadataUrl/$identifier');
     final metaResponse = await _get(metaUrl);
     if (metaResponse.statusCode != 200) {
@@ -162,28 +162,43 @@ class ArchiveBookService {
     final metaData = jsonDecode(metaResponse.body);
 
     final files = (metaData['files'] as List? ?? []);
-    final preferredSource = _preferredReadableSource(files);
-    if (preferredSource == null) {
+    final sources = _readableSources(files);
+    if (sources.isEmpty) {
       throw Exception('No text file found for this book');
     }
 
+    Object? lastError;
     final baseUrl = 'https://archive.org/download/$identifier';
-    final contentUrl = Uri.parse(
-      '$baseUrl/${Uri.encodeComponent(preferredSource.name)}',
+    for (final source in sources) {
+      try {
+        final contentUrl = Uri.parse(
+          '$baseUrl/${Uri.encodeComponent(source.name)}',
+        );
+        final response = await _get(contentUrl);
+        if (response.statusCode != 200) {
+          lastError = Exception('Failed to fetch ${source.name}');
+          continue;
+        }
+
+        final chapters = source.kind == _ArchiveReadableKind.epub
+            ? _parseEpubToChapters(response.bodyBytes)
+            : await compute(
+                _parseArchiveTextToChaptersOnIsolate,
+                source.kind == _ArchiveReadableKind.html
+                    ? _extractReadableTextFromHtml(response.body)
+                    : response.body,
+              );
+        if (chapters.isNotEmpty) return chapters;
+        lastError = Exception('No readable content in ${source.name}');
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw Exception(
+      'No readable text could be prepared for this Internet Archive book.'
+      '${lastError == null ? '' : ' Last error: $lastError'}',
     );
-    final response = await _get(contentUrl);
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch book content');
-    }
-
-    if (preferredSource.kind == _ArchiveReadableKind.epub) {
-      return _parseEpubToChapters(response.bodyBytes);
-    }
-
-    final text = preferredSource.kind == _ArchiveReadableKind.html
-        ? _extractReadableTextFromHtml(response.body)
-        : response.body;
-    return compute(_parseArchiveTextToChaptersOnIsolate, text);
   }
 
   List<Chapter> _parseTextToChapters(String text) {
@@ -416,7 +431,7 @@ class ArchiveBookService {
     return lang[0].toUpperCase() + lang.substring(1).toLowerCase();
   }
 
-  _ArchiveReadableSource? _preferredReadableSource(List files) {
+  List<_ArchiveReadableSource> _readableSources(List files) {
     String? htmlFile;
     String? epubFile;
     String? textFile;
@@ -425,6 +440,7 @@ class ArchiveBookService {
     for (final file in files) {
       if (file is! Map) continue;
       final rawName = file['name']?.toString() ?? '';
+      if (rawName.trim().isEmpty) continue;
       final name = rawName.toLowerCase();
       final format = (file['format']?.toString() ?? '').toLowerCase();
 
@@ -448,22 +464,16 @@ class ArchiveBookService {
       }
     }
 
-    if (htmlFile != null) {
-      return _ArchiveReadableSource(_ArchiveReadableKind.html, htmlFile);
-    }
-    if (epubFile != null) {
-      return _ArchiveReadableSource(_ArchiveReadableKind.epub, epubFile);
-    }
-    if (textFile != null) {
-      return _ArchiveReadableSource(_ArchiveReadableKind.text, textFile);
-    }
-    if (djvuTextFile != null) {
-      return _ArchiveReadableSource(
-        _ArchiveReadableKind.djvuText,
-        djvuTextFile,
-      );
-    }
-    return null;
+    return [
+      if (htmlFile != null)
+        _ArchiveReadableSource(_ArchiveReadableKind.html, htmlFile),
+      if (epubFile != null)
+        _ArchiveReadableSource(_ArchiveReadableKind.epub, epubFile),
+      if (textFile != null)
+        _ArchiveReadableSource(_ArchiveReadableKind.text, textFile),
+      if (djvuTextFile != null)
+        _ArchiveReadableSource(_ArchiveReadableKind.djvuText, djvuTextFile),
+    ];
   }
 
   String _extractReadableTextFromHtml(String html) {

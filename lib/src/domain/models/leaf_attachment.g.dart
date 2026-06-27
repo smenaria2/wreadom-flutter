@@ -78,4 +78,5 @@ const _$LeafLinkTypeEnumMap = {
   LeafLinkType.wikipedia: 'wikipedia',
   LeafLinkType.suno: 'suno',
   LeafLinkType.wreadomBook: 'wreadomBook',
+  LeafLinkType.wreadomPost: 'wreadomPost',
 };

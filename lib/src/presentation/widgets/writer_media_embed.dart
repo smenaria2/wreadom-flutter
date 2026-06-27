@@ -121,10 +121,7 @@ class WriterMediaPreview extends StatelessWidget {
                           fit: BoxFit.contain,
                         ),
                       )
-                    : Icon(
-                        _iconFor(info.type),
-                        color: _accentColor(info.type),
-                      ),
+                    : Icon(_iconFor(info.type), color: _accentColor(info.type)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -174,6 +171,7 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.wikipedia => Icons.travel_explore_outlined,
       WriterMediaType.suno => Icons.music_note_rounded,
       WriterMediaType.wreadomBook => Icons.book_rounded,
+      WriterMediaType.wreadomPost => Icons.dynamic_feed_rounded,
       WriterMediaType.unsupported => Icons.link_off_rounded,
     };
   }
@@ -187,6 +185,7 @@ class WriterMediaPreview extends StatelessWidget {
       WriterMediaType.wikipedia => const Color(0xFF54595D),
       WriterMediaType.suno => const Color(0xFFFF5722),
       WriterMediaType.wreadomBook => const Color(0xFFE91E63),
+      WriterMediaType.wreadomPost => const Color(0xFF2E7D32),
       WriterMediaType.unsupported => Colors.grey,
     };
   }

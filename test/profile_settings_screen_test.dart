@@ -100,6 +100,24 @@ void main() {
     },
   );
 
+  testWidgets('privacy-only save skips unchanged profile details write', (
+    tester,
+  ) async {
+    final repository = _FakeProfileRepository(failProfileDetails: true);
+    final user = _testUser(notificationSettings: _notificationSettings());
+
+    await _pumpProfileSettings(tester, repository, user);
+
+    await tester.tap(find.text('Public'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Private').last);
+    await tester.pumpAndSettle();
+    await _tapSaveSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(repository.profileDetailsCallCount, 0);
+    expect(repository.savedPrivacyLevel, 'private');
+  });
   testWidgets('legacy users render default notification controls', (
     tester,
   ) async {
@@ -155,8 +173,12 @@ Future<void> _scrollUntilTextVisible(WidgetTester tester, String text) async {
 }
 
 class _FakeProfileRepository implements ProfileRepository {
+  _FakeProfileRepository({this.failProfileDetails = false});
+
+  final bool failProfileDetails;
   String? savedPrivacyLevel;
   NotificationSettings? savedNotificationSettings;
+  int profileDetailsCallCount = 0;
 
   @override
   Future<void> updateProfileDetails({
@@ -164,7 +186,12 @@ class _FakeProfileRepository implements ProfileRepository {
     String? bio,
     String? penName,
     String? displayName,
-  }) async {}
+  }) async {
+    profileDetailsCallCount += 1;
+    if (failProfileDetails) {
+      throw Exception('profile details should not be updated');
+    }
+  }
 
   @override
   Future<void> updatePrivacyLevel(String userId, String privacyLevel) async {

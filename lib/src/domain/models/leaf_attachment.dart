@@ -33,6 +33,8 @@ enum LeafLinkType {
   suno,
   @JsonValue('wreadomBook')
   wreadomBook,
+  @JsonValue('wreadomPost')
+  wreadomPost,
 }
 
 @freezed

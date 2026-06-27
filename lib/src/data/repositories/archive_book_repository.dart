@@ -1,13 +1,18 @@
+import 'dart:async';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../services/archive_book_service.dart';
 
 class ArchiveBookRepository implements BookRepository {
-  ArchiveBookRepository({ArchiveBookService? service})
-    : _service = service ?? ArchiveBookService();
+  ArchiveBookRepository({
+    ArchiveBookService? service,
+    Duration chapterFetchTimeout = const Duration(seconds: 18),
+  }) : _service = service ?? ArchiveBookService(),
+       _chapterFetchTimeout = chapterFetchTimeout;
 
   final ArchiveBookService _service;
+  final Duration _chapterFetchTimeout;
 
   @override
   Future<Book?> getBook(String bookId) async {
@@ -151,7 +156,14 @@ class ArchiveBookRepository implements BookRepository {
 
   @override
   Future<List<Chapter>> getChapters(String bookId) async {
-    return await _service.fetchBookChapters(bookId);
+    return await _service
+        .fetchBookChapters(bookId)
+        .timeout(
+          _chapterFetchTimeout,
+          onTimeout: () => throw TimeoutException(
+            'Timed out while fetching Internet Archive text.',
+          ),
+        );
   }
 
   @override

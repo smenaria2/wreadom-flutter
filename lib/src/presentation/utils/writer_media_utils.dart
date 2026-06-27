@@ -10,6 +10,7 @@ enum WriterMediaType {
   wikipedia,
   suno,
   wreadomBook,
+  wreadomPost,
   unsupported,
 }
 
@@ -41,15 +42,23 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
   }
 
   final wreadomLink = AppLinkHelper.resolve(raw);
-  if (wreadomLink != null &&
-      wreadomLink.route == AppRoutes.bookDetail &&
-      wreadomLink.payload != null) {
-    return WriterMediaInfo(
-      type: WriterMediaType.wreadomBook,
-      originalUrl: raw,
-      embedUrl: raw,
-      label: 'Wreadom Book',
-    );
+  if (wreadomLink != null && wreadomLink.payload != null) {
+    if (wreadomLink.route == AppRoutes.bookDetail) {
+      return WriterMediaInfo(
+        type: WriterMediaType.wreadomBook,
+        originalUrl: raw,
+        embedUrl: raw,
+        label: 'Wreadom Book',
+      );
+    }
+    if (wreadomLink.route == AppRoutes.postDetail) {
+      return WriterMediaInfo(
+        type: WriterMediaType.wreadomPost,
+        originalUrl: raw,
+        embedUrl: raw,
+        label: 'Wreadom Post',
+      );
+    }
   }
 
   final uri = _parseHttpUri(raw);

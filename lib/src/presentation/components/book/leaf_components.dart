@@ -314,6 +314,40 @@ class _LeafIconChipState extends State<_LeafIconChip> {
   }
 }
 
+class _LeafSubmitError extends StatelessWidget {
+  const _LeafSubmitError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.errorContainer.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.35)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline_rounded, color: scheme.onErrorContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LeafTypeButton extends StatelessWidget {
   const _LeafTypeButton({
     required this.type,
@@ -401,6 +435,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   int _audioDurationMs = 0;
   bool _isRecording = false;
   bool _isSubmitting = false;
+  String? _submitError;
   final ValueNotifier<int> _noteCharacterCount = ValueNotifier<int>(0);
   WriterMediaInfo _linkInfo = classifyWriterMediaUrl(null);
 
@@ -445,7 +480,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
     final user = await ref.read(currentUserProvider.future);
     if (user == null) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
     try {
       if (_isRecording) await _stopRecording();
       final payload = await _payload(user.id);
@@ -459,10 +497,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
       ).showSnackBar(const SnackBar(content: Text('Leaf added.')));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      setState(() {
+        _isSubmitting = false;
+        _submitError = e.toString();
+      });
     }
   }
 
@@ -704,6 +742,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
             ),
             const SizedBox(height: 12),
             _buildTypeSelector(),
+            if (_submitError != null) ...[
+              const SizedBox(height: 12),
+              _LeafSubmitError(message: _submitError!),
+            ],
             const SizedBox(height: 14),
             _buildEditor(theme),
           ],
@@ -724,7 +766,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
               _LeafTypeButton(
                 type: type,
                 selected: _type == type,
-                onTap: () => setState(() => _type = type),
+                onTap: () => setState(() {
+                  _type = type;
+                  _submitError = null;
+                }),
               ),
               if (type != manualLeafTypes.last) const SizedBox(width: 8),
             ],
@@ -1079,13 +1124,21 @@ Future<void> _showLinkLeaf(BuildContext context, LeafAttachment leaf) async {
     }
     return;
   }
-  if (linkType == LeafLinkType.wreadomBook) {
+  if (linkType == LeafLinkType.wreadomBook ||
+      linkType == LeafLinkType.wreadomPost) {
     final resolved = AppLinkHelper.resolve(url);
     if (resolved?.payload != null) {
-      Navigator.of(context).pushNamed(
-        AppRoutes.bookDetail,
-        arguments: BookDetailArguments(bookId: resolved!.payload!),
-      );
+      if (resolved!.route == AppRoutes.bookDetail) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.bookDetail,
+          arguments: BookDetailArguments(bookId: resolved.payload!),
+        );
+      } else if (resolved.route == AppRoutes.postDetail) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.postDetail,
+          arguments: PostDetailArguments(postId: resolved.payload!),
+        );
+      }
     }
     return;
   }
@@ -1348,6 +1401,7 @@ IconData _writerMediaIcon(WriterMediaType type) {
     WriterMediaType.wikipedia => Icons.menu_book_outlined,
     WriterMediaType.suno => Icons.music_note_outlined,
     WriterMediaType.wreadomBook => Icons.book_outlined,
+    WriterMediaType.wreadomPost => Icons.dynamic_feed_outlined,
     WriterMediaType.unsupported => Icons.link_rounded,
   };
 }
@@ -1366,6 +1420,7 @@ String _leafLabel(LeafAttachment leaf) {
       LeafLinkType.wikipedia => 'Wikipedia',
       LeafLinkType.suno => 'Suno',
       LeafLinkType.wreadomBook => 'Book',
+      LeafLinkType.wreadomPost => 'Post',
     };
   }
   return _leafTypeLabel(leaf.type);

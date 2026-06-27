@@ -109,7 +109,9 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
               initialChapterIndex: widget.initialReaderChapterIndex!,
             );
           }
-          _preloadChapters(book.id);
+          if (!_isArchiveBook(book)) {
+            _preloadChapters(book.id);
+          }
           return _BookDetailBody(
             book: book,
             detailBookId: widget.bookId,
@@ -349,10 +351,6 @@ bool _isArchiveBook(Book book) {
               RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(book.id)));
 }
 
-bool _hasArchivePdfViewer(Book book) {
-  return _isArchiveBook(book) && (book.identifier?.trim().isNotEmpty == true);
-}
-
 void _openArchivePdf(BuildContext context, Book book) {
   Navigator.of(context).pushNamed(AppRoutes.archiveReader, arguments: book);
 }
@@ -573,7 +571,9 @@ class _BookDetailBody extends ConsumerWidget {
                           child: GlassSurface(
                             strong: true,
                             borderRadius: BorderRadius.circular(18),
-                            onTap: () => _openReader(context, ref, userAsync),
+                            onTap: _isArchiveBook(book)
+                                ? () => _openArchivePdf(context, book)
+                                : () => _openReader(context, ref, userAsync),
                             semanticButton: true,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -581,12 +581,15 @@ class _BookDetailBody extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.menu_book_rounded,
+                                    _isArchiveBook(book)
+                                        ? Icons.picture_as_pdf_outlined
+                                        : Icons.menu_book_rounded,
                                     color: theme.colorScheme.primary,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _hasProgress(userAsync, book.id)
+                                    _hasProgress(userAsync, book.id) &&
+                                            !_isArchiveBook(book)
                                         ? AppLocalizations.of(
                                             context,
                                           )!.continueReading
@@ -617,12 +620,12 @@ class _BookDetailBody extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (_hasArchivePdfViewer(book)) ...[
+                    if (_isArchiveBook(book)) ...[
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        onPressed: () => _openArchivePdf(context, book),
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                        label: Text(AppLocalizations.of(context)!.viewPdf),
+                        onPressed: () => _openReader(context, ref, userAsync),
+                        icon: const Icon(Icons.article_outlined),
+                        label: const Text('Text reader'),
                       ),
                     ],
                     const SizedBox(height: 28),

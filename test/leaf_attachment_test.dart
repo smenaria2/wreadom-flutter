@@ -40,6 +40,22 @@ void main() {
       expect(LeafAttachment.fromJson(json), leaf);
     });
 
+    test('round trips Wreadom post link leaf type', () {
+      final leaf = LeafAttachment(
+        id: 'leaf-post',
+        type: LeafType.link,
+        createdBy: 'user1',
+        createdAt: 789,
+        url: 'https://wreadom.in/?page=feed&post=post123',
+        linkType: LeafLinkType.wreadomPost,
+        title: 'Wreadom Post',
+      );
+
+      final json = leaf.toJson();
+
+      expect(json['linkType'], 'wreadomPost');
+      expect(LeafAttachment.fromJson(json), leaf);
+    });
     test('round trips certificate leaf metadata', () {
       const leaf = LeafAttachment(
         id: 'certificate_123_daily_topic',
