@@ -1632,14 +1632,14 @@ class _BookCardState extends State<_BookCard> {
         },
         child: SizedBox(
           width: 120,
-          child: FogReveal(
-            revealed: _revealed,
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Cover
-                Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover
+              Expanded(
+                child: FogReveal(
+                  revealed: _revealed,
+                  borderRadius: BorderRadius.circular(12),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: _hasNetworkCover
@@ -1682,31 +1682,31 @@ class _BookCardState extends State<_BookCard> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                // Title
-                Text(
-                  widget.book.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              // Title
+              Text(
+                widget.book.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
-                // Author
-                Text(
-                  widget.book.authors.isNotEmpty
-                      ? widget.book.authors.first.name
-                      : AppLocalizations.of(context)!.unknownAuthor,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
+              ),
+              // Author
+              Text(
+                widget.book.authors.isNotEmpty
+                    ? widget.book.authors.first.name
+                    : AppLocalizations.of(context)!.unknownAuthor,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
