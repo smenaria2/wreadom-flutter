@@ -492,9 +492,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
           .createLeaf(bookId: widget.book.id, leaf: payload);
       if (!mounted) return;
       Navigator.of(context).pop();
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Leaf added.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.leafAdded)));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -615,11 +616,12 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
     if (!hasPermission) {
       final status = await Permission.microphone.status;
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Microphone permission is needed to record.'),
+          content: Text(l10n.microphonePermissionRequired),
           action: status.isPermanentlyDenied
-              ? SnackBarAction(label: 'Settings', onPressed: openAppSettings)
+              ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
               : null,
         ),
       );
@@ -693,6 +695,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(14, 10, 14, 14 + bottomInset),
@@ -736,7 +739,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.eco_rounded, size: 16),
-                  label: const Text('Add'),
+                  label: Text(l10n.add),
                 ),
               ],
             ),
@@ -979,19 +982,20 @@ Future<void> _confirmDeleteLeaf(
   String bookId,
   LeafAttachment leaf,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Delete Leaf?'),
-      content: const Text('This removes the Leaf from the book.'),
+      title: Text(l10n.deleteLeafTitle),
+      content: Text(l10n.deleteLeafContent),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -1005,7 +1009,7 @@ Future<void> _confirmDeleteLeaf(
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Leaf deleted.')));
+    ).showSnackBar(SnackBar(content: Text(l10n.leafDeleted)));
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1251,6 +1255,24 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.questionAnswers,
+                    arguments: _query,
+                  );
+                },
+                child: Text(
+                  l10n.viewAllAnswersInFeed,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.secondary,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
               const SizedBox(height: 18),

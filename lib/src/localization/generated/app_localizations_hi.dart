@@ -2501,16 +2501,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteLeaf => 'Delete Leaf';
 
   @override
-  String get deleteLeafTitle => 'Delete Leaf?';
+  String get deleteLeafTitle => 'लीफ हटाएं?';
 
   @override
   String get deleteLeafBody => 'This removes the Leaf from the content.';
 
   @override
-  String get leafAdded => 'Leaf added.';
+  String get leafAdded => 'लीफ जोड़ा गया।';
 
   @override
-  String get leafDeleted => 'Leaf deleted.';
+  String get leafDeleted => 'लीफ हटा दिया गया।';
 
   @override
   String leafMaxLimit(int count) {
@@ -2706,10 +2706,88 @@ class AppLocalizationsHi extends AppLocalizations {
   String get shareReview => 'समीक्षा साझा करें';
 
   @override
+  String get audioFileTooLarge => 'ऑडियो फ़ाइल 10MB या उससे छोटी होनी चाहिए।';
+
+  @override
+  String audioUploadFailed(String error) {
+    return 'ऑडियो अपलोड विफल: $error';
+  }
+
+  @override
+  String recordingVoiceNote(String duration) {
+    return 'वॉइस नोट रिकॉर्ड हो रहा है... $duration';
+  }
+
+  @override
+  String get audioClipAttached => 'ऑडियो क्लिप जुड़ी है';
+
+  @override
+  String audioClipDetails(String duration, String size) {
+    return 'अवधि: $duration • आकार: $size';
+  }
+
+  @override
+  String get audioCoverArt => 'ऑडियो कवर आर्ट';
+
+  @override
+  String get referBook => 'रचना जोड़ें';
+
+  @override
+  String get customCover => 'कस्टम कवर';
+
+  @override
+  String get customCoverArt => 'कस्टम कवर आर्ट';
+
+  @override
+  String get usingBookCover => 'रचना का कवर इस्तेमाल हो रहा है';
+
+  @override
+  String get customUploadedImage => 'अपलोड की गई कस्टम इमेज';
+
+  @override
+  String get previewAudio => 'ऑडियो पूर्वावलोकन';
+
+  @override
+  String get recordAudio => 'ऑडियो रिकॉर्ड करें';
+
+  @override
+  String get addAudio => 'ऑडियो जोड़ें';
+
+  @override
+  String get replaceAudio => 'ऑडियो बदलें';
+
+  @override
+  String get removeAudio => 'ऑडियो हटाएँ';
+
+  @override
+  String get uploadAudio => 'ऑडियो अपलोड करें';
+
+  @override
+  String get changeQuestion => 'प्रश्न बदलें';
+
+  @override
+  String get answerQuestionAction => 'प्रश्न का जवाब दें';
+
+  @override
+  String get feedFilterEmptyTitle => 'इस फ़िल्टर में कोई पोस्ट नहीं मिली';
+
+  @override
+  String get feedFilterEmptyBody => 'और पोस्ट लोड करें या दूसरा फ़िल्टर चुनें।';
+
+  @override
+  String get postAudioHint => 'इस ऑडियो के बारे में कुछ लिखें।';
+
+  @override
+  String get loadingFile => 'फ़ाइल लोड हो रही है...';
+
+  @override
+  String get uploadingAudio => 'ऑडियो अपलोड हो रहा है...';
+
+  @override
   String get audioPosts => 'ऑडियो पोस्ट';
 
   @override
-  String get newAuthors => 'नए लेखक';
+  String get newAuthors => 'लोकप्रिय लेखक';
 
   @override
   String get dragRecordToSeek => 'सीक करने के लिए रिकॉर्ड घुमाएँ';
@@ -2720,4 +2798,44 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get tapToAnswerQuestion => 'जवाब देने के लिए टैप करें';
+
+  @override
+  String get yourRating => 'आपकी रेटिंग:';
+
+  @override
+  String get send => 'भेजें';
+
+  @override
+  String get share => 'शेयर करें';
+
+  @override
+  String get shareExternally => 'बाहरी रूप से शेयर करें';
+
+  @override
+  String get shareImage => 'इमेज शेयर करें';
+
+  @override
+  String failedToShare(String error) {
+    return 'शेयर करने में विफल: $error';
+  }
+
+  @override
+  String failedToShareToFeed(String error) {
+    return 'फ़ीड पर शेयर करने में विफल: $error';
+  }
+
+  @override
+  String get pleaseEnterMessage => 'कृपया शेयर करने के लिए एक संदेश दर्ज करें';
+
+  @override
+  String get deleteLeafContent => 'यह पुस्तक से लीफ को हटा देता है।';
+
+  @override
+  String get add => 'जोड़ें';
+
+  @override
+  String get viewAllAnswers => 'सभी जवाब देखें';
+
+  @override
+  String get viewAllAnswersInFeed => 'फ़ीड में सभी जवाब देखें';
 }

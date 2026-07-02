@@ -61,9 +61,10 @@ class _CommentSharePreviewSheetState
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ModalFeedbackScope.show(
           context,
-          SnackBar(content: Text('Failed to share: $e')),
+          SnackBar(content: Text(l10n.failedToShare(e.toString()))),
         );
       }
     }
@@ -118,7 +119,7 @@ class _CommentSharePreviewSheetState
       if (mounted) {
         ModalFeedbackScope.show(
           context,
-          SnackBar(content: Text('Failed to share to feed: $e')),
+          SnackBar(content: Text(l10n.failedToShareToFeed(e.toString()))),
         );
       }
     } finally {
@@ -193,7 +194,7 @@ class _CommentSharePreviewSheetState
                     child: ElevatedButton.icon(
                       onPressed: _isSharingToFeed ? null : _shareExternally,
                       icon: const Icon(Icons.share_rounded),
-                      label: const Text('Share Image'),
+                      label: Text(l10n.shareImage),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,

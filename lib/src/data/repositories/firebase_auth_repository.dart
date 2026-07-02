@@ -130,17 +130,27 @@ class FirebaseAuthRepository implements AuthRepository {
       if (userDoc.exists) {
         final raw = userDoc.data()!;
         final hadNotificationSettings = raw['notificationSettings'] != null;
+        final needsHeal = raw['username'] == null || raw['email'] == null;
         final patch = <String, dynamic>{
           'lastLogin': DateTime.now().millisecondsSinceEpoch,
         };
+        if (needsHeal) {
+          patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
+          patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
+          patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+          patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
+          patch['readingHistory'] = raw['readingHistory'] ?? [];
+          patch['savedBooks'] = raw['savedBooks'] ?? [];
+          patch['bookmarks'] = raw['bookmarks'] ?? [];
+        }
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
         }
-        if (raw['searchTerms'] is! List) {
+        if (raw['searchTerms'] is! List || needsHeal) {
           patch['searchTerms'] = buildProfileSearchTerms(
-            username: raw['username']?.toString() ?? fallbackUser.username,
-            email: raw['email']?.toString() ?? fallbackUser.email,
-            displayName: raw['displayName']?.toString(),
+            username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
+            email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
+            displayName: raw['displayName']?.toString() ?? fbUser.displayName,
             penName: raw['penName']?.toString(),
           );
         }
@@ -239,17 +249,27 @@ class FirebaseAuthRepository implements AuthRepository {
       if (userDoc.exists) {
         final raw = userDoc.data()!;
         final hadNotificationSettings = raw['notificationSettings'] != null;
+        final needsHeal = raw['username'] == null || raw['email'] == null;
         final patch = <String, dynamic>{
           'lastLogin': DateTime.now().millisecondsSinceEpoch,
         };
+        if (needsHeal) {
+          patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
+          patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
+          patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+          patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
+          patch['readingHistory'] = raw['readingHistory'] ?? [];
+          patch['savedBooks'] = raw['savedBooks'] ?? [];
+          patch['bookmarks'] = raw['bookmarks'] ?? [];
+        }
         if (!hadNotificationSettings) {
           patch['notificationSettings'] = defaultNotificationSettingsMap();
         }
-        if (raw['searchTerms'] is! List) {
+        if (raw['searchTerms'] is! List || needsHeal) {
           patch['searchTerms'] = buildProfileSearchTerms(
-            username: raw['username']?.toString() ?? fallbackUser.username,
-            email: raw['email']?.toString() ?? fallbackUser.email,
-            displayName: raw['displayName']?.toString(),
+            username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
+            email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
+            displayName: raw['displayName']?.toString() ?? fbUser.displayName,
             penName: raw['penName']?.toString(),
           );
         }

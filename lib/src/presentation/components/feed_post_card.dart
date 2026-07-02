@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -282,11 +281,25 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   if (pickedImage != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(pickedImage!.path),
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                      child: FutureBuilder(
+                        future: pickedImage!.readAsBytes(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return Container(
+                              height: 150,
+                              width: double.infinity,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                            );
+                          }
+                          return Image.memory(
+                            snapshot.data!,
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -333,21 +346,21 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   AudioPostCreator(
                     key: audioCreatorKey,
                     onAudioChanged:
-                        (path, durationMs, sizeBytes, mimeType) async {
+                        (file, durationMs, sizeBytes, mimeType) async {
                           setModalState(() {
-                            audioPath = path;
-                            audioDurationMs = path == null
+                            audioPath = file?.path;
+                            audioDurationMs = file == null
                                 ? widget.post.audioDurationMs
                                 : durationMs;
-                            audioSizeBytes = path == null
+                            audioSizeBytes = file == null
                                 ? widget.post.audioSizeBytes
                                 : sizeBytes;
-                            audioMimeType = path == null
+                            audioMimeType = file == null
                                 ? widget.post.audioMimeType
                                 : mimeType;
                           });
 
-                          if (path == null) {
+                          if (file == null) {
                             final keyToDelete = uploadedAudioObjectKey;
                             setModalState(() {
                               uploadedAudioUrl = null;
@@ -386,7 +399,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             final result = await ref
                                 .read(audioPostUploadServiceProvider)
                                 .uploadAudioPost(
-                                  filePath: path,
+                                  file: file,
                                   userId: user.id,
                                   mimeType: mimeType,
                                   durationMs: durationMs,
@@ -412,7 +425,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                               ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Audio upload failed: ${e.toString()}',
+                                    l10n.audioUploadFailed(e.toString()),
                                   ),
                                 ),
                               );
@@ -445,7 +458,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Uploading audio...',
+                          l10n.uploadingAudio,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -489,7 +502,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             : () => audioCreatorKey.currentState
                                   ?.startRecording(),
                         icon: const Icon(Icons.mic_none_outlined),
-                        label: const Text('Record audio'),
+                        label: Text(l10n.recordAudio),
                       ),
                       OutlinedButton.icon(
                         onPressed: isRecordingAudio
@@ -499,8 +512,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         icon: const Icon(Icons.upload_file_outlined),
                         label: Text(
                           audioUrl == null && audioPath == null
-                              ? 'Add audio'
-                              : 'Replace audio',
+                              ? l10n.addAudio
+                              : l10n.replaceAudio,
                         ),
                       ),
                       if (audioUrl != null || audioPath != null)
@@ -532,7 +545,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             }
                           },
                           icon: const Icon(Icons.delete_outline_rounded),
-                          label: const Text('Remove audio'),
+                          label: Text(l10n.removeAudio),
                         ),
                     ],
                   ),
@@ -724,6 +737,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         (currentUser != null && post.likes.contains(currentUser.id));
     final likesCount =
         _optimisticLikesCount ?? post.likesCount ?? post.likes.length;
+    final displayLikesCount = likesCount < 0 ? 0 : likesCount;
     final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
     final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
     final bookIdText = post.bookId?.toString();
@@ -1054,13 +1068,43 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                         ),
                       ),
                       Expanded(
-                        child: Text(
-                          post.question!,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: colorScheme.primary,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              post.question!,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () {
+                                final bId = post.bookId?.toString() ?? '';
+                                final leafId = post.questionLeafId ?? post.id ?? '';
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.questionAnswers,
+                                  arguments: QuestionLeafAnswersQuery(
+                                    bookId: bId,
+                                    leafId: leafId,
+                                    question: post.question!,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                l10n.viewAllAnswers,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.secondary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       if (currentUser != null &&
@@ -1184,23 +1228,26 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             // ─── Post image ───────────────────────────────────
             if (post.imageUrl != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: optimizedImageUrl(
-                    post.imageUrl!,
-                    width: 1000,
-                    quality: 90,
-                    fit: 'cover',
+              GestureDetector(
+                onTap: () => _showZoomableImage(context, post.imageUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: optimizedImageUrl(
+                      post.imageUrl!,
+                      width: 1000,
+                      quality: 90,
+                      fit: 'cover',
+                    ),
+                    placeholder: (context, url) => Container(
+                      height: 200,
+                      color: colorScheme.surfaceContainerHighest,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => const SizedBox(),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
-                  placeholder: (context, url) => Container(
-                    height: 200,
-                    color: colorScheme.surfaceContainerHighest,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => const SizedBox(),
-                  width: double.infinity,
-                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: 12),
@@ -1215,7 +1262,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
                   iconColor: liked ? Colors.red : null,
-                  label: likesCount.toString(),
+                  label: displayLikesCount > 0 ? displayLikesCount.toString() : '',
                   semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
                   loading: _liking,
                   onTap: _toggleLike,
@@ -1321,15 +1368,17 @@ class _ActionButton extends StatelessWidget {
                   size: 18,
                   color: iconColor ?? colorScheme.onSurfaceVariant,
                 ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
+              if (label.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -1589,4 +1638,46 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       ),
     );
   }
+}
+
+void _showZoomableImage(BuildContext context, String url) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: InteractiveViewer(
+            minScale: 0.8,
+            maxScale: 4.0,
+            child: CachedNetworkImage(
+              imageUrl: optimizedImageUrl(
+                url,
+                width: 1600,
+                quality: 90,
+                fit: 'contain',
+              ),
+              fit: BoxFit.contain,
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) => const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

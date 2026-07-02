@@ -18,7 +18,6 @@ import '../providers/haptics_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/notification_providers.dart';
 import '../providers/profile_providers.dart';
-import '../providers/shake_report_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
 import '../widgets/auth_required_view.dart';
@@ -67,7 +66,6 @@ class ProfileScreen extends ConsumerWidget {
           length: 6,
           child: Scaffold(
             backgroundColor: Colors.transparent,
-            endDrawer: const _ProfileSideMenu(),
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
@@ -107,12 +105,10 @@ class ProfileScreen extends ConsumerWidget {
                             _shareProfile(context, user, worksCount),
                       ),
                       _NotificationAction(),
-                      Builder(
-                        builder: (context) => IconButton(
-                          tooltip: l10n.menu,
-                          icon: const Icon(Icons.menu_rounded),
-                          onPressed: () => Scaffold.of(context).openEndDrawer(),
-                        ),
+                      IconButton(
+                        tooltip: l10n.menu,
+                        icon: const Icon(Icons.menu_rounded),
+                        onPressed: () => _showProfileSideMenu(context),
                       ),
                     ],
                   ),
@@ -586,7 +582,7 @@ class _ProfileSideMenu extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       child: GlassSurface(
         strong: true,
-        borderRadius: const BorderRadius.horizontal(right: Radius.circular(28)),
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(28)),
         child: SafeArea(
           child: Column(
             children: [
@@ -656,15 +652,6 @@ class _ProfileSideMenu extends ConsumerWidget {
                       icon: Icons.bug_report_outlined,
                       title: l10n.submitError,
                       onTap: () => _showErrorReportDialog(context, ref),
-                    ),
-                    _GlassSwitchTile(
-                      icon: Icons.vibration_rounded,
-                      title: l10n.shakeToReport,
-                      subtitle: l10n.shakeToReportSubtitle,
-                      value: ref.watch(shakeToReportEnabledProvider),
-                      onChanged: (enabled) => ref
-                          .read(shakeToReportEnabledProvider.notifier)
-                          .setEnabled(enabled),
                     ),
                     _MenuTile(
                       icon: Icons.help_outline_rounded,
@@ -1166,6 +1153,38 @@ double _profileCollapseProgress(FlexibleSpaceBarSettings? settings) {
   return ((settings.maxExtent - settings.currentExtent) / delta).clamp(
     0.0,
     1.0,
+  );
+}
+
+void _showProfileSideMenu(BuildContext context) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.black.withValues(alpha: 0.4),
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return const Align(
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          width: 304,
+          child: _ProfileSideMenu(),
+        ),
+      );
+    },
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        )),
+        child: child,
+      );
+    },
   );
 }
 

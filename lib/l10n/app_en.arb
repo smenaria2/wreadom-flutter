@@ -1450,12 +1450,79 @@
       "duration": { "type": "String" }
     }
   },
-  "shareReview": "Share review"
-
-,
+  "shareReview": "Share review",
+  "audioFileTooLarge": "Audio file must be 10MB or smaller.",
+  "audioUploadFailed": "Audio upload failed: {error}",
+  "@audioUploadFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "recordingVoiceNote": "Recording voice note... {duration}",
+  "@recordingVoiceNote": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "audioClipAttached": "Audio clip attached",
+  "audioClipDetails": "Duration: {duration} • Size: {size}",
+  "@audioClipDetails": {
+    "placeholders": {
+      "duration": { "type": "String" },
+      "size": { "type": "String" }
+    }
+  },
+  "audioCoverArt": "Audio cover art",
+  "referBook": "Refer book",
+  "customCover": "Custom cover",
+  "customCoverArt": "Custom cover art",
+  "usingBookCover": "Using book cover",
+  "customUploadedImage": "Custom uploaded image",
+  "previewAudio": "Preview audio",
+  "recordAudio": "Record audio",
+  "addAudio": "Add audio",
+  "replaceAudio": "Replace audio",
+  "removeAudio": "Remove audio",
+  "uploadAudio": "Upload audio",
+  "changeQuestion": "Change question",
+  "answerQuestionAction": "Answer question",
+  "feedFilterEmptyTitle": "No posts found for this filter",
+  "feedFilterEmptyBody": "Try loading more posts or choosing another filter.",
+  "postAudioHint": "Say something about this audio.",
+  "loadingFile": "Loading file...",
+  "uploadingAudio": "Uploading audio...",
   "audioPosts": "Audio Posts",
-  "newAuthors": "New Authors",
+  "newAuthors": "Popular Authors",
   "dragRecordToSeek": "Drag record to seek",
   "completeVideoAdToUnlockChapter": "Watch the complete video ad to unlock the chapter. Ads help keep this app free for you.",
-  "tapToAnswerQuestion": "Tap to answer"
+  "tapToAnswerQuestion": "Tap to answer",
+  "yourRating": "Your Rating:",
+  "send": "Send",
+  "share": "Share",
+  "shareExternally": "Share Externally",
+  "shareImage": "Share Image",
+  "failedToShare": "Failed to share: {error}",
+  "@failedToShare": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToShareToFeed": "Failed to share to feed: {error}",
+  "@failedToShareToFeed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterMessage": "Please enter a message to share",
+  "deleteLeafTitle": "Delete Leaf?",
+  "deleteLeafContent": "This removes the Leaf from the book.",
+  "leafAdded": "Leaf added.",
+  "leafDeleted": "Leaf deleted.",
+  "add": "Add",
+  "viewAllAnswers": "View all answers",
+  "viewAllAnswersInFeed": "View all answers in feed"
 }

@@ -49,6 +49,7 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
   }
 
   Future<void> _shareExternally() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await shareBookLinkWithCover(
         text: _messageController.text.trim(),
@@ -63,7 +64,7 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToShare(e.toString()))));
       }
     }
   }
@@ -84,7 +85,7 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
     if (shareText.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a message to share')),
+          SnackBar(content: Text(l10n.pleaseEnterMessage)),
         );
       }
       return;
@@ -125,7 +126,7 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to share to feed: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToShareToFeed(e.toString()))));
       }
     } finally {
       if (mounted) {
@@ -235,7 +236,7 @@ class _BookSharePreviewSheetState extends ConsumerState<BookSharePreviewSheet> {
                     child: ElevatedButton.icon(
                       onPressed: _isSharingToFeed ? null : _shareExternally,
                       icon: const Icon(Icons.share_rounded),
-                      label: const Text('Share Externally'),
+                      label: Text(l10n.shareExternally),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,

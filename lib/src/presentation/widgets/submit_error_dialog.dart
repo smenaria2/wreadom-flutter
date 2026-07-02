@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../utils/app_log_collector.dart';
 import '../providers/auth_providers.dart';
 import '../providers/report_providers.dart';
+import '../providers/shake_report_provider.dart';
 import 'glass_surface.dart';
 
 class SubmitErrorDialog extends ConsumerStatefulWidget {
@@ -84,6 +85,26 @@ class _SubmitErrorDialogState extends ConsumerState<SubmitErrorDialog> {
                     hintText: l10n.describeIssueHint,
                     alignLabelWithHint: true,
                   ),
+                ),
+                const SizedBox(height: 10),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    l10n.shakeToReport,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    l10n.shakeToReportSubtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  value: ref.watch(shakeToReportEnabledProvider),
+                  onChanged: (enabled) => ref
+                      .read(shakeToReportEnabledProvider.notifier)
+                      .setEnabled(enabled),
                 ),
                 const SizedBox(height: 12),
                 Row(

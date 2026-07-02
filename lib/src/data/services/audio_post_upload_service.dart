@@ -4,8 +4,8 @@ import 'package:image_picker/image_picker.dart';
 
 class AudioPostUploadService {
   AudioPostUploadService({FirebaseFunctions? functions, Dio? dio})
-      : _functions = functions ?? FirebaseFunctions.instance,
-        _dio = dio ?? Dio();
+    : _functions = functions ?? FirebaseFunctions.instance,
+      _dio = dio ?? Dio();
 
   static const int maxAudioBytes = 10 * 1024 * 1024; // 10MB
 
@@ -13,7 +13,7 @@ class AudioPostUploadService {
   final Dio _dio;
 
   Future<AudioPostUploadResult> uploadAudioPost({
-    required String filePath,
+    required XFile file,
     required String userId,
     required String mimeType,
     required int durationMs,
@@ -25,7 +25,6 @@ class AudioPostUploadService {
       );
     }
 
-    final file = XFile(filePath, mimeType: mimeType);
     final bytes = await file.readAsBytes();
     if (bytes.isEmpty) {
       throw const AudioPostUploadException('Audio file is empty.');

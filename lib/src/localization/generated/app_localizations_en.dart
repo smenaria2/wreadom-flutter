@@ -2699,10 +2699,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareReview => 'Share review';
 
   @override
+  String get audioFileTooLarge => 'Audio file must be 10MB or smaller.';
+
+  @override
+  String audioUploadFailed(String error) {
+    return 'Audio upload failed: $error';
+  }
+
+  @override
+  String recordingVoiceNote(String duration) {
+    return 'Recording voice note... $duration';
+  }
+
+  @override
+  String get audioClipAttached => 'Audio clip attached';
+
+  @override
+  String audioClipDetails(String duration, String size) {
+    return 'Duration: $duration • Size: $size';
+  }
+
+  @override
+  String get audioCoverArt => 'Audio cover art';
+
+  @override
+  String get referBook => 'Refer book';
+
+  @override
+  String get customCover => 'Custom cover';
+
+  @override
+  String get customCoverArt => 'Custom cover art';
+
+  @override
+  String get usingBookCover => 'Using book cover';
+
+  @override
+  String get customUploadedImage => 'Custom uploaded image';
+
+  @override
+  String get previewAudio => 'Preview audio';
+
+  @override
+  String get recordAudio => 'Record audio';
+
+  @override
+  String get addAudio => 'Add audio';
+
+  @override
+  String get replaceAudio => 'Replace audio';
+
+  @override
+  String get removeAudio => 'Remove audio';
+
+  @override
+  String get uploadAudio => 'Upload audio';
+
+  @override
+  String get changeQuestion => 'Change question';
+
+  @override
+  String get answerQuestionAction => 'Answer question';
+
+  @override
+  String get feedFilterEmptyTitle => 'No posts found for this filter';
+
+  @override
+  String get feedFilterEmptyBody =>
+      'Try loading more posts or choosing another filter.';
+
+  @override
+  String get postAudioHint => 'Say something about this audio.';
+
+  @override
+  String get loadingFile => 'Loading file...';
+
+  @override
+  String get uploadingAudio => 'Uploading audio...';
+
+  @override
   String get audioPosts => 'Audio Posts';
 
   @override
-  String get newAuthors => 'New Authors';
+  String get newAuthors => 'Popular Authors';
 
   @override
   String get dragRecordToSeek => 'Drag record to seek';
@@ -2713,4 +2792,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tapToAnswerQuestion => 'Tap to answer';
+
+  @override
+  String get yourRating => 'Your Rating:';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get shareExternally => 'Share Externally';
+
+  @override
+  String get shareImage => 'Share Image';
+
+  @override
+  String failedToShare(String error) {
+    return 'Failed to share: $error';
+  }
+
+  @override
+  String failedToShareToFeed(String error) {
+    return 'Failed to share to feed: $error';
+  }
+
+  @override
+  String get pleaseEnterMessage => 'Please enter a message to share';
+
+  @override
+  String get deleteLeafContent => 'This removes the Leaf from the book.';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get viewAllAnswers => 'View all answers';
+
+  @override
+  String get viewAllAnswersInFeed => 'View all answers in feed';
 }

@@ -28,6 +28,8 @@ import '../screens/writer_dashboard_screen.dart';
 import '../screens/writer_pad_screen.dart';
 import '../screens/archive_reader_screen.dart';
 import '../screens/admin_daily_topics_screen.dart';
+import '../screens/question_answers_screen.dart';
+import '../providers/feed_providers.dart';
 import '../components/main_route_gate.dart';
 import 'app_routes.dart';
 import 'writer_pad_mode.dart';
@@ -297,6 +299,15 @@ class AppRouter {
           settings: routeSettings,
           builder: (_) => const NotificationsScreen(),
         );
+      case AppRoutes.questionAnswers:
+        final args = resolvedArguments;
+        if (args is! QuestionLeafAnswersQuery) {
+          return _notFound('Question query details are missing.');
+        }
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => QuestionAnswersScreen(query: args),
+        );
       case AppRoutes.conversation:
         final argsValue = resolvedArguments;
         if (argsValue is! ConversationArguments) {
@@ -345,6 +356,8 @@ class AppRouter {
             book: args?.book,
             initialTopic: args?.initialTopic,
             optOutComplementary: args?.optOutComplementary,
+            initialText: args?.initialText,
+            restoreLocalDrafts: args?.initialText == null,
           ),
         );
       case AppRoutes.postDetail:

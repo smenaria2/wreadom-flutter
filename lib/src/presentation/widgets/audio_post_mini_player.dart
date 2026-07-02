@@ -10,6 +10,7 @@ import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
+import '../constants/layout_constants.dart';
 
 class AudioPostMiniPlayer extends ConsumerWidget {
   const AudioPostMiniPlayer({super.key});
@@ -43,7 +44,7 @@ class AudioPostMiniPlayer extends ConsumerWidget {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: const EdgeInsets.only(
-              bottom: 86.0,
+              bottom: kMiniPlayerBottomOffset,
             ), // Float directly above the bottom navigation bar
             child: GlassSurface(
               strong: true,

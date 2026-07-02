@@ -41,6 +41,7 @@ import 'src/utils/app_haptics.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'src/utils/sharing_intent_handler.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -310,6 +311,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       return GoogleSignInInitializer.ensureInitialized();
     });
     unawaited(_initDeepLinks());
+    SharingIntentHandler.instance.init(_navigatorKey);
   }
 
   Future<void> _retryFirebaseStartup() async {
@@ -484,6 +486,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   void dispose() {
+    SharingIntentHandler.instance.dispose();
     _linkSubscription?.cancel();
     _googleAuthSubscription?.cancel();
     _pendingNavigation.dispose();

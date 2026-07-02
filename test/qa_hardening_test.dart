@@ -1603,7 +1603,7 @@ void main() {
     expect(homeScreenSource, contains('l10n.mostReadAuthors'));
     expect(homeScreenSource, contains('l10n.mostPublishedAuthors'));
     expect(homeScreenSource, contains('l10n.shelfTrending'));
-    expect(l10n['newAuthors'], 'New Authors');
+    expect(l10n['newAuthors'], 'Popular Authors');
     expect(l10n['mostReadAuthors'], 'Most Read Authors');
     expect(l10n['mostPublishedAuthors'], 'Most Published Authors');
     expect(l10n['shelfTrending'], 'Trending Works');

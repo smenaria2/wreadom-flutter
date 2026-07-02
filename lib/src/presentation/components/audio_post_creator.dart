@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -24,13 +23,21 @@ class AudioPostCreator extends StatefulWidget {
     required this.onCoverChanged,
     required this.onBookReferred,
     this.onRecordingStateChanged,
+    this.initialAudioPath,
+    this.initialAudioDurationMs,
+    this.initialAudioSizeBytes,
+    this.initialAudioMimeType,
   });
 
-  final Function(String? path, int durationMs, int sizeBytes, String mimeType)
+  final Function(XFile? file, int durationMs, int sizeBytes, String mimeType)
   onAudioChanged;
   final ValueChanged<XFile?> onCoverChanged;
   final ValueChanged<Book?> onBookReferred;
   final ValueChanged<bool>? onRecordingStateChanged;
+  final String? initialAudioPath;
+  final int? initialAudioDurationMs;
+  final int? initialAudioSizeBytes;
+  final String? initialAudioMimeType;
 
   @override
   State<AudioPostCreator> createState() => AudioPostCreatorState();
@@ -44,6 +51,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
   Future<void> pickAudioFile() => _pickAudioFile();
   bool get isRecording => _isRecording;
   String? get audioPath => _audioPath;
+  XFile? get audioFile => _audioFile;
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
@@ -53,6 +61,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
   int _recordingDurationMs = 0;
 
   String? _audioPath;
+  String? _audioPreviewPath;
+  XFile? _audioFile;
   int _audioDurationMs = 0;
   int _audioSizeBytes = 0;
   String _audioMimeType = 'audio/m4a';
@@ -64,6 +74,15 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
   @override
   void initState() {
     super.initState();
+    _audioPath = widget.initialAudioPath;
+    _audioPreviewPath = widget.initialAudioPath;
+    _audioDurationMs = widget.initialAudioDurationMs ?? 0;
+    _audioSizeBytes = widget.initialAudioSizeBytes ?? 0;
+    _audioMimeType = widget.initialAudioMimeType ?? 'audio/m4a';
+    if (widget.initialAudioPath != null) {
+      _audioFile = XFile(widget.initialAudioPath!, mimeType: _audioMimeType);
+    }
+
     _previewPlayer.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
@@ -93,7 +112,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Microphone permission is needed to record.'),
+          content: Text(l10n.microphonePermissionRequired),
           action: status.isPermanentlyDenied
               ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
               : null,
@@ -103,9 +122,10 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     }
 
     try {
-      final tempDir = await getTemporaryDirectory();
-      final path =
-          '${tempDir.path}/audio_post_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = kIsWeb
+          ? 'audio_post_$timestamp.m4a'
+          : '${(await getTemporaryDirectory()).path}/audio_post_$timestamp.m4a';
 
       await _audioRecorder.start(
         const RecordConfig(
@@ -132,6 +152,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
       setState(() {
         _isRecording = true;
         _audioPath = null;
+        _audioPreviewPath = null;
+        _audioFile = null;
       });
       widget.onRecordingStateChanged?.call(true);
       AppHaptics.medium();
@@ -152,12 +174,14 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
       return;
     }
 
-    final file = File(path);
+    final file = XFile(path, mimeType: 'audio/m4a');
     final size = await file.length();
 
     setState(() {
       _isRecording = false;
       _audioPath = path;
+      _audioPreviewPath = path;
+      _audioFile = file;
       _audioDurationMs = _recordingDurationMs;
       _audioSizeBytes = size;
       _audioMimeType = 'audio/m4a';
@@ -165,7 +189,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
     widget.onRecordingStateChanged?.call(false);
     widget.onAudioChanged(
-      _audioPath,
+      _audioFile,
       _audioDurationMs,
       _audioSizeBytes,
       _audioMimeType,
@@ -187,25 +211,30 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
   // Picking audio file
   Future<void> _pickAudioFile() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.audio,
         allowCompression: true,
+        withData: kIsWeb,
       );
 
-      if (result == null || result.files.single.path == null) return;
+      if (result == null) return;
 
       final pickedFile = result.files.single;
-      final path = pickedFile.path!;
-      final size = pickedFile.size;
+      final bytes = pickedFile.bytes;
+      final path = pickedFile.path;
+      if (path == null && bytes == null) return;
+
+      final size = pickedFile.size > 0 ? pickedFile.size : bytes?.length ?? 0;
 
       // Enforce 10MB limit
       const maxLimit = 10 * 1024 * 1024;
       if (size > maxLimit) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Audio file must be 10MB or smaller.'),
+            SnackBar(
+              content: Text(l10n.audioFileTooLarge),
               backgroundColor: Colors.red,
             ),
           );
@@ -213,45 +242,42 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
         return;
       }
 
-      int durationMs = 0;
-      try {
-        final duration = await _previewPlayer.setAudioSource(
-          AudioSource.file(
-            path,
-            tag: const MediaItem(
-              id: 'audio_post_upload_preview',
-              title: 'Audio upload preview',
-              album: 'Wreadom audio post',
-            ),
-          ),
-        );
-        durationMs = duration?.inMilliseconds ?? 0;
-        await _previewPlayer.stop();
-      } catch (e) {
-        debugPrint('Could not read audio duration, fallback to 0: $e');
-      }
+      final mime = _mimeTypeForAudioName(path ?? pickedFile.name);
+      final audioFile = path != null
+          ? XFile(path, mimeType: mime)
+          : XFile.fromData(bytes!, name: pickedFile.name, mimeType: mime);
 
-      // Guess MIME type from extension
-      String mime = 'audio/mpeg';
-      if (path.endsWith('.m4a')) {
-        mime = 'audio/m4a';
-      } else if (path.endsWith('.mp4')) {
-        mime = 'audio/mp4';
-      } else if (path.endsWith('.wav')) {
-        mime = 'audio/wav';
-      } else if (path.endsWith('.aac')) {
-        mime = 'audio/aac';
+      int durationMs = 0;
+      if (path != null) {
+        try {
+          final duration = await _previewPlayer.setAudioSource(
+            AudioSource.file(
+              path,
+              tag: const MediaItem(
+                id: 'audio_post_upload_preview',
+                title: 'Audio upload preview',
+                album: 'Wreadom audio post',
+              ),
+            ),
+          );
+          durationMs = duration?.inMilliseconds ?? 0;
+          await _previewPlayer.stop();
+        } catch (e) {
+          debugPrint('Could not read audio duration, fallback to 0: $e');
+        }
       }
 
       setState(() {
-        _audioPath = path;
+        _audioPath = path ?? pickedFile.name;
+        _audioPreviewPath = path;
+        _audioFile = audioFile;
         _audioDurationMs = durationMs;
         _audioSizeBytes = size;
         _audioMimeType = mime;
       });
 
       widget.onAudioChanged(
-        _audioPath,
+        _audioFile,
         _audioDurationMs,
         _audioSizeBytes,
         _audioMimeType,
@@ -266,6 +292,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     _previewPlayer.stop();
     setState(() {
       _audioPath = null;
+      _audioPreviewPath = null;
+      _audioFile = null;
       _audioDurationMs = 0;
       _audioSizeBytes = 0;
       _customCover = null;
@@ -279,13 +307,13 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
   // Previewing attached audio
   Future<void> _togglePreview() async {
-    if (_audioPath == null) return;
+    if (_audioPreviewPath == null) return;
     if (_previewPlayer.playing) {
       await _previewPlayer.pause();
     } else {
       await _previewPlayer.setAudioSource(
         AudioSource.file(
-          _audioPath!,
+          _audioPreviewPath!,
           tag: const MediaItem(
             id: 'audio_post_creator_preview',
             title: 'Audio post preview',
@@ -342,6 +370,17 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     AppHaptics.light();
   }
 
+  String _mimeTypeForAudioName(String value) {
+    final lower = value.toLowerCase();
+    if (lower.endsWith('.m4a')) return 'audio/m4a';
+    if (lower.endsWith('.mp4')) return 'audio/mp4';
+    if (lower.endsWith('.wav')) return 'audio/wav';
+    if (lower.endsWith('.aac')) return 'audio/aac';
+    if (lower.endsWith('.ogg')) return 'audio/ogg';
+    if (lower.endsWith('.flac')) return 'audio/flac';
+    return 'audio/mpeg';
+  }
+
   String _formatDuration(int ms) {
     final duration = Duration(milliseconds: ms);
     final minutes = duration.inMinutes;
@@ -357,6 +396,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     // 1. RECORDING STATE
     if (_isRecording) {
@@ -370,7 +410,9 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                 const Icon(Icons.mic_rounded, color: Colors.red, size: 24),
                 const SizedBox(width: 12),
                 Text(
-                  'Recording voice note... ${_formatDuration(_recordingDurationMs)}',
+                  l10n.recordingVoiceNote(
+                    _formatDuration(_recordingDurationMs),
+                  ),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -388,7 +430,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                 TextButton.icon(
                   onPressed: _cancelRecording,
                   icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: const Text('Cancel'),
+                  label: Text(l10n.cancel),
                   style: TextButton.styleFrom(
                     foregroundColor: theme.colorScheme.error,
                   ),
@@ -397,7 +439,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                 ElevatedButton.icon(
                   onPressed: _stopRecording,
                   icon: const Icon(Icons.stop_rounded, size: 18),
-                  label: const Text('Done'),
+                  label: Text(l10n.done),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
@@ -411,7 +453,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
     }
 
     // 2. NO AUDIO ATTACHED STATE
-    if (_audioPath == null) {
+    if (_audioFile == null) {
       return const SizedBox.shrink();
     }
 
@@ -444,15 +486,18 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Audio Clip Attached',
+                    Text(
+                      l10n.audioClipAttached,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                       ),
                     ),
                     Text(
-                      'Duration: ${_formatDuration(_audioDurationMs)} • Size: ${_formatSize(_audioSizeBytes)}',
+                      l10n.audioClipDetails(
+                        _formatDuration(_audioDurationMs),
+                        _formatSize(_audioSizeBytes),
+                      ),
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -468,16 +513,16 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                 ),
-                onPressed: _togglePreview,
+                onPressed: _audioPreviewPath == null ? null : _togglePreview,
                 color: theme.colorScheme.primary,
-                tooltip: 'Preview',
+                tooltip: l10n.previewAudio,
               ),
               // Delete button
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded),
                 onPressed: _removeAudio,
                 color: theme.colorScheme.error,
-                tooltip: 'Remove',
+                tooltip: l10n.removeAudio,
               ),
             ],
           ),
@@ -485,7 +530,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
 
           // Cover options header
           Text(
-            'Audio Cover Art',
+            l10n.audioCoverArt,
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
@@ -498,7 +543,10 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
             children: [
               ActionChip(
                 avatar: const Icon(Icons.book_rounded, size: 14),
-                label: const Text('Refer Book', style: TextStyle(fontSize: 11)),
+                label: Text(
+                  l10n.referBook,
+                  style: const TextStyle(fontSize: 11),
+                ),
                 onPressed: _referBook,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
@@ -506,9 +554,9 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
               const SizedBox(width: 8),
               ActionChip(
                 avatar: const Icon(Icons.image_rounded, size: 14),
-                label: const Text(
-                  'Custom Cover',
-                  style: TextStyle(fontSize: 11),
+                label: Text(
+                  l10n.customCover,
+                  style: const TextStyle(fontSize: 11),
                 ),
                 onPressed: _pickCustomCover,
                 padding: EdgeInsets.zero,
@@ -542,11 +590,27 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                                   height: 56,
                                   child: const Icon(Icons.book, size: 18),
                                 ))
-                        : Image.file(
-                            File(_customCover!.path),
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
+                        : FutureBuilder(
+                            future: _customCover!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: ColoredBox(
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                  ),
+                                );
+                              }
+                              return Image.memory(
+                                snapshot.data!,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              );
+                            },
                           ),
                   ),
                   const SizedBox(width: 10),
@@ -557,7 +621,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                         Text(
                           _referredBook != null
                               ? _referredBook!.title
-                              : 'Custom Cover Art',
+                              : l10n.customCoverArt,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -567,8 +631,8 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                         ),
                         Text(
                           _referredBook != null
-                              ? 'Using book cover'
-                              : 'Custom uploaded image',
+                              ? l10n.usingBookCover
+                              : l10n.customUploadedImage,
                           style: TextStyle(
                             fontSize: 10,
                             color: theme.colorScheme.onSurfaceVariant,

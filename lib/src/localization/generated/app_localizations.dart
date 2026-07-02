@@ -4802,6 +4802,150 @@ abstract class AppLocalizations {
   /// **'Share review'**
   String get shareReview;
 
+  /// No description provided for @audioFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio file must be 10MB or smaller.'**
+  String get audioFileTooLarge;
+
+  /// No description provided for @audioUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio upload failed: {error}'**
+  String audioUploadFailed(String error);
+
+  /// No description provided for @recordingVoiceNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording voice note... {duration}'**
+  String recordingVoiceNote(String duration);
+
+  /// No description provided for @audioClipAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio clip attached'**
+  String get audioClipAttached;
+
+  /// No description provided for @audioClipDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: {duration} • Size: {size}'**
+  String audioClipDetails(String duration, String size);
+
+  /// No description provided for @audioCoverArt.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio cover art'**
+  String get audioCoverArt;
+
+  /// No description provided for @referBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Refer book'**
+  String get referBook;
+
+  /// No description provided for @customCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom cover'**
+  String get customCover;
+
+  /// No description provided for @customCoverArt.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom cover art'**
+  String get customCoverArt;
+
+  /// No description provided for @usingBookCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Using book cover'**
+  String get usingBookCover;
+
+  /// No description provided for @customUploadedImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom uploaded image'**
+  String get customUploadedImage;
+
+  /// No description provided for @previewAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview audio'**
+  String get previewAudio;
+
+  /// No description provided for @recordAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Record audio'**
+  String get recordAudio;
+
+  /// No description provided for @addAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Add audio'**
+  String get addAudio;
+
+  /// No description provided for @replaceAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace audio'**
+  String get replaceAudio;
+
+  /// No description provided for @removeAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove audio'**
+  String get removeAudio;
+
+  /// No description provided for @uploadAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload audio'**
+  String get uploadAudio;
+
+  /// No description provided for @changeQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Change question'**
+  String get changeQuestion;
+
+  /// No description provided for @answerQuestionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer question'**
+  String get answerQuestionAction;
+
+  /// No description provided for @feedFilterEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts found for this filter'**
+  String get feedFilterEmptyTitle;
+
+  /// No description provided for @feedFilterEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try loading more posts or choosing another filter.'**
+  String get feedFilterEmptyBody;
+
+  /// No description provided for @postAudioHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Say something about this audio.'**
+  String get postAudioHint;
+
+  /// No description provided for @loadingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading file...'**
+  String get loadingFile;
+
+  /// No description provided for @uploadingAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading audio...'**
+  String get uploadingAudio;
+
   /// No description provided for @audioPosts.
   ///
   /// In en, this message translates to:
@@ -4811,7 +4955,7 @@ abstract class AppLocalizations {
   /// No description provided for @newAuthors.
   ///
   /// In en, this message translates to:
-  /// **'New Authors'**
+  /// **'Popular Authors'**
   String get newAuthors;
 
   /// No description provided for @dragRecordToSeek.
@@ -4831,6 +4975,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap to answer'**
   String get tapToAnswerQuestion;
+
+  /// No description provided for @yourRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Rating:'**
+  String get yourRating;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @shareExternally.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Externally'**
+  String get shareExternally;
+
+  /// No description provided for @shareImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Image'**
+  String get shareImage;
+
+  /// No description provided for @failedToShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to share: {error}'**
+  String failedToShare(String error);
+
+  /// No description provided for @failedToShareToFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to share to feed: {error}'**
+  String failedToShareToFeed(String error);
+
+  /// No description provided for @pleaseEnterMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a message to share'**
+  String get pleaseEnterMessage;
+
+  /// No description provided for @deleteLeafContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the Leaf from the book.'**
+  String get deleteLeafContent;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @viewAllAnswers.
+  ///
+  /// In en, this message translates to:
+  /// **'View all answers'**
+  String get viewAllAnswers;
+
+  /// No description provided for @viewAllAnswersInFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'View all answers in feed'**
+  String get viewAllAnswersInFeed;
 }
 
 class _AppLocalizationsDelegate

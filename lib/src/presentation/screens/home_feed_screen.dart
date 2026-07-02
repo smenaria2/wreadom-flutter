@@ -12,6 +12,8 @@ import '../components/create_post_sheet.dart';
 import '../routing/app_routes.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
+import '../widgets/audio_post_player.dart';
+import '../constants/layout_constants.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
   const HomeFeedScreen({super.key});
@@ -51,6 +53,11 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final lockScroll = ref.watch(lockScrollProvider);
+    final miniPlayerVisible =
+        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final fabBottomPadding = bottomOverlayFabPadding(
+      miniPlayerVisible: miniPlayerVisible,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -79,21 +86,21 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                tooltip: l10n.notifications,
-                icon: Consumer(
-                  builder: (context, ref, _) {
-                    final unread = ref.watch(unreadNotificationCountProvider);
-                    const icon = Icon(Icons.notifications_none_rounded);
-                    if (unread <= 0) return icon;
-                    return Badge(
-                      label: Text(unread > 99 ? '99+' : '$unread'),
-                      child: icon,
-                    );
-                  },
-                ),
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.notifications),
+              Consumer(
+                builder: (context, ref, _) {
+                  final unread = ref.watch(unreadNotificationCountProvider);
+                  final btn = IconButton(
+                    tooltip: l10n.notifications,
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    onPressed: () => Navigator.of(context)
+                        .pushNamed(AppRoutes.notifications),
+                  );
+                  if (unread <= 0) return btn;
+                  return Badge(
+                    label: Text(unread > 99 ? '99+' : '$unread'),
+                    child: btn,
+                  );
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.search_rounded),
@@ -108,28 +115,31 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: GlassControlSurface(
                 borderRadius: BorderRadius.circular(26),
-                child: SegmentedButton<FeedFilter>(
-                  segments: [
-                    ButtonSegment(
-                      value: FeedFilter.following,
-                      label: Text(l10n.following),
-                      icon: const Icon(Icons.people_outline_rounded),
-                    ),
-                    ButtonSegment(
-                      value: FeedFilter.public,
-                      label: Text(l10n.public),
-                      icon: const Icon(Icons.public_rounded),
-                    ),
-                    ButtonSegment(
-                      value: FeedFilter.mine,
-                      label: Text(l10n.mine),
-                      icon: const Icon(Icons.person_outline_rounded),
-                    ),
-                  ],
-                  selected: {_selectedFilter},
-                  onSelectionChanged: (selection) {
-                    _selectFilter(selection.first);
-                  },
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<FeedFilter>(
+                    segments: [
+                      ButtonSegment(
+                        value: FeedFilter.following,
+                        label: Text(l10n.following),
+                        icon: const Icon(Icons.people_outline_rounded),
+                      ),
+                      ButtonSegment(
+                        value: FeedFilter.public,
+                        label: Text(l10n.public),
+                        icon: const Icon(Icons.public_rounded),
+                      ),
+                      ButtonSegment(
+                        value: FeedFilter.mine,
+                        label: Text(l10n.mine),
+                        icon: const Icon(Icons.person_outline_rounded),
+                      ),
+                    ],
+                    selected: {_selectedFilter},
+                    onSelectionChanged: (selection) {
+                      _selectFilter(selection.first);
+                    },
+                  ),
                 ),
               ),
             ),
@@ -155,7 +165,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 86),
+        padding: EdgeInsets.only(bottom: fabBottomPadding),
         child: GlassSurface(
           strong: true,
           borderRadius: BorderRadius.circular(24),
@@ -219,6 +229,11 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     );
     final lockScroll = ref.watch(lockScrollProvider);
     final l10n = AppLocalizations.of(context)!;
+    final miniPlayerVisible =
+        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final listBottomPadding = bottomOverlayContentPadding(
+      miniPlayerVisible: miniPlayerVisible,
+    );
     final activeQuestions = widget.filter == FeedFilter.following
         ? (ref.watch(activeQuestionsProvider).value ?? const <String>[])
         : const <String>[];
@@ -388,29 +403,6 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
             ),
           ),
-          const SizedBox(height: 24),
-          GlassSurface(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => showCreatePostSheet(context),
-            semanticButton: true,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.edit_rounded, color: colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.createAPost,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       );
       if (questionPrompt != null) {
@@ -418,7 +410,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           physics: lockScroll
               ? const NeverScrollableScrollPhysics()
               : const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 132),
+          padding: EdgeInsets.only(bottom: listBottomPadding),
           children: [
             _QuestionPromptCard(question: questionPrompt),
             SizedBox(height: 360, child: Center(child: emptyState)),
@@ -440,7 +432,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              "No posts found for this filter",
+              l10n.feedFilterEmptyTitle,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 16,
@@ -449,7 +441,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Try loading more posts or choosing another filter.",
+              l10n.feedFilterEmptyBody,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
               ),
@@ -471,7 +463,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         physics: lockScroll
             ? const NeverScrollableScrollPhysics()
             : const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 132),
+        padding: EdgeInsets.only(bottom: listBottomPadding),
         itemCount: items.length + 1 + leadingPromptCount,
         itemBuilder: (context, index) {
           if (questionPrompt != null && index == 0) {

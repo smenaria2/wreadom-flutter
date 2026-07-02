@@ -13,7 +13,7 @@ class ShakeToReportEnabledController extends Notifier<bool> {
   @override
   bool build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    return prefs.getBool(shakeToReportEnabledKey) ?? true;
+    return prefs.getBool(shakeToReportEnabledKey) ?? false;
   }
 
   Future<void> setEnabled(bool enabled) async {

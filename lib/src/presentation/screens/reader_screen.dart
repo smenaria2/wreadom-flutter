@@ -61,7 +61,7 @@ import '../utils/share_text_helper.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import 'static_info_screen.dart';
 
-const double _readerBottomBarHeight = 50;
+const double _readerBottomBarHeight = 54;
 const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
 
 String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
@@ -247,6 +247,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
+  StateSetter? _modalStateSetter;
   bool _isReviewEditMode = true;
   bool _shareReviewToFeed = false;
   bool _isRecordingAudioReview = false;
@@ -1494,7 +1495,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             onShare: () => _handleShareChapter(chapter),
             onReaction: (reaction) => _showDiscussion(
               chapter,
-              focusComposer: true,
+              focusComposer: false,
               prefillText: reaction,
             ),
             book: widget.book,
@@ -1552,7 +1553,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             onShare: () => _handleShareChapter(chapter),
             onReaction: (reaction) => _showDiscussion(
               chapter,
-              focusComposer: true,
+              focusComposer: false,
               prefillText: reaction,
             ),
             book: widget.book,
@@ -2831,6 +2832,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  void _updateState(VoidCallback fn) {
+    if (mounted) {
+      setState(fn);
+    }
+    _modalStateSetter?.call(() {});
+  }
+
   Future<void> _startAudioReviewRecording(
     VoidCallback? refreshUi, {
     BuildContext? feedbackContext,
@@ -3070,7 +3078,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final wasReply = _replyingTo != null;
     if (wasReply && !_canSubmitReply) return;
 
-    setState(() => _isSubmittingComment = true);
+    _updateState(() => _isSubmittingComment = true);
     try {
       if (_isRecordingAudioReview) {
         await _stopAudioReviewRecording(null);
@@ -3115,7 +3123,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
             );
         AnalyticsService.logCommentCreate(targetType: 'book_review_reply');
-        setState(() {
+        _updateState(() {
           _replyingTo = null;
           _clearAudioReviewState();
         });
@@ -3194,7 +3202,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             refreshFeedAfterPostPublish(ref, userId: user.id);
           }
 
-          setState(() {
+          _updateState(() {
             _existingUserReview = comment.copyWith(id: savedReviewId);
             _commentController.value.text = text;
             _isReviewEditMode = false;
@@ -3226,7 +3234,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           }
           return;
         } finally {
-          if (mounted) setState(() => _isSubmittingComment = false);
+          if (mounted) _updateState(() => _isSubmittingComment = false);
         }
       }
       await AppHaptics.light();
@@ -3236,7 +3244,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ref.invalidate(liveBookCommentsProvider(widget.book.id));
     } finally {
       if (mounted && _isSubmittingComment) {
-        setState(() => _isSubmittingComment = false);
+        _updateState(() => _isSubmittingComment = false);
       }
     }
   }
@@ -3261,6 +3269,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _commentController.value.selection = TextSelection.collapsed(
         offset: trimmedPrefill.length,
       );
+      _chapterRating = 5;
+      unawaited(_submitComment(chapter, chapterIndex: chapterIndex));
     }
     if (_isDiscussionOpen) {
       if (focusComposer) {
@@ -3286,6 +3296,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           builder: (context, scrollController) {
             final theme = Theme.of(context);
             final colorScheme = theme.colorScheme;
+            final l10n = AppLocalizations.of(context)!;
             // ignore: no_leading_underscores_for_local_identifiers
             Color _getTextColor() => colorScheme.onSurface;
             // ignore: no_leading_underscores_for_local_identifiers
@@ -3323,7 +3334,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Close',
+                            tooltip: l10n.close,
                             icon: const Icon(Icons.close_rounded),
                             onPressed: () {
                               unawaited(AppHaptics.selection());
@@ -3340,6 +3351,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         children: [
                           StatefulBuilder(
                             builder: (context, setModalState) {
+                              _modalStateSetter = setModalState;
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -3362,9 +3374,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                 ).colorScheme.primary,
                                               ),
                                               const SizedBox(width: 4),
-                                              const Text(
-                                                'Quote',
-                                                style: TextStyle(
+                                              Text(
+                                                l10n.feedTypeQuote,
+                                                style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 12,
                                                 ),
@@ -3421,7 +3433,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                'Replying to ${_replyingTo!.displayName ?? _replyingTo!.username}',
+                                                l10n.replyingTo(
+                                                  _replyingTo!.displayName ??
+                                                      _replyingTo!.username,
+                                                ),
                                                 style: TextStyle(
                                                   fontStyle: FontStyle.italic,
                                                   fontSize: 13,
@@ -3452,7 +3467,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     Row(
                                       children: [
                                         Text(
-                                          'Your Rating:',
+                                          l10n.yourRating,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: _getSecondaryTextColor(),
@@ -3521,7 +3536,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                               Icons.edit_outlined,
                                               size: 16,
                                             ),
-                                            label: const Text('Edit'),
+                                            label: Text(l10n.edit),
                                           ),
                                         ],
                                       ],
@@ -3539,8 +3554,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     maxLines: 4,
                                     decoration: InputDecoration(
                                       hintText: _replyingTo != null
-                                          ? 'Add a reply...'
-                                          : 'Add your review about this chapter',
+                                          ? l10n.addAReply
+                                          : l10n.chapterReviewPromptHint,
                                       hintStyle: TextStyle(
                                         color: _getSecondaryTextColor(),
                                       ),
@@ -3549,8 +3564,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                         children: [
                                           IconButton(
                                             tooltip: _isRecordingAudioReview
-                                                ? 'Stop recording'
-                                                : 'Record audio',
+                                                ? l10n.stopRecording
+                                                : l10n.recordAudio,
                                             icon: Icon(
                                               _isRecordingAudioReview
                                                   ? Icons.stop_circle_outlined
@@ -3589,7 +3604,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                               right: 8.0,
                                             ),
                                             child: IconButton(
-                                              tooltip: 'Send',
+                                              tooltip: l10n.send,
                                               icon: _isSubmittingComment
                                                   ? SizedBox(
                                                       width: 20,
@@ -3835,6 +3850,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     ).whenComplete(() {
       _isDiscussionOpen = false;
       _commentFocusNode.unfocus();
+      _modalStateSetter = null;
     });
     if (focusComposer) {
       Future<void>.delayed(const Duration(milliseconds: 300), () {

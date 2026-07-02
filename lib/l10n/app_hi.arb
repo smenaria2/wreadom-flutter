@@ -1206,9 +1206,78 @@
     }
   },
   "shareReview": "समीक्षा साझा करें",
+  "audioFileTooLarge": "ऑडियो फ़ाइल 10MB या उससे छोटी होनी चाहिए।",
+  "audioUploadFailed": "ऑडियो अपलोड विफल: {error}",
+  "@audioUploadFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "recordingVoiceNote": "वॉइस नोट रिकॉर्ड हो रहा है... {duration}",
+  "@recordingVoiceNote": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "audioClipAttached": "ऑडियो क्लिप जुड़ी है",
+  "audioClipDetails": "अवधि: {duration} • आकार: {size}",
+  "@audioClipDetails": {
+    "placeholders": {
+      "duration": { "type": "String" },
+      "size": { "type": "String" }
+    }
+  },
+  "audioCoverArt": "ऑडियो कवर आर्ट",
+  "referBook": "रचना जोड़ें",
+  "customCover": "कस्टम कवर",
+  "customCoverArt": "कस्टम कवर आर्ट",
+  "usingBookCover": "रचना का कवर इस्तेमाल हो रहा है",
+  "customUploadedImage": "अपलोड की गई कस्टम इमेज",
+  "previewAudio": "ऑडियो पूर्वावलोकन",
+  "recordAudio": "ऑडियो रिकॉर्ड करें",
+  "addAudio": "ऑडियो जोड़ें",
+  "replaceAudio": "ऑडियो बदलें",
+  "removeAudio": "ऑडियो हटाएँ",
+  "uploadAudio": "ऑडियो अपलोड करें",
+  "changeQuestion": "प्रश्न बदलें",
+  "answerQuestionAction": "प्रश्न का जवाब दें",
+  "feedFilterEmptyTitle": "इस फ़िल्टर में कोई पोस्ट नहीं मिली",
+  "feedFilterEmptyBody": "और पोस्ट लोड करें या दूसरा फ़िल्टर चुनें।",
+  "postAudioHint": "इस ऑडियो के बारे में कुछ लिखें।",
+  "loadingFile": "फ़ाइल लोड हो रही है...",
+  "uploadingAudio": "ऑडियो अपलोड हो रहा है...",
   "audioPosts": "ऑडियो पोस्ट",
-  "newAuthors": "नए लेखक",
+  "newAuthors": "लोकप्रिय लेखक",
   "dragRecordToSeek": "सीक करने के लिए रिकॉर्ड घुमाएँ",
   "completeVideoAdToUnlockChapter": "अध्याय अनलॉक करने के लिए पूरा वीडियो विज्ञापन देखें। विज्ञापन इस ऐप को आपके लिए मुफ़्त रखने में मदद करते हैं।",
-  "tapToAnswerQuestion": "जवाब देने के लिए टैप करें"
+  "tapToAnswerQuestion": "जवाब देने के लिए टैप करें",
+  "yourRating": "आपकी रेटिंग:",
+  "send": "भेजें",
+  "share": "शेयर करें",
+  "shareExternally": "बाहरी रूप से शेयर करें",
+  "shareImage": "इमेज शेयर करें",
+  "failedToShare": "शेयर करने में विफल: {error}",
+  "@failedToShare": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToShareToFeed": "फ़ीड पर शेयर करने में विफल: {error}",
+  "@failedToShareToFeed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterMessage": "कृपया शेयर करने के लिए एक संदेश दर्ज करें",
+  "deleteLeafTitle": "लीफ हटाएं?",
+  "deleteLeafContent": "यह पुस्तक से लीफ को हटा देता है।",
+  "leafAdded": "लीफ जोड़ा गया।",
+  "leafDeleted": "लीफ हटा दिया गया।",
+  "add": "जोड़ें",
+  "viewAllAnswers": "सभी जवाब देखें",
+  "viewAllAnswersInFeed": "फ़ीड में सभी जवाब देखें"
 }

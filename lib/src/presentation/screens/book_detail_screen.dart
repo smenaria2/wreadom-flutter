@@ -1764,7 +1764,8 @@ class _BookDetailHeader extends StatelessWidget {
             child: SizedBox.expand(),
           ),
         ),
-        Center(
+        Align(
+          alignment: Alignment.bottomCenter,
           child: Opacity(
             opacity: coverOpacity,
             child: Transform.translate(
@@ -1772,7 +1773,7 @@ class _BookDetailHeader extends StatelessWidget {
               child: Transform.scale(
                 scale: 1 - (progress * 0.10),
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(bottom: 24),
                   child: heroTag == null
                       ? _DetailCover(book: book)
                       : Hero(

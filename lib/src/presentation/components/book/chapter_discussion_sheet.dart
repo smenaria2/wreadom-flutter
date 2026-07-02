@@ -11,6 +11,7 @@ import 'comment_reply_sheet.dart';
 import '../../routing/app_routes.dart';
 import '../../routing/app_router.dart';
 import '../../providers/book_providers.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 void showChapterDiscussionSheet({
   required BuildContext context,
@@ -238,7 +239,7 @@ class _ChapterDiscussionSheetState
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) =>
-                  Center(child: Text('Error loading comments: $err')),
+                  Center(child: Text(AppLocalizations.of(context)!.failedToLoadComments(err.toString()))),
             ),
           ),
         ],

@@ -44,6 +44,7 @@ class WriterPadScreen extends ConsumerStatefulWidget {
     this.showToolbar = true,
     this.optOutComplementary,
     this.openPrintPage,
+    this.initialText,
   });
 
   final Book? book;
@@ -52,6 +53,7 @@ class WriterPadScreen extends ConsumerStatefulWidget {
   final bool showToolbar;
   final bool? optOutComplementary;
   final Future<bool> Function(Uri uri)? openPrintPage;
+  final String? initialText;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -281,7 +283,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapters.add(_ChapterDraft.fromChapter(chapter, _markDirty));
     }
     if (_chapters.isEmpty) {
-      _chapters.add(_ChapterDraft.empty(_markDirty));
+      _chapters.add(_ChapterDraft.empty(_markDirty, initialText: widget.initialText));
     }
 
     _autosaveTimer = Timer.periodic(
@@ -3608,11 +3610,18 @@ class _ChapterDraft {
     );
   }
 
-  factory _ChapterDraft.empty(VoidCallback onChanged) {
+  factory _ChapterDraft.empty(VoidCallback onChanged, {String? initialText}) {
+    final doc = Document();
+    if (initialText != null && initialText.isNotEmpty) {
+      doc.insert(0, initialText);
+    }
     return _ChapterDraft(
       id: null,
       title: TextEditingController(),
-      controller: QuillController.basic(),
+      controller: QuillController(
+        document: doc,
+        selection: TextSelection.collapsed(offset: initialText?.length ?? 0),
+      ),
       original: null,
       versions: const <ChapterVersion>[],
       lastSavedAt: null,

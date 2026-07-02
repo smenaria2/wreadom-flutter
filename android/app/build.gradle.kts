@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "in.wreadom.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = "27.0.12077973"
 
     compileOptions {

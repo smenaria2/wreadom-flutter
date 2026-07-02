@@ -295,6 +295,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         _likeCount ??
         comment.likesCount ??
         (comment.likes ?? const <String>[]).length;
+    final displayLikeCount = likeCount < 0 ? 0 : likeCount;
     final isHighlighted = comment.isHighlighted == true;
     final canHighlight = user != null && _canHighlight(user);
     final isOwner = user != null && comment.userId == user.id;
@@ -608,13 +609,15 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                       ? Colors.red
                                       : widget.metadataColor,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$likeCount',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: widget.metadataColor,
+                                if (displayLikeCount > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$displayLikeCount',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: widget.metadataColor,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -876,6 +879,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
         _liked ??
         (user != null && (reply.likes ?? const <String>[]).contains(user.id));
     final likeCount = _likeCount ?? (reply.likes ?? const <String>[]).length;
+    final displayLikeCount = likeCount < 0 ? 0 : likeCount;
 
     final l10n = AppLocalizations.of(context)!;
     final isOwner = user != null && reply.userId == user.id;
@@ -1024,14 +1028,16 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                               size: 13,
                               color: liked ? Colors.red : widget.metadataColor,
                             ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '$likeCount',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                                color: widget.metadataColor,
+                            if (displayLikeCount > 0) ...[
+                              const SizedBox(width: 3),
+                              Text(
+                                '$displayLikeCount',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 11,
+                                  color: widget.metadataColor,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

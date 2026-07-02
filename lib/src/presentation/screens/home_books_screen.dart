@@ -25,8 +25,10 @@ import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/audio_post_player.dart';
+import '../constants/layout_constants.dart';
 import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
+import '../components/interactive_features_sheet.dart';
 
 enum _HomeShelfDestination {
   communityClassics,
@@ -115,6 +117,11 @@ class HomeBooksScreen extends ConsumerWidget {
     final iaAsync = ref.watch(homepageIABooksProvider);
     final leavesAsync = ref.watch(booksWithLeavesProvider);
     final bannersAsync = ref.watch(homeBannersProvider);
+    final miniPlayerVisible =
+        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final bottomPadding = bottomOverlayContentPadding(
+      miniPlayerVisible: miniPlayerVisible,
+    );
 
     // Watch saved books for the new section
 
@@ -324,7 +331,9 @@ class HomeBooksScreen extends ConsumerWidget {
                 providerKey: 'other',
                 sectionId: 'other',
               ),
-              const SizedBox(height: 32),
+              const InteractiveFeaturesSheet(),
+              const SizedBox(height: 16),
+              SizedBox(height: bottomPadding),
             ],
           ),
         ),
@@ -2198,4 +2207,3 @@ class _SpotlightBooksFog extends StatelessWidget {
 }
 
 // QA Hardening Compatibility: l10n.noRatingsYet, l10n.ratingMetric
-

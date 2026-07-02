@@ -74,7 +74,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       ModalFeedbackScope.show(
         context,
         SnackBar(
-          content: const Text('Microphone permission is needed to record.'),
+          content: Text(l10n.microphonePermissionRequired),
           action: status.isPermanentlyDenied
               ? SnackBarAction(label: l10n.settings, onPressed: openAppSettings)
               : null,

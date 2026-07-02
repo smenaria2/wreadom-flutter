@@ -29,6 +29,11 @@ Future<void> showCreatePostSheet(
   String? bookTitle,
   String? bookAuthorName,
   String? bookCover,
+  XFile? initialImage,
+  String? initialAudioPath,
+  int? initialAudioDurationMs,
+  int? initialAudioSizeBytes,
+  String? initialAudioMimeType,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -49,6 +54,11 @@ Future<void> showCreatePostSheet(
         bookTitle: bookTitle,
         bookAuthorName: bookAuthorName,
         bookCover: bookCover,
+        initialImage: initialImage,
+        initialAudioPath: initialAudioPath,
+        initialAudioDurationMs: initialAudioDurationMs,
+        initialAudioSizeBytes: initialAudioSizeBytes,
+        initialAudioMimeType: initialAudioMimeType,
       ),
     ),
   );
@@ -62,6 +72,12 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
   final String? bookTitle;
   final String? bookAuthorName;
   final String? bookCover;
+  final XFile? initialImage;
+  final String? initialAudioPath;
+  final int? initialAudioDurationMs;
+  final int? initialAudioSizeBytes;
+  final String? initialAudioMimeType;
+
   const _CreatePostSheet({
     this.initialQuestion,
     this.questionLeafId,
@@ -70,6 +86,11 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
     this.bookTitle,
     this.bookAuthorName,
     this.bookCover,
+    this.initialImage,
+    this.initialAudioPath,
+    this.initialAudioDurationMs,
+    this.initialAudioSizeBytes,
+    this.initialAudioMimeType,
   });
 
   @override
@@ -96,6 +117,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   bool _isQuestionDynamic = false;
 
   String? _audioPath;
+  XFile? _audioFile;
   int _audioDurationMs = 0;
   int _audioSizeBytes = 0;
   String _audioMimeType = '';
@@ -109,6 +131,27 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     _currentQuestion = widget.initialQuestion;
     _isAnsweringQuestion = widget.initialQuestion != null;
     _isQuestionDynamic = false;
+    _pickedImage = widget.initialImage;
+
+    if (widget.initialAudioPath != null) {
+      _audioPath = widget.initialAudioPath;
+      _audioFile = XFile(
+        widget.initialAudioPath!,
+        mimeType: widget.initialAudioMimeType ?? 'audio/m4a',
+      );
+      _audioDurationMs = widget.initialAudioDurationMs ?? 0;
+      _audioSizeBytes = widget.initialAudioSizeBytes ?? 0;
+      _audioMimeType = widget.initialAudioMimeType ?? '';
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _uploadSharedAudio(
+          _audioFile!,
+          _audioMimeType,
+          _audioDurationMs,
+          _audioSizeBytes,
+        );
+      });
+    }
   }
 
   @override
@@ -283,6 +326,53 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             content: Text(
               AppLocalizations.of(context)!.errorWithDetails(e.toString()),
             ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadSharedAudio(
+    XFile file,
+    String mimeType,
+    int durationMs,
+    int sizeBytes,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _isAudioUploading = true;
+    });
+    try {
+      final user = await ref.read(currentUserProvider.future);
+      if (user != null) {
+        final result = await _audioUploadService.uploadAudioPost(
+          file: file,
+          userId: user.id,
+          mimeType: mimeType,
+          durationMs: durationMs,
+          sizeBytes: sizeBytes,
+        );
+
+        if (_isDisposed) {
+          _audioUploadService.deleteAudioPostObject(result.audioObjectKey);
+          return;
+        }
+
+        setState(() {
+          _uploadedAudioUrl = result.audioUrl;
+          _uploadedAudioObjectKey = result.audioObjectKey;
+          _isAudioUploading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isAudioUploading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.audioUploadFailed(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -478,7 +568,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                   _QuestionActionChip(
                                     icon: Icons.refresh_rounded,
                                     isLoading: _isChangingQuestion,
-                                    label: 'Change',
+                                    label: l10n.changeQuestion,
                                     color: theme.colorScheme.primary,
                                     onTap: _isChangingQuestion
                                         ? null
@@ -494,7 +584,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                   ),
                                   _QuestionActionChip(
                                     icon: Icons.close_rounded,
-                                    label: 'Remove',
+                                    label: l10n.remove,
                                     color: theme.colorScheme.onSurfaceVariant,
                                     onTap: _removeQuestion,
                                   ),
@@ -516,7 +606,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     style: const TextStyle(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: _audioPath != null
-                          ? 'Say something about this audio.'
+                          ? l10n.postAudioHint
                           : _isAnsweringQuestion
                           ? l10n.answerQuestionHint
                           : l10n.postHint,
@@ -542,7 +632,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Uploading audio...',
+                          l10n.loadingFile,
                           style: TextStyle(
                             fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant,
@@ -557,16 +647,21 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   if (_pickedImage == null) ...[
                     AudioPostCreator(
                       key: _audioCreatorKey,
+                      initialAudioPath: widget.initialAudioPath,
+                      initialAudioDurationMs: widget.initialAudioDurationMs,
+                      initialAudioSizeBytes: widget.initialAudioSizeBytes,
+                      initialAudioMimeType: widget.initialAudioMimeType,
                       onAudioChanged:
-                          (path, durationMs, sizeBytes, mimeType) async {
+                          (file, durationMs, sizeBytes, mimeType) async {
                             setState(() {
-                              _audioPath = path;
+                              _audioFile = file;
+                              _audioPath = file?.path;
                               _audioDurationMs = durationMs;
                               _audioSizeBytes = sizeBytes;
                               _audioMimeType = mimeType;
                             });
 
-                            if (path != null) {
+                            if (file != null) {
                               // Delete any previously uploaded audio first
                               if (_uploadedAudioObjectKey != null) {
                                 final keyToDelete = _uploadedAudioObjectKey!;
@@ -590,7 +685,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                 if (user != null) {
                                   final result = await _audioUploadService
                                       .uploadAudioPost(
-                                        filePath: path,
+                                        file: file,
                                         userId: user.id,
                                         mimeType: mimeType,
                                         durationMs: durationMs,
@@ -620,7 +715,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Audio upload failed: ${e.toString()}',
+                                        l10n.audioUploadFailed(e.toString()),
                                       ),
                                       backgroundColor: Colors.red,
                                     ),
@@ -720,7 +815,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.image_outlined,
-                      label: 'Add image',
+                      label: l10n.addImage,
                       disabled: _audioPath != null || _isRecording,
                       onTap: _pickImage,
                     ),
@@ -730,7 +825,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.mic_none_outlined,
-                      label: 'Record',
+                      label: l10n.recordAudio,
                       disabled:
                           _pickedImage != null ||
                           _audioPath != null ||
@@ -746,7 +841,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.audio_file_outlined,
-                      label: 'Upload',
+                      label: l10n.uploadAudio,
                       disabled:
                           _pickedImage != null ||
                           _audioPath != null ||
@@ -763,7 +858,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     Expanded(
                       child: _ActionButton(
                         icon: Icons.help_outline_rounded,
-                        label: 'Answer Question',
+                        label: l10n.answerQuestionAction,
                         active: _isAnsweringQuestion,
                         onTap: () async {
                           setState(() {

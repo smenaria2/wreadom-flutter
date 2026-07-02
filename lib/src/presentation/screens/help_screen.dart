@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/app_background.dart';
 import '../widgets/themed_empty_state.dart';
+import '../components/interactive_features_sheet.dart';
 
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
@@ -206,20 +207,24 @@ class _HelpScreenState extends State<HelpScreen> {
               Expanded(
                 child: filtered.isEmpty
                     ? _buildEmptyState(l10n)
-                    : ListView.builder(
+                    : ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final category = filtered[index];
-                          return _buildCategorySection(
+                        children: [
+                          if (_searchQuery.isEmpty) ...[
+                            const InteractiveFeaturesSheet(),
+                            const SizedBox(height: 8),
+                          ],
+                          ...filtered.map((category) => _buildCategorySection(
                             context,
                             category,
                             theme,
-                          );
-                        },
+                          )),
+                          const SizedBox(height: 24),
+                          _buildSupportFooter(theme, l10n),
+                          const SizedBox(height: 20),
+                        ],
                       ),
               ),
-              _buildSupportFooter(theme, l10n),
             ],
           ),
         ),
@@ -310,7 +315,7 @@ class _HelpScreenState extends State<HelpScreen> {
   Widget _buildSupportFooter(ThemeData theme, AppLocalizations l10n) {
     return GlassSurface(
       strong: true,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      borderRadius: BorderRadius.circular(20),
       child: SafeArea(
         top: false,
         child: Padding(

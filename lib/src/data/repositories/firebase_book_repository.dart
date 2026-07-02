@@ -124,11 +124,15 @@ class FirebaseBookRepository implements BookRepository {
           .collection(_collection)
           .where('status', isEqualTo: 'published')
           .where('hasLeaves', isEqualTo: true)
-          .orderBy('leafUpdatedAt', descending: true)
-          .limit(limit)
           .get();
 
-      return _booksFromDocs(snapshot.docs);
+      final books = _booksFromDocs(snapshot.docs);
+      books.sort((a, b) {
+        final aTime = a.leafUpdatedAt ?? a.updatedAt ?? a.publishedAt ?? 0;
+        final bTime = b.leafUpdatedAt ?? b.updatedAt ?? b.publishedAt ?? 0;
+        return bTime.compareTo(aTime);
+      });
+      return books.take(limit).toList();
     } catch (e, stack) {
       debugPrint(
         '[FirebaseBookRepository] Error getting books with leaves: $e',
