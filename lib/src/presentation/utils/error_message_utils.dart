@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/app_log_collector.dart';
@@ -34,6 +35,10 @@ String userFacingErrorMessage(AppLocalizations l10n, Object error) {
 }
 
 void logUiError(String context, Object error, StackTrace? stackTrace) {
+  debugPrint('UI Error - $context: $error');
+  if (stackTrace != null) {
+    debugPrint(stackTrace.toString());
+  }
   AppLogCollector.add('error', '$context: $error');
   if (stackTrace != null) {
     AppLogCollector.recordZoneError(error, stackTrace);

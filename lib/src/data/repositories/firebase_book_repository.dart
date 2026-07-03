@@ -467,40 +467,76 @@ class FirebaseBookRepository implements BookRepository {
   Future<List<Book>> getBooksByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
     try {
-      final chunks = <List<String>>[];
-      for (var i = 0; i < ids.length; i += 10) {
-        chunks.add(ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10));
-      }
-
       final List<Book> books = [];
-      for (final chunk in chunks) {
-        final snapshot = await _firestore
-            .collection(_collection)
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
 
-        books.addAll(
-          snapshot.docs.map((doc) {
-            try {
-              final data = normalizeBookMapForModel(
-                asStringMap(doc.data()),
-                doc.id,
-              );
-              return Book.fromJson(data);
-            } catch (_) {
-              return null;
-            }
-          }).whereType<Book>(),
-        );
+      final firebaseIds = ids.where((id) => _isFirebaseId(id)).toList();
+      final archiveIds = ids.where((id) => !_isFirebaseId(id)).toList();
+
+      // 1. Fetch Firebase (original) books
+      if (firebaseIds.isNotEmpty) {
+        final chunks = <List<String>>[];
+        for (var i = 0; i < firebaseIds.length; i += 10) {
+          chunks.add(firebaseIds.sublist(i, i + 10 > firebaseIds.length ? firebaseIds.length : i + 10));
+        }
+        for (final chunk in chunks) {
+          final snapshot = await _firestore
+              .collection(_collection)
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+          books.addAll(
+            snapshot.docs.map((doc) {
+              try {
+                final data = normalizeBookMapForModel(
+                  asStringMap(doc.data()),
+                  doc.id,
+                );
+                return Book.fromJson(data);
+              } catch (_) {
+                return null;
+              }
+            }).whereType<Book>(),
+          );
+        }
       }
 
-      // Maintain order if possible (optional but good for history/library)
+      // 2. Fetch Internet Archive books from 'books_metadata'
+      if (archiveIds.isNotEmpty) {
+        final chunks = <List<String>>[];
+        for (var i = 0; i < archiveIds.length; i += 10) {
+          chunks.add(archiveIds.sublist(i, i + 10 > archiveIds.length ? archiveIds.length : i + 10));
+        }
+        for (final chunk in chunks) {
+          final snapshot = await _firestore
+              .collection('books_metadata')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+          books.addAll(
+            snapshot.docs.map((doc) {
+              try {
+                final data = normalizeBookMapForModel(
+                  asStringMap(doc.data()),
+                  doc.id,
+                );
+                return Book.fromJson(data);
+              } catch (_) {
+                return null;
+              }
+            }).whereType<Book>(),
+          );
+        }
+      }
+
       final idMap = {for (var book in books) book.id: book};
       return ids.map((id) => idMap[id]).whereType<Book>().toList();
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error in getBooksByIds: $e');
       return [];
     }
+  }
+
+  bool _isFirebaseId(String id) {
+    if (id.startsWith('local-')) return false;
+    return id.length == 20 && RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(id);
   }
 
   @override

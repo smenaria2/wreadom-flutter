@@ -1392,11 +1392,25 @@ async function updateBookReviewAggregates(bookId) {
   }
 
   const averageRating = ratingsCount > 0 ? Number((ratingsTotal / ratingsCount).toFixed(2)) : 0;
-  await db.collection("books").doc(normalizedBookId).set({
-    ratingsCount,
-    averageRating,
-    updatedAt: Date.now(),
-  }, {merge: true});
+  const bookDocRef = db.collection("books").doc(normalizedBookId);
+  const bookDocSnap = await bookDocRef.get();
+  if (bookDocSnap.exists) {
+    await bookDocRef.set({
+      ratingsCount,
+      averageRating,
+      updatedAt: Date.now(),
+    }, {merge: true});
+  } else {
+    const metaDocRef = db.collection("books_metadata").doc(normalizedBookId);
+    const metaDocSnap = await metaDocRef.get();
+    if (metaDocSnap.exists) {
+      await metaDocRef.set({
+        ratingsCount,
+        averageRating,
+        updatedAt: Date.now(),
+      }, {merge: true});
+    }
+  }
 }
 
 async function runReviewHighlightToggle({

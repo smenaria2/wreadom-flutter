@@ -96,6 +96,10 @@ class FirebaseAuthRepository implements AuthRepository {
 
       AnalyticsService.logSignUp(method: 'email');
       return userModel;
+    } on firebase.FirebaseAuthException {
+      rethrow;
+    } on FirebaseException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -177,6 +181,10 @@ class FirebaseAuthRepository implements AuthRepository {
         AnalyticsService.logLogin(method: 'email');
         return fallbackUser;
       }
+    } on firebase.FirebaseAuthException {
+      rethrow;
+    } on FirebaseException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -185,11 +193,25 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        final googleProvider = firebase.GoogleAuthProvider();
+        final result = await _auth.signInWithPopup(googleProvider);
+        final fbUser = result.user;
+        if (fbUser == null) {
+          throw Exception('Google Sign-In failed: User is null.');
+        }
+        return await _processGoogleUser(fbUser);
+      }
+
       await GoogleSignInInitializer.ensureInitialized();
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       return await _handleGoogleSignInResult(googleUser);
     } on GoogleSignInException {
+      rethrow;
+    } on firebase.FirebaseAuthException {
+      rethrow;
+    } on FirebaseException {
       rethrow;
     } catch (e) {
       throw Exception(e.toString());
@@ -218,6 +240,10 @@ class FirebaseAuthRepository implements AuthRepository {
       return signInWithGoogleIdToken(idToken);
     } on GoogleSignInException {
       rethrow;
+    } on firebase.FirebaseAuthException {
+      rethrow;
+    } on FirebaseException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -232,72 +258,80 @@ class FirebaseAuthRepository implements AuthRepository {
       final result = await _auth.signInWithCredential(credential);
       final fbUser = result.user!;
 
-      final fallbackUser = _userModelFromFirebaseUser(fbUser);
-      DocumentSnapshot<Map<String, dynamic>> userDoc;
-      try {
-        userDoc = await _firestore
-            .collection('users')
-            .doc(fbUser.uid)
-            .get()
-            .timeout(_profileWriteTimeout);
-      } catch (e) {
-        debugPrint('Signed in with Google, but user profile load failed: $e');
-        AnalyticsService.logLogin(method: 'google');
-        return fallbackUser;
-      }
-
-      if (userDoc.exists) {
-        final raw = userDoc.data()!;
-        final hadNotificationSettings = raw['notificationSettings'] != null;
-        final needsHeal = raw['username'] == null || raw['email'] == null;
-        final patch = <String, dynamic>{
-          'lastLogin': DateTime.now().millisecondsSinceEpoch,
-        };
-        if (needsHeal) {
-          patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
-          patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
-          patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-          patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
-          patch['readingHistory'] = raw['readingHistory'] ?? [];
-          patch['savedBooks'] = raw['savedBooks'] ?? [];
-          patch['bookmarks'] = raw['bookmarks'] ?? [];
-        }
-        if (!hadNotificationSettings) {
-          patch['notificationSettings'] = defaultNotificationSettingsMap();
-        }
-        if (raw['searchTerms'] is! List || needsHeal) {
-          patch['searchTerms'] = buildProfileSearchTerms(
-            username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
-            email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
-            displayName: raw['displayName']?.toString() ?? fbUser.displayName,
-            penName: raw['penName']?.toString(),
-          );
-        }
-        try {
-          await _firestore
-              .collection('users')
-              .doc(fbUser.uid)
-              .update(patch)
-              .timeout(_profileWriteTimeout);
-        } catch (e) {
-          debugPrint('Signed in with Google, but profile update failed: $e');
-        }
-
-        final data = normalizeUserMapForModel({
-          ...raw,
-          ...patch,
-          'id': fbUser.uid,
-        }, fbUser.uid);
-        AnalyticsService.logLogin(method: 'google');
-        return UserModel.fromJson(data);
-      } else {
-        await _setUserProfileIfPossible(fallbackUser);
-
-        AnalyticsService.logSignUp(method: 'google');
-        return fallbackUser;
-      }
+      return await _processGoogleUser(fbUser);
+    } on firebase.FirebaseAuthException {
+      rethrow;
+    } on FirebaseException {
+      rethrow;
     } catch (e) {
       throw Exception(e.toString());
+    }
+  }
+
+  Future<UserModel> _processGoogleUser(firebase.User fbUser) async {
+    final fallbackUser = _userModelFromFirebaseUser(fbUser);
+    DocumentSnapshot<Map<String, dynamic>> userDoc;
+    try {
+      userDoc = await _firestore
+          .collection('users')
+          .doc(fbUser.uid)
+          .get()
+          .timeout(_profileWriteTimeout);
+    } catch (e) {
+      debugPrint('Signed in with Google, but user profile load failed: $e');
+      AnalyticsService.logLogin(method: 'google');
+      return fallbackUser;
+    }
+
+    if (userDoc.exists) {
+      final raw = userDoc.data()!;
+      final hadNotificationSettings = raw['notificationSettings'] != null;
+      final needsHeal = raw['username'] == null || raw['email'] == null;
+      final patch = <String, dynamic>{
+        'lastLogin': DateTime.now().millisecondsSinceEpoch,
+      };
+      if (needsHeal) {
+        patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
+        patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
+        patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+        patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
+        patch['readingHistory'] = raw['readingHistory'] ?? [];
+        patch['savedBooks'] = raw['savedBooks'] ?? [];
+        patch['bookmarks'] = raw['bookmarks'] ?? [];
+      }
+      if (!hadNotificationSettings) {
+        patch['notificationSettings'] = defaultNotificationSettingsMap();
+      }
+      if (raw['searchTerms'] is! List || needsHeal) {
+        patch['searchTerms'] = buildProfileSearchTerms(
+          username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
+          email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
+          displayName: raw['displayName']?.toString() ?? fbUser.displayName,
+          penName: raw['penName']?.toString(),
+        );
+      }
+      try {
+        await _firestore
+            .collection('users')
+            .doc(fbUser.uid)
+            .update(patch)
+            .timeout(_profileWriteTimeout);
+      } catch (e) {
+        debugPrint('Signed in with Google, but profile update failed: $e');
+      }
+
+      final data = normalizeUserMapForModel({
+        ...raw,
+        ...patch,
+        'id': fbUser.uid,
+      }, fbUser.uid);
+      AnalyticsService.logLogin(method: 'google');
+      return UserModel.fromJson(data);
+    } else {
+      await _setUserProfileIfPossible(fallbackUser);
+
+      AnalyticsService.logSignUp(method: 'google');
+      return fallbackUser;
     }
   }
 

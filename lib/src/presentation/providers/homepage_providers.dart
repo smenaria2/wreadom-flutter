@@ -995,11 +995,6 @@ final homepageDownloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.communityClassics.isNotEmpty) {
-    return compiled.shelves.communityClassics;
-  }
-
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
   final cached = _readCachedValue<List<Book>>(

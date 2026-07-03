@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../utils/app_link_helper.dart';
+import '../routing/app_routes.dart';
+import '../routing/app_router.dart';
 import '../utils/writer_media_utils.dart';
+import 'in_app_media_web_view.dart';
+import 'glass_surface.dart';
 
 class WriterImageEmbedBuilder extends EmbedBuilder {
   const WriterImageEmbedBuilder();
@@ -91,10 +96,12 @@ class WriterMediaPreview extends StatelessWidget {
       );
     }
 
+    final youtubeId = info.type == WriterMediaType.youtube ? youtubeVideoIdFromUrl(url) : null;
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: compact ? 6 : 10),
       child: InkWell(
-        onTap: () => _openUrl(info.originalUrl),
+        onTap: () => _openMediaUrl(context, info),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           width: double.infinity,
@@ -106,23 +113,61 @@ class WriterMediaPreview extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: _accentColor(info.type).withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: info.type == WriterMediaType.suno
-                    ? Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Image.asset(
-                          'assets/images/suno_logo.png',
-                          fit: BoxFit.contain,
+              if (youtubeId != null)
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        'https://img.youtube.com/vi/$youtubeId/mqdefault.jpg',
+                        width: 80,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 80,
+                          height: 50,
+                          color: scheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.play_circle_fill_rounded,
+                            color: const Color(0xFFD93025),
+                            size: 28,
+                          ),
                         ),
-                      )
-                    : Icon(_iconFor(info.type), color: _accentColor(info.type)),
-              ),
+                      ),
+                    ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.black38,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: _accentColor(info.type).withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: info.type == WriterMediaType.suno
+                      ? Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            'assets/images/suno_logo.png',
+                            fit: BoxFit.contain,
+                          ),
+                        )
+                      : Icon(_iconFor(info.type), color: _accentColor(info.type)),
+                ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -215,12 +260,72 @@ class _BrokenMediaCard extends StatelessWidget {
   }
 }
 
-Future<void> _openUrl(String value) async {
-  final uri = Uri.tryParse(value);
-  if (uri == null) return;
-  final isSuno = value.toLowerCase().contains('suno.com');
-  await launchUrl(
-    uri,
-    mode: isSuno ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication,
+
+
+void _openMediaUrl(BuildContext context, WriterMediaInfo info) {
+  final url = info.originalUrl;
+  if (info.type == WriterMediaType.wreadomBook ||
+      info.type == WriterMediaType.wreadomPost) {
+    final resolved = AppLinkHelper.resolve(url);
+    if (resolved?.payload != null) {
+      if (resolved!.route == AppRoutes.bookDetail) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.bookDetail,
+          arguments: BookDetailArguments(bookId: resolved.payload!),
+        );
+      } else if (resolved.route == AppRoutes.postDetail) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.postDetail,
+          arguments: PostDetailArguments(postId: resolved.payload!),
+        );
+      }
+    }
+    return;
+  }
+  if (info.type == WriterMediaType.amazon ||
+      info.type == WriterMediaType.wikipedia ||
+      info.type == WriterMediaType.suno) {
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    }
+    return;
+  }
+  
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => GlassSurface(
+      strong: true,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.72,
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, right: 8),
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 14, bottom: 14),
+                child: InAppMediaWebView(url: url),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }
