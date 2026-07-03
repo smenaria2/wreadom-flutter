@@ -81,6 +81,9 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ref.invalidate(homepageRecentProvider);
   ref.invalidate(homepageGenreProvider);
   ref.invalidate(homeBannersProvider);
+  ref.invalidate(rawBooksWithLeavesProvider);
+  ref.invalidate(booksWithLeavesProvider);
+  ref.invalidate(contentOnAgaazTopicsProvider);
 }
 
 void warmPublicHomepageCache(WidgetRef ref) {

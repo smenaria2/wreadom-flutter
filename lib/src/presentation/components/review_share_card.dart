@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../domain/models/comment.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/image_proxy_utils.dart';
 import 'generated_book_cover.dart';
 import 'book/comment_share_preview_sheet.dart';
 
@@ -57,7 +58,7 @@ Future<void> shareReviewCard(
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
     }
-    await _precacheNetworkImage(context, post.userPhotoURL);
+    await _precacheNetworkImage(context, optimizedAvatarUrl(post.userPhotoURL));
     if (!context.mounted) {
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
@@ -137,7 +138,7 @@ Future<void> shareReviewCommentCard(
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
     }
-    await _precacheNetworkImage(context, comment.userPhotoURL);
+    await _precacheNetworkImage(context, optimizedAvatarUrl(comment.userPhotoURL));
     if (!context.mounted) {
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
@@ -600,7 +601,7 @@ class _ReviewerAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = post.userPhotoURL;
+    final photoUrl = optimizedAvatarUrl(post.userPhotoURL);
     return Container(
       width: 142,
       height: 142,

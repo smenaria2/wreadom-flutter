@@ -31,6 +31,18 @@ void main() {
       expect(query, contains('subject:history'));
     });
 
+    test('advanced search requests title and creator fields separately', () {
+      final uri = ArchiveBookService.buildAdvancedSearchUri(
+        q: ArchiveBookService.buildSearchQuery(query: 'ramayana'),
+      );
+      final fields = uri.queryParametersAll['fl[]'];
+
+      expect(fields, contains('identifier'));
+      expect(fields, contains('title'));
+      expect(fields, contains('creator'));
+      expect(fields, isNot(contains('identifier,title,creator')));
+    });
+
     test('language parameter maps Hindi and English correctly', () {
       final queryHindi = ArchiveBookService.buildSearchQuery(
         query: 'ramayana',

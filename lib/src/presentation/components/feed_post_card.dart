@@ -19,8 +19,10 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/image_proxy_utils.dart';
+import '../utils/writer_media_utils.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/writer_media_embed.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'book/gradient_quote_card.dart';
 import 'book/gradient_book_card.dart';
@@ -776,6 +778,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 orElse: () => null,
               ) ??
               '';
+    final postLinkPreview = firstSupportedWriterMediaInfoInText(post.text);
 
     final card = GlassSurface(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1084,7 +1087,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             GestureDetector(
                               onTap: () {
                                 final bId = post.bookId?.toString() ?? '';
-                                final leafId = post.questionLeafId ?? post.id ?? '';
+                                final leafId =
+                                    post.questionLeafId ?? post.id ?? '';
                                 Navigator.of(context).pushNamed(
                                   AppRoutes.questionAnswers,
                                   arguments: QuestionLeafAnswersQuery(
@@ -1134,9 +1138,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             if (post.type.toLowerCase() == 'quote') ...[
               if (post.text.isNotEmpty &&
                   post.text.trim() != (post.quote ?? '').trim()) ...[
-                Text(
-                  post.text,
-                  style: const TextStyle(fontSize: 14, height: 1.45),
+                _PostTextWithLinkPreview(
+                  text: post.text,
+                  previewInfo: postLinkPreview,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -1158,9 +1162,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 post.bookId != null &&
                 post.audioUrl == null) ...[
               if (post.text.isNotEmpty) ...[
-                Text(
-                  post.text,
-                  style: const TextStyle(fontSize: 14, height: 1.45),
+                _PostTextWithLinkPreview(
+                  text: post.text,
+                  previewInfo: postLinkPreview,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -1192,9 +1196,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ),
               const SizedBox(height: 8),
               if (post.text.isNotEmpty) ...[
-                Text(
-                  post.text,
-                  style: const TextStyle(fontSize: 14, height: 1.45),
+                _PostTextWithLinkPreview(
+                  text: post.text,
+                  previewInfo: postLinkPreview,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -1213,9 +1217,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 },
               ),
             ] else ...[
-              Text(
-                post.text,
-                style: const TextStyle(fontSize: 14, height: 1.45),
+              _PostTextWithLinkPreview(
+                text: post.text,
+                previewInfo: postLinkPreview,
               ),
             ],
 
@@ -1262,7 +1266,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
                   iconColor: liked ? Colors.red : null,
-                  label: displayLikesCount > 0 ? displayLikesCount.toString() : '',
+                  label: displayLikesCount > 0
+                      ? displayLikesCount.toString()
+                      : '',
                   semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
                   loading: _liking,
                   onTap: _toggleLike,
@@ -1325,6 +1331,33 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 }
 
 // ─── Action button ────────────────────────────────────────────────────────────
+class _PostTextWithLinkPreview extends StatelessWidget {
+  const _PostTextWithLinkPreview({
+    required this.text,
+    required this.previewInfo,
+  });
+
+  final String text;
+  final WriterMediaInfo? previewInfo;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = previewInfo;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(text, style: const TextStyle(fontSize: 14, height: 1.45)),
+        if (preview != null) ...[
+          const SizedBox(height: 8),
+          WriterMediaPreview(url: preview.originalUrl, compact: true),
+        ],
+      ],
+    );
+  }
+}
+
+// --- Action button ------------------------------------------------------------
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color? iconColor;
@@ -1666,9 +1699,8 @@ void _showZoomableImage(BuildContext context, String url) {
                 fit: 'contain',
               ),
               fit: BoxFit.contain,
-              placeholder: (context, url) => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              placeholder: (context, url) =>
+                  const Center(child: CircularProgressIndicator()),
               errorWidget: (context, url, error) => const Icon(
                 Icons.broken_image_outlined,
                 color: Colors.white,

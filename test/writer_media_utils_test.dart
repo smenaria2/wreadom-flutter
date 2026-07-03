@@ -38,5 +38,45 @@ void main() {
       expect(info.type, WriterMediaType.unsupported);
       expect(info.isSupported, isFalse);
     });
+    test('finds supported media links inside post text', () {
+      final info = firstSupportedWriterMediaInfoInText(
+        'Watch this https://www.instagram.com/p/abc123/ tonight',
+      );
+
+      expect(info?.type, WriterMediaType.instagram);
+    });
+
+    test('trims trailing punctuation from detected links', () {
+      final info = firstSupportedWriterMediaInfoInText(
+        'Watch this https://youtu.be/dQw4w9WgXcQ.',
+      );
+
+      expect(info?.type, WriterMediaType.youtube);
+      expect(info?.originalUrl, 'https://youtu.be/dQw4w9WgXcQ');
+    });
+
+    test('uses the first supported link when multiple links are present', () {
+      final info = firstSupportedWriterMediaInfoInText(
+        'Try https://open.spotify.com/track/123 and https://youtu.be/dQw4w9WgXcQ',
+      );
+
+      expect(info?.type, WriterMediaType.spotify);
+    });
+
+    test('skips unsupported links before a supported link', () {
+      final info = firstSupportedWriterMediaInfoInText(
+        'Read https://example.com/story then https://youtu.be/dQw4w9WgXcQ',
+      );
+
+      expect(info?.type, WriterMediaType.youtube);
+    });
+
+    test('returns null when post text has no supported links', () {
+      final info = firstSupportedWriterMediaInfoInText(
+        'Read https://example.com/story and tell me what you think.',
+      );
+
+      expect(info, isNull);
+    });
   });
 }

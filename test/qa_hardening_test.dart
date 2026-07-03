@@ -156,7 +156,7 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('final photoUrl = other?.photoURL?.trim();'));
-    expect(source, contains('CachedNetworkImageProvider(photoUrl)'));
+    expect(source, contains('CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)'));
     expect(source, contains('title.characters.first.toUpperCase()'));
   });
 
@@ -1319,7 +1319,7 @@ void main() {
     expect(readerSource, contains('_existingUserReview'));
     expect(readerSource, contains('_isReviewEditMode'));
     expect(readerSource, contains('readOnly:'));
-    expect(readerSource, contains("label: const Text('Edit')"));
+    expect(readerSource, contains("label: Text(l10n.edit),"));
     expect(writerSource, contains('_populateSynopsisFromFirstLines'));
     expect(writerSource, contains("RestorableString('Hindi')"));
     expect(writerSource, contains('l10n.writerCoverOptional'));

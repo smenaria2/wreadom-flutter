@@ -13,6 +13,7 @@ class WriterCustomToolbar extends StatefulWidget {
     required this.isUploadingInlineImage,
     required this.onInsertVideo,
     required this.onVersionHistory,
+    required this.onAiEdit,
   });
 
   final QuillController controller;
@@ -21,6 +22,7 @@ class WriterCustomToolbar extends StatefulWidget {
   final bool isUploadingInlineImage;
   final VoidCallback? onInsertVideo;
   final VoidCallback? onVersionHistory;
+  final VoidCallback? onAiEdit;
 
   @override
   State<WriterCustomToolbar> createState() => _WriterCustomToolbarState();
@@ -70,6 +72,9 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
       _isHindi(context) ? 'अंडरलाइन' : 'Underline';
   String _getVersionLabel(BuildContext context) =>
       _isHindi(context) ? 'संस्करण' : 'Version';
+
+  bool get _hasEditableText =>
+      widget.controller.document.toPlainText().trim().isNotEmpty;
 
   void _hideTextInput() {
     SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
@@ -134,6 +139,18 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
           label: l10n.insertMedia,
           onTap: () =>
               _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
+        ),
+        _buildItem(
+          icon: const Icon(Icons.auto_awesome_rounded),
+          label: l10n.aiEdit,
+          onTap: widget.onAiEdit == null || !_hasEditableText
+              ? null
+              : () => _runToolbarAction(
+                  widget.onAiEdit,
+                  requireEditorFocus: false,
+                  hideAfterAction: false,
+                ),
+          showLabel: false,
         ),
         _buildDivider(),
         _buildItem(
@@ -215,6 +232,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     required String label,
     required VoidCallback? onTap,
     bool isActive = false,
+    bool showLabel = true,
   }) {
     final theme = Theme.of(context);
     final isEnabled = onTap != null;
@@ -225,44 +243,54 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        canRequestFocus: false,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconTheme(
-                data: IconThemeData(color: baseColor, size: 23),
-                child: icon,
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                height: 14,
-                width: double.infinity,
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      softWrap: false,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
-                        height: 1,
-                        fontWeight: isActive
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: baseColor,
+      child: Tooltip(
+        message: label,
+        child: Semantics(
+          button: true,
+          enabled: isEnabled,
+          label: label,
+          child: InkWell(
+            onTap: onTap,
+            canRequestFocus: false,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconTheme(
+                    data: IconThemeData(color: baseColor, size: 23),
+                    child: icon,
+                  ),
+                  if (showLabel) ...[
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 14,
+                      width: double.infinity,
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10,
+                              height: 1,
+                              fontWeight: isActive
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: baseColor,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

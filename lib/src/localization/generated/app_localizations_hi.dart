@@ -1642,6 +1642,20 @@ class AppLocalizationsHi extends AppLocalizations {
   String get insertMedia => 'मीडिया जोड़ें';
 
   @override
+  String get aiEdit => 'AI संपादन';
+
+  @override
+  String get couldNotOpenChatGpt => 'ChatGPT नहीं खुल सका।';
+
+  @override
+  String get aiPromptCopiedForChatGpt =>
+      'प्रॉम्प्ट और टेक्स्ट कॉपी हो गया। इसे ChatGPT में पेस्ट करें।';
+
+  @override
+  String get aiPromptCopiedButCouldNotOpenChatGpt =>
+      'प्रॉम्प्ट और टेक्स्ट कॉपी हो गया, लेकिन ChatGPT नहीं खुल सका।';
+
+  @override
   String get deleteChapterBody => 'यह अध्याय इस ड्राफ़्ट से हट जाएगा।';
 
   @override

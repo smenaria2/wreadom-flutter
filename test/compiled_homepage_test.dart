@@ -43,7 +43,51 @@ void main() {
         'trending': [],
         'popular': [],
         'recent': [],
-        'communityClassics': [],
+        'communityClassics': [
+          {
+            'id': 'archive-1',
+            'title': 'Pride and Prejudice',
+            'coverUrl': 'https://example.com/cover.jpg',
+            'authors': [
+              {'name': 'Jane Austen'},
+            ],
+            'subjects': ['classic'],
+            'languages': ['en'],
+            'formats': {},
+            'download_count': 0,
+            'media_type': 'text',
+            'bookshelves': [],
+            'source': 'archive',
+            'status': 'published',
+          },
+        ],
+        'booksWithLeaves': [
+          {
+            'id': 'leaf-book',
+            'title': 'Leafy Book',
+            'authors': [
+              {'name': 'Asha'},
+            ],
+            'subjects': [],
+            'languages': ['en'],
+            'formats': {},
+            'download_count': 0,
+            'media_type': 'text',
+            'bookshelves': [],
+            'status': 'published',
+            'hasLeaves': true,
+            'leafCount': 1,
+            'leaves': [
+              {
+                'id': 'leaf-1',
+                'type': 'text',
+                'createdBy': 'user-1',
+                'createdAt': 123,
+                'textPlain': 'Note',
+              },
+            ],
+          },
+        ],
         'series': [],
         'audioPosts': [
           {
@@ -83,6 +127,20 @@ void main() {
     expect(homepage.metadata.value.authors.single.username, 'asha');
     expect(homepage.metadata.homeBanners.single.title, 'Featured');
     expect(homepage.shelves.allBooks.single.title, 'First Book');
+    expect(
+      homepage.shelves.communityClassics.single.title,
+      'Pride and Prejudice',
+    );
+    expect(
+      homepage.shelves.communityClassics.single.authors.single.name,
+      'Jane Austen',
+    );
+    expect(
+      homepage.shelves.communityClassics.single.coverUrl,
+      contains('cover.jpg'),
+    );
+    expect(homepage.shelves.booksWithLeaves.single.title, 'Leafy Book');
+    expect(homepage.shelves.booksWithLeaves.single.leafCount, 1);
     expect(homepage.shelves.audioPosts.single.audioUrl, contains('audio.m4a'));
     expect(homepage.shelves.genreBooks('poetry').single.id, 'book-1');
   });

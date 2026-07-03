@@ -8,6 +8,7 @@ import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
 import '../../domain/models/book.dart';
@@ -1209,7 +1210,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                                     author.photoURL != null &&
                                         author.photoURL!.isNotEmpty
                                     ? CachedNetworkImageProvider(
-                                        author.photoURL!,
+                                        optimizedAvatarUrl(author.photoURL!)!,
                                       )
                                     : null,
                                 child:
@@ -1951,7 +1952,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                     author.photoURL != null &&
                                         author.photoURL!.isNotEmpty
                                     ? CachedNetworkImageProvider(
-                                        author.photoURL!,
+                                        optimizedAvatarUrl(author.photoURL!)!,
                                       )
                                     : null,
                                 child:

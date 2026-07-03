@@ -7,6 +7,7 @@ import '../../domain/models/message.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../components/generated_book_cover.dart';
 import '../providers/auth_providers.dart';
 import '../providers/message_providers.dart';
@@ -552,7 +553,7 @@ class _ConversationTitle extends StatelessWidget {
           CircleAvatar(
             radius: 17,
             backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
-                ? CachedNetworkImageProvider(photoUrl!)
+                ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl!)!)
                 : null,
             child: photoUrl == null || photoUrl!.isEmpty
                 ? Text(title.characters.first.toUpperCase())
@@ -800,7 +801,7 @@ class _MessageSender extends StatelessWidget {
           CircleAvatar(
             radius: 11,
             backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                ? CachedNetworkImageProvider(photoUrl)
+                ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)
                 : null,
             child: photoUrl == null || photoUrl.isEmpty
                 ? Text(

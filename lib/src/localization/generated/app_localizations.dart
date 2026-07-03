@@ -3014,6 +3014,30 @@ abstract class AppLocalizations {
   /// **'Insert media'**
   String get insertMedia;
 
+  /// No description provided for @aiEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit with AI'**
+  String get aiEdit;
+
+  /// No description provided for @couldNotOpenChatGpt.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open ChatGPT.'**
+  String get couldNotOpenChatGpt;
+
+  /// No description provided for @aiPromptCopiedForChatGpt.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt and text copied. Paste it in ChatGPT.'**
+  String get aiPromptCopiedForChatGpt;
+
+  /// No description provided for @aiPromptCopiedButCouldNotOpenChatGpt.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt and text copied, but ChatGPT could not be opened.'**
+  String get aiPromptCopiedButCouldNotOpenChatGpt;
+
   /// No description provided for @deleteChapterBody.
   ///
   /// In en, this message translates to:

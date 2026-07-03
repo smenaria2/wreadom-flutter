@@ -9,6 +9,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../domain/models/comment.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -1493,7 +1494,7 @@ class _ProfileAvatar extends StatelessWidget {
       child: CircleAvatar(
         radius: radius,
         backgroundImage: photoUrl != null
-            ? CachedNetworkImageProvider(photoUrl!)
+            ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl!)!)
             : null,
         child: photoUrl == null && name.isNotEmpty
             ? Text(

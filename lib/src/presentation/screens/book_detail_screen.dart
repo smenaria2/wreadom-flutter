@@ -18,6 +18,7 @@ import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/book_publication_date.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -1182,7 +1183,7 @@ class _AuthorAvatar extends StatelessWidget {
       backgroundColor: theme.colorScheme.primaryContainer,
       backgroundImage: resolvedPhotoURL == null || resolvedPhotoURL.isEmpty
           ? null
-          : CachedNetworkImageProvider(resolvedPhotoURL),
+          : CachedNetworkImageProvider(optimizedAvatarUrl(resolvedPhotoURL)!),
       child: resolvedPhotoURL == null || resolvedPhotoURL.isEmpty
           ? Text(
               initial,

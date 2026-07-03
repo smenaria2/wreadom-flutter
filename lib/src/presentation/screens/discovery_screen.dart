@@ -17,6 +17,7 @@ import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 import 'book_detail_screen.dart';
 import '../../utils/map_utils.dart';
+import '../../utils/image_proxy_utils.dart';
 
 class DiscoveryScreen extends ConsumerStatefulWidget {
   const DiscoveryScreen({super.key});
@@ -479,7 +480,7 @@ class _AuthorProfileCard extends StatelessWidget {
                 radius: 24,
                 backgroundImage:
                     author.photoURL != null && author.photoURL!.isNotEmpty
-                    ? CachedNetworkImageProvider(author.photoURL!)
+                    ? CachedNetworkImageProvider(optimizedAvatarUrl(author.photoURL!)!)
                     : null,
                 child: author.photoURL == null || author.photoURL!.isEmpty
                     ? Text(initial)

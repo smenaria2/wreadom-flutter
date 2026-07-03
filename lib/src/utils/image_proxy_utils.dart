@@ -48,3 +48,14 @@ String optimizedImageUrl(
 
   return uri.replace(queryParameters: params).toString();
 }
+
+/// Optimizes avatar images to prevent raw worker URLs from being fetched without thumbnail params.
+String? optimizedAvatarUrl(
+  String? url, {
+  int width = 150,
+  int height = 150,
+}) {
+  if (url == null || url.trim().isEmpty) return url;
+  return optimizedImageUrl(url, width: width, height: height, fit: 'cover');
+}
+

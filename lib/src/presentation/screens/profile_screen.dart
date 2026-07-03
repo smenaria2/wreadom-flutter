@@ -493,12 +493,11 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                                 .withValues(alpha: 0.1),
                             backgroundImage: user.photoURL != null
                                 ? CachedNetworkImageProvider(
-                                    optimizedImageUrl(
+                                    optimizedAvatarUrl(
                                       user.photoURL!,
                                       width: 240,
                                       height: 240,
-                                      fit: 'cover',
-                                    ),
+                                    )!,
                                   )
                                 : null,
                             child: user.photoURL == null

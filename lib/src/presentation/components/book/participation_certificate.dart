@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import '../../../utils/image_proxy_utils.dart';
 
 class ParticipationCertificate extends StatelessWidget {
   const ParticipationCertificate({
@@ -175,7 +176,7 @@ class ParticipationCertificate extends StatelessWidget {
                           backgroundColor: const Color(0xFFFF8A65),
                           backgroundImage:
                               userPhotoUrl != null && userPhotoUrl!.isNotEmpty
-                              ? CachedNetworkImageProvider(userPhotoUrl!)
+                              ? CachedNetworkImageProvider(optimizedAvatarUrl(userPhotoUrl!)!)
                               : null,
                           child: userPhotoUrl == null || userPhotoUrl!.isEmpty
                               ? Text(

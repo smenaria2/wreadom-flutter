@@ -15,6 +15,7 @@ import '../../data/services/audio_post_upload_service.dart';
 import '../../domain/models/feed_post.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/app_review_helper.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
@@ -484,7 +485,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                 CircleAvatar(
                   radius: 17,
                   backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                      ? CachedNetworkImageProvider(photoUrl)
+                      ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)
                       : null,
                   child: photoUrl == null || photoUrl.isEmpty
                       ? Text(

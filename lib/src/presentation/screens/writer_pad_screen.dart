@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +36,31 @@ import '../widgets/writer_media_embed.dart';
 import '../../data/services/cover_image_service.dart';
 import '../../data/services/image_upload_service.dart';
 
+const _chatGptHindiEditPrompt =
+    '''You are a professional Hindi Text Editor. Your role is to refine and correct Hindi text while preserving the writer's original intent and style.
+
+Instructions:
+
+Correct grammar, spelling, and punctuation with minimal changes.
+
+Preserve the original sentence structure and syntax as much as possible.
+
+Add \u0928\u0941\u0915\u094d\u0924\u093e (\u093c) to Urdu-origin words where appropriate.
+
+Ensure consistency in names, terms, and tone throughout the text.
+
+Improve awkward, unclear, or abrupt sentences without changing meaning.
+
+Carefully review the entire text before editing.
+
+Output Rules:
+
+Return only the edited text.
+
+Do not include explanations, comments, or additional notes.
+
+Do not add or remove content beyond what is necessary for editing.''';
+
 class WriterPadScreen extends ConsumerStatefulWidget {
   const WriterPadScreen({
     super.key,
@@ -45,6 +71,8 @@ class WriterPadScreen extends ConsumerStatefulWidget {
     this.optOutComplementary,
     this.openPrintPage,
     this.initialText,
+    this.openChatGpt,
+    this.copyAiPrompt,
   });
 
   final Book? book;
@@ -54,6 +82,8 @@ class WriterPadScreen extends ConsumerStatefulWidget {
   final bool? optOutComplementary;
   final Future<bool> Function(Uri uri)? openPrintPage;
   final String? initialText;
+  final Future<bool> Function(Uri uri)? openChatGpt;
+  final Future<void> Function(String text)? copyAiPrompt;
 
   @override
   ConsumerState<WriterPadScreen> createState() => _WriterPadScreenState();
@@ -283,7 +313,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapters.add(_ChapterDraft.fromChapter(chapter, _markDirty));
     }
     if (_chapters.isEmpty) {
-      _chapters.add(_ChapterDraft.empty(_markDirty, initialText: widget.initialText));
+      _chapters.add(
+        _ChapterDraft.empty(_markDirty, initialText: widget.initialText),
+      );
     }
 
     _autosaveTimer = Timer.periodic(
@@ -1232,6 +1264,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           onVersionHistory: _currentChapter.versions.isEmpty
               ? null
               : () => _showVersionHistory(_currentChapterIndex),
+          onAiEdit: _openChatGptEditor,
         ),
       ),
     );
@@ -2258,6 +2291,39 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (!opened && mounted) {
       _showSnack(AppLocalizations.of(context)!.couldNotOpenPrintPage);
     }
+  }
+
+  String _currentChapterPlainTextForAi() {
+    return _currentChapter.controller.document
+        .toPlainText()
+        .replaceAll(RegExp(r'\n+$'), '')
+        .trim();
+  }
+
+  Future<void> _openChatGptEditor() async {
+    final chapterText = _currentChapterPlainTextForAi();
+    if (chapterText.isEmpty) return;
+
+    final prompt = '$_chatGptHindiEditPrompt\n\nText:\n$chapterText';
+    await (widget.copyAiPrompt?.call(prompt) ??
+        Clipboard.setData(ClipboardData(text: prompt)));
+
+    final uri = Uri.https('chatgpt.com');
+    var opened = false;
+    try {
+      opened =
+          await (widget.openChatGpt?.call(uri) ??
+              launchUrl(uri, mode: LaunchMode.externalApplication));
+    } catch (_) {
+      opened = false;
+    }
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    _showSnack(
+      opened
+          ? l10n.aiPromptCopiedForChatGpt
+          : l10n.aiPromptCopiedButCouldNotOpenChatGpt,
+    );
   }
 
   Future<Book?> _showPublishedBookPicker(List<Book> books) {

@@ -26,4 +26,42 @@ void main() {
       expect(optimizedImageUrl(url, width: 320), url);
     });
   });
+
+  group('optimizedAvatarUrl', () {
+    test('optimizes worker URLs with default avatar dimensions', () {
+      final result = optimizedAvatarUrl(
+        'https://wreadom-images.smenaria2.workers.dev/avatars/user123.jpg',
+      );
+
+      final uri = Uri.parse(result!);
+      expect(uri.queryParameters['width'], '150');
+      expect(uri.queryParameters['height'], '150');
+      expect(uri.queryParameters['fit'], 'cover');
+    });
+
+    test('optimizes worker URLs with custom avatar dimensions', () {
+      final result = optimizedAvatarUrl(
+        'https://wreadom-images.smenaria2.workers.dev/avatars/user123.jpg',
+        width: 240,
+        height: 240,
+      );
+
+      final uri = Uri.parse(result!);
+      expect(uri.queryParameters['width'], '240');
+      expect(uri.queryParameters['height'], '240');
+      expect(uri.queryParameters['fit'], 'cover');
+    });
+
+    test('handles null and empty URLs gracefully', () {
+      expect(optimizedAvatarUrl(null), isNull);
+      expect(optimizedAvatarUrl(''), isEmpty);
+      expect(optimizedAvatarUrl('   '), '   ');
+    });
+
+    test('preserves non-worker URLs', () {
+      const url = 'https://someplace.com/avatar.png';
+      expect(optimizedAvatarUrl(url), url);
+    });
+  });
 }
+

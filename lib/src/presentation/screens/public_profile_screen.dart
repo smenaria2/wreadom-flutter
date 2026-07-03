@@ -20,6 +20,7 @@ import '../components/feed_post_card.dart';
 import '../components/profile/profile_share_card.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
@@ -525,7 +526,13 @@ class _PublicProfileHeader extends StatelessWidget {
           ImageFiltered(
             imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
             child: CachedNetworkImage(
-              imageUrl: coverUrl,
+              imageUrl: optimizedImageUrl(
+                coverUrl,
+                width: 1600,
+                height: 600,
+                quality: 90,
+                fit: 'cover',
+              ),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.high,
             ),
@@ -569,7 +576,13 @@ class _PublicProfileHeader extends StatelessWidget {
                         alpha: 0.1,
                       ),
                       backgroundImage: user.photoURL != null
-                          ? CachedNetworkImageProvider(user.photoURL!)
+                          ? CachedNetworkImageProvider(
+                              optimizedAvatarUrl(
+                                user.photoURL!,
+                                width: 240,
+                                height: 240,
+                              )!,
+                            )
                           : null,
                       child: user.photoURL == null
                           ? Text(

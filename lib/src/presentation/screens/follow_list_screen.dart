@@ -12,6 +12,7 @@ import '../widgets/follow_button.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
+import '../../utils/image_proxy_utils.dart';
 
 enum FollowListMode { followers, following }
 
@@ -143,7 +144,7 @@ class _FollowUserTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundImage: user.photoURL != null
-              ? CachedNetworkImageProvider(user.photoURL!)
+              ? CachedNetworkImageProvider(optimizedAvatarUrl(user.photoURL!)!)
               : null,
           child: user.photoURL == null && name.isNotEmpty
               ? Text(name.characters.first.toUpperCase())

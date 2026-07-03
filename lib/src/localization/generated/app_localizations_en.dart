@@ -1644,6 +1644,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insertMedia => 'Insert media';
 
   @override
+  String get aiEdit => 'Edit with AI';
+
+  @override
+  String get couldNotOpenChatGpt => 'Could not open ChatGPT.';
+
+  @override
+  String get aiPromptCopiedForChatGpt =>
+      'Prompt and text copied. Paste it in ChatGPT.';
+
+  @override
+  String get aiPromptCopiedButCouldNotOpenChatGpt =>
+      'Prompt and text copied, but ChatGPT could not be opened.';
+
+  @override
   String get deleteChapterBody => 'This removes the chapter from this draft.';
 
   @override

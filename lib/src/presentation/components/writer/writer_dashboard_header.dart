@@ -8,6 +8,7 @@ import '../../providers/follow_providers.dart';
 import '../../providers/writer_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_surface.dart';
+import '../../../utils/image_proxy_utils.dart';
 
 class WriterDashboardHeader extends ConsumerWidget {
   const WriterDashboardHeader({super.key});
@@ -98,7 +99,7 @@ class WriterDashboardHeader extends ConsumerWidget {
                         radius: 28,
                         backgroundColor: colorScheme.surface,
                         backgroundImage: user.photoURL != null
-                            ? CachedNetworkImageProvider(user.photoURL!)
+                            ? CachedNetworkImageProvider(optimizedAvatarUrl(user.photoURL!)!)
                             : null,
                         child: user.photoURL == null
                             ? Icon(

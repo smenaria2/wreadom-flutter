@@ -44,6 +44,7 @@ class CompiledHomepage {
       metadata.hasContent ||
       shelves.allBooks.isNotEmpty ||
       shelves.originals.isNotEmpty ||
+      shelves.booksWithLeaves.isNotEmpty ||
       shelves.audioPosts.isNotEmpty ||
       shelves.genres.values.any((books) => books.isNotEmpty);
 }
@@ -95,6 +96,7 @@ class CompiledHomepageShelves {
     required this.popular,
     required this.recent,
     required this.communityClassics,
+    required this.booksWithLeaves,
     required this.series,
     required this.audioPosts,
     required this.genres,
@@ -107,6 +109,7 @@ class CompiledHomepageShelves {
   final List<Book> popular;
   final List<Book> recent;
   final List<Book> communityClassics;
+  final List<Book> booksWithLeaves;
   final List<Book> series;
   final List<FeedPost> audioPosts;
   final Map<String, List<Book>> genres;
@@ -121,6 +124,7 @@ class CompiledHomepageShelves {
       popular: _bookList(json['popular']),
       recent: _bookList(json['recent']),
       communityClassics: _bookList(json['communityClassics']),
+      booksWithLeaves: _bookList(json['booksWithLeaves']),
       series: _bookList(json['series']),
       audioPosts: _feedPostList(json['audioPosts']),
       genres: {
@@ -140,6 +144,7 @@ class CompiledHomepageShelves {
     'communityClassics': communityClassics
         .map((book) => book.toJson())
         .toList(),
+    'booksWithLeaves': booksWithLeaves.map((book) => book.toJson()).toList(),
     'series': series.map((book) => book.toJson()).toList(),
     'audioPosts': audioPosts.map((post) => post.toJson()).toList(),
     'genres': {

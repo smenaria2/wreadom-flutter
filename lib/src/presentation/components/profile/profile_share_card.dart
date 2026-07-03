@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../utils/app_link_helper.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/image_proxy_utils.dart';
 
 Future<void> shareUserProfileCard(
   BuildContext context, {
@@ -330,7 +331,7 @@ class _ProfileCardAvatar extends StatelessWidget {
       child: CircleAvatar(
         backgroundColor: const Color(0xFFE9F0EE),
         backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-            ? CachedNetworkImageProvider(photoUrl)
+            ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)
             : null,
         child: photoUrl == null || photoUrl.isEmpty
             ? Text(

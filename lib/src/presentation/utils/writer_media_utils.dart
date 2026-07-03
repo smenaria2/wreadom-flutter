@@ -156,6 +156,16 @@ WriterMediaInfo classifyWriterMediaUrl(String? value) {
 bool isAllowedWriterLink(String? value) =>
     classifyWriterMediaUrl(value).isSupported;
 
+WriterMediaInfo? firstSupportedWriterMediaInfoInText(String text) {
+  for (final match in _urlLikePattern.allMatches(text)) {
+    final candidate = _trimTrailingUrlPunctuation(match.group(0) ?? '');
+    if (candidate.isEmpty) continue;
+    final info = classifyWriterMediaUrl(candidate);
+    if (info.isSupported) return info;
+  }
+  return null;
+}
+
 bool isTrustedCloudinaryImageUrl(String? value) {
   final uri = _parseHttpUri(value?.trim());
   if (uri == null) return false;
@@ -201,6 +211,19 @@ bool hasMeaningfulWriterHtml(String html) {
   final normalized = html.trim();
   return normalized.contains('<img ') ||
       RegExp(r'<a\s+[^>]*href=', caseSensitive: false).hasMatch(normalized);
+}
+
+final RegExp _urlLikePattern = RegExp(
+  r"""(?:(?:https?:\/\/)|(?:www\.)|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})[^\s<>"']*""",
+  caseSensitive: false,
+);
+
+String _trimTrailingUrlPunctuation(String value) {
+  var end = value.length;
+  while (end > 0 && '.,!?;:)]}>'.contains(value[end - 1])) {
+    end--;
+  }
+  return value.substring(0, end);
 }
 
 Uri? _parseHttpUri(String? value) {

@@ -16,6 +16,7 @@ import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
+import '../../utils/image_proxy_utils.dart';
 
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
@@ -144,7 +145,7 @@ class MessagesScreen extends ConsumerWidget {
                             leading: CircleAvatar(
                               backgroundImage:
                                   photoUrl != null && photoUrl.isNotEmpty
-                                  ? CachedNetworkImageProvider(photoUrl)
+                                  ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)
                                   : null,
                               child: photoUrl == null || photoUrl.isEmpty
                                   ? Text(title.characters.first.toUpperCase())
@@ -230,7 +231,7 @@ class _EmptyMessagesSuggestionsState
                       leading: CircleAvatar(
                         backgroundImage:
                             profile.photoURL?.trim().isNotEmpty == true
-                            ? CachedNetworkImageProvider(profile.photoURL!)
+                            ? CachedNetworkImageProvider(optimizedAvatarUrl(profile.photoURL!)!)
                             : null,
                         child: profile.photoURL?.trim().isNotEmpty == true
                             ? null

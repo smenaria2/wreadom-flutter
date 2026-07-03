@@ -44,6 +44,7 @@ void main() {
     required String status,
     int chapterCount = 1,
     String id = 'book-1',
+    String? chapterContent,
   }) {
     return Book(
       id: id,
@@ -65,7 +66,7 @@ void main() {
         (index) => Chapter(
           id: 'chapter-${index + 1}',
           title: 'Chapter ${index + 1}',
-          content: '<p>Chapter ${index + 1} content</p>',
+          content: chapterContent ?? '<p>Chapter ${index + 1} content</p>',
           index: index,
         ),
       ),
@@ -80,9 +81,12 @@ void main() {
   Widget writerPadTestApp(
     Book book, {
     Future<bool> Function(Uri uri)? openPrintPage,
+    Future<bool> Function(Uri uri)? openChatGpt,
+    Future<void> Function(String text)? copyAiPrompt,
     WriterRepository? writerRepository,
     WriterDraftStore? writerDraftStore,
     bool restoreLocalDrafts = false,
+    bool showToolbar = false,
   }) {
     return ProviderScope(
       overrides: [
@@ -104,8 +108,10 @@ void main() {
         home: WriterPadScreen(
           book: book,
           restoreLocalDrafts: restoreLocalDrafts,
-          showToolbar: false,
+          showToolbar: showToolbar,
           openPrintPage: openPrintPage,
+          openChatGpt: openChatGpt,
+          copyAiPrompt: copyAiPrompt,
         ),
       ),
     );
@@ -721,6 +727,108 @@ void main() {
     await tester.tap(find.text('Print'));
     await tester.pumpAndSettle();
     expect(openedUri, Uri.parse('https://publish.wreadom.in'));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('WriterPad disables AI spark when chapter text is empty', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'draft', chapterContent: ''),
+        showToolbar: true,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final aiButton = find.ancestor(
+      of: find.byIcon(Icons.auto_awesome_rounded),
+      matching: find.byType(InkWell),
+    );
+    expect(aiButton, findsOneWidget);
+    expect(tester.widget<InkWell>(aiButton).onTap, isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('WriterPad copies prompt and opens ChatGPT', (tester) async {
+    Uri? openedUri;
+    String? copiedPrompt;
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'draft'),
+        showToolbar: true,
+        copyAiPrompt: (text) async => copiedPrompt = text,
+        openChatGpt: (uri) async {
+          openedUri = uri;
+          return true;
+        },
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final aiButton = find.ancestor(
+      of: find.byIcon(Icons.auto_awesome_rounded),
+      matching: find.byType(InkWell),
+    );
+    expect(aiButton, findsOneWidget);
+    expect(tester.widget<InkWell>(aiButton).onTap, isNotNull);
+
+    await tester.runAsync(() async {
+      tester.widget<InkWell>(aiButton).onTap!();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(openedUri, Uri.parse('https://chatgpt.com'));
+    final prompt = copiedPrompt!;
+    expect(prompt, contains('You are a professional Hindi Text Editor'));
+    expect(prompt, contains('Add \u0928\u0941\u0915\u094d\u0924\u093e'));
+    expect(prompt, contains('Text:\nChapter 1 content'));
+    expect(
+      find.text('Prompt and text copied. Paste it in ChatGPT.'),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('WriterPad shows copied feedback when ChatGPT launch fails', (
+    tester,
+  ) async {
+    String? copiedPrompt;
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'draft'),
+        showToolbar: true,
+        copyAiPrompt: (text) async => copiedPrompt = text,
+        openChatGpt: (_) async => false,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final aiButton = find.ancestor(
+      of: find.byIcon(Icons.auto_awesome_rounded),
+      matching: find.byType(InkWell),
+    );
+    expect(aiButton, findsOneWidget);
+    expect(tester.widget<InkWell>(aiButton).onTap, isNotNull);
+
+    await tester.runAsync(() async {
+      tester.widget<InkWell>(aiButton).onTap!();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(copiedPrompt, contains('Chapter 1 content'));
+    expect(
+      find.text('Prompt and text copied, but ChatGPT could not be opened.'),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

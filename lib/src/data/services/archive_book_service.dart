@@ -13,6 +13,18 @@ class ArchiveBookService {
   static const String searchUrl = 'https://archive.org/advancedsearch.php';
   static const String metadataUrl = 'https://archive.org/metadata';
   static const Duration _requestTimeout = Duration(seconds: 6);
+  static const List<String> _archiveSearchFields = [
+    'identifier',
+    'title',
+    'creator',
+    'description',
+    'year',
+    'language',
+    'downloads',
+    'subject',
+    'collection',
+    'mediatype',
+  ];
   static const List<String> allowedSearchCollections = [
     'JaiGyan',
     'digitallibraryindia',
@@ -85,6 +97,23 @@ class ArchiveBookService {
     return 'identifier:($identifiersQuery)';
   }
 
+  @visibleForTesting
+  static Uri buildAdvancedSearchUri({
+    required String q,
+    int page = 1,
+    int rows = 20,
+    String sort = 'downloads desc',
+  }) {
+    return Uri.https('archive.org', '/advancedsearch.php', {
+      'q': q,
+      'fl[]': _archiveSearchFields,
+      'rows': '$rows',
+      'page': '$page',
+      'sort[]': sort,
+      'output': 'json',
+    });
+  }
+
   Future<Map<String, dynamic>> searchBooks({
     String? query,
     String? title,
@@ -104,10 +133,11 @@ class ArchiveBookService {
       language: language,
       subject: subject,
     );
-    final url = Uri.parse(
-      '$searchUrl?q=${Uri.encodeComponent(q)}'
-      '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
-      '&rows=$rows&page=$page&sort[]=${Uri.encodeComponent(sort)}&output=json',
+    final url = buildAdvancedSearchUri(
+      q: q,
+      page: page,
+      rows: rows,
+      sort: sort,
     );
 
     final response = await _get(url);
@@ -137,11 +167,7 @@ class ArchiveBookService {
     if (ids.isEmpty) return [];
 
     final q = buildIdentifierLookupQuery(ids);
-    final url = Uri.parse(
-      '$searchUrl?q=${Uri.encodeComponent(q)}'
-      '&fl[]=identifier,title,creator,description,year,language,downloads,subject,collection,mediatype'
-      '&rows=${ids.length}&page=1&sort[]=${Uri.encodeComponent('downloads desc')}&output=json',
-    );
+    final url = buildAdvancedSearchUri(q: q, rows: ids.length);
     final response = await _get(url);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch Archive books');

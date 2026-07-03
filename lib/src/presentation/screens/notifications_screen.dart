@@ -21,6 +21,7 @@ import '../../utils/notification_target_resolver.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/image_proxy_utils.dart';
 import '../../domain/models/app_notification.dart';
 
 enum _NotificationFilter {
@@ -333,7 +334,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                             backgroundImage:
                                                 item.actorPhotoURL != null
                                                 ? CachedNetworkImageProvider(
-                                                    item.actorPhotoURL!,
+                                                    optimizedAvatarUrl(item.actorPhotoURL!)!,
                                                   )
                                                 : null,
                                             child: item.actorPhotoURL == null

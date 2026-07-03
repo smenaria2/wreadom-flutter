@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/homepage/compiled_homepage.dart';
 import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
@@ -24,27 +25,59 @@ final originalBooksProvider = FutureProvider<List<Book>>((ref) async {
   return ref.watch(bookRepositoryProvider).getOriginalBooks();
 });
 
+const _leafShelfCandidateLimit = 80;
+const _leafShelfDisplayLimit = 24;
+
 final rawBooksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
-  return ref.watch(bookRepositoryProvider).getBooksWithLeaves();
+  return ref
+      .watch(bookRepositoryProvider)
+      .getBooksWithLeaves(limit: _leafShelfCandidateLimit);
 });
 
 final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('settings')
+        .doc('homepage_compiled')
+        .get();
+    final data = doc.data();
+    if (doc.exists && data != null) {
+      final compiled = CompiledHomepage.fromJson(data);
+      final compiledBooks = compiled.shelves.booksWithLeaves
+          .where(_hasContentLeaf)
+          .take(_leafShelfDisplayLimit)
+          .toList();
+      if (compiledBooks.isNotEmpty) return compiledBooks;
+    }
+  } catch (_) {
+    // Fall through to the legacy query when the compiled cache is unavailable.
+  }
+
   final allBooks = await ref.watch(rawBooksWithLeavesProvider.future);
-  return allBooks.where((book) {
-    final leaves = book.leaves;
-    if (leaves == null || leaves.isEmpty) return false;
-    return leaves.any((leaf) => leaf.type != LeafType.certificate);
-  }).toList();
+  return allBooks.where(_hasContentLeaf).take(_leafShelfDisplayLimit).toList();
 });
 
 final contentOnAgaazTopicsProvider = FutureProvider<List<Book>>((ref) async {
   final allBooks = await ref.watch(rawBooksWithLeavesProvider.future);
-  return allBooks.where((book) {
-    final leaves = book.leaves;
-    if (leaves == null || leaves.isEmpty) return false;
-    return leaves.every((leaf) => leaf.type == LeafType.certificate);
-  }).toList();
+  return allBooks
+      .where(_hasOnlyCertificateLeaves)
+      .take(_leafShelfDisplayLimit)
+      .toList();
 });
+
+bool _hasContentLeaf(Book book) {
+  final leaves = book.leaves;
+  if (leaves == null || leaves.isEmpty) {
+    return book.hasLeaves == true && (book.leafCount ?? 0) > 0;
+  }
+  return leaves.any((leaf) => leaf.type != LeafType.certificate);
+}
+
+bool _hasOnlyCertificateLeaves(Book book) {
+  final leaves = book.leaves;
+  if (leaves == null || leaves.isEmpty) return false;
+  return leaves.every((leaf) => leaf.type == LeafType.certificate);
+}
 
 final currentUserAdminClaimProvider = FutureProvider<bool>((ref) async {
   final authState = ref.watch(authStateProvider);
