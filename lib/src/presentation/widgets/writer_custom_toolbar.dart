@@ -120,107 +120,112 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     final isItalic = selectionStyle.containsKey(Attribute.italic.key);
     final isUnderline = selectionStyle.containsKey(Attribute.underline.key);
 
-    return Row(
-      children: [
-        _buildItem(
-          icon: widget.isUploadingInlineImage
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.image_outlined),
-          label: l10n.insertImage,
-          onTap: widget.isUploadingInlineImage
-              ? null
-              : () => _runToolbarAction(widget.onInsertImage),
-        ),
-        _buildItem(
-          icon: const Icon(Icons.play_circle_outline_rounded),
-          label: l10n.insertMedia,
-          onTap: () =>
-              _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
-        ),
-        _buildItem(
-          icon: const Icon(Icons.auto_awesome_rounded),
-          label: l10n.aiEdit,
-          onTap: widget.onAiEdit == null || !_hasEditableText
-              ? null
-              : () => _runToolbarAction(
-                  widget.onAiEdit,
-                  requireEditorFocus: false,
-                  hideAfterAction: false,
-                ),
-          showLabel: false,
-        ),
-        _buildDivider(),
-        _buildItem(
-          icon: const Icon(Icons.access_time_rounded),
-          label: _getVersionLabel(context),
-          onTap: widget.onVersionHistory == null
-              ? null
-              : () => _runToolbarAction(
-                  widget.onVersionHistory,
-                  requireEditorFocus: false,
-                ),
-        ),
-        _buildDivider(),
-        _buildItem(
-          icon: const Icon(Icons.undo_rounded),
-          label: _getUndoLabel(context),
-          onTap: () => _runToolbarAction(widget.controller.undo),
-        ),
-        _buildItem(
-          icon: const Icon(Icons.redo_rounded),
-          label: _getRedoLabel(context),
-          onTap: () => _runToolbarAction(widget.controller.redo),
-        ),
-        _buildDivider(),
-        _buildItem(
-          icon: Text(
-            'B',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 17,
-              color: isBold ? theme.colorScheme.primary : onSurfaceColor,
-            ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildItem(
+            icon: widget.isUploadingInlineImage
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image_outlined),
+            label: l10n.insertImage,
+            onTap: widget.isUploadingInlineImage
+                ? null
+                : () => _runToolbarAction(widget.onInsertImage),
           ),
-          label: _getBoldLabel(context),
-          onTap: () => _toggleFormat(Attribute.bold),
-          isActive: isBold,
-        ),
-        _buildItem(
-          icon: Text(
-            'I',
-            style: TextStyle(
-              fontStyle: FontStyle.italic,
-              fontSize: 17,
-              color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
-            ),
+          _buildItem(
+            icon: const Icon(Icons.play_circle_outline_rounded),
+            label: l10n.insertMedia,
+            onTap: () =>
+                _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
           ),
-          label: _getItalicLabel(context),
-          onTap: () => _toggleFormat(Attribute.italic),
-          isActive: isItalic,
-        ),
-        _buildItem(
-          icon: Text(
-            'U',
-            style: TextStyle(
-              decoration: TextDecoration.underline,
-              fontSize: 17,
-              color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
-            ),
+          _buildItem(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: l10n.aiEdit,
+            onTap: widget.onAiEdit == null || !_hasEditableText
+                ? null
+                : () => _runToolbarAction(
+                    widget.onAiEdit,
+                    requireEditorFocus: false,
+                    hideAfterAction: false,
+                  ),
+            showLabel: false,
           ),
-          label: _getUnderlineLabel(context),
-          onTap: () => _toggleFormat(Attribute.underline),
-          isActive: isUnderline,
-        ),
-      ],
+          _buildDivider(),
+          _buildItem(
+            icon: const Icon(Icons.access_time_rounded),
+            label: _getVersionLabel(context),
+            onTap: widget.onVersionHistory == null
+                ? null
+                : () => _runToolbarAction(
+                    widget.onVersionHistory,
+                    requireEditorFocus: false,
+                  ),
+          ),
+          _buildDivider(),
+          _buildItem(
+            icon: const Icon(Icons.undo_rounded),
+            label: _getUndoLabel(context),
+            onTap: () => _runToolbarAction(widget.controller.undo),
+          ),
+          _buildItem(
+            icon: const Icon(Icons.redo_rounded),
+            label: _getRedoLabel(context),
+            onTap: () => _runToolbarAction(widget.controller.redo),
+          ),
+          _buildDivider(),
+          _buildItem(
+            icon: Text(
+              'B',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: isBold ? theme.colorScheme.primary : onSurfaceColor,
+              ),
+            ),
+            label: _getBoldLabel(context),
+            onTap: () => _toggleFormat(Attribute.bold),
+            isActive: isBold,
+          ),
+          _buildItem(
+            icon: Text(
+              'I',
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontSize: 17,
+                color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
+              ),
+            ),
+            label: _getItalicLabel(context),
+            onTap: () => _toggleFormat(Attribute.italic),
+            isActive: isItalic,
+          ),
+          _buildItem(
+            icon: Text(
+              'U',
+              style: TextStyle(
+                decoration: TextDecoration.underline,
+                fontSize: 17,
+                color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
+              ),
+            ),
+            label: _getUnderlineLabel(context),
+            onTap: () => _toggleFormat(Attribute.underline),
+            isActive: isUnderline,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildDivider() {
     final theme = Theme.of(context);
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       width: 1,
       height: 24,
       color: theme.colorScheme.outlineVariant.withValues(alpha: 0.36),
@@ -242,19 +247,20 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
-    return Expanded(
-      child: Tooltip(
-        message: label,
-        child: Semantics(
-          button: true,
-          enabled: isEnabled,
-          label: label,
-          child: InkWell(
-            onTap: onTap,
-            canRequestFocus: false,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        enabled: isEnabled,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          canRequestFocus: false,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: SizedBox(
+              width: showLabel ? 76 : 44,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

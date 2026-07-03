@@ -35,6 +35,7 @@ Future<void> showCreatePostSheet(
   int? initialAudioDurationMs,
   int? initialAudioSizeBytes,
   String? initialAudioMimeType,
+  String? initialText,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -60,6 +61,7 @@ Future<void> showCreatePostSheet(
         initialAudioDurationMs: initialAudioDurationMs,
         initialAudioSizeBytes: initialAudioSizeBytes,
         initialAudioMimeType: initialAudioMimeType,
+        initialText: initialText,
       ),
     ),
   );
@@ -78,6 +80,7 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
   final int? initialAudioDurationMs;
   final int? initialAudioSizeBytes;
   final String? initialAudioMimeType;
+  final String? initialText;
 
   const _CreatePostSheet({
     this.initialQuestion,
@@ -92,6 +95,7 @@ class _CreatePostSheet extends ConsumerStatefulWidget {
     this.initialAudioDurationMs,
     this.initialAudioSizeBytes,
     this.initialAudioMimeType,
+    this.initialText,
   });
 
   @override
@@ -133,6 +137,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     _isAnsweringQuestion = widget.initialQuestion != null;
     _isQuestionDynamic = false;
     _pickedImage = widget.initialImage;
+    if (widget.initialText != null) {
+      _textController.text = widget.initialText!;
+    }
 
     if (widget.initialAudioPath != null) {
       _audioPath = widget.initialAudioPath;
