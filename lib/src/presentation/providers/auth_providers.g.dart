@@ -126,3 +126,54 @@ final class CurrentUserProvider
 }
 
 String _$currentUserHash() => r'7daaa2f6a1046da00590e365e1b7880e9b77f4bb';
+
+@ProviderFor(IsSigningOut)
+final isSigningOutProvider = IsSigningOutProvider._();
+
+final class IsSigningOutProvider extends $NotifierProvider<IsSigningOut, bool> {
+  IsSigningOutProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isSigningOutProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$isSigningOutHash();
+
+  @$internal
+  @override
+  IsSigningOut create() => IsSigningOut();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$isSigningOutHash() => r'61337d99101f192f739b0380cac3aba3a92c10c8';
+
+abstract class _$IsSigningOut extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

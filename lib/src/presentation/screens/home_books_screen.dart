@@ -274,19 +274,6 @@ class HomeBooksScreen extends ConsumerWidget {
 
               const _AuthorsSection(),
 
-              BookshelfSection(
-                title: _HomeShelfDestination.communityClassics
-                    .getLocalizedCategory(l10n),
-                booksAsync: iaAsync,
-                sectionId: _HomeShelfDestination.communityClassics.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.communityClassics,
-                  l10n,
-                ),
-              ),
-
               _LazyGenreSection(
                 title: l10n.genreMystery,
                 providerKey: 'mystery',
@@ -331,6 +318,18 @@ class HomeBooksScreen extends ConsumerWidget {
                 title: l10n.genreOther,
                 providerKey: 'other',
                 sectionId: 'other',
+              ),
+              BookshelfSection(
+                title: _HomeShelfDestination.communityClassics
+                    .getLocalizedCategory(l10n),
+                booksAsync: iaAsync,
+                sectionId: _HomeShelfDestination.communityClassics.sectionId,
+                onRetry: () => refreshHomepage(ref),
+                onSeeAll: () => _openShelfDestination(
+                  context,
+                  _HomeShelfDestination.communityClassics,
+                  l10n,
+                ),
               ),
               const InteractiveFeaturesSheet(),
               const SizedBox(height: 16),

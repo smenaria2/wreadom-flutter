@@ -75,12 +75,14 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> logout() async {
+    ref.read(isSigningOutProvider.notifier).setSigningOut(true);
     state = const AsyncValue.loading();
     final result = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).logout();
       _refreshAuthProviders();
     });
     if (ref.mounted) state = result;
+    ref.read(isSigningOutProvider.notifier).setSigningOut(false);
   }
 
   void _refreshAuthProviders() {

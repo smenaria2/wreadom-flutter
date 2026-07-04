@@ -563,6 +563,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                       _drainPendingDeepLinkTarget();
                     },
                 onSignedOut: () {
+                  ref.read(isSigningOutProvider.notifier).setSigningOut(false);
                   _pendingNavigation
                     ..clear()
                     ..updateReadiness(
@@ -674,6 +675,15 @@ class AuthWrapper extends ConsumerWidget {
       ref.invalidate(pagedNotificationsProvider);
     });
     final authState = ref.watch(authStateProvider);
+    final isSigningOut = ref.watch(isSigningOutProvider);
+
+    if (isSigningOut && authState.value != null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return authState.when(
       data: (user) {

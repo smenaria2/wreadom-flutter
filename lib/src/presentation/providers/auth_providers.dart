@@ -31,3 +31,11 @@ Stream<UserModel?> currentUser(Ref ref) {
   if (firebaseUser == null) return Stream.value(null);
   return ref.read(authRepositoryProvider).watchUser(firebaseUser.uid);
 }
+
+@riverpod
+class IsSigningOut extends _$IsSigningOut {
+  @override
+  bool build() => false;
+
+  void setSigningOut(bool value) => state = value;
+}

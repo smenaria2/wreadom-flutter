@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../../localization/generated/app_localizations.dart';
-import '../providers/auth_providers.dart';
+import '../providers/auth_controller.dart';
 import '../providers/email_verification_provider.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
@@ -150,9 +150,7 @@ class _EmailVerificationScreenState
     try {
       _autoCheckTimer?.cancel();
       _cooldownTimer?.cancel();
-      await ref.read(authRepositoryProvider).logout();
-      ref.invalidate(authStateProvider);
-      ref.invalidate(currentUserProvider);
+      await ref.read(authControllerProvider.notifier).logout();
     } catch (e) {
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: errorColor),
