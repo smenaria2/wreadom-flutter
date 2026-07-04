@@ -1,9 +1,12 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../presentation/routing/app_router.dart';
 import '../presentation/routing/app_routes.dart';
@@ -97,15 +100,23 @@ class SharingIntentHandler {
         ]);
 
     // Check if audio
-    final isAudio = _hasExtension(path, [
-      '.mp3',
-      '.m4a',
-      '.wav',
-      '.aac',
-      '.ogg',
-      '.flac',
-      '.m4b',
-    ]);
+    final mimeTypeLower = file.mimeType?.toLowerCase();
+    final isAudio = (mimeTypeLower != null && mimeTypeLower.startsWith('audio/')) ||
+        _hasExtension(path, [
+          '.mp3',
+          '.m4a',
+          '.wav',
+          '.aac',
+          '.ogg',
+          '.flac',
+          '.m4b',
+          '.opus',
+          '.amr',
+        ]) ||
+        (path.startsWith('content://') &&
+            (path.toLowerCase().contains('audio') ||
+                path.toLowerCase().contains('music') ||
+                path.toLowerCase().contains('sound')));
 
     if (isImage) {
       debugPrint("SharingIntentHandler: Handling shared image");
@@ -119,10 +130,15 @@ class SharingIntentHandler {
       );
     } else if (isAudio) {
       debugPrint("SharingIntentHandler: Handling shared audio");
+      String resolvedPath = path;
+      if (path.startsWith('content://')) {
+        resolvedPath = await _copyToTempFile(path, file.mimeType);
+      }
+
       // 1. Get file size
       int sizeBytes = 0;
       try {
-        sizeBytes = File(path).lengthSync();
+        sizeBytes = File(resolvedPath).lengthSync();
       } catch (e) {
         debugPrint("SharingIntentHandler: Error getting size: $e");
       }
@@ -131,7 +147,7 @@ class SharingIntentHandler {
       int durationMs = 0;
       final player = AudioPlayer();
       try {
-        final duration = await player.setAudioSource(AudioSource.file(path));
+        final duration = await player.setAudioSource(AudioSource.file(resolvedPath));
         durationMs = duration?.inMilliseconds ?? 0;
       } catch (e) {
         debugPrint("SharingIntentHandler: Error getting duration: $e");
@@ -139,17 +155,23 @@ class SharingIntentHandler {
         await player.dispose();
       }
 
-      // 3. Guess MIME type from extension
-      String mimeType = 'audio/mpeg';
-      final lowerPath = path.toLowerCase();
-      if (lowerPath.endsWith('.m4a')) {
-        mimeType = 'audio/m4a';
-      } else if (lowerPath.endsWith('.mp4')) {
-        mimeType = 'audio/mp4';
-      } else if (lowerPath.endsWith('.wav')) {
-        mimeType = 'audio/wav';
-      } else if (lowerPath.endsWith('.aac')) {
-        mimeType = 'audio/aac';
+      // 3. Guess MIME type from extension or file metadata
+      String mimeType = file.mimeType ?? 'audio/mpeg';
+      if (file.mimeType == null) {
+        final lowerPath = resolvedPath.toLowerCase();
+        if (lowerPath.endsWith('.m4a')) {
+          mimeType = 'audio/m4a';
+        } else if (lowerPath.endsWith('.mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (lowerPath.endsWith('.wav')) {
+          mimeType = 'audio/wav';
+        } else if (lowerPath.endsWith('.aac')) {
+          mimeType = 'audio/aac';
+        } else if (lowerPath.endsWith('.opus')) {
+          mimeType = 'audio/opus';
+        } else if (lowerPath.endsWith('.amr')) {
+          mimeType = 'audio/amr';
+        }
       }
 
       _openTarget(
@@ -157,7 +179,7 @@ class SharingIntentHandler {
         RouteSettings(
           name: AppRoutes.createPost,
           arguments: CreatePostArguments(
-            initialAudioPath: path,
+            initialAudioPath: resolvedPath,
             initialAudioDurationMs: durationMs,
             initialAudioSizeBytes: sizeBytes,
             initialAudioMimeType: mimeType,
@@ -189,5 +211,68 @@ class SharingIntentHandler {
   bool _hasExtension(String path, List<String> extensions) {
     final lowerPath = path.toLowerCase();
     return extensions.any((ext) => lowerPath.endsWith(ext));
+  }
+
+  Future<String> _copyToTempFile(String path, String? mimeType) async {
+    if (!path.startsWith('content://')) return path;
+
+    try {
+      final xfile = XFile(path);
+      final bytes = await xfile.readAsBytes();
+      if (bytes.isEmpty) return path;
+
+      final tempDir = await getTemporaryDirectory();
+
+      // Determine extension
+      String ext = '.mp3';
+      if (mimeType != null) {
+        if (mimeType.contains('m4a')) {
+          ext = '.m4a';
+        } else if (mimeType.contains('wav')) {
+          ext = '.wav';
+        } else if (mimeType.contains('aac')) {
+          ext = '.aac';
+        } else if (mimeType.contains('ogg')) {
+          ext = '.ogg';
+        } else if (mimeType.contains('flac')) {
+          ext = '.flac';
+        } else if (mimeType.contains('opus')) {
+          ext = '.opus';
+        } else if (mimeType.contains('amr')) {
+          ext = '.amr';
+        }
+      } else {
+        // Try to guess from content URI if it contains an extension
+        final lowerPath = path.toLowerCase();
+        for (final possibleExt in [
+          '.mp3',
+          '.m4a',
+          '.wav',
+          '.aac',
+          '.ogg',
+          '.flac',
+          '.m4b',
+          '.opus',
+          '.amr',
+        ]) {
+          if (lowerPath.contains(possibleExt)) {
+            ext = possibleExt;
+            break;
+          }
+        }
+      }
+
+      final fileName =
+          'shared_audio_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final tempFile = File(p.join(tempDir.path, fileName));
+      await tempFile.writeAsBytes(bytes);
+      debugPrint(
+        "SharingIntentHandler: Copied content:// to temp file: ${tempFile.path}",
+      );
+      return tempFile.path;
+    } catch (e) {
+      debugPrint("SharingIntentHandler: Error copying content:// URI: $e");
+      return path;
+    }
   }
 }
