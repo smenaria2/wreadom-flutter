@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../presentation/components/create_post_sheet.dart';
+import '../presentation/routing/app_routes.dart';
+import '../presentation/routing/writer_pad_mode.dart';
 
 class SharingIntentHandler {
   SharingIntentHandler._();
@@ -64,9 +66,10 @@ class SharingIntentHandler {
     // Check if it's text
     if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
       debugPrint("SharingIntentHandler: Handling shared text/url");
-      final context = navigatorKey.currentContext;
-      if (context == null) return;
-      showCreatePostSheet(context, initialText: path);
+      navigatorKey.currentState?.pushNamed(
+        AppRoutes.writerPad,
+        arguments: WriterPadArguments(initialText: path),
+      );
       return;
     }
 

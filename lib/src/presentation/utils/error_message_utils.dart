@@ -16,6 +16,8 @@ String userFacingErrorMessage(AppLocalizations l10n, Object error) {
         return l10n.networkRequestFailed;
       case 'too-many-requests':
         return l10n.tooManyRequests;
+      case 'unauthorized-domain':
+        return l10n.authUnauthorizedDomain;
       default:
         return l10n.authActionFailed;
     }

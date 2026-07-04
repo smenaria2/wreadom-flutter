@@ -3986,6 +3986,12 @@ abstract class AppLocalizations {
   /// **'Check your email and password, then try again.'**
   String get authInvalidCredentials;
 
+  /// No description provided for @authUnauthorizedDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'This domain is not authorized for sign-in. Please add it to your Firebase Console -> Authentication -> Settings -> Authorized domains.'**
+  String get authUnauthorizedDomain;
+
   /// No description provided for @authActionFailed.
   ///
   /// In en, this message translates to:

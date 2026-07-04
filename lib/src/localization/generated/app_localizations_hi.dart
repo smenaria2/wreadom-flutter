@@ -2254,6 +2254,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'अपना ईमेल और पासवर्ड जांचें, फिर दोबारा कोशिश करें।';
 
   @override
+  String get authUnauthorizedDomain =>
+      'यह डोमेन साइन-इन के लिए अधिकृत नहीं है। कृपया इसे अपने फायरबेस कंसोल -> ऑथेंटिकेशन -> सेटिंग्स -> अधिकृत डोमेन में जोड़ें।';
+
+  @override
   String get authActionFailed =>
       'साइन-इन कार्रवाई पूरी नहीं हो सकी। कृपया फिर कोशिश करें।';
 

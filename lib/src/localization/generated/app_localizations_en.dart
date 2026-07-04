@@ -2248,6 +2248,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check your email and password, then try again.';
 
   @override
+  String get authUnauthorizedDomain =>
+      'This domain is not authorized for sign-in. Please add it to your Firebase Console -> Authentication -> Settings -> Authorized domains.';
+
+  @override
   String get authActionFailed =>
       'We could not complete the sign-in action. Please try again.';
 

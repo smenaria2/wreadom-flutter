@@ -1224,6 +1224,7 @@
     }
   },
   "authInvalidCredentials": "Check your email and password, then try again.",
+  "authUnauthorizedDomain": "This domain is not authorized for sign-in. Please add it to your Firebase Console -> Authentication -> Settings -> Authorized domains.",
   "authActionFailed": "We could not complete the sign-in action. Please try again.",
   "networkRequestFailed": "Network connection failed. Please check your connection and try again.",
   "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
