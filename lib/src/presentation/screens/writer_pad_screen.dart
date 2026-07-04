@@ -2307,22 +2307,42 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final prompt = '$_chatGptHindiEditPrompt\n\nText:\n$chapterText';
     await (widget.copyAiPrompt?.call(prompt) ??
         Clipboard.setData(ClipboardData(text: prompt)));
+    if (!mounted) return;
 
-    final uri = Uri.https('chatgpt.com');
+    final l10n = AppLocalizations.of(context)!;
+    final app = await showDialog<_AiEditApp>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.aiEditDialogTitle),
+        content: Text(l10n.aiEditDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.cancel),
+          ),
+          for (final option in _aiEditApps)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(option),
+              child: Text(option.name),
+            ),
+        ],
+      ),
+    );
+    if (app == null || !mounted) return;
+
     var opened = false;
     try {
       opened =
-          await (widget.openChatGpt?.call(uri) ??
-              launchUrl(uri, mode: LaunchMode.externalApplication));
+          await (widget.openChatGpt?.call(app.uri) ??
+              launchUrl(app.uri, mode: LaunchMode.externalApplication));
     } catch (_) {
       opened = false;
     }
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
     _showSnack(
       opened
-          ? l10n.aiPromptCopiedForChatGpt
-          : l10n.aiPromptCopiedButCouldNotOpenChatGpt,
+          ? l10n.aiPromptCopiedForAiApp(app.name)
+          : l10n.aiPromptCopiedButCouldNotOpenAiApp(app.name),
     );
   }
 
@@ -3249,9 +3269,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _localizedContentType(String value) {
     if (!_isHindiLocale) return _titleCase(value);
     return switch (value.trim().toLowerCase()) {
-      'story' => 'कहानी',
-      'poem' || 'poetry' => 'कविता',
-      'article' => 'लेख',
+      'story' => '?????',
+      'poem' || 'poetry' => '?????',
+      'article' => '???',
       _ => _titleCase(value),
     };
   }
@@ -3259,52 +3279,52 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _localizedCategory(String value) {
     if (!_isHindiLocale) return _titleCase(value);
     const labels = {
-      'romance': 'रोमांस',
-      'mystery': 'रहस्य',
-      'thriller': 'थ्रिलर',
-      'science fiction': 'विज्ञान कथा',
-      'fantasy': 'फंतासी',
-      'horror': 'हॉरर',
-      'adventure': 'साहसिक',
-      'historical fiction': 'ऐतिहासिक कथा',
-      'young adult': 'युवा साहित्य',
-      'literary fiction': 'साहित्यिक कथा',
-      'comedy': 'हास्य',
-      'drama': 'नाटक',
-      'crime': 'अपराध',
-      'stories': 'कहानियां',
-      'fan fiction': 'फैन फिक्शन',
-      'lyrical': 'गीतात्मक',
-      'narrative': 'कथात्मक',
-      'haiku': 'हाइकु',
-      'free verse': 'मुक्त छंद',
-      'sonnet': 'सॉनेट',
-      'ghazal': 'ग़ज़ल',
-      'blank verse': 'अतुकांत छंद',
-      'ode': 'ओड',
-      'elegy': 'शोकगीत',
-      'ballad': 'बैलेड',
-      'prose poetry': 'गद्य कविता',
-      'spoken word': 'स्पोकन वर्ड',
-      'visual poetry': 'दृश्य कविता',
-      'acrostic': 'अक्रॉस्टिक',
-      'experimental': 'प्रयोगात्मक',
-      'technology': 'प्रौद्योगिकी',
-      'science': 'विज्ञान',
-      'health': 'स्वास्थ्य',
-      'education': 'शिक्षा',
-      'business': 'व्यवसाय',
-      'politics': 'राजनीति',
-      'travel': 'यात्रा',
-      'lifestyle': 'जीवनशैली',
-      'personal development': 'व्यक्तिगत विकास',
-      'finance': 'वित्त',
-      'environment': 'पर्यावरण',
-      'arts & culture': 'कला और संस्कृति',
-      'food & cooking': 'भोजन और पाक-कला',
-      'sports': 'खेल',
-      'history': 'इतिहास',
-      'other': 'अन्य',
+      'romance': '??????',
+      'mystery': '?????',
+      'thriller': '??????',
+      'science fiction': '??????? ???',
+      'fantasy': '??????',
+      'horror': '????',
+      'adventure': '??????',
+      'historical fiction': '???????? ???',
+      'young adult': '???? ???????',
+      'literary fiction': '????????? ???',
+      'comedy': '?????',
+      'drama': '????',
+      'crime': '?????',
+      'stories': '????????',
+      'fan fiction': '??? ??????',
+      'lyrical': '????????',
+      'narrative': '???????',
+      'haiku': '?????',
+      'free verse': '????? ???',
+      'sonnet': '?????',
+      'ghazal': '?????',
+      'blank verse': '??????? ???',
+      'ode': '??',
+      'elegy': '??????',
+      'ballad': '?????',
+      'prose poetry': '???? ?????',
+      'spoken word': '?????? ????',
+      'visual poetry': '????? ?????',
+      'acrostic': '??????????',
+      'experimental': '???????????',
+      'technology': '????????????',
+      'science': '???????',
+      'health': '?????????',
+      'education': '??????',
+      'business': '???????',
+      'politics': '???????',
+      'travel': '??????',
+      'lifestyle': '????????',
+      'personal development': '????????? ?????',
+      'finance': '?????',
+      'environment': '????????',
+      'arts & culture': '??? ?? ????????',
+      'food & cooking': '???? ?? ???-???',
+      'sports': '???',
+      'history': '??????',
+      'other': '????',
     };
     return labels[value.trim().toLowerCase()] ?? _titleCase(value);
   }
@@ -3312,16 +3332,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String _localizedLanguage(String value) {
     if (!_isHindiLocale) return _titleCase(value);
     const labels = {
-      'hindi': 'हिंदी',
-      'english': 'अंग्रेज़ी',
-      'bengali': 'बंगाली',
-      'telugu': 'तेलुगु',
-      'marathi': 'मराठी',
-      'tamil': 'तमिल',
-      'gujarati': 'गुजराती',
-      'urdu': 'उर्दू',
-      'kannada': 'कन्नड़',
-      'malayalam': 'मलयालम',
+      'hindi': '?????',
+      'english': '?????????',
+      'bengali': '??????',
+      'telugu': '??????',
+      'marathi': '?????',
+      'tamil': '????',
+      'gujarati': '???????',
+      'urdu': '?????',
+      'kannada': '??????',
+      'malayalam': '??????',
     };
     return labels[value.trim().toLowerCase()] ?? _titleCase(value);
   }
@@ -3640,6 +3660,20 @@ class _ChapterOverviewCard extends StatelessWidget {
 }
 
 enum _ExitSaveFailureAction { saveAgain, exitWithoutSaving }
+
+class _AiEditApp {
+  const _AiEditApp(this.name, this.uri);
+
+  final String name;
+  final Uri uri;
+}
+
+final _aiEditApps = [
+  _AiEditApp('ChatGPT', Uri.https('chatgpt.com')),
+  _AiEditApp('Gemini', Uri.https('gemini.google.com')),
+  _AiEditApp('Claude', Uri.https('claude.ai')),
+  _AiEditApp('Copilot', Uri.https('copilot.microsoft.com')),
+];
 
 enum _WriterMenuAction { addToBook, deleteBook, convertToDraft, printBook }
 

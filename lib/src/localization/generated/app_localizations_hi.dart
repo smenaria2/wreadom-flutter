@@ -1656,6 +1656,23 @@ class AppLocalizationsHi extends AppLocalizations {
       'प्रॉम्प्ट और टेक्स्ट कॉपी हो गया, लेकिन ChatGPT नहीं खुल सका।';
 
   @override
+  String get aiEditDialogTitle => 'टेक्स्ट कॉपी हो गया';
+
+  @override
+  String get aiEditDialogBody =>
+      'आपका टेक्स्ट और संपादन निर्देश कॉपी हो गए हैं। AI अैप चुनें, फिर पेस्ट करके इसे संपादित करें।';
+
+  @override
+  String aiPromptCopiedForAiApp(String appName) {
+    return 'टेक्स्ट कॉपी हो गया। संपादन के लिए इसे $appName में पेस्ट करें।';
+  }
+
+  @override
+  String aiPromptCopiedButCouldNotOpenAiApp(String appName) {
+    return 'टेक्स्ट कॉपी हो गया, लेकिन $appName नहीं खुल सका।';
+  }
+
+  @override
   String get deleteChapterBody => 'यह अध्याय इस ड्राफ़्ट से हट जाएगा।';
 
   @override

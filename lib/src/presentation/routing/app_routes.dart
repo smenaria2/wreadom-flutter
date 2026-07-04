@@ -1,4 +1,4 @@
-class AppRoutes {
+﻿class AppRoutes {
   static const root = '/';
   static const login = '/login';
   static const main = '/main';
@@ -20,6 +20,7 @@ class AppRoutes {
   static const competition = '/competition';
   static const discovery = '/discovery';
   static const postDetail = '/post-detail';
+  static const createPost = '/create-post';
   static const category = '/category';
   static const savedBooks = '/saved-books';
   static const followList = '/follow-list';

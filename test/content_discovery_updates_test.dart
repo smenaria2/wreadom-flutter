@@ -1,8 +1,9 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/data/repositories/firebase_feed_repository.dart';
 import 'package:librebook_flutter/src/data/utils/profile_search_utils.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
@@ -29,15 +30,93 @@ void main() {
     expect(FeedPost.fromJson(post.toJson()).questionLeafId, 'leaf-question-1');
   });
 
+  test(
+    'question answer matching is public and falls back to question text',
+    () {
+      const publicAnswer = FeedPost(
+        id: 'answer-1',
+        userId: 'reader-1',
+        username: 'reader',
+        type: 'post',
+        text: 'Public answer',
+        timestamp: 3,
+        likes: [],
+        visibility: 'public',
+        question: 'Why write?',
+      );
+      const followersAnswer = FeedPost(
+        id: 'answer-2',
+        userId: 'reader-2',
+        username: 'reader2',
+        type: 'post',
+        text: 'Followers answer',
+        timestamp: 2,
+        likes: [],
+        visibility: 'followers',
+        question: 'Why write?',
+      );
+      const leafAnswer = FeedPost(
+        id: 'answer-3',
+        userId: 'reader-3',
+        username: 'reader3',
+        type: 'post',
+        bookId: 'book-1',
+        text: 'Leaf answer',
+        timestamp: 1,
+        likes: [],
+        visibility: 'public',
+        question: 'Why write?',
+        questionLeafId: 'leaf-1',
+      );
+
+      expect(
+        isPublicQuestionAnswerMatch(
+          publicAnswer,
+          bookId: '',
+          questionLeafId: '',
+          question: 'Why write?',
+        ),
+        isTrue,
+      );
+      expect(
+        isPublicQuestionAnswerMatch(
+          followersAnswer,
+          bookId: '',
+          questionLeafId: '',
+          question: 'Why write?',
+        ),
+        isFalse,
+      );
+      expect(
+        isPublicQuestionAnswerMatch(
+          leafAnswer,
+          bookId: 'book-1',
+          questionLeafId: 'leaf-1',
+          question: 'Different text is okay for a leaf lookup',
+        ),
+        isTrue,
+      );
+      expect(
+        isPublicQuestionAnswerMatch(
+          leafAnswer,
+          bookId: '',
+          questionLeafId: '',
+          question: 'Why write?',
+        ),
+        isFalse,
+      );
+    },
+  );
+
   test('profile search terms cover words, email and Hindi prefixes', () {
     final terms = buildProfileSearchTerms(
       username: 'sumit_reader',
       email: 'sumit@example.com',
       displayName: 'Sumit Menaria',
-      penName: 'कहानीकार',
+      penName: '\u0915\u0939\u093e\u0928\u0940\u0915\u093e\u0930',
     );
 
-    expect(terms, containsAll(['sum', 'men', 'sumit@', 'कहा']));
+    expect(terms, containsAll(['sum', 'men', 'sumit@', '\u0915\u0939\u093e']));
     expect(normalizeProfileSearchText('  SUMIT   Menaria '), 'sumit menaria');
   });
 

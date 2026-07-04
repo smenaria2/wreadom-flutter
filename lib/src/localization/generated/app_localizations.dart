@@ -3038,6 +3038,30 @@ abstract class AppLocalizations {
   /// **'Prompt and text copied, but ChatGPT could not be opened.'**
   String get aiPromptCopiedButCouldNotOpenChatGpt;
 
+  /// No description provided for @aiEditDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text copied'**
+  String get aiEditDialogTitle;
+
+  /// No description provided for @aiEditDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your text and editing instructions are copied. Choose an AI app, then paste to edit this text.'**
+  String get aiEditDialogBody;
+
+  /// No description provided for @aiPromptCopiedForAiApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Text copied. Paste it in {appName} to edit.'**
+  String aiPromptCopiedForAiApp(String appName);
+
+  /// No description provided for @aiPromptCopiedButCouldNotOpenAiApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Text copied, but {appName} could not be opened.'**
+  String aiPromptCopiedButCouldNotOpenAiApp(String appName);
+
   /// No description provided for @deleteChapterBody.
   ///
   /// In en, this message translates to:

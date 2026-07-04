@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
@@ -29,6 +29,8 @@ class WriterCustomToolbar extends StatefulWidget {
 }
 
 class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
+  final _toolbarScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +49,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   @override
   void dispose() {
     widget.controller.removeListener(_updateState);
+    _toolbarScrollController.dispose();
     super.dispose();
   }
 
@@ -61,17 +64,17 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   }
 
   String _getUndoLabel(BuildContext context) =>
-      _isHindi(context) ? 'पूर्ववत' : 'Undo';
+      _isHindi(context) ? 'à¤ªà¥‚à¤°à¥à¤µà¤µà¤¤' : 'Undo';
   String _getRedoLabel(BuildContext context) =>
-      _isHindi(context) ? 'फिर से' : 'Redo';
+      _isHindi(context) ? 'à¤«à¤¿à¤° à¤¸à¥‡' : 'Redo';
   String _getBoldLabel(BuildContext context) =>
-      _isHindi(context) ? 'बोल्ड' : 'Bold';
+      _isHindi(context) ? 'à¤¬à¥‹à¤²à¥à¤¡' : 'Bold';
   String _getItalicLabel(BuildContext context) =>
-      _isHindi(context) ? 'इटैलिक' : 'Italic';
+      _isHindi(context) ? 'à¤‡à¤Ÿà¥ˆà¤²à¤¿à¤•' : 'Italic';
   String _getUnderlineLabel(BuildContext context) =>
-      _isHindi(context) ? 'अंडरलाइन' : 'Underline';
+      _isHindi(context) ? 'à¤…à¤‚à¤¡à¤°à¤²à¤¾à¤‡à¤¨' : 'Underline';
   String _getVersionLabel(BuildContext context) =>
-      _isHindi(context) ? 'संस्करण' : 'Version';
+      _isHindi(context) ? 'à¤¸à¤‚à¤¸à¥à¤•à¤°à¤£' : 'Version';
 
   bool get _hasEditableText =>
       widget.controller.document.toPlainText().trim().isNotEmpty;
@@ -109,6 +112,15 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     });
   }
 
+  void _showMoreControls() {
+    if (!_toolbarScrollController.hasClients) return;
+    _toolbarScrollController.animateTo(
+      _toolbarScrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -121,52 +133,11 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     final isUnderline = selectionStyle.containsKey(Attribute.underline.key);
 
     return SingleChildScrollView(
+      controller: _toolbarScrollController,
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildItem(
-            icon: widget.isUploadingInlineImage
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.image_outlined),
-            label: l10n.insertImage,
-            onTap: widget.isUploadingInlineImage
-                ? null
-                : () => _runToolbarAction(widget.onInsertImage),
-          ),
-          _buildItem(
-            icon: const Icon(Icons.play_circle_outline_rounded),
-            label: l10n.insertMedia,
-            onTap: () =>
-                _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
-          ),
-          _buildItem(
-            icon: const Icon(Icons.auto_awesome_rounded),
-            label: l10n.aiEdit,
-            onTap: widget.onAiEdit == null || !_hasEditableText
-                ? null
-                : () => _runToolbarAction(
-                    widget.onAiEdit,
-                    requireEditorFocus: false,
-                    hideAfterAction: false,
-                  ),
-            showLabel: false,
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: const Icon(Icons.access_time_rounded),
-            label: _getVersionLabel(context),
-            onTap: widget.onVersionHistory == null
-                ? null
-                : () => _runToolbarAction(
-                    widget.onVersionHistory,
-                    requireEditorFocus: false,
-                  ),
-          ),
-          _buildDivider(),
           _buildItem(
             icon: const Icon(Icons.undo_rounded),
             label: _getUndoLabel(context),
@@ -216,6 +187,58 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
             label: _getUnderlineLabel(context),
             onTap: () => _toggleFormat(Attribute.underline),
             isActive: isUnderline,
+          ),
+          _buildItem(
+            icon: const Icon(Icons.keyboard_double_arrow_right_rounded),
+            label: l10n.showMore,
+            onTap: () => _runToolbarAction(
+              _showMoreControls,
+              requireEditorFocus: false,
+              hideAfterAction: false,
+            ),
+            showLabel: false,
+          ),
+          _buildDivider(),
+          _buildItem(
+            icon: widget.isUploadingInlineImage
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image_outlined),
+            label: l10n.insertImage,
+            onTap: widget.isUploadingInlineImage
+                ? null
+                : () => _runToolbarAction(widget.onInsertImage),
+          ),
+          _buildItem(
+            icon: const Icon(Icons.play_circle_outline_rounded),
+            label: l10n.insertMedia,
+            onTap: () =>
+                _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
+          ),
+          _buildItem(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: l10n.aiEdit,
+            onTap: widget.onAiEdit == null || !_hasEditableText
+                ? null
+                : () => _runToolbarAction(
+                    widget.onAiEdit,
+                    requireEditorFocus: false,
+                    hideAfterAction: false,
+                  ),
+            showLabel: false,
+          ),
+          _buildDivider(),
+          _buildItem(
+            icon: const Icon(Icons.access_time_rounded),
+            label: _getVersionLabel(context),
+            onTap: widget.onVersionHistory == null
+                ? null
+                : () => _runToolbarAction(
+                    widget.onVersionHistory,
+                    requireEditorFocus: false,
+                  ),
           ),
         ],
       ),

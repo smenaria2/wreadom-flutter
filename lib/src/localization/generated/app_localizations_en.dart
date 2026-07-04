@@ -1658,6 +1658,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Prompt and text copied, but ChatGPT could not be opened.';
 
   @override
+  String get aiEditDialogTitle => 'Text copied';
+
+  @override
+  String get aiEditDialogBody =>
+      'Your text and editing instructions are copied. Choose an AI app, then paste to edit this text.';
+
+  @override
+  String aiPromptCopiedForAiApp(String appName) {
+    return 'Text copied. Paste it in $appName to edit.';
+  }
+
+  @override
+  String aiPromptCopiedButCouldNotOpenAiApp(String appName) {
+    return 'Text copied, but $appName could not be opened.';
+  }
+
+  @override
   String get deleteChapterBody => 'This removes the chapter from this draft.';
 
   @override

@@ -911,6 +911,24 @@
   "couldNotOpenChatGpt": "Could not open ChatGPT.",
   "aiPromptCopiedForChatGpt": "Prompt and text copied. Paste it in ChatGPT.",
   "aiPromptCopiedButCouldNotOpenChatGpt": "Prompt and text copied, but ChatGPT could not be opened.",
+  "aiEditDialogTitle": "Text copied",
+  "aiEditDialogBody": "Your text and editing instructions are copied. Choose an AI app, then paste to edit this text.",
+  "aiPromptCopiedForAiApp": "Text copied. Paste it in {appName} to edit.",
+  "@aiPromptCopiedForAiApp": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPromptCopiedButCouldNotOpenAiApp": "Text copied, but {appName} could not be opened.",
+  "@aiPromptCopiedButCouldNotOpenAiApp": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
   "deleteChapterBody": "This removes the chapter from this draft.",
   "signInBeforeUploadingImages": "Sign in before uploading images.",
   "imageInserted": "Image inserted.",

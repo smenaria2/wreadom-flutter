@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/comment.dart';
@@ -296,11 +296,21 @@ class FirebaseFeedRepository implements FeedRepository {
     required String question,
     int limit = 100,
   }) async {
-    final snapshot = await _firestore
-        .collection(_collection)
-        .where('bookId', isEqualTo: bookId)
-        .get();
+    final normalizedBookId = bookId.trim();
+    final normalizedLeafId = questionLeafId.trim();
     final normalizedQuestion = question.trim();
+    if (normalizedLeafId.isEmpty && normalizedQuestion.isEmpty) {
+      return const <FeedPost>[];
+    }
+
+    Query query = _firestore.collection(_collection);
+    if (normalizedLeafId.isNotEmpty) {
+      query = query.where('questionLeafId', isEqualTo: normalizedLeafId);
+    } else {
+      query = query.where('question', isEqualTo: normalizedQuestion);
+    }
+
+    final snapshot = await query.limit(limit * 4).get();
     final posts =
         snapshot.docs
             .map((doc) {
@@ -317,17 +327,14 @@ class FirebaseFeedRepository implements FeedRepository {
               }
             })
             .whereType<FeedPost>()
-            .where((post) {
-              if (post.visibility != 'public' || post.type != 'post') {
-                return false;
-              }
-              final linkedLeafId = post.questionLeafId?.trim();
-              if (linkedLeafId != null && linkedLeafId.isNotEmpty) {
-                return linkedLeafId == questionLeafId;
-              }
-              return normalizedQuestion.isNotEmpty &&
-                  post.question?.trim() == normalizedQuestion;
-            })
+            .where(
+              (post) => isPublicQuestionAnswerMatch(
+                post,
+                bookId: normalizedBookId,
+                questionLeafId: normalizedLeafId,
+                question: normalizedQuestion,
+              ),
+            )
             .toList()
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return posts.take(limit).toList(growable: false);
@@ -708,4 +715,30 @@ class FirebaseFeedRepository implements FeedRepository {
       return [];
     }
   }
+}
+
+@visibleForTesting
+bool isPublicQuestionAnswerMatch(
+  FeedPost post, {
+  required String bookId,
+  required String questionLeafId,
+  required String question,
+}) {
+  final normalizedBookId = bookId.trim();
+  final normalizedLeafId = questionLeafId.trim();
+  final normalizedQuestion = question.trim();
+  if (post.visibility != 'public' || post.type != 'post') return false;
+  if (normalizedBookId.isNotEmpty && post.bookId?.trim() != normalizedBookId) {
+    return false;
+  }
+
+  final linkedLeafId = post.questionLeafId?.trim();
+  if (normalizedLeafId.isNotEmpty) {
+    return linkedLeafId == normalizedLeafId;
+  }
+  if (normalizedQuestion.isEmpty ||
+      (linkedLeafId != null && linkedLeafId.isNotEmpty)) {
+    return false;
+  }
+  return post.question?.trim() == normalizedQuestion;
 }

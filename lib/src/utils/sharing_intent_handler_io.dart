@@ -1,12 +1,15 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import '../presentation/components/create_post_sheet.dart';
+
+import '../presentation/routing/app_router.dart';
 import '../presentation/routing/app_routes.dart';
 import '../presentation/routing/writer_pad_mode.dart';
+
+typedef SharedRouteTargetHandler = void Function(RouteSettings target);
 
 class SharingIntentHandler {
   SharingIntentHandler._();
@@ -15,7 +18,10 @@ class SharingIntentHandler {
   StreamSubscription<List<SharedMediaFile>>? _intentSub;
   bool _initialized = false;
 
-  void init(GlobalKey<NavigatorState> navigatorKey) {
+  void init(
+    GlobalKey<NavigatorState> navigatorKey, {
+    SharedRouteTargetHandler? onSharedTarget,
+  }) {
     if (_initialized) return;
     _initialized = true;
 
@@ -23,7 +29,7 @@ class SharingIntentHandler {
     _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
       (List<SharedMediaFile> files) {
         if (files.isNotEmpty) {
-          _handleSharedFiles(navigatorKey, files);
+          _handleSharedFiles(navigatorKey, files, onSharedTarget);
         }
       },
       onError: (err) {
@@ -39,7 +45,7 @@ class SharingIntentHandler {
         .then((List<SharedMediaFile> files) {
           if (files.isNotEmpty) {
             Future.delayed(const Duration(milliseconds: 800), () {
-              _handleSharedFiles(navigatorKey, files);
+              _handleSharedFiles(navigatorKey, files, onSharedTarget);
             });
           }
         })
@@ -59,6 +65,7 @@ class SharingIntentHandler {
   Future<void> _handleSharedFiles(
     GlobalKey<NavigatorState> navigatorKey,
     List<SharedMediaFile> files,
+    SharedRouteTargetHandler? onSharedTarget,
   ) async {
     final file = files.first;
     final path = file.path;
@@ -66,9 +73,13 @@ class SharingIntentHandler {
     // Check if it's text
     if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
       debugPrint("SharingIntentHandler: Handling shared text/url");
-      navigatorKey.currentState?.pushNamed(
-        AppRoutes.writerPad,
-        arguments: WriterPadArguments(initialText: path),
+      _openTarget(
+        navigatorKey,
+        RouteSettings(
+          name: AppRoutes.writerPad,
+          arguments: WriterPadArguments(initialText: path),
+        ),
+        onSharedTarget,
       );
       return;
     }
@@ -98,10 +109,14 @@ class SharingIntentHandler {
 
     if (isImage) {
       debugPrint("SharingIntentHandler: Handling shared image");
-      final context = navigatorKey.currentContext;
-      if (context == null) return;
-      final xFile = XFile(path);
-      showCreatePostSheet(context, initialImage: xFile);
+      _openTarget(
+        navigatorKey,
+        RouteSettings(
+          name: AppRoutes.createPost,
+          arguments: CreatePostArguments(initialImagePath: path),
+        ),
+        onSharedTarget,
+      );
     } else if (isAudio) {
       debugPrint("SharingIntentHandler: Handling shared audio");
       // 1. Get file size
@@ -137,23 +152,38 @@ class SharingIntentHandler {
         mimeType = 'audio/aac';
       }
 
-      final context = navigatorKey.currentContext;
-      if (context == null || !context.mounted) {
-        debugPrint("SharingIntentHandler: Context is no longer mounted");
-        return;
-      }
-      showCreatePostSheet(
-        context,
-        initialAudioPath: path,
-        initialAudioDurationMs: durationMs,
-        initialAudioSizeBytes: sizeBytes,
-        initialAudioMimeType: mimeType,
+      _openTarget(
+        navigatorKey,
+        RouteSettings(
+          name: AppRoutes.createPost,
+          arguments: CreatePostArguments(
+            initialAudioPath: path,
+            initialAudioDurationMs: durationMs,
+            initialAudioSizeBytes: sizeBytes,
+            initialAudioMimeType: mimeType,
+          ),
+        ),
+        onSharedTarget,
       );
     } else {
       debugPrint(
         "SharingIntentHandler: Unsupported file type: ${file.type} or path: $path",
       );
     }
+  }
+
+  void _openTarget(
+    GlobalKey<NavigatorState> navigatorKey,
+    RouteSettings target,
+    SharedRouteTargetHandler? onSharedTarget,
+  ) {
+    if (onSharedTarget != null) {
+      onSharedTarget(target);
+      return;
+    }
+    final name = target.name;
+    if (name == null || name.trim().isEmpty) return;
+    navigatorKey.currentState?.pushNamed(name, arguments: target.arguments);
   }
 
   bool _hasExtension(String path, List<String> extensions) {

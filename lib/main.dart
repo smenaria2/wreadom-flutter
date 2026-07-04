@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
@@ -52,10 +52,11 @@ Future<void> main() async {
     try {
       if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
-           defaultTargetPlatform == TargetPlatform.iOS ||
-           defaultTargetPlatform == TargetPlatform.macOS)) {
+              defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
         await JustAudioBackground.init(
-          androidNotificationChannelId: 'com.ryanheise.audioservice.channel.audio',
+          androidNotificationChannelId:
+              'com.ryanheise.audioservice.channel.audio',
           androidNotificationChannelName: 'Audio Playback',
           androidNotificationOngoing: true,
         );
@@ -172,9 +173,18 @@ Future<void> _configureFirebaseEmulators() async {
       ? '127.0.0.1'
       : EnvConfig.firebaseEmulatorHost.trim();
   debugPrint('Using emulator host: $host');
-  await FirebaseAuth.instance.useAuthEmulator(host, EnvConfig.firebaseAuthEmulatorPort);
-  FirebaseFirestore.instance.useFirestoreEmulator(host, EnvConfig.firebaseFirestoreEmulatorPort);
-  FirebaseFunctions.instance.useFunctionsEmulator(host, EnvConfig.firebaseFunctionsEmulatorPort);
+  await FirebaseAuth.instance.useAuthEmulator(
+    host,
+    EnvConfig.firebaseAuthEmulatorPort,
+  );
+  FirebaseFirestore.instance.useFirestoreEmulator(
+    host,
+    EnvConfig.firebaseFirestoreEmulatorPort,
+  );
+  FirebaseFunctions.instance.useFunctionsEmulator(
+    host,
+    EnvConfig.firebaseFunctionsEmulatorPort,
+  );
 }
 
 bool _shouldActivateAppCheck() {
@@ -311,7 +321,10 @@ class _MyAppState extends ConsumerState<MyApp> {
       return GoogleSignInInitializer.ensureInitialized();
     });
     unawaited(_initDeepLinks());
-    SharingIntentHandler.instance.init(_navigatorKey);
+    SharingIntentHandler.instance.init(
+      _navigatorKey,
+      onSharedTarget: _handleSharedRouteTarget,
+    );
   }
 
   Future<void> _retryFirebaseStartup() async {
@@ -426,6 +439,11 @@ class _MyAppState extends ConsumerState<MyApp> {
         debugPrint('Error handling deep link: $err');
       },
     );
+  }
+
+  void _handleSharedRouteTarget(RouteSettings target) {
+    _pendingNavigation.setTarget(target);
+    _drainPendingDeepLinkTarget();
   }
 
   void _handleUri(Uri uri) {
@@ -678,11 +696,7 @@ class AuthWrapper extends ConsumerWidget {
     final isSigningOut = ref.watch(isSigningOutProvider);
 
     if (isSigningOut && authState.value != null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return authState.when(

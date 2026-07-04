@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
@@ -30,6 +31,7 @@ import '../screens/archive_reader_screen.dart';
 import '../screens/admin_daily_topics_screen.dart';
 import '../screens/question_answers_screen.dart';
 import '../providers/feed_providers.dart';
+import '../components/create_post_sheet.dart';
 import '../components/main_route_gate.dart';
 import 'app_routes.dart';
 import 'writer_pad_mode.dart';
@@ -89,6 +91,73 @@ class PostDetailArguments {
   final FeedPost? post;
   final String? targetCommentId;
   final String? targetReplyId;
+}
+
+class CreatePostArguments {
+  const CreatePostArguments({
+    this.initialImagePath,
+    this.initialAudioPath,
+    this.initialAudioDurationMs,
+    this.initialAudioSizeBytes,
+    this.initialAudioMimeType,
+    this.initialText,
+  });
+
+  final String? initialImagePath;
+  final String? initialAudioPath;
+  final int? initialAudioDurationMs;
+  final int? initialAudioSizeBytes;
+  final String? initialAudioMimeType;
+  final String? initialText;
+}
+
+class _CreatePostRouteScreen extends StatefulWidget {
+  const _CreatePostRouteScreen({required this.arguments});
+
+  final CreatePostArguments arguments;
+
+  @override
+  State<_CreatePostRouteScreen> createState() => _CreatePostRouteScreenState();
+}
+
+class _CreatePostRouteScreenState extends State<_CreatePostRouteScreen> {
+  bool _opened = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openComposer());
+  }
+
+  Future<void> _openComposer() async {
+    if (_opened || !mounted) return;
+    _opened = true;
+    final args = widget.arguments;
+    final imagePath = args.initialImagePath?.trim();
+    await showCreatePostSheet(
+      context,
+      initialImage: imagePath == null || imagePath.isEmpty
+          ? null
+          : XFile(imagePath),
+      initialAudioPath: args.initialAudioPath,
+      initialAudioDurationMs: args.initialAudioDurationMs,
+      initialAudioSizeBytes: args.initialAudioSizeBytes,
+      initialAudioMimeType: args.initialAudioMimeType,
+      initialText: args.initialText,
+    );
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushReplacementNamed(AppRoutes.main);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: SizedBox.shrink());
+  }
 }
 
 class CollaborationRequestArguments {
@@ -358,6 +427,19 @@ class AppRouter {
             optOutComplementary: args?.optOutComplementary,
             initialText: args?.initialText,
             restoreLocalDrafts: args?.initialText == null,
+          ),
+        );
+      case AppRoutes.createPost:
+        final argsValue = resolvedArguments;
+        if (argsValue != null && argsValue is! CreatePostArguments) {
+          return _notFound('Create post details are invalid.');
+        }
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => _CreatePostRouteScreen(
+            arguments:
+                argsValue as CreatePostArguments? ??
+                const CreatePostArguments(),
           ),
         );
       case AppRoutes.postDetail:

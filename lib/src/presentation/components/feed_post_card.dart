@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,7 +30,7 @@ import 'book/gradient_review_card.dart';
 import '../widgets/audio_post_player.dart';
 import 'audio_post_creator.dart';
 
-/// Maps post type → accent colour
+/// Maps post type â†’ accent colour
 Color _typeColor(String type, ColorScheme scheme) {
   switch (type.toLowerCase()) {
     case 'review':
@@ -44,7 +44,7 @@ Color _typeColor(String type, ColorScheme scheme) {
   }
 }
 
-/// Maps post type → icon
+/// Maps post type â†’ icon
 IconData _typeIcon(String type) {
   switch (type.toLowerCase()) {
     case 'review':
@@ -788,7 +788,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── Author row ───────────────────────────────────
+            // â”€â”€â”€ Author row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               children: [
                 Expanded(
@@ -967,7 +967,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ],
             ),
 
-            // ─── Book reference ───────────────────────────────
+            // â”€â”€â”€ Book reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (!isPremiumCard &&
                 (post.bookTitle != null || bookIdText != null)) ...[
               const SizedBox(height: 10),
@@ -1051,7 +1051,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             const SizedBox(height: 10),
 
-            // ─── Question prompt (if present) ─────────────────
+            // â”€â”€â”€ Question prompt (if present) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (post.question != null && post.question!.isNotEmpty) ...[
               GlassSurface(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1087,8 +1087,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             GestureDetector(
                               onTap: () {
                                 final bId = post.bookId?.toString() ?? '';
-                                final leafId =
-                                    post.questionLeafId ?? post.id ?? '';
+                                final leafId = post.questionLeafId ?? '';
                                 Navigator.of(context).pushNamed(
                                   AppRoutes.questionAnswers,
                                   arguments: QuestionLeafAnswersQuery(
@@ -1134,7 +1133,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               ),
             ],
 
-            // ─── Post text ────────────────────────────────────
+            // â”€â”€â”€ Post text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (post.type.toLowerCase() == 'quote') ...[
               if (post.text.isNotEmpty &&
                   post.text.trim() != (post.quote ?? '').trim()) ...[
@@ -1230,7 +1229,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             const SizedBox(height: 10),
 
-            // ─── Post image ───────────────────────────────────
+            // â”€â”€â”€ Post image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (post.imageUrl != null) ...[
               GestureDetector(
                 onTap: () => _showZoomableImage(context, post.imageUrl!),
@@ -1257,7 +1256,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
               const SizedBox(height: 12),
             ],
 
-            // ─── Actions ──────────────────────────────────────
+            // â”€â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               children: [
                 // Like
@@ -1330,7 +1329,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   }
 }
 
-// ─── Action button ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _PostTextWithLinkPreview extends StatelessWidget {
   const _PostTextWithLinkPreview({
     required this.text,
@@ -1420,7 +1419,7 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ─── Comments sheet ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Comments sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CommentsSheet extends ConsumerStatefulWidget {
   final FeedPost post;
   const _CommentsSheet({required this.post});

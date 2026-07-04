@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -754,7 +754,44 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('WriterPad copies prompt and opens ChatGPT', (tester) async {
+  test('writer toolbar shows editing basics before more controls', () {
+    final source = File(
+      'lib/src/presentation/widgets/writer_custom_toolbar.dart',
+    ).readAsStringSync();
+
+    final undo = source.indexOf('Icons.undo_rounded');
+    final redo = source.indexOf('Icons.redo_rounded');
+    final bold = source.indexOf("_toggleFormat(Attribute.bold)");
+    final italic = source.indexOf("_toggleFormat(Attribute.italic)");
+    final underline = source.indexOf("_toggleFormat(Attribute.underline)");
+    final showMore = source.indexOf(
+      'Icons.keyboard_double_arrow_right_rounded',
+    );
+    final image = source.indexOf('Icons.image_outlined');
+    final ai = source.indexOf('Icons.auto_awesome_rounded');
+
+    expect([
+      undo,
+      redo,
+      bold,
+      italic,
+      underline,
+      showMore,
+      image,
+      ai,
+    ], everyElement(isNonNegative));
+    expect(undo < redo, isTrue);
+    expect(redo < bold, isTrue);
+    expect(bold < italic, isTrue);
+    expect(italic < underline, isTrue);
+    expect(underline < showMore, isTrue);
+    expect(showMore < image, isTrue);
+    expect(image < ai, isTrue);
+  });
+
+  testWidgets('WriterPad copies prompt and opens selected AI app', (
+    tester,
+  ) async {
     Uri? openedUri;
     String? copiedPrompt;
     await tester.pumpWidget(
@@ -781,15 +818,26 @@ void main() {
       tester.widget<InkWell>(aiButton).onTap!();
       await Future<void>.delayed(const Duration(milliseconds: 50));
     });
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
-    expect(openedUri, Uri.parse('https://chatgpt.com'));
+    expect(openedUri, isNull);
     final prompt = copiedPrompt!;
     expect(prompt, contains('You are a professional Hindi Text Editor'));
     expect(prompt, contains('Add \u0928\u0941\u0915\u094d\u0924\u093e'));
     expect(prompt, contains('Text:\nChapter 1 content'));
+    expect(find.text('Text copied'), findsOneWidget);
+    expect(find.text('ChatGPT'), findsOneWidget);
+    expect(find.text('Gemini'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'ChatGPT'));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
+    expect(openedUri, Uri.parse('https://chatgpt.com'));
     expect(
-      find.text('Prompt and text copied. Paste it in ChatGPT.'),
+      find.text('Text copied. Paste it in ChatGPT to edit.'),
       findsOneWidget,
     );
 
@@ -797,7 +845,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('WriterPad shows copied feedback when ChatGPT launch fails', (
+  testWidgets('WriterPad shows copied feedback when selected AI launch fails', (
     tester,
   ) async {
     String? copiedPrompt;
@@ -822,18 +870,23 @@ void main() {
       tester.widget<InkWell>(aiButton).onTap!();
       await Future<void>.delayed(const Duration(milliseconds: 50));
     });
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(copiedPrompt, contains('Chapter 1 content'));
+    await tester.tap(find.widgetWithText(TextButton, 'ChatGPT'));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
     expect(
-      find.text('Prompt and text copied, but ChatGPT could not be opened.'),
+      find.text('Text copied, but ChatGPT could not be opened.'),
       findsOneWidget,
     );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
-
   testWidgets(
     'WriterPad shows version history and restores a rich chapter version',
     (tester) async {
@@ -908,7 +961,7 @@ void main() {
         find.textContaining('Bold restored text', findRichText: true),
         findsWidgets,
       );
-      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(Image), findsWidgets);
       expect(find.text('YouTube'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());

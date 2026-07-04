@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/screens/daily_topic_screen.dart';
+import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 
 void main() {
   Future<void> pumpGeneratedRoute(
@@ -67,6 +68,26 @@ void main() {
       final route = AppRouter.onGenerateRoute(settings);
 
       expect(route, isA<MaterialPageRoute>());
+    });
+
+    test('preserves shared image create-post route arguments', () {
+      const arguments = CreatePostArguments(initialImagePath: '/tmp/photo.jpg');
+      final route = AppRouter.onGenerateRoute(
+        const RouteSettings(name: AppRoutes.createPost, arguments: arguments),
+      );
+
+      expect(route, isA<MaterialPageRoute>());
+      expect(route.settings.arguments, same(arguments));
+    });
+
+    test('preserves shared text writer-pad route arguments', () {
+      const arguments = WriterPadArguments(initialText: 'Shared text');
+      final route = AppRouter.onGenerateRoute(
+        const RouteSettings(name: AppRoutes.writerPad, arguments: arguments),
+      );
+
+      expect(route, isA<MaterialPageRoute>());
+      expect(route.settings.arguments, same(arguments));
     });
 
     test('preserves daily topic arguments for in-app navigation', () {
