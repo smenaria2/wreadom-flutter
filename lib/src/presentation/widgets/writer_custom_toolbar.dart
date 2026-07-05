@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
@@ -29,7 +29,7 @@ class WriterCustomToolbar extends StatefulWidget {
 }
 
 class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
-  final _toolbarScrollController = ScrollController();
+  bool _showSecondRow = false;
 
   @override
   void initState() {
@@ -49,7 +49,6 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   @override
   void dispose() {
     widget.controller.removeListener(_updateState);
-    _toolbarScrollController.dispose();
     super.dispose();
   }
 
@@ -64,17 +63,17 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   }
 
   String _getUndoLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤ªà¥‚à¤°à¥à¤µà¤µà¤¤' : 'Undo';
+      _isHindi(context) ? 'पूर्ववत' : 'Undo';
   String _getRedoLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤«à¤¿à¤° à¤¸à¥‡' : 'Redo';
+      _isHindi(context) ? 'फिर से' : 'Redo';
   String _getBoldLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤¬à¥‹à¤²à¥à¤¡' : 'Bold';
+      _isHindi(context) ? 'बोल्ड' : 'Bold';
   String _getItalicLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤‡à¤Ÿà¥ˆà¤²à¤¿à¤•' : 'Italic';
+      _isHindi(context) ? 'इटैलिक' : 'Italic';
   String _getUnderlineLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤…à¤‚à¤¡à¤°à¤²à¤¾à¤‡à¤¨' : 'Underline';
+      _isHindi(context) ? 'अंडरलाइन' : 'Underline';
   String _getVersionLabel(BuildContext context) =>
-      _isHindi(context) ? 'à¤¸à¤‚à¤¸à¥à¤•à¤°à¤£' : 'Version';
+      _isHindi(context) ? 'संस्करण' : 'Version';
 
   bool get _hasEditableText =>
       widget.controller.document.toPlainText().trim().isNotEmpty;
@@ -112,15 +111,6 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     });
   }
 
-  void _showMoreControls() {
-    if (!_toolbarScrollController.hasClients) return;
-    _toolbarScrollController.animateTo(
-      _toolbarScrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -132,116 +122,147 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     final isItalic = selectionStyle.containsKey(Attribute.italic.key);
     final isUnderline = selectionStyle.containsKey(Attribute.underline.key);
 
-    return SingleChildScrollView(
-      controller: _toolbarScrollController,
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildItem(
-            icon: const Icon(Icons.undo_rounded),
-            label: _getUndoLabel(context),
-            onTap: () => _runToolbarAction(widget.controller.undo),
-          ),
-          _buildItem(
-            icon: const Icon(Icons.redo_rounded),
-            label: _getRedoLabel(context),
-            onTap: () => _runToolbarAction(widget.controller.redo),
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: Text(
-              'B',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: isBold ? theme.colorScheme.primary : onSurfaceColor,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildItem(
+                icon: const Icon(Icons.undo_rounded),
+                label: _getUndoLabel(context),
+                onTap: () => _runToolbarAction(widget.controller.undo),
               ),
             ),
-            label: _getBoldLabel(context),
-            onTap: () => _toggleFormat(Attribute.bold),
-            isActive: isBold,
-          ),
-          _buildItem(
-            icon: Text(
-              'I',
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: 17,
-                color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
+            Expanded(
+              child: _buildItem(
+                icon: const Icon(Icons.redo_rounded),
+                label: _getRedoLabel(context),
+                onTap: () => _runToolbarAction(widget.controller.redo),
               ),
             ),
-            label: _getItalicLabel(context),
-            onTap: () => _toggleFormat(Attribute.italic),
-            isActive: isItalic,
-          ),
-          _buildItem(
-            icon: Text(
-              'U',
-              style: TextStyle(
-                decoration: TextDecoration.underline,
-                fontSize: 17,
-                color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
-              ),
-            ),
-            label: _getUnderlineLabel(context),
-            onTap: () => _toggleFormat(Attribute.underline),
-            isActive: isUnderline,
-          ),
-          _buildItem(
-            icon: const Icon(Icons.keyboard_double_arrow_right_rounded),
-            label: l10n.showMore,
-            onTap: () => _runToolbarAction(
-              _showMoreControls,
-              requireEditorFocus: false,
-              hideAfterAction: false,
-            ),
-            showLabel: false,
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: widget.isUploadingInlineImage
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.image_outlined),
-            label: l10n.insertImage,
-            onTap: widget.isUploadingInlineImage
-                ? null
-                : () => _runToolbarAction(widget.onInsertImage),
-          ),
-          _buildItem(
-            icon: const Icon(Icons.play_circle_outline_rounded),
-            label: l10n.insertMedia,
-            onTap: () =>
-                _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
-          ),
-          _buildItem(
-            icon: const Icon(Icons.auto_awesome_rounded),
-            label: l10n.aiEdit,
-            onTap: widget.onAiEdit == null || !_hasEditableText
-                ? null
-                : () => _runToolbarAction(
-                    widget.onAiEdit,
-                    requireEditorFocus: false,
-                    hideAfterAction: false,
+            _buildDivider(),
+            Expanded(
+              child: _buildItem(
+                icon: Text(
+                  'B',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: isBold ? theme.colorScheme.primary : onSurfaceColor,
                   ),
-            showLabel: false,
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: const Icon(Icons.access_time_rounded),
-            label: _getVersionLabel(context),
-            onTap: widget.onVersionHistory == null
-                ? null
-                : () => _runToolbarAction(
-                    widget.onVersionHistory,
-                    requireEditorFocus: false,
+                ),
+                label: _getBoldLabel(context),
+                onTap: () => _toggleFormat(Attribute.bold),
+                isActive: isBold,
+              ),
+            ),
+            Expanded(
+              child: _buildItem(
+                icon: Text(
+                  'I',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 17,
+                    color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
                   ),
+                ),
+                label: _getItalicLabel(context),
+                onTap: () => _toggleFormat(Attribute.italic),
+                isActive: isItalic,
+              ),
+            ),
+            Expanded(
+              child: _buildItem(
+                icon: Text(
+                  'U',
+                  style: TextStyle(
+                    decoration: TextDecoration.underline,
+                    fontSize: 17,
+                    color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
+                  ),
+                ),
+                label: _getUnderlineLabel(context),
+                onTap: () => _toggleFormat(Attribute.underline),
+                isActive: isUnderline,
+              ),
+            ),
+            _buildDivider(),
+            Expanded(
+              child: _buildItem(
+                icon: Icon(
+                  _showSecondRow
+                      ? Icons.keyboard_double_arrow_up_rounded
+                      : Icons.keyboard_double_arrow_down_rounded,
+                ),
+                label: l10n.showMore,
+                onTap: () {
+                  setState(() {
+                    _showSecondRow = !_showSecondRow;
+                  });
+                },
+                showLabel: false,
+              ),
+            ),
+          ],
+        ),
+        if (_showSecondRow) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildItem(
+                  icon: widget.isUploadingInlineImage
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.image_outlined),
+                  label: l10n.insertImage,
+                  onTap: widget.isUploadingInlineImage
+                      ? null
+                      : () => _runToolbarAction(widget.onInsertImage),
+                ),
+              ),
+              Expanded(
+                child: _buildItem(
+                  icon: const Icon(Icons.play_circle_outline_rounded),
+                  label: l10n.insertMedia,
+                  onTap: () =>
+                      _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
+                ),
+              ),
+              Expanded(
+                child: _buildItem(
+                  icon: const Icon(Icons.auto_awesome_rounded),
+                  label: l10n.aiEdit,
+                  onTap: widget.onAiEdit == null || !_hasEditableText
+                      ? null
+                      : () => _runToolbarAction(
+                          widget.onAiEdit,
+                          requireEditorFocus: false,
+                          hideAfterAction: false,
+                        ),
+                  showLabel: false,
+                ),
+              ),
+              _buildDivider(),
+              Expanded(
+                child: _buildItem(
+                  icon: const Icon(Icons.access_time_rounded),
+                  label: _getVersionLabel(context),
+                  onTap: widget.onVersionHistory == null
+                      ? null
+                      : () => _runToolbarAction(
+                          widget.onVersionHistory,
+                          requireEditorFocus: false,
+                        ),
+                ),
+              ),
+            ],
           ),
         ],
-      ),
+      ],
     );
   }
 
@@ -282,43 +303,40 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: SizedBox(
-              width: showLabel ? 76 : 44,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconTheme(
-                    data: IconThemeData(color: baseColor, size: 23),
-                    child: icon,
-                  ),
-                  if (showLabel) ...[
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      height: 14,
-                      width: double.infinity,
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            softWrap: false,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 10,
-                              height: 1,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: baseColor,
-                            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconTheme(
+                  data: IconThemeData(color: baseColor, size: 23),
+                  child: icon,
+                ),
+                if (showLabel) ...[
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 14,
+                    width: double.infinity,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            height: 1,
+                            fontWeight: isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: baseColor,
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),

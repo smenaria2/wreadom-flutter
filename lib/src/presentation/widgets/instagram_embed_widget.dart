@@ -52,21 +52,31 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
         ..setNavigationDelegate(
           NavigationDelegate(
             onPageStarted: (_) {
-              if (mounted) setState(() { _isLoading = true; _hasError = false; });
+              if (mounted) {
+                setState(() {
+                  _isLoading = true;
+                  _hasError = false;
+                });
+              }
             },
             onPageFinished: (_) {
               if (mounted) setState(() => _isLoading = false);
             },
             onWebResourceError: (error) {
               if (error.isForMainFrame == false) return;
-              if (mounted) setState(() { _hasError = true; _isLoading = false; });
+              if (mounted) {
+                setState(() {
+                  _hasError = true;
+                  _isLoading = false;
+                });
+              }
             },
             // Block ALL navigation so WebView never leaves the embed page.
             onNavigationRequest: (_) => NavigationDecision.prevent,
           ),
         )
         // Load a minimal HTML shell that iframes the /embed URL at a fixed
-        // size — this avoids the flicker caused by Instagram's embed.js
+        // size â€” this avoids the flicker caused by Instagram's embed.js
         // resizing the container dynamically.
         ..loadHtmlString(_buildHtml(widget.embedUrl));
 
@@ -77,7 +87,8 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
     }
   }
 
-  String _buildHtml(String embedUrl) => '''<!DOCTYPE html>
+  String _buildHtml(String embedUrl) =>
+      '''<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
@@ -89,7 +100,7 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
 </head>
 <body>
   <iframe
-    src="$embedUrl"
+    src="${_htmlAttribute(embedUrl)}"
     scrolling="no"
     allowtransparency="true"
     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
@@ -101,8 +112,9 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
   Future<void> _openInBrowser() async {
     final uri = Uri.tryParse(widget.originalUrl);
     if (uri == null) return;
-    final mode =
-        kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView;
+    final mode = kIsWeb
+        ? LaunchMode.platformDefault
+        : LaunchMode.inAppBrowserView;
     await launchUrl(uri, mode: mode);
   }
 
@@ -110,12 +122,12 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    // ── Fallback card ──────────────────────────────────────────────────────
+    // â”€â”€ Fallback card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (_hasError || _controller == null) {
       return _buildFallbackCard(scheme);
     }
 
-    // ── Actual preview with tap overlay ───────────────────────────────────
+    // â”€â”€ Actual preview with tap overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     return Container(
       height: 480,
       margin: const EdgeInsets.symmetric(vertical: 12),
@@ -138,7 +150,7 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
               child: Center(child: CircularProgressIndicator()),
             ),
 
-          // Transparent overlay — intercepts every tap and opens in browser.
+          // Transparent overlay â€” intercepts every tap and opens in browser.
           // Using Positioned.fill so it covers the full WebView area.
           Positioned.fill(
             child: GestureDetector(
@@ -161,8 +173,11 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.open_in_new_rounded,
-                        color: Colors.white, size: 12),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      color: Colors.white,
+                      size: 12,
+                    ),
                     SizedBox(width: 4),
                     Text(
                       'Tap to open',
@@ -201,8 +216,10 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
                   color: const Color(0xFFC13584).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.photo_camera_outlined,
-                    color: Color(0xFFC13584)),
+                child: const Icon(
+                  Icons.photo_camera_outlined,
+                  color: Color(0xFFC13584),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -213,8 +230,9 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
                     Text(
                       'Instagram',
                       style: TextStyle(
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.w800),
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -222,20 +240,32 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: scheme.onSurface.withValues(alpha: 0.62),
-                          fontSize: 12),
+                        color: scheme.onSurface.withValues(alpha: 0.62),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.open_in_new_rounded,
-                  size: 18,
-                  color: scheme.onSurface.withValues(alpha: 0.58)),
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 18,
+                color: scheme.onSurface.withValues(alpha: 0.58),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+String _htmlAttribute(String value) {
+  return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
 }

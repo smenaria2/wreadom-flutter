@@ -33,6 +33,7 @@ import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/writer_custom_toolbar.dart';
 import '../widgets/writer_media_embed.dart';
+import '../components/ai_edit_dialog.dart';
 import '../../data/services/cover_image_service.dart';
 import '../../data/services/image_upload_service.dart';
 
@@ -2310,23 +2311,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (!mounted) return;
 
     final l10n = AppLocalizations.of(context)!;
-    final app = await showDialog<_AiEditApp>(
+    final app = await showDialog<AiEditApp>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.aiEditDialogTitle),
-        content: Text(l10n.aiEditDialogBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          for (final option in _aiEditApps)
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(option),
-              child: Text(option.name),
-            ),
-        ],
-      ),
+      builder: (dialogContext) => const AiEditDialog(),
     );
     if (app == null || !mounted) return;
 
@@ -3661,19 +3648,6 @@ class _ChapterOverviewCard extends StatelessWidget {
 
 enum _ExitSaveFailureAction { saveAgain, exitWithoutSaving }
 
-class _AiEditApp {
-  const _AiEditApp(this.name, this.uri);
-
-  final String name;
-  final Uri uri;
-}
-
-final _aiEditApps = [
-  _AiEditApp('ChatGPT', Uri.https('chatgpt.com')),
-  _AiEditApp('Gemini', Uri.https('gemini.google.com')),
-  _AiEditApp('Claude', Uri.https('claude.ai')),
-  _AiEditApp('Copilot', Uri.https('copilot.microsoft.com')),
-];
 
 enum _WriterMenuAction { addToBook, deleteBook, convertToDraft, printBook }
 

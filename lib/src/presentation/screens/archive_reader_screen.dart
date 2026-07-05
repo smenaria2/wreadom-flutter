@@ -15,11 +15,8 @@ import '../utils/share_text_helper.dart';
 import 'webview_platform_helper.dart';
 
 class ArchiveReaderScreen extends ConsumerWidget {
-  const ArchiveReaderScreen({
-    super.key,
-    this.book,
-    this.bookId,
-  }) : assert(book != null || bookId != null);
+  const ArchiveReaderScreen({super.key, this.book, this.bookId})
+    : assert(book != null || bookId != null);
 
   final Book? book;
   final String? bookId;
@@ -35,24 +32,18 @@ class ArchiveReaderScreen extends ConsumerWidget {
       data: (loadedBook) {
         if (loadedBook == null) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Internet Archive Reader'),
-            ),
+            appBar: AppBar(title: const Text('Internet Archive Reader')),
             body: const Center(child: Text('Book not found')),
           );
         }
         return _ArchiveReaderContent(book: loadedBook);
       },
       loading: () => Scaffold(
-        appBar: AppBar(
-          title: const Text('Internet Archive Reader'),
-        ),
+        appBar: AppBar(title: const Text('Internet Archive Reader')),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Internet Archive Reader'),
-        ),
+        appBar: AppBar(title: const Text('Internet Archive Reader')),
         body: Center(child: Text('Error loading book: $error')),
       ),
     );
@@ -138,16 +129,12 @@ class _ArchiveReaderContentState extends State<_ArchiveReaderContent> {
             }
           },
           onNavigationRequest: (NavigationRequest request) {
-            final uri = Uri.parse(request.url);
-            if (uri.host == 'archive.org' ||
-                uri.host.endsWith('.archive.org') ||
-                uri.host ==
-                    'googleads.g.doubleclick.net' || // Allow ads if necessary
-                uri.host == 'www.googleadservices.com') {
-              return NavigationDecision.navigate;
+            final uri = Uri.tryParse(request.url);
+            if (uri == null || !_isAllowedArchiveNavigation(uri)) {
+              debugPrint('Blocking navigation to unauthorized URL: ');
+              return NavigationDecision.prevent;
             }
-            debugPrint('Blocking navigation to unauthorized host: ${uri.host}');
-            return NavigationDecision.prevent;
+            return NavigationDecision.navigate;
           },
         ),
       );
@@ -301,4 +288,13 @@ class _ArchiveReaderContentState extends State<_ArchiveReaderContent> {
       ),
     );
   }
+}
+
+bool _isAllowedArchiveNavigation(Uri uri) {
+  if (uri.scheme != 'https') return false;
+  final host = uri.host.toLowerCase();
+  return host == 'archive.org' ||
+      host.endsWith('.archive.org') ||
+      host == 'googleads.g.doubleclick.net' ||
+      host == 'www.googleadservices.com';
 }

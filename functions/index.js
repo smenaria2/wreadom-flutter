@@ -75,7 +75,7 @@ function normalizeString(value) {
 
 function isAdminContext(context) {
   const token = context.auth?.token || {};
-  return token.admin === true || normalizeString(token.email) === "smenaria2@gmail.com";
+  return token.admin === true;
 }
 
 function requireAdminContext(context) {

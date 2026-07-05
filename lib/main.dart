@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
@@ -75,7 +75,12 @@ Future<void> main() async {
       return false;
     };
     final sharedPreferences = await SharedPreferences.getInstance();
-    final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
+    const firebaseBootstrap = FirebaseBootstrapResult(
+      ready: false,
+      emulatorsConfigured: false,
+      appCheckConfigured: false,
+      cacheConfigured: false,
+    );
     runApp(
       ProviderScope(
         overrides: [
@@ -101,6 +106,7 @@ class FirebaseBootstrapResult {
   final bool cacheConfigured;
 }
 
+// ignore: unused_element
 Future<FirebaseBootstrapResult> _bootstrapFirebaseBeforeRunApp() async {
   final ready = await _guardedBootstrapStep(
     'Firebase',

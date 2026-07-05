@@ -9,11 +9,11 @@ import 'instagram_embed_widget.dart';
 
 /// Entry-point widget for all embedded writer media.
 ///
-/// - YouTube  → [YoutubePlayerWidget] (official IFrame Player API, works on
+/// - YouTube  â†’ [YoutubePlayerWidget] (official IFrame Player API, works on
 ///              Android / iOS / Web)
-/// - Instagram → [InstagramEmbedWidget] (WebView with Chrome UA + HTML shell;
+/// - Instagram â†’ [InstagramEmbedWidget] (WebView with Chrome UA + HTML shell;
 ///               falls back to in-app browser on web)
-/// - Spotify / other → plain WebView with a fallback banner
+/// - Spotify / other â†’ plain WebView with a fallback banner
 class InAppMediaWebView extends StatefulWidget {
   const InAppMediaWebView({
     super.key,
@@ -51,7 +51,11 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
     try {
       initializeWebViewPlatform();
       final controller = createWebViewController();
-      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      controller.setJavaScriptMode(
+        _requiresJavaScript(_info.type)
+            ? JavaScriptMode.unrestricted
+            : JavaScriptMode.disabled,
+      );
       controller.setBackgroundColor(Colors.transparent);
       controller.setNavigationDelegate(
         NavigationDelegate(
@@ -75,6 +79,13 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
               });
             }
           },
+          onNavigationRequest: (request) {
+            final uri = Uri.tryParse(request.url);
+            if (uri == null || !_isAllowedMediaNavigation(uri, _info)) {
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
         ),
       );
 
@@ -93,8 +104,9 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
   Future<void> _openInBrowser() async {
     final uri = Uri.tryParse(widget.url);
     if (uri == null) return;
-    final mode =
-        kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView;
+    final mode = kIsWeb
+        ? LaunchMode.platformDefault
+        : LaunchMode.inAppBrowserView;
     await launchUrl(uri, mode: mode);
   }
 
@@ -102,9 +114,9 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
   Widget build(BuildContext context) {
     final info = _info;
 
-    // ── YouTube ────────────────────────────────────────────────────────────
+    // â”€â”€ YouTube â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (info.type == WriterMediaType.youtube) {
-      // Extract the video ID from the embed URL  (…/embed/<ID>)
+      // Extract the video ID from the embed URL  (â€¦/embed/<ID>)
       final segments = Uri.tryParse(info.embedUrl)?.pathSegments ?? [];
       final embedIdx = segments.indexOf('embed');
       final videoId = (embedIdx != -1 && embedIdx + 1 < segments.length)
@@ -119,7 +131,7 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
       }
     }
 
-    // ── Instagram ──────────────────────────────────────────────────────────
+    // â”€â”€ Instagram â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (info.type == WriterMediaType.instagram) {
       return InstagramEmbedWidget(
         embedUrl: info.embedUrl,
@@ -127,7 +139,7 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
       );
     }
 
-    // ── Generic WebView (Spotify / other) ─────────────────────────────────
+    // â”€â”€ Generic WebView (Spotify / other) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     final scheme = Theme.of(context).colorScheme;
     Widget child;
     if (_hasError || _controller == null) {
@@ -183,7 +195,9 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
             Text(
               'Failed to load media',
               style: TextStyle(
-                  color: scheme.error, fontWeight: FontWeight.bold),
+                color: scheme.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             TextButton.icon(
@@ -196,4 +210,28 @@ class _InAppMediaWebViewState extends State<InAppMediaWebView> {
       ),
     );
   }
+}
+
+bool _requiresJavaScript(WriterMediaType type) {
+  return type == WriterMediaType.spotify || type == WriterMediaType.suno;
+}
+
+bool _isAllowedMediaNavigation(Uri uri, WriterMediaInfo info) {
+  if (uri.scheme != 'https') return false;
+  final allowedHosts = <String>{};
+  for (final value in [info.originalUrl, info.embedUrl]) {
+    final parsed = Uri.tryParse(value);
+    if (parsed != null && parsed.host.isNotEmpty) {
+      allowedHosts.add(_normalizedHost(parsed.host));
+    }
+  }
+  final host = _normalizedHost(uri.host);
+  return allowedHosts.any(
+    (allowed) => host == allowed || host.endsWith('.$allowed'),
+  );
+}
+
+String _normalizedHost(String host) {
+  final lower = host.toLowerCase();
+  return lower.startsWith('www.') ? lower.substring(4) : lower;
 }

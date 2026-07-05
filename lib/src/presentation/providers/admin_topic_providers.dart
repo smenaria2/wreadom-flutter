@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/homepage/homepage_metadata.dart';
+import 'book_providers.dart';
 import 'daily_topic_providers.dart';
 import 'homepage_providers.dart';
 
@@ -34,6 +35,7 @@ class AdminDailyTopicController {
       FirebaseFirestore.instance.collection('daily-topics');
 
   Future<void> saveTopic(DailyTopic topic) async {
+    await _requireAdmin();
     final now = DateTime.now().millisecondsSinceEpoch;
     final data = _topicData(topic, now);
     if (topic.id.trim().isEmpty) {
@@ -52,6 +54,7 @@ class AdminDailyTopicController {
   }
 
   Future<void> setEnabled(DailyTopic topic, bool isEnabled) async {
+    await _requireAdmin();
     if (topic.id.trim().isEmpty) return;
     await _collection.doc(topic.id).update({
       'isEnabled': isEnabled,
@@ -61,9 +64,17 @@ class AdminDailyTopicController {
   }
 
   Future<void> deleteTopic(DailyTopic topic) async {
+    await _requireAdmin();
     if (topic.id.trim().isEmpty) return;
     await _collection.doc(topic.id).delete();
     await _refreshTopicCaches();
+  }
+
+  Future<void> _requireAdmin() async {
+    final isAdmin = await _ref.read(currentUserAdminClaimProvider.future);
+    if (!isAdmin) {
+      throw StateError('Administrator privileges required.');
+    }
   }
 
   Map<String, Object?> _topicData(DailyTopic topic, int now) {

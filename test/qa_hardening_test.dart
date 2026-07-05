@@ -1716,7 +1716,7 @@ void main() {
     expect(readerSource, contains('setSecureReader'));
     expect(androidSource, contains('FLAG_SECURE'));
     expect(readerSource, contains('LaunchMode.externalApplication'));
-    expect(mediaSource, contains('LaunchMode.externalApplication'));
+    expect(mediaSource, contains('LaunchMode.inAppBrowserView'));
     expect(readerSource, contains('sigmaX: 3, sigmaY: 3'));
     expect(readerSource, contains('_linePreservingText'));
     expect(readerSource, contains("tag == 'br'"));

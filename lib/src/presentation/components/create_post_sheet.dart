@@ -116,6 +116,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   bool _isSubmitting = false;
   String _visibility = 'public';
   XFile? _pickedImage;
+  Uint8List? _pickedImageBytes;
+  bool _isImageUploading = false;
+  String? _uploadedImageUrl;
   String? _currentQuestion;
   bool _isChangingQuestion = false;
   bool _isAnsweringQuestion = false;
@@ -137,6 +140,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     _isAnsweringQuestion = widget.initialQuestion != null;
     _isQuestionDynamic = false;
     _pickedImage = widget.initialImage;
+    if (widget.initialImage != null) {
+      unawaited(_cachePickedImageBytes(widget.initialImage!));
+    }
     if (widget.initialText != null) {
       _textController.text = widget.initialText!;
     }
@@ -157,7 +163,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
           _audioMimeType,
           _audioDurationMs,
           _audioSizeBytes,
-        );
+        ).catchError((e, st) {
+          debugPrint("Error uploading shared audio: $e\n$st");
+        });
       });
     }
   }
@@ -198,6 +206,16 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     }
   }
 
+  Future<void> _cachePickedImageBytes(XFile image) async {
+    try {
+      final bytes = await image.readAsBytes();
+      if (!mounted || _pickedImage?.path != image.path) return;
+      setState(() => _pickedImageBytes = bytes);
+    } catch (e) {
+      debugPrint('Error reading image preview: $e');
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final image = await _picker.pickImage(
@@ -205,13 +223,46 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
         imageQuality: 70,
         maxWidth: 1200,
       );
-      if (image != null) setState(() => _pickedImage = image);
+      if (image == null) return;
+
+      setState(() {
+        _pickedImage = image;
+        _isImageUploading = true;
+      });
+
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _pickedImageBytes = bytes;
+      });
+
+      final imageUrl = await ref
+          .read(feedRepositoryProvider)
+          .uploadPostImage(bytes, image.name);
+
+      if (!mounted) return;
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+        _isImageUploading = false;
+      });
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      debugPrint('Error picking/uploading image: $e');
+      if (mounted) {
+        setState(() {
+          _isImageUploading = false;
+          _pickedImage = null;
+          _pickedImageBytes = null;
+          _uploadedImageUrl = null;
+        });
+      }
     }
   }
 
-  void _removeImage() => setState(() => _pickedImage = null);
+  void _removeImage() => setState(() {
+    _pickedImage = null;
+    _pickedImageBytes = null;
+    _uploadedImageUrl = null;
+  });
 
   Future<void> _submit() async {
     final text = _textController.text.trim();
@@ -236,16 +287,17 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      String? imageUrl;
-      if (_pickedImage != null) {
-        final bytes = await _pickedImage!.readAsBytes();
-        imageUrl = await ref
-            .read(feedRepositoryProvider)
-            .uploadPostImage(bytes, _pickedImage!.name);
-      }
+      final imageUrl = _uploadedImageUrl;
 
       String? audioUrl = _uploadedAudioUrl;
       String? audioObjectKey = _uploadedAudioObjectKey;
+      if (_audioPath != null &&
+          ((audioUrl == null || audioUrl.trim().isEmpty) ||
+              (audioObjectKey == null || audioObjectKey.trim().isEmpty))) {
+        throw const AudioPostUploadException(
+          'Audio upload has not completed. Please try again.',
+        );
+      }
       int? audioDurationMs = _audioDurationMs;
       int? audioSizeBytes = _audioSizeBytes;
       String? audioMimeType = _audioMimeType;
@@ -346,45 +398,57 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     String mimeType,
     int durationMs,
     int sizeBytes,
+  ) {
+    return _uploadAudioFile(file, mimeType, durationMs, sizeBytes);
+  }
+
+  Future<void> _uploadAudioFile(
+    XFile file,
+    String mimeType,
+    int durationMs,
+    int sizeBytes,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    setState(() {
-      _isAudioUploading = true;
-    });
+    if (mounted) setState(() => _isAudioUploading = true);
     try {
       final user = await ref.read(currentUserProvider.future);
-      if (user != null) {
-        final result = await _audioUploadService.uploadAudioPost(
-          file: file,
-          userId: user.id,
-          mimeType: mimeType,
-          durationMs: durationMs,
-          sizeBytes: sizeBytes,
-        );
-
-        if (_isDisposed) {
-          _audioUploadService.deleteAudioPostObject(result.audioObjectKey);
-          return;
-        }
-
-        setState(() {
-          _uploadedAudioUrl = result.audioUrl;
-          _uploadedAudioObjectKey = result.audioObjectKey;
-          _isAudioUploading = false;
-        });
+      if (_isDisposed || !mounted) return;
+      if (user == null) {
+        setState(() => _isAudioUploading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.loginToPost)));
+        return;
       }
-    } catch (e) {
+
+      final result = await _audioUploadService.uploadAudioPost(
+        file: file,
+        userId: user.id,
+        mimeType: mimeType,
+        durationMs: durationMs,
+        sizeBytes: sizeBytes,
+      );
+
+      if (_isDisposed) {
+        _audioUploadService.deleteAudioPostObject(result.audioObjectKey);
+        return;
+      }
+      if (!mounted) return;
+
       setState(() {
+        _uploadedAudioUrl = result.audioUrl;
+        _uploadedAudioObjectKey = result.audioObjectKey;
         _isAudioUploading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.audioUploadFailed(e.toString())),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isAudioUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.audioUploadFailed(e.toString())),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -443,453 +507,412 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
       );
     }
 
+    final maxSheetHeight =
+        (MediaQuery.sizeOf(context).height -
+                MediaQuery.paddingOf(context).top -
+                bottomInset -
+                12)
+            .clamp(320.0, MediaQuery.sizeOf(context).height)
+            .toDouble();
+
     // Main post creation UI
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            _DragHandle(),
-            const SizedBox(height: 10),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxSheetHeight),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              _DragHandle(),
+              const SizedBox(height: 10),
 
-            // Header row: close + title + post button (close X on left)
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  tooltip: l10n.close,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: (_isSubmitting || _isAudioUploading)
-                      ? null
-                      : () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.shareAnUpdate,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+              // Header row: close + title + post button (close X on left)
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    tooltip: l10n.close,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: (_isSubmitting || _isAudioUploading || _isImageUploading)
+                        ? null
+                        : () => Navigator.pop(context),
                   ),
-                ),
-                const Spacer(),
-                _GlassPostButton(
-                  label: l10n.postBtn,
-                  isLoading: _isSubmitting || _isAudioUploading,
-                  onPressed: (_isSubmitting || _isAudioUploading)
-                      ? null
-                      : _submit,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // User info row (moved outside and above card, username below display name removed)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                      ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)
-                      : null,
-                  child: photoUrl == null || photoUrl.isEmpty
-                      ? Text(
-                          name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.shareAnUpdate,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-                _VisibilitySelector(
-                  value: _visibility,
-                  onChanged: (val) => setState(() => _visibility = val!),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const Spacer(),
+                  _GlassPostButton(
+                    label: l10n.postBtn,
+                    isLoading: _isSubmitting || _isAudioUploading || _isImageUploading,
+                    onPressed: (_isSubmitting || _isAudioUploading || _isImageUploading)
+                        ? null
+                        : _submit,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            // Main card containing question, text input, audio creator/editor, and image preview
-            GlassSurface(
-              borderRadius: BorderRadius.circular(18),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // User info row (moved outside and above card, username below display name removed)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Question prompt card
-                  if (_isAnsweringQuestion && _currentQuestion != null) ...[
-                    GlassSurface(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 3,
-                                  height: 32,
-                                  margin: const EdgeInsets.only(right: 8),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(99),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _currentQuestion!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                      height: 1.3,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                  CircleAvatar(
+                    radius: 17,
+                    backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(
+                            optimizedAvatarUrl(photoUrl)!,
+                          )
+                        : null,
+                    child: photoUrl == null || photoUrl.isEmpty
+                        ? Text(
+                            name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
-                            if (_isQuestionDynamic) ...[
-                              const SizedBox(height: 4),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  _VisibilitySelector(
+                    value: _visibility,
+                    onChanged: (val) => setState(() => _visibility = val!),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Main card containing question, text input, audio creator/editor, and image preview
+              GlassSurface(
+                borderRadius: BorderRadius.circular(18),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Question prompt card
+                    if (_isAnsweringQuestion && _currentQuestion != null) ...[
+                      GlassSurface(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Row(
-                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _QuestionActionChip(
-                                    icon: Icons.refresh_rounded,
-                                    isLoading: _isChangingQuestion,
-                                    label: l10n.changeQuestion,
-                                    color: theme.colorScheme.primary,
-                                    onTap: _isChangingQuestion
-                                        ? null
-                                        : _changeQuestion,
-                                  ),
                                   Container(
-                                    width: 1,
-                                    height: 10,
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 5,
+                                    width: 3,
+                                    height: 32,
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(99),
                                     ),
-                                    color: theme.colorScheme.outlineVariant,
                                   ),
-                                  _QuestionActionChip(
-                                    icon: Icons.close_rounded,
-                                    label: l10n.remove,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    onTap: _removeQuestion,
+                                  Expanded(
+                                    child: Text(
+                                      _currentQuestion!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                        height: 1.3,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
+                              if (_isQuestionDynamic) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _QuestionActionChip(
+                                      icon: Icons.refresh_rounded,
+                                      isLoading: _isChangingQuestion,
+                                      label: l10n.changeQuestion,
+                                      color: theme.colorScheme.primary,
+                                      onTap: _isChangingQuestion
+                                          ? null
+                                          : _changeQuestion,
+                                    ),
+                                    Container(
+                                      width: 1,
+                                      height: 10,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                      ),
+                                      color: theme.colorScheme.outlineVariant,
+                                    ),
+                                    _QuestionActionChip(
+                                      icon: Icons.close_rounded,
+                                      label: l10n.remove,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      onTap: _removeQuestion,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // Text input (made taller height-wise)
-                  TextField(
-                    controller: _textController,
-                    maxLines: 10,
-                    minLines: 6,
-                    autofocus: true,
-                    style: const TextStyle(fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: _audioPath != null
-                          ? l10n.postAudioHint
-                          : _isAnsweringQuestion
-                          ? l10n.answerQuestionHint
-                          : l10n.postHint,
-                      hintStyle: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                    ),
-                  ),
-
-                  // Audio upload progress indicator
-                  if (_isAudioUploading) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.loadingFile,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+
+                    // Text input (made taller height-wise)
+                    TextField(
+                      controller: _textController,
+                      maxLines: 10,
+                      minLines: 6,
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: _audioPath != null
+                            ? l10n.postAudioHint
+                            : _isAnsweringQuestion
+                            ? l10n.answerQuestionHint
+                            : l10n.postHint,
+                        hintStyle: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      ),
                     ),
-                  ],
 
-                  // Audio creator/editor subpanel (renders preview/recording state/etc.)
-                  if (_pickedImage == null) ...[
-                    AudioPostCreator(
-                      key: _audioCreatorKey,
-                      initialAudioPath: widget.initialAudioPath,
-                      initialAudioDurationMs: widget.initialAudioDurationMs,
-                      initialAudioSizeBytes: widget.initialAudioSizeBytes,
-                      initialAudioMimeType: widget.initialAudioMimeType,
-                      onAudioChanged:
-                          (file, durationMs, sizeBytes, mimeType) async {
-                            setState(() {
-                              _audioFile = file;
-                              _audioPath = file?.path;
-                              _audioDurationMs = durationMs;
-                              _audioSizeBytes = sizeBytes;
-                              _audioMimeType = mimeType;
-                            });
+                    // Media upload progress indicator
+                    if (_isAudioUploading || _isImageUploading) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'loading',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
 
-                            if (file != null) {
-                              // Delete any previously uploaded audio first
-                              if (_uploadedAudioObjectKey != null) {
-                                final keyToDelete = _uploadedAudioObjectKey!;
-                                setState(() {
-                                  _uploadedAudioUrl = null;
-                                  _uploadedAudioObjectKey = null;
-                                });
-                                _audioUploadService.deleteAudioPostObject(
-                                  keyToDelete,
-                                );
-                              }
-
-                              // Start uploading immediately
+                    // Audio creator/editor subpanel (renders preview/recording state/etc.)
+                    if (_pickedImage == null) ...[
+                      AudioPostCreator(
+                        key: _audioCreatorKey,
+                        initialAudioPath: widget.initialAudioPath,
+                        initialAudioDurationMs: widget.initialAudioDurationMs,
+                        initialAudioSizeBytes: widget.initialAudioSizeBytes,
+                        initialAudioMimeType: widget.initialAudioMimeType,
+                        onAudioChanged:
+                            (file, durationMs, sizeBytes, mimeType) async {
                               setState(() {
-                                _isAudioUploading = true;
+                                _audioFile = file;
+                                _audioPath = file?.path;
+                                _audioDurationMs = durationMs;
+                                _audioSizeBytes = sizeBytes;
+                                _audioMimeType = mimeType;
                               });
-                              try {
-                                final user = await ref.read(
-                                  currentUserProvider.future,
-                                );
-                                if (user != null) {
-                                  final result = await _audioUploadService
-                                      .uploadAudioPost(
-                                        file: file,
-                                        userId: user.id,
-                                        mimeType: mimeType,
-                                        durationMs: durationMs,
-                                        sizeBytes: sizeBytes,
-                                      );
 
-                                  if (_isDisposed) {
-                                    // Delete it immediately since user closed the sheet while it was uploading!
-                                    _audioUploadService.deleteAudioPostObject(
-                                      result.audioObjectKey,
-                                    );
-                                    return;
-                                  }
-
+                              if (file != null) {
+                                // Delete any previously uploaded audio first
+                                if (_uploadedAudioObjectKey != null) {
+                                  final keyToDelete = _uploadedAudioObjectKey!;
                                   setState(() {
-                                    _uploadedAudioUrl = result.audioUrl;
-                                    _uploadedAudioObjectKey =
-                                        result.audioObjectKey;
-                                    _isAudioUploading = false;
+                                    _uploadedAudioUrl = null;
+                                    _uploadedAudioObjectKey = null;
                                   });
+                                  _audioUploadService.deleteAudioPostObject(
+                                    keyToDelete,
+                                  );
                                 }
-                              } catch (e) {
-                                setState(() {
-                                  _isAudioUploading = false;
-                                });
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.audioUploadFailed(e.toString()),
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
+
+                                await _uploadAudioFile(
+                                  file,
+                                  mimeType,
+                                  durationMs,
+                                  sizeBytes,
+                                );
+                              } else {
+                                // Audio removed by user
+                                if (_uploadedAudioObjectKey != null) {
+                                  final keyToDelete = _uploadedAudioObjectKey!;
+                                  setState(() {
+                                    _uploadedAudioUrl = null;
+                                    _uploadedAudioObjectKey = null;
+                                  });
+                                  // Fire-and-forget delete
+                                  _audioUploadService.deleteAudioPostObject(
+                                    keyToDelete,
                                   );
                                 }
                               }
-                            } else {
-                              // Audio removed by user
-                              if (_uploadedAudioObjectKey != null) {
-                                final keyToDelete = _uploadedAudioObjectKey!;
-                                setState(() {
-                                  _uploadedAudioUrl = null;
-                                  _uploadedAudioObjectKey = null;
-                                });
-                                // Fire-and-forget delete
-                                _audioUploadService.deleteAudioPostObject(
-                                  keyToDelete,
-                                );
-                              }
-                            }
-                          },
-                      onCoverChanged: (cover) {
-                        setState(() {
-                          _audioCoverImage = cover;
-                        });
-                      },
-                      onBookReferred: (book) {
-                        setState(() {
-                          _referredBook = book;
-                        });
-                      },
-                      onRecordingStateChanged: (rec) {
-                        setState(() {
-                          _isRecording = rec;
-                        });
-                      },
-                    ),
-                  ],
-
-                  // Image preview
-                  if (_pickedImage != null) ...[
-                    const SizedBox(height: 8),
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: FutureBuilder<Uint8List>(
-                            future: _pickedImage!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return Image.memory(
-                                  snapshot.data!,
-                                  height: 160,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                );
-                              }
-                              return const SizedBox(
-                                height: 160,
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
                             },
-                          ),
-                        ),
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: IconButton.filledTonal(
-                            onPressed: _removeImage,
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                            tooltip: l10n.removeImage,
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.black54,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(28, 28),
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Bottom actions bar
-            GlassSurface(
-              borderRadius: BorderRadius.circular(16),
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  // Add Image Button
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.image_outlined,
-                      label: l10n.addImage,
-                      disabled: _audioPath != null || _isRecording,
-                      onTap: _pickImage,
-                    ),
-                  ),
-                  _VerticalDivider(),
-                  // Record Button
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.mic_none_outlined,
-                      label: l10n.recordAudio,
-                      disabled:
-                          _pickedImage != null ||
-                          _audioPath != null ||
-                          _isRecording ||
-                          _isAudioUploading,
-                      onTap: () {
-                        _audioCreatorKey.currentState?.startRecording();
-                      },
-                    ),
-                  ),
-                  _VerticalDivider(),
-                  // Upload Button (upload Audio)
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.audio_file_outlined,
-                      label: l10n.uploadAudio,
-                      disabled:
-                          _pickedImage != null ||
-                          _audioPath != null ||
-                          _isRecording ||
-                          _isAudioUploading,
-                      onTap: () {
-                        _audioCreatorKey.currentState?.pickAudioFile();
-                      },
-                    ),
-                  ),
-                  if (widget.initialQuestion == null) ...[
-                    _VerticalDivider(),
-                    // Answer Question Button
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.help_outline_rounded,
-                        label: l10n.answerQuestionAction,
-                        active: _isAnsweringQuestion,
-                        onTap: () async {
+                        onCoverChanged: (cover) {
                           setState(() {
-                            _isAnsweringQuestion = !_isAnsweringQuestion;
-                            _isQuestionDynamic = _isAnsweringQuestion;
+                            _audioCoverImage = cover;
                           });
-                          if (_isAnsweringQuestion) {
-                            if (_currentQuestion == null) {
-                              await _changeQuestion();
-                            }
-                          } else {
-                            setState(() {
-                              _currentQuestion = null;
-                            });
-                          }
+                        },
+                        onBookReferred: (book) {
+                          setState(() {
+                            _referredBook = book;
+                          });
+                        },
+                        onRecordingStateChanged: (rec) {
+                          setState(() {
+                            _isRecording = rec;
+                          });
                         },
                       ),
-                    ),
+                    ],
+
+                    // Image preview
+                    if (_pickedImage != null) ...[
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: _pickedImageBytes == null
+                                ? const SizedBox(
+                                    height: 160,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                : Image.memory(
+                                    _pickedImageBytes!,
+                                    height: 160,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: IconButton.filledTonal(
+                              onPressed: _removeImage,
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              tooltip: l10n.removeImage,
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black54,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(28, 28),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+
+              // Bottom actions bar
+              GlassSurface(
+                borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ActionButton(
+                        icon: Icons.image_outlined,
+                        label: l10n.addImage,
+                        disabled: _audioPath != null || _isRecording || _isImageUploading,
+                        onTap: _pickImage,
+                      ),
+                      _VerticalDivider(),
+                      _ActionButton(
+                        icon: Icons.mic_none_outlined,
+                        label: l10n.recordAudio,
+                        disabled:
+                            _pickedImage != null ||
+                            _audioPath != null ||
+                            _isRecording ||
+                            _isAudioUploading ||
+                            _isImageUploading,
+                        onTap: () {
+                          _audioCreatorKey.currentState?.startRecording();
+                        },
+                      ),
+                      _VerticalDivider(),
+                      _ActionButton(
+                        icon: Icons.audio_file_outlined,
+                        label: l10n.uploadAudio,
+                        disabled:
+                            _pickedImage != null ||
+                            _audioPath != null ||
+                            _isRecording ||
+                            _isAudioUploading ||
+                            _isImageUploading,
+                        onTap: () {
+                          _audioCreatorKey.currentState?.pickAudioFile();
+                        },
+                      ),
+                      if (widget.initialQuestion == null) ...[
+                        _VerticalDivider(),
+                        _ActionButton(
+                          icon: Icons.help_outline_rounded,
+                          label: l10n.answerQuestionAction,
+                          active: _isAnsweringQuestion,
+                          onTap: () async {
+                            setState(() {
+                              _isAnsweringQuestion = !_isAnsweringQuestion;
+                              _isQuestionDynamic = _isAnsweringQuestion;
+                            });
+                            if (_isAnsweringQuestion) {
+                              if (_currentQuestion == null) {
+                                await _changeQuestion();
+                              }
+                            } else {
+                              setState(() {
+                                _currentQuestion = null;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1081,7 +1104,8 @@ class _ActionButton extends StatelessWidget {
       onTap: disabled ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        constraints: const BoxConstraints(minWidth: 88, minHeight: 58),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
         decoration: active
             ? BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
@@ -1096,10 +1120,12 @@ class _ActionButton extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10,
+                height: 1.1,
                 fontWeight: active ? FontWeight.bold : FontWeight.w600,
                 color: color,
               ),

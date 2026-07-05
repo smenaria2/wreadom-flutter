@@ -81,8 +81,10 @@ class AuthController extends _$AuthController {
       await ref.read(authRepositoryProvider).logout();
       _refreshAuthProviders();
     });
-    if (ref.mounted) state = result;
-    ref.read(isSigningOutProvider.notifier).setSigningOut(false);
+    if (ref.mounted) {
+      state = result;
+      ref.read(isSigningOutProvider.notifier).setSigningOut(false);
+    }
   }
 
   void _refreshAuthProviders() {

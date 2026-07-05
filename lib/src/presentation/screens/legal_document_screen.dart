@@ -46,7 +46,7 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
 
   void _initController() {
     final uri = Uri.tryParse(widget.url);
-    if (uri == null) {
+    if (uri == null || !_isAllowedLegalUri(uri)) {
       _showFallback();
       return;
     }
@@ -55,7 +55,7 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
       initializeWebViewPlatform();
       final controller = createWebViewController() as WebViewController;
       controller
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setJavaScriptMode(JavaScriptMode.disabled)
         ..setBackgroundColor(Colors.transparent)
         ..setNavigationDelegate(
           NavigationDelegate(
@@ -81,6 +81,13 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
             onWebResourceError: (error) {
               if (error.isForMainFrame == false) return;
               _showFallback();
+            },
+            onNavigationRequest: (request) {
+              final nextUri = Uri.tryParse(request.url);
+              if (nextUri == null || !_isAllowedLegalUri(nextUri)) {
+                return NavigationDecision.prevent;
+              }
+              return NavigationDecision.navigate;
             },
           ),
         );
@@ -161,6 +168,12 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
       ),
     );
   }
+}
+
+bool _isAllowedLegalUri(Uri uri) {
+  if (uri.scheme != 'https') return false;
+  final host = uri.host.toLowerCase();
+  return host == 'wreadom.in' || host == 'www.wreadom.in';
 }
 
 class _LegalFallbackView extends StatelessWidget {

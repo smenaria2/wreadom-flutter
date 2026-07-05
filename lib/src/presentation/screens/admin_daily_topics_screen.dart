@@ -470,6 +470,8 @@ class _CoverPreview extends StatelessWidget {
   }
 }
 
+enum _TopicTileAction { edit, delete }
+
 class _TopicTile extends StatelessWidget {
   const _TopicTile({
     required this.topic,
@@ -490,71 +492,109 @@ class _TopicTile extends StatelessWidget {
     return GlassSurface(
       borderRadius: BorderRadius.circular(16),
       padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 72,
-              height: 48,
-              child: topic.coverImageUrl.trim().isEmpty
-                  ? ColoredBox(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      child: Icon(
-                        Icons.image_outlined,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    )
-                  : Image.network(
-                      topic.coverImageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(
-                        color: theme.colorScheme.surfaceContainerHigh,
-                        child: Icon(
-                          Icons.broken_image_outlined,
-                          color: theme.colorScheme.onSurfaceVariant,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 430;
+          return Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: compact ? 58 : 72,
+                  height: compact ? 44 : 48,
+                  child: topic.coverImageUrl.trim().isEmpty
+                      ? ColoredBox(
+                          color: theme.colorScheme.surfaceContainerHigh,
+                          child: Icon(
+                            Icons.image_outlined,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        )
+                      : Image.network(
+                          topic.coverImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => ColoredBox(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      topic.topicName.isEmpty
+                          ? l10n.untitledTopic
+                          : topic.topicName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  topic.topicName.isEmpty
-                      ? l10n.untitledTopic
-                      : topic.topicName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                    const SizedBox(height: 3),
+                    Text(
+                      topic.description,
+                      maxLines: compact ? 1 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  topic.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+              ),
+              Switch(value: topic.isEnabled, onChanged: onToggle),
+              if (compact)
+                PopupMenuButton<_TopicTileAction>(
+                  tooltip: l10n.menu,
+                  icon: const Icon(Icons.more_vert_rounded),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _TopicTileAction.edit:
+                        onEdit();
+                      case _TopicTileAction.delete:
+                        onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: _TopicTileAction.edit,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.edit_outlined),
+                        title: Text(l10n.editTopic),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _TopicTileAction.delete,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.delete_outline_rounded),
+                        title: Text(l10n.delete),
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                IconButton(
+                  tooltip: l10n.editTopic,
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                IconButton(
+                  tooltip: l10n.delete,
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded),
                 ),
               ],
-            ),
-          ),
-          Switch(value: topic.isEnabled, onChanged: onToggle),
-          IconButton(
-            tooltip: l10n.editTopic,
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: l10n.delete,
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline_rounded),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
