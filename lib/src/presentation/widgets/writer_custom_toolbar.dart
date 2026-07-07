@@ -99,19 +99,24 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   }) {
     if (widget.isReadOnly || action == null) return;
     if (requireEditorFocus && !widget.focusNode.hasFocus) return;
-    _hideTextInput();
+    if (hideAfterAction) {
+      _hideTextInput();
+    }
     action();
     if (hideAfterAction) _hideKeyboardAfterToolbarTap();
   }
 
   void _toggleFormat(Attribute attribute) {
-    _runToolbarAction(() {
-      final styles = widget.controller.getSelectionStyle();
-      final hasAttr = styles.containsKey(attribute.key);
-      widget.controller.formatSelection(
-        hasAttr ? Attribute.clone(attribute, null) : attribute,
-      );
-    });
+    _runToolbarAction(
+      () {
+        final styles = widget.controller.getSelectionStyle();
+        final hasAttr = styles.containsKey(attribute.key);
+        widget.controller.formatSelection(
+          hasAttr ? Attribute.clone(attribute, null) : attribute,
+        );
+      },
+      hideAfterAction: false,
+    );
   }
 
   @override
@@ -134,14 +139,20 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
               child: _buildItem(
                 icon: const Icon(Icons.undo_rounded),
                 label: _getUndoLabel(context),
-                onTap: () => _runToolbarAction(widget.controller.undo),
+                onTap: () => _runToolbarAction(
+                  widget.controller.undo,
+                  hideAfterAction: false,
+                ),
               ),
             ),
             Expanded(
               child: _buildItem(
                 icon: const Icon(Icons.redo_rounded),
                 label: _getRedoLabel(context),
-                onTap: () => _runToolbarAction(widget.controller.redo),
+                onTap: () => _runToolbarAction(
+                  widget.controller.redo,
+                  hideAfterAction: false,
+                ),
               ),
             ),
             _buildDivider(),
@@ -300,6 +311,9 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final shouldShowLabel = showLabel && !keyboardOpen;
+
     return Tooltip(
       message: label,
       child: Semantics(
@@ -319,7 +333,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
                   data: IconThemeData(color: baseColor, size: 23),
                   child: icon,
                 ),
-                if (showLabel) ...[
+                if (shouldShowLabel) ...[
                   const SizedBox(height: 4),
                   SizedBox(
                     height: 14,

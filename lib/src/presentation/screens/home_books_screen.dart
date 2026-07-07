@@ -1489,7 +1489,7 @@ class BookshelfSection extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    const shelfHeight = 236.0;
+    const shelfHeight = 244.0;
     final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
     final hasData = books.isNotEmpty;
 
@@ -1686,7 +1686,7 @@ class _BookCardState extends State<_BookCard> {
               ),
               const SizedBox(height: 8),
               SizedBox(
-                height: 46,
+                height: 54,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

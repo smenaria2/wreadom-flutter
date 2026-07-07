@@ -75,12 +75,7 @@ Future<void> main() async {
       return false;
     };
     final sharedPreferences = await SharedPreferences.getInstance();
-    const firebaseBootstrap = FirebaseBootstrapResult(
-      ready: false,
-      emulatorsConfigured: false,
-      appCheckConfigured: false,
-      cacheConfigured: false,
-    );
+    final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
     runApp(
       ProviderScope(
         overrides: [

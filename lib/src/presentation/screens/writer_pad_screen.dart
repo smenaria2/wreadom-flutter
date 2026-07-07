@@ -2926,13 +2926,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     for (var i = 0; i < _chapters.length; i++) {
       final draft = _chapters[i];
       final content = htmlFromDocument(draft.controller.document);
-      final plainContent = plainTextFromHtml(content);
-      if (!draft.isHidden &&
-          draft.title.text.trim().isEmpty &&
-          plainContent.isEmpty &&
-          !hasMeaningfulWriterHtml(content)) {
-        continue;
-      }
       draft.lastSavedAt = now;
       draft.id ??= _newChapterId(user.id, i);
       chapters.add(
@@ -4022,7 +4015,13 @@ class _ChapterDraft {
   String _firstContentLine(String value) {
     for (final line in value.split('\n')) {
       final trimmed = line.trim();
-      if (trimmed.isNotEmpty) return trimmed;
+      if (trimmed.isNotEmpty) {
+        final words = trimmed.split(RegExp(r'\s+'));
+        if (words.length > 7) {
+          return words.take(7).join(' ');
+        }
+        return trimmed;
+      }
     }
     return '';
   }

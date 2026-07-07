@@ -1,19 +1,38 @@
 import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../domain/models/book.dart';
+
+class _DummyObserver extends NavigatorObserver {}
 
 class AnalyticsService {
   AnalyticsService._();
 
+  static bool _initialized = false;
+  static bool get _hasFirebase {
+    if (_initialized) return true;
+    try {
+      Firebase.app();
+      _initialized = true;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static FirebaseAnalytics get analytics => FirebaseAnalytics.instance;
-  static final FirebaseAnalyticsObserver observer = FirebaseAnalyticsObserver(
-    analytics: FirebaseAnalytics.instance,
-  );
+  
+  static NavigatorObserver get observer {
+    if (!_hasFirebase) return _DummyObserver();
+    return FirebaseAnalyticsObserver(analytics: analytics);
+  }
 
   static Future<void> setUserDisplayName(String? displayName) async {
+    if (!_hasFirebase) return;
     final name = displayName?.trim();
     if (name == null || name.isEmpty) {
       await Future.wait([
@@ -140,6 +159,7 @@ class AnalyticsService {
   }
 
   static void logEvent(String name, {Map<String, Object>? parameters}) {
+    if (!_hasFirebase) return;
     unawaited(
       _safe(() => analytics.logEvent(name: name, parameters: parameters)),
     );
