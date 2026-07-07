@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/chapter_edit_lock.dart';
 import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
 import '../utils/firestore_utils.dart';
+import 'chapter_save_merge.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
   FirebaseWriterRepository({FirebaseFirestore? firestore})
@@ -17,6 +19,7 @@ class FirebaseWriterRepository implements WriterRepository {
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
 
   static const int _batchChunkSize = 450;
+  static const Duration _chapterLockTimeout = Duration(seconds: 90);
 
   @override
   Future<String> createBook(Book book) async {
@@ -54,6 +57,122 @@ class FirebaseWriterRepository implements WriterRepository {
       return parsed.chapters ?? const <Chapter>[];
     }
     return snapshot.docs.map((doc) => _chapterFromFirestore(doc)).toList();
+  }
+
+  @override
+  Stream<List<ChapterEditLock>> watchChapterLocks(String bookId) {
+    return _firestore
+        .collection('books')
+        .doc(bookId)
+        .collection('chapterLocks')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => _chapterLockFromFirestore(doc.id, doc.data()))
+              .toList(growable: false),
+        );
+  }
+
+  @override
+  Future<bool> acquireChapterLock(
+    String bookId,
+    String chapterId,
+    ChapterLockHolder holder,
+  ) async {
+    final normalizedBookId = bookId.trim();
+    final normalizedChapterId = chapterId.trim();
+    final holderId = holder.id.trim();
+    if (normalizedBookId.isEmpty ||
+        normalizedChapterId.isEmpty ||
+        holderId.isEmpty) {
+      return false;
+    }
+    final lockRef = _firestore
+        .collection('books')
+        .doc(normalizedBookId)
+        .collection('chapterLocks')
+        .doc(normalizedChapterId);
+    return _firestore.runTransaction<bool>((transaction) async {
+      final snapshot = await transaction.get(lockRef);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (snapshot.exists) {
+        final existing = _chapterLockFromFirestore(
+          normalizedChapterId,
+          snapshot.data() ?? const <String, dynamic>{},
+        );
+        if (existing.holderId != holderId && !existing.isExpiredAt(now)) {
+          return false;
+        }
+      }
+      transaction.set(
+        lockRef,
+        ChapterEditLock(
+          chapterId: normalizedChapterId,
+          holderId: holderId,
+          holderName: holder.name.trim().isEmpty
+              ? 'Co-author'
+              : holder.name.trim(),
+          acquiredAt: now,
+          heartbeatAt: now,
+          expiresAt: now + _chapterLockTimeout.inMilliseconds,
+        ).toJson(),
+      );
+      return true;
+    });
+  }
+
+  @override
+  Future<void> renewChapterLock(String bookId, String chapterId) async {
+    final userId = _auth.currentUser?.uid.trim();
+    if (userId == null || userId.isEmpty) return;
+    final lockRef = _firestore
+        .collection('books')
+        .doc(bookId)
+        .collection('chapterLocks')
+        .doc(chapterId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(lockRef);
+      if (!snapshot.exists) return;
+      final existing = _chapterLockFromFirestore(
+        chapterId,
+        snapshot.data() ?? const <String, dynamic>{},
+      );
+      if (existing.holderId != userId) return;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      transaction.set(lockRef, <String, dynamic>{
+        'heartbeatAt': now,
+        'expiresAt': now + _chapterLockTimeout.inMilliseconds,
+      }, SetOptions(merge: true));
+    });
+  }
+
+  @override
+  Future<void> releaseChapterLock(String bookId, String chapterId) async {
+    final userId = _auth.currentUser?.uid.trim();
+    if (userId == null || userId.isEmpty) return;
+    final lockRef = _firestore
+        .collection('books')
+        .doc(bookId)
+        .collection('chapterLocks')
+        .doc(chapterId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(lockRef);
+      if (!snapshot.exists) return;
+      final existing = _chapterLockFromFirestore(
+        chapterId,
+        snapshot.data() ?? const <String, dynamic>{},
+      );
+      if (existing.holderId == userId) transaction.delete(lockRef);
+    });
+  }
+
+  ChapterEditLock _chapterLockFromFirestore(
+    String docId,
+    Map<String, dynamic> data,
+  ) {
+    final normalized = asStringMap(data);
+    normalized['chapterId'] = normalized['chapterId']?.toString() ?? docId;
+    return ChapterEditLock.fromJson(normalized);
   }
 
   @override
@@ -143,6 +262,7 @@ class FirebaseWriterRepository implements WriterRepository {
         chapterCount: remainingChapters.where((item) => !item.isHidden).length,
         updatedAt: now,
       ),
+      deletedChapterIds: {chapter.id},
     );
     return newBookId;
   }
@@ -253,7 +373,12 @@ class FirebaseWriterRepository implements WriterRepository {
   }
 
   @override
-  Future<void> updateBook(String bookId, Book book) async {
+  Future<void> updateBook(
+    String bookId,
+    Book book, {
+    Set<String> deletedChapterIds = const <String>{},
+    Map<String, int> baseChapterRevisions = const <String, int>{},
+  }) async {
     final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
     final bookRef = _firestore.collection('books').doc(bookId);
@@ -285,6 +410,8 @@ class FirebaseWriterRepository implements WriterRepository {
       chapters: book.chapters ?? const <Chapter>[],
       mergeBook: true,
       readExistingChapters: true,
+      deletedChapterIds: deletedChapterIds,
+      baseChapterRevisions: baseChapterRevisions,
     );
   }
 
@@ -331,6 +458,8 @@ class FirebaseWriterRepository implements WriterRepository {
     required List<Chapter> chapters,
     required bool mergeBook,
     required bool readExistingChapters,
+    Set<String> deletedChapterIds = const <String>{},
+    Map<String, int> baseChapterRevisions = const <String, int>{},
   }) async {
     if (chapters.length > _batchChunkSize) {
       throw StateError(
@@ -338,41 +467,82 @@ class FirebaseWriterRepository implements WriterRepository {
       );
     }
 
-    final canonical = <Chapter>[
+    final incoming = <Chapter>[
       for (var i = 0; i < chapters.length; i++) chapters[i].copyWith(index: i),
     ];
-    final visible = <Chapter>[
-      for (final chapter in canonical)
-        if (!chapter.isHidden) chapter,
-    ];
-    data['chapters'] = <Map<String, dynamic>>[
-      for (var i = 0; i < visible.length; i++)
-        _chapterToFirestore(visible[i].copyWith(index: i, isHidden: false)),
-    ];
-    data['chapterCount'] = visible.length;
 
-    final existing = readExistingChapters
-        ? await bookRef.collection('authorChapters').get()
-        : null;
-    final incomingIds = canonical.map((chapter) => chapter.id).toSet();
-    final writeCount = canonical.length + (existing?.docs.length ?? 0) + 1;
+    if (!readExistingChapters) {
+      _applyBookChapterProjection(data, incoming);
+      final batch = _firestore.batch();
+      batch.set(bookRef, data, SetOptions(merge: mergeBook));
+      for (final chapter in incoming) {
+        batch.set(
+          bookRef.collection('authorChapters').doc(chapter.id),
+          _chapterToFirestore(chapter),
+        );
+      }
+      await batch.commit();
+      return;
+    }
+
+    final existingSnapshot = await bookRef.collection('authorChapters').get();
+    final existingRefs = existingSnapshot.docs
+        .map((doc) => doc.reference)
+        .toList(growable: false);
+    final writeCount = incoming.length + existingRefs.length + 1;
     if (writeCount > 500) {
       throw StateError(
         'This book has too many chapter changes for one atomic save.',
       );
     }
-    final batch = _firestore.batch();
-    batch.set(bookRef, data, SetOptions(merge: mergeBook));
-    for (final chapter in canonical) {
-      batch.set(
-        bookRef.collection('authorChapters').doc(chapter.id),
-        _chapterToFirestore(chapter),
+
+    await _firestore.runTransaction((transaction) async {
+      await transaction.get(bookRef);
+      final existingChapters = <Chapter>[];
+      final existingDocRefs =
+          <String, DocumentReference<Map<String, dynamic>>>{};
+      for (final ref in existingRefs) {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) continue;
+        final chapter = _chapterFromSnapshot(snapshot);
+        existingChapters.add(chapter);
+        existingDocRefs[chapter.id] = ref;
+      }
+
+      final mergeResult = mergeAuthoringChaptersForSave(
+        incomingChapters: incoming,
+        existingChapters: existingChapters,
+        deletedChapterIds: deletedChapterIds,
+        baseChapterRevisions: baseChapterRevisions,
       );
-    }
-    for (final stale in existing?.docs ?? const []) {
-      if (!incomingIds.contains(stale.id)) batch.delete(stale.reference);
-    }
-    await batch.commit();
+      final canonical = mergeResult.chapters;
+      _applyBookChapterProjection(data, canonical);
+      transaction.set(bookRef, data, SetOptions(merge: mergeBook));
+      for (final chapter in canonical) {
+        transaction.set(
+          bookRef.collection('authorChapters').doc(chapter.id),
+          _chapterToFirestore(chapter),
+        );
+      }
+      for (final deletedId in deletedChapterIds) {
+        final id = deletedId.trim();
+        if (id.isEmpty) continue;
+        final ref =
+            existingDocRefs[id] ?? bookRef.collection('authorChapters').doc(id);
+        transaction.delete(ref);
+      }
+    });
+  }
+
+  void _applyBookChapterProjection(
+    Map<String, dynamic> data,
+    List<Chapter> chapters,
+  ) {
+    final visible = visibleChaptersForBookProjection(chapters);
+    data['chapters'] = <Map<String, dynamic>>[
+      for (final chapter in visible) _chapterToFirestore(chapter),
+    ];
+    data['chapterCount'] = visible.length;
   }
 
   Map<String, dynamic> _chapterToFirestore(Chapter chapter) {
@@ -387,7 +557,11 @@ class FirebaseWriterRepository implements WriterRepository {
   Chapter _chapterFromFirestore(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) {
-    final data = asStringMap(doc.data());
+    return _chapterFromSnapshot(doc);
+  }
+
+  Chapter _chapterFromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = asStringMap(doc.data() ?? const <String, dynamic>{});
     data['id'] = doc.id;
     data['title'] = data['title']?.toString() ?? 'Chapter';
     data['content'] = data['content']?.toString() ?? '';
@@ -395,6 +569,9 @@ class FirebaseWriterRepository implements WriterRepository {
         ? (data['index'] as num).toInt()
         : data['order'] is num
         ? (data['order'] as num).toInt()
+        : 0;
+    data['revision'] = data['revision'] is num
+        ? (data['revision'] as num).toInt()
         : 0;
     if (data['lastSavedAt'] is Timestamp) {
       data['lastSavedAt'] =

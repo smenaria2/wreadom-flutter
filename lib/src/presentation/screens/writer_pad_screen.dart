@@ -11,8 +11,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/models/author.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
+import '../../domain/models/chapter_edit_lock.dart';
 import '../../domain/models/leaf_attachment.dart';
 import '../../domain/models/user_model.dart';
+import '../../data/repositories/chapter_save_merge.dart';
 import '../../data/services/analytics_service.dart';
 import '../../utils/app_review_helper.dart';
 import '../../localization/generated/app_localizations.dart';
@@ -117,6 +119,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final List<_ChapterDraft> _chapters = [];
 
   Timer? _autosaveTimer;
+  Timer? _chapterLockRenewTimer;
+  StreamSubscription<List<ChapterEditLock>>? _chapterLocksSubscription;
   String? _bookId;
   List<LeafAttachment>? _savedBookLeaves;
   int? _savedPublishedAt;
@@ -150,6 +154,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   String? _selectedCollaboratorId;
   String? _selectedCollaboratorName;
   String? _selectedCollaboratorPhotoURL;
+  Map<String, ChapterEditLock> _chapterLocks =
+      const <String, ChapterEditLock>{};
+  String? _heldChapterLockId;
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
@@ -223,8 +230,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _setCurrentChapterIndex(int value) {
+    final previousChapterId = _chapters.isEmpty
+        ? null
+        : _chapters[_currentChapterIndex.clamp(0, _chapters.length - 1)].id;
     _currentChapterIndex = value.clamp(0, _chapters.length - 1);
     _restorableCurrentChapterIndex.value = _currentChapterIndex;
+    final nextChapterId = _chapters.isEmpty ? null : _currentChapter.id;
+    if (previousChapterId != nextChapterId) {
+      unawaited(_switchChapterLock(previousChapterId));
+    }
   }
 
   @override
@@ -270,6 +284,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _metadataListenersAttached = true;
   }
 
+  void _handleEditorFocusChanged() {
+    if (_editorFocusNode.hasFocus) unawaited(_syncCurrentChapterLock());
+    if (mounted) setState(() {});
+  }
+
   void _handleBookTitleChanged() {
     if (!_syncingBookTitleFromChapter && widget.book == null) {
       _bookTitleEditedByUser = true;
@@ -281,6 +300,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _editorFocusNode.addListener(_handleEditorFocusChanged);
     final book = widget.book;
     _bookId = book?.id;
     _savedStatus = book?.status;
@@ -346,6 +366,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Future<void> _initializeAuthoringState() async {
     await _hydrateAuthoringChapters();
     if (widget.restoreLocalDrafts) await _restoreLocalDraft();
+    _startChapterLockWatch();
+    unawaited(_syncCurrentChapterLock());
   }
 
   Future<void> _hydrateAuthoringChapters() async {
@@ -373,6 +395,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           _currentChapterIndex.clamp(0, _chapters.length - 1),
         );
       });
+      unawaited(_syncCurrentChapterLock());
     } catch (_) {
       // Legacy books continue using their embedded visible chapter projection.
     }
@@ -477,12 +500,130 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
   }
 
+  bool get _canUseChapterLocks {
+    final bookId = _bookId ?? widget.book?.id;
+    final book = widget.book;
+    return bookId != null &&
+        bookId.trim().isNotEmpty &&
+        book != null &&
+        isAcceptedCollaboration(book);
+  }
+
+  ChapterEditLock? _activeLockFor(String? chapterId) {
+    if (chapterId == null || chapterId.trim().isEmpty) return null;
+    final lock = _chapterLocks[chapterId];
+    if (lock == null) return null;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return lock.isExpiredAt(now) ? null : lock;
+  }
+
+  bool _isChapterLockedByOther(_ChapterDraft chapter, UserModel? user) {
+    final lock = _activeLockFor(chapter.id);
+    if (lock == null || user == null) return false;
+    return lock.holderId.trim() != user.id.trim();
+  }
+
+  void _startChapterLockWatch() {
+    if (!_canUseChapterLocks || _chapterLocksSubscription != null) return;
+    final bookId = _bookId ?? widget.book?.id;
+    if (bookId == null || bookId.trim().isEmpty) return;
+    _chapterLocksSubscription = ref
+        .read(writerRepositoryProvider)
+        .watchChapterLocks(bookId)
+        .listen((locks) {
+          if (!mounted) return;
+          setState(() {
+            _chapterLocks = <String, ChapterEditLock>{
+              for (final lock in locks) lock.chapterId: lock,
+            };
+          });
+        });
+  }
+
+  Future<void> _syncCurrentChapterLock() async {
+    if (!_canUseChapterLocks || _chapters.isEmpty) return;
+    final bookId = _bookId ?? widget.book?.id;
+    final chapterId = _currentChapter.id;
+    if (bookId == null || bookId.trim().isEmpty || chapterId == null) return;
+    if (_heldChapterLockId == chapterId) return;
+    final user = await _currentUserOrNull();
+    if (!mounted || user == null) return;
+    final activeLock = _activeLockFor(chapterId);
+    if (activeLock != null && activeLock.holderId != user.id) {
+      await _releaseHeldChapterLock();
+      return;
+    }
+    await _releaseHeldChapterLock(exceptChapterId: chapterId);
+    final acquired = await ref
+        .read(writerRepositoryProvider)
+        .acquireChapterLock(
+          bookId,
+          chapterId,
+          ChapterLockHolder(id: user.id, name: _displayNameForLock(user)),
+        );
+    if (!mounted || !acquired) return;
+    _heldChapterLockId = chapterId;
+    _startChapterLockRenewal();
+  }
+
+  Future<void> _switchChapterLock(String? previousChapterId) async {
+    if (previousChapterId != null && previousChapterId == _heldChapterLockId) {
+      await _releaseHeldChapterLock(chapterId: previousChapterId);
+    }
+    await _syncCurrentChapterLock();
+  }
+
+  void _startChapterLockRenewal() {
+    _chapterLockRenewTimer?.cancel();
+    _chapterLockRenewTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_renewHeldChapterLock()),
+    );
+  }
+
+  Future<void> _renewHeldChapterLock() async {
+    if (!_canUseChapterLocks) return;
+    final bookId = _bookId ?? widget.book?.id;
+    final chapterId = _heldChapterLockId;
+    if (bookId == null || chapterId == null) return;
+    await ref
+        .read(writerRepositoryProvider)
+        .renewChapterLock(bookId, chapterId);
+  }
+
+  Future<void> _releaseHeldChapterLock({
+    String? chapterId,
+    String? exceptChapterId,
+  }) async {
+    final bookId = _bookId ?? widget.book?.id;
+    final lockId = chapterId ?? _heldChapterLockId;
+    if (bookId == null || lockId == null || lockId == exceptChapterId) return;
+    if (_heldChapterLockId == lockId) {
+      _heldChapterLockId = null;
+      _chapterLockRenewTimer?.cancel();
+      _chapterLockRenewTimer = null;
+    }
+    await ref.read(writerRepositoryProvider).releaseChapterLock(bookId, lockId);
+  }
+
+  String _displayNameForLock(UserModel user) {
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+    final penName = user.penName?.trim();
+    if (penName != null && penName.isNotEmpty) return penName;
+    return user.username.trim().isEmpty ? 'Co-author' : user.username.trim();
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _autosaveTimer?.cancel();
+    _chapterLockRenewTimer?.cancel();
+    _chapterLocksSubscription?.cancel();
+    unawaited(_releaseHeldChapterLock());
     if (_metadataListenersAttached) {
       _titleController.value.removeListener(_handleBookTitleChanged);
+      _editorFocusNode.removeListener(_handleEditorFocusChanged);
       _descriptionController.value.removeListener(_markDirty);
       _topicsController.value.removeListener(_markDirty);
     }
@@ -508,6 +649,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       unawaited(_syncDraftCheckpoint());
+      unawaited(_releaseHeldChapterLock());
     }
   }
 
@@ -531,6 +673,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         body: const AuthRequiredView(icon: Icons.edit_note_outlined),
       );
     }
+
+    final currentChapterLockedByOther = _isChapterLockedByOther(
+      _currentChapter,
+      currentUser,
+    );
+    controller.readOnly = currentChapterLockedByOther;
 
     return PopScope<Object?>(
       canPop: _allowPop,
@@ -833,90 +981,108 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final paperColor = _writerPaperColor(context);
     final paperTextColor = _writerPaperTextColor(context);
     final paperMutedColor = paperTextColor.withValues(alpha: 0.72);
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final compactForWriting = _editorFocusNode.hasFocus && keyboardOpen;
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final activeLock = _activeLockFor(_currentChapter.id);
+    final lockedByOther = _isChapterLockedByOther(_currentChapter, currentUser);
     return Column(
       key: const ValueKey('editor-step'),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _currentChapter.title,
-                  style: TextStyle(
-                    color: _onWriterSurfaceColor(context),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: InputDecoration(
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.5),
-                        width: 1.5,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: compactForWriting
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _currentChapter.title,
+                          enabled: !lockedByOther,
+                          style: TextStyle(
+                            color: _onWriterSurfaceColor(context),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          decoration: InputDecoration(
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 2.0,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.only(bottom: 6),
+                            hintText: l10n.writerChapterTitleHint(
+                              _currentChapterIndex + 1,
+                            ),
+                            hintStyle: TextStyle(
+                              color: _onWriterSurfaceColor(
+                                context,
+                              ).withValues(alpha: 0.36),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 2.0,
+                      const SizedBox(width: 16),
+                      Tooltip(
+                        message: l10n.writerChapters,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: const StadiumBorder(),
+                            side: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                          ),
+                          onPressed: _showChapterSheet,
+                          icon: Icon(
+                            Icons.list_rounded,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          label: Text(
+                            l10n.writerChapters,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    contentPadding: const EdgeInsets.only(bottom: 6),
-                    hintText: l10n.writerChapterTitleHint(
-                      _currentChapterIndex + 1,
-                    ),
-                    hintStyle: TextStyle(
-                      color: _onWriterSurfaceColor(
-                        context,
-                      ).withValues(alpha: 0.36),
-                    ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Tooltip(
-                message: l10n.writerChapters,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    shape: const StadiumBorder(),
-                    side: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.3),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
-                  onPressed: _showChapterSheet,
-                  icon: Icon(
-                    Icons.list_rounded,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  label: Text(
-                    l10n.writerChapters,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
+        if (lockedByOther && activeLock != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: _ChapterLockBanner(holderName: activeLock.holderName),
+          ),
         Expanded(
           child: Container(
             width: double.infinity,
@@ -1250,22 +1416,32 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Widget _buildToolbar(QuillController controller) {
-    return SafeArea(
-      child: GlassSurface(
-        strong: true,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: WriterCustomToolbar(
-          controller: controller,
-          focusNode: _editorFocusNode,
-          onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
-          isUploadingInlineImage: _isUploadingInlineImage,
-          onInsertVideo: _showMediaInsertDialog,
-          onVersionHistory: _currentChapter.versions.isEmpty
-              ? null
-              : () => _showVersionHistory(_currentChapterIndex),
-          onAiEdit: _openChatGptEditor,
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        child: GlassSurface(
+          strong: true,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          borderRadius: BorderRadius.circular(24),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: WriterCustomToolbar(
+            controller: controller,
+            focusNode: _editorFocusNode,
+            onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
+            isUploadingInlineImage: _isUploadingInlineImage,
+            onInsertVideo: _showMediaInsertDialog,
+            onVersionHistory: _currentChapter.versions.isEmpty
+                ? null
+                : () => _showVersionHistory(_currentChapterIndex),
+            onAiEdit: _openChatGptEditor,
+            isReadOnly: _isChapterLockedByOther(
+              _currentChapter,
+              ref.watch(currentUserProvider).asData?.value,
+            ),
+          ),
         ),
       ),
     );
@@ -2024,7 +2200,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                   versions.length - i,
                                 ),
                                 subtitle:
-                                    '${_formatVersionTimestamp(versions[i].timestamp)} • ${l10n.wordCountLabel(versions[i].wordCount)}',
+                                    '${_formatVersionTimestamp(versions[i].timestamp)} â€¢ ${l10n.wordCountLabel(versions[i].wordCount)}',
                                 preview: _versionPreview(versions[i].content),
                                 textColor: textColor,
                                 action: FilledButton.icon(
@@ -2629,13 +2805,21 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     try {
       final localDraftKey = _draftKey(user.id);
       final book = _buildBookForSave(user, status: status);
+      final baseChapterRevisions = _baseChapterRevisionsForSave();
       final shouldNotifyFollowers = status == 'published' && !_isPublished;
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
       } else {
-        await ref.read(writerRepositoryProvider).updateBook(_bookId!, book);
+        await ref
+            .read(writerRepositoryProvider)
+            .updateBook(
+              _bookId!,
+              book,
+              baseChapterRevisions: baseChapterRevisions,
+            );
       }
+      await _hydrateAuthoringChapters();
       if (shouldNotifyFollowers && _bookId != null) {
         // Cloud Functions generate follower notifications for new publications.
         AnalyticsService.logBookPublish(bookId: _bookId!);
@@ -2675,6 +2859,20 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         Navigator.of(context).pop();
       }
       return true;
+    } on ChapterSaveConflictException {
+      await _saveLocalDraft();
+      await _hydrateAuthoringChapters();
+      if (!mounted) return false;
+      setState(() {
+        _isSaving = false;
+        _saveStatus = l10n.writerSaveFailed;
+      });
+      if (showSnack) {
+        _showSnack(
+          'This chapter changed on another device. Your draft was kept on this device. Review before saving again.',
+        );
+      }
+      return false;
     } catch (error) {
       if (!mounted) return false;
       setState(() {
@@ -2736,7 +2934,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         continue;
       }
       draft.lastSavedAt = now;
-      draft.id ??= 'chapter_${now}_$i';
+      draft.id ??= _newChapterId(user.id, i);
       chapters.add(
         Chapter(
           id: draft.id!,
@@ -2748,9 +2946,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           status: status == 'published' ? 'published' : 'draft',
           lastSavedAt: now,
           versions: draft.versions,
-          isTitleLocked: draft.original?.isTitleLocked,
+          isTitleLocked: draft.isTitleLocked,
           originalBookId: draft.original?.originalBookId,
           isHidden: draft.isHidden,
+          revision: draft.revision,
         ),
       );
     }
@@ -2882,6 +3081,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ? (existingBook?.leafUpdatedAt ?? now)
           : existingBook?.leafUpdatedAt,
     );
+  }
+
+  String _newChapterId(String userId, int index) {
+    final safeUserId = userId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+    return 'chapter_${safeUserId}_${DateTime.now().microsecondsSinceEpoch}_$index';
+  }
+
+  Map<String, int> _baseChapterRevisionsForSave() {
+    return <String, int>{
+      for (final draft in _chapters)
+        if (draft.id != null && draft.hasLocalChanges)
+          draft.id!: draft.revision,
+    };
   }
 
   List<LeafAttachment> _leavesForSave({
@@ -3391,6 +3603,41 @@ class _CollabWarningCard extends StatelessWidget {
   }
 }
 
+class _ChapterLockBanner extends StatelessWidget {
+  const _ChapterLockBanner({required this.holderName});
+
+  final String holderName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline_rounded, color: scheme.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$holderName is editing this chapter.',
+              style: TextStyle(
+                color: scheme.onSecondaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _VersionHistoryTile extends StatelessWidget {
   const _VersionHistoryTile({
     required this.title,
@@ -3648,7 +3895,6 @@ class _ChapterOverviewCard extends StatelessWidget {
 
 enum _ExitSaveFailureAction { saveAgain, exitWithoutSaving }
 
-
 enum _WriterMenuAction { addToBook, deleteBook, convertToDraft, printBook }
 
 class _ChapterDraft {
@@ -3660,12 +3906,15 @@ class _ChapterDraft {
     required List<ChapterVersion> versions,
     required this.lastSavedAt,
     required this.isHidden,
+    required this.isTitleLocked,
+    required this.revision,
     required VoidCallback onChanged,
   }) : versions = List<ChapterVersion>.from(versions),
        _lastVersionContent = original?.content ?? '',
        _lastVersionSavedAt = lastSavedAt ?? 0,
        _onChanged = onChanged {
     _attachListeners();
+    _syncTitleFromContent();
   }
 
   factory _ChapterDraft.fromChapter(Chapter chapter, VoidCallback onChanged) {
@@ -3680,6 +3929,8 @@ class _ChapterDraft {
       versions: chapter.versions ?? const <ChapterVersion>[],
       lastSavedAt: chapter.lastSavedAt,
       isHidden: chapter.isHidden,
+      isTitleLocked: chapter.isTitleLocked ?? chapter.title.trim().isNotEmpty,
+      revision: chapter.revision,
       onChanged: onChanged,
     );
   }
@@ -3700,6 +3951,8 @@ class _ChapterDraft {
       versions: const <ChapterVersion>[],
       lastSavedAt: null,
       isHidden: false,
+      isTitleLocked: false,
+      revision: 0,
       onChanged: onChanged,
     );
   }
@@ -3712,17 +3965,66 @@ class _ChapterDraft {
   final List<ChapterVersion> versions;
   int? lastSavedAt;
   bool isHidden;
+  bool isTitleLocked;
+  int revision;
   final VoidCallback _onChanged;
   late StreamSubscription<dynamic> _documentChanges;
   late int wordCount;
   String _lastVersionContent;
   int _lastVersionSavedAt;
   bool _replacingContent = false;
+  bool _syncingTitleFromContent = false;
+
+  bool get hasLocalChanges {
+    final source = original;
+    if (source == null) return true;
+    return title.text.trim() != source.title ||
+        htmlFromDocument(controller.document) != source.content ||
+        isHidden != source.isHidden ||
+        !_versionsMatch(versions, source.versions);
+  }
+
+  bool _versionsMatch(List<ChapterVersion> a, List<ChapterVersion>? b) {
+    final other = b ?? const <ChapterVersion>[];
+    if (a.length != other.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != other[i]) return false;
+    }
+    return true;
+  }
 
   void _handleDocumentChanged() {
     _refreshWordCount();
+    _syncTitleFromContent();
     if (!_replacingContent) _maybeCreateVersionSnapshot();
     _onChanged();
+  }
+
+  void _handleTitleChanged() {
+    if (!_syncingTitleFromContent) {
+      isTitleLocked = true;
+    }
+    _onChanged();
+  }
+
+  void _syncTitleFromContent() {
+    if (isTitleLocked) return;
+    final derived = _firstContentLine(controller.document.toPlainText());
+    if (title.text.trim() == derived) return;
+    _syncingTitleFromContent = true;
+    title.value = TextEditingValue(
+      text: derived,
+      selection: TextSelection.collapsed(offset: derived.length),
+    );
+    _syncingTitleFromContent = false;
+  }
+
+  String _firstContentLine(String value) {
+    for (final line in value.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
   }
 
   void _refreshWordCount() {
@@ -3792,11 +4094,12 @@ class _ChapterDraft {
       ChangeSource.local,
     );
     _attachDocumentListener();
+    _syncTitleFromContent();
     _replacingContent = false;
   }
 
   void _attachListeners() {
-    title.addListener(_onChanged);
+    title.addListener(_handleTitleChanged);
     _refreshWordCount();
     _attachDocumentListener();
   }
@@ -3808,7 +4111,7 @@ class _ChapterDraft {
   }
 
   void dispose() {
-    title.removeListener(_onChanged);
+    title.removeListener(_handleTitleChanged);
     _documentChanges.cancel();
     title.dispose();
     controller.dispose();

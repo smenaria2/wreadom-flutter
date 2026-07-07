@@ -131,9 +131,9 @@ void main() {
 
       await expectLater(
         service.uploadAudioPost(
-          file: XFile.fromData(Uint8List.fromList([1]), name: 'clip.ogg'),
+          file: XFile.fromData(Uint8List.fromList([1]), name: 'clip.txt'),
           userId: 'user_1',
-          mimeType: 'audio/ogg',
+          mimeType: 'text/plain',
           durationMs: 1000,
           sizeBytes: 1,
         ),
@@ -147,6 +147,12 @@ void main() {
       );
     });
 
+    test('infers shared audio mime types from common extensions', () {
+      expect(inferAudioPostMimeType(fileName: 'clip.ogg'), 'audio/ogg');
+      expect(inferAudioPostMimeType(fileName: 'voice.opus'), 'audio/opus');
+      expect(inferAudioPostMimeType(fileName: 'recording.amr'), 'audio/amr');
+      expect(inferAudioPostMimeType(fileName: 'master.flac'), 'audio/flac');
+    });
     test('zero duration is rejected', () async {
       final service = AudioPostUploadService(
         createUploadTarget: (_) async => throw StateError('should not call'),

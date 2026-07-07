@@ -1,5 +1,6 @@
 import '../models/book.dart';
 import '../models/chapter.dart';
+import '../models/chapter_edit_lock.dart';
 
 abstract class WriterRepository {
   Future<List<Book>> getUserBooks(String userId, {String status = 'all'});
@@ -8,8 +9,21 @@ abstract class WriterRepository {
     String? excludeBookId,
   });
   Future<String> createBook(Book book);
-  Future<void> updateBook(String bookId, Book book);
+  Future<void> updateBook(
+    String bookId,
+    Book book, {
+    Set<String> deletedChapterIds = const <String>{},
+    Map<String, int> baseChapterRevisions = const <String, int>{},
+  });
   Future<List<Chapter>> getAuthoringChapters(String bookId);
+  Stream<List<ChapterEditLock>> watchChapterLocks(String bookId);
+  Future<bool> acquireChapterLock(
+    String bookId,
+    String chapterId,
+    ChapterLockHolder holder,
+  );
+  Future<void> renewChapterLock(String bookId, String chapterId);
+  Future<void> releaseChapterLock(String bookId, String chapterId);
   Future<String> moveChapterToStandaloneDraft({
     required Book sourceBook,
     required Chapter chapter,

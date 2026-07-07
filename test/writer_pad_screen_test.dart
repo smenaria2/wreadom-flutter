@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +10,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
+import 'package:librebook_flutter/src/domain/models/chapter_edit_lock.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/domain/repositories/writer_repository.dart';
 import 'package:librebook_flutter/src/data/services/writer_draft_service.dart';
@@ -155,6 +156,11 @@ void main() {
         ),
       ),
     );
+  }
+
+  Future<void> expandWriterToolbar(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.keyboard_double_arrow_down_rounded));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('WriterPad renders rich html content without literal tags', (
@@ -742,6 +748,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));
+    await expandWriterToolbar(tester);
 
     final aiButton = find.ancestor(
       of: find.byIcon(Icons.auto_awesome_rounded),
@@ -764,9 +771,7 @@ void main() {
     final bold = source.indexOf("_toggleFormat(Attribute.bold)");
     final italic = source.indexOf("_toggleFormat(Attribute.italic)");
     final underline = source.indexOf("_toggleFormat(Attribute.underline)");
-    final showMore = source.indexOf(
-      'Icons.keyboard_double_arrow_right_rounded',
-    );
+    final showMore = source.indexOf('Icons.keyboard_double_arrow_down_rounded');
     final image = source.indexOf('Icons.image_outlined');
     final ai = source.indexOf('Icons.auto_awesome_rounded');
 
@@ -806,6 +811,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));
+    await expandWriterToolbar(tester);
 
     final aiButton = find.ancestor(
       of: find.byIcon(Icons.auto_awesome_rounded),
@@ -829,7 +835,7 @@ void main() {
     expect(find.text('ChatGPT'), findsOneWidget);
     expect(find.text('Gemini'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextButton, 'ChatGPT'));
+    await tester.tap(find.text('ChatGPT'));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 50));
     });
@@ -858,6 +864,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));
+    await expandWriterToolbar(tester);
 
     final aiButton = find.ancestor(
       of: find.byIcon(Icons.auto_awesome_rounded),
@@ -873,7 +880,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(copiedPrompt, contains('Chapter 1 content'));
-    await tester.tap(find.widgetWithText(TextButton, 'ChatGPT'));
+    await tester.tap(find.text('ChatGPT'));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 50));
     });
@@ -1008,7 +1015,12 @@ class _FakeWriterRepository implements WriterRepository {
   }
 
   @override
-  Future<void> updateBook(String bookId, Book book) async {
+  Future<void> updateBook(
+    String bookId,
+    Book book, {
+    Set<String> deletedChapterIds = const <String>{},
+    Map<String, int> baseChapterRevisions = const <String, int>{},
+  }) async {
     updateAttempts += 1;
     if (updateFailuresRemaining > 0) {
       updateFailuresRemaining -= 1;
@@ -1022,6 +1034,25 @@ class _FakeWriterRepository implements WriterRepository {
     return authoringChapters;
   }
 
+  @override
+  Stream<List<ChapterEditLock>> watchChapterLocks(String bookId) {
+    return Stream<List<ChapterEditLock>>.value(const <ChapterEditLock>[]);
+  }
+
+  @override
+  Future<bool> acquireChapterLock(
+    String bookId,
+    String chapterId,
+    ChapterLockHolder holder,
+  ) async {
+    return true;
+  }
+
+  @override
+  Future<void> renewChapterLock(String bookId, String chapterId) async {}
+
+  @override
+  Future<void> releaseChapterLock(String bookId, String chapterId) async {}
   @override
   Future<void> deleteBook(String bookId) async {}
 

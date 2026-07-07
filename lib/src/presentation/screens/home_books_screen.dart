@@ -1489,10 +1489,7 @@ class BookshelfSection extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final shelfHeight = (MediaQuery.sizeOf(context).width * 0.54).clamp(
-      190.0,
-      232.0,
-    );
+    const shelfHeight = 236.0;
     final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
     final hasData = books.isNotEmpty;
 
@@ -1636,7 +1633,9 @@ class _BookCardState extends State<_BookCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cover
-              Expanded(
+              SizedBox(
+                width: 120,
+                height: 180,
                 child: FogReveal(
                   revealed: _revealed,
                   borderRadius: BorderRadius.circular(12),
@@ -1651,6 +1650,7 @@ class _BookCardState extends State<_BookCard> {
                                 imageUrl: widget.book.coverUrl!,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
+                                height: double.infinity,
                                 memCacheWidth: 240,
                                 memCacheHeight: 360,
                                 imageBuilder: (context, imageProvider) {
@@ -1659,6 +1659,7 @@ class _BookCardState extends State<_BookCard> {
                                     image: imageProvider,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
+                                    height: double.infinity,
                                   );
                                 },
                                 placeholder: (context, url) => _FogBlock(
@@ -1684,26 +1685,35 @@ class _BookCardState extends State<_BookCard> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Title
-              Text(
-                widget.book.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-              // Author
-              Text(
-                widget.book.authors.isNotEmpty
-                    ? widget.book.authors.first.name
-                    : AppLocalizations.of(context)!.unknownAuthor,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 11,
+              SizedBox(
+                height: 46,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.book.authors.isNotEmpty
+                          ? widget.book.authors.first.name
+                          : AppLocalizations.of(context)!.unknownAuthor,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                        height: 1.15,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

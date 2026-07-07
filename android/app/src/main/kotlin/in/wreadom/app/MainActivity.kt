@@ -1,6 +1,8 @@
-package `in`.wreadom.app
+﻿package `in`.wreadom.app
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -46,8 +48,43 @@ class MainActivity : AudioServiceActivity() {
             performNativeHaptic(type)
             result.success(null)
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "in.wreadom.app/audio_metadata"
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "readDurationMs") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+
+            val path = call.argument<String>("path")
+            val durationMs = readAudioDurationMs(path)
+            result.success(durationMs)
+        }
     }
 
+    private fun readAudioDurationMs(path: String?): Long {
+        if (path.isNullOrBlank()) return 0L
+        val retriever = MediaMetadataRetriever()
+        return try {
+            if (path.startsWith("content://")) {
+                retriever.setDataSource(this, Uri.parse(path))
+            } else {
+                retriever.setDataSource(path)
+            }
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?.takeIf { it > 0L } ?: 0L
+        } catch (_: Exception) {
+            0L
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+                // Ignore release failures on older Android releases.
+            }
+        }
+    }
     private fun performNativeHaptic(type: String) {
         val feedbackConstant = when (type) {
             "selection" -> HapticFeedbackConstants.KEYBOARD_TAP
@@ -83,3 +120,4 @@ class MainActivity : AudioServiceActivity() {
         }
     }
 }
+

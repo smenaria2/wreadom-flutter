@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 import '../../domain/models/book.dart';
+import '../../utils/audio_metadata_reader.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../widgets/book_search_selector.dart';
 import '../widgets/glass_surface.dart';
@@ -247,25 +248,9 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
           ? XFile(path, mimeType: mime)
           : XFile.fromData(bytes!, name: pickedFile.name, mimeType: mime);
 
-      int durationMs = 0;
-      if (path != null) {
-        try {
-          final duration = await _previewPlayer.setAudioSource(
-            AudioSource.file(
-              path,
-              tag: const MediaItem(
-                id: 'audio_post_upload_preview',
-                title: 'Audio upload preview',
-                album: 'Wreadom audio post',
-              ),
-            ),
-          );
-          durationMs = duration?.inMilliseconds ?? 0;
-          await _previewPlayer.stop();
-        } catch (e) {
-          debugPrint('Could not read audio duration, fallback to 0: $e');
-        }
-      }
+      final durationMs = path == null
+          ? 0
+          : await resolveAudioDurationMs(path, player: _previewPlayer);
 
       setState(() {
         _audioPath = path ?? pickedFile.name;

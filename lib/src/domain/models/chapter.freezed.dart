@@ -284,7 +284,7 @@ as int,
 /// @nodoc
 mixin _$Chapter {
 
- String get id; String get title; String get content; int get index; String? get status; List<ChapterVersion>? get versions; int? get lastSavedAt; bool? get isTitleLocked; String? get originalBookId; bool get isHidden;
+ String get id; String get title; String get content; int get index; String? get status; List<ChapterVersion>? get versions; int? get lastSavedAt; bool? get isTitleLocked; String? get originalBookId; bool get isHidden; int get revision;
 /// Create a copy of Chapter
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -297,16 +297,16 @@ $ChapterCopyWith<Chapter> get copyWith => _$ChapterCopyWithImpl<Chapter>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Chapter&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.index, index) || other.index == index)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.versions, versions)&&(identical(other.lastSavedAt, lastSavedAt) || other.lastSavedAt == lastSavedAt)&&(identical(other.isTitleLocked, isTitleLocked) || other.isTitleLocked == isTitleLocked)&&(identical(other.originalBookId, originalBookId) || other.originalBookId == originalBookId)&&(identical(other.isHidden, isHidden) || other.isHidden == isHidden));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Chapter&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.index, index) || other.index == index)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.versions, versions)&&(identical(other.lastSavedAt, lastSavedAt) || other.lastSavedAt == lastSavedAt)&&(identical(other.isTitleLocked, isTitleLocked) || other.isTitleLocked == isTitleLocked)&&(identical(other.originalBookId, originalBookId) || other.originalBookId == originalBookId)&&(identical(other.isHidden, isHidden) || other.isHidden == isHidden)&&(identical(other.revision, revision) || other.revision == revision));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,content,index,status,const DeepCollectionEquality().hash(versions),lastSavedAt,isTitleLocked,originalBookId,isHidden);
+int get hashCode => Object.hash(runtimeType,id,title,content,index,status,const DeepCollectionEquality().hash(versions),lastSavedAt,isTitleLocked,originalBookId,isHidden,revision);
 
 @override
 String toString() {
-  return 'Chapter(id: $id, title: $title, content: $content, index: $index, status: $status, versions: $versions, lastSavedAt: $lastSavedAt, isTitleLocked: $isTitleLocked, originalBookId: $originalBookId, isHidden: $isHidden)';
+  return 'Chapter(id: $id, title: $title, content: $content, index: $index, status: $status, versions: $versions, lastSavedAt: $lastSavedAt, isTitleLocked: $isTitleLocked, originalBookId: $originalBookId, isHidden: $isHidden, revision: $revision)';
 }
 
 
@@ -317,7 +317,7 @@ abstract mixin class $ChapterCopyWith<$Res>  {
   factory $ChapterCopyWith(Chapter value, $Res Function(Chapter) _then) = _$ChapterCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String content, int index, String? status, List<ChapterVersion>? versions, int? lastSavedAt, bool? isTitleLocked, String? originalBookId, bool isHidden
+ String id, String title, String content, int index, String? status, List<ChapterVersion>? versions, int? lastSavedAt, bool? isTitleLocked, String? originalBookId, bool isHidden, int revision
 });
 
 
@@ -334,7 +334,7 @@ class _$ChapterCopyWithImpl<$Res>
 
 /// Create a copy of Chapter
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? content = null,Object? index = null,Object? status = freezed,Object? versions = freezed,Object? lastSavedAt = freezed,Object? isTitleLocked = freezed,Object? originalBookId = freezed,Object? isHidden = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? content = null,Object? index = null,Object? status = freezed,Object? versions = freezed,Object? lastSavedAt = freezed,Object? isTitleLocked = freezed,Object? originalBookId = freezed,Object? isHidden = null,Object? revision = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -346,7 +346,8 @@ as List<ChapterVersion>?,lastSavedAt: freezed == lastSavedAt ? _self.lastSavedAt
 as int?,isTitleLocked: freezed == isTitleLocked ? _self.isTitleLocked : isTitleLocked // ignore: cast_nullable_to_non_nullable
 as bool?,originalBookId: freezed == originalBookId ? _self.originalBookId : originalBookId // ignore: cast_nullable_to_non_nullable
 as String?,isHidden: null == isHidden ? _self.isHidden : isHidden // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -431,10 +432,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden,  int revision)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Chapter() when $default != null:
-return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden);case _:
+return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden,_that.revision);case _:
   return orElse();
 
 }
@@ -452,10 +453,10 @@ return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden,  int revision)  $default,) {final _that = this;
 switch (_that) {
 case _Chapter():
-return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden);case _:
+return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden,_that.revision);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -472,10 +473,10 @@ return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String content,  int index,  String? status,  List<ChapterVersion>? versions,  int? lastSavedAt,  bool? isTitleLocked,  String? originalBookId,  bool isHidden,  int revision)?  $default,) {final _that = this;
 switch (_that) {
 case _Chapter() when $default != null:
-return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden);case _:
+return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_that.versions,_that.lastSavedAt,_that.isTitleLocked,_that.originalBookId,_that.isHidden,_that.revision);case _:
   return null;
 
 }
@@ -487,7 +488,7 @@ return $default(_that.id,_that.title,_that.content,_that.index,_that.status,_tha
 @JsonSerializable()
 
 class _Chapter implements Chapter {
-  const _Chapter({required this.id, required this.title, required this.content, required this.index, this.status, final  List<ChapterVersion>? versions, this.lastSavedAt, this.isTitleLocked, this.originalBookId, this.isHidden = false}): _versions = versions;
+  const _Chapter({required this.id, required this.title, required this.content, required this.index, this.status, final  List<ChapterVersion>? versions, this.lastSavedAt, this.isTitleLocked, this.originalBookId, this.isHidden = false, this.revision = 0}): _versions = versions;
   factory _Chapter.fromJson(Map<String, dynamic> json) => _$ChapterFromJson(json);
 
 @override final  String id;
@@ -508,6 +509,7 @@ class _Chapter implements Chapter {
 @override final  bool? isTitleLocked;
 @override final  String? originalBookId;
 @override@JsonKey() final  bool isHidden;
+@override@JsonKey() final  int revision;
 
 /// Create a copy of Chapter
 /// with the given fields replaced by the non-null parameter values.
@@ -522,16 +524,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Chapter&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.index, index) || other.index == index)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._versions, _versions)&&(identical(other.lastSavedAt, lastSavedAt) || other.lastSavedAt == lastSavedAt)&&(identical(other.isTitleLocked, isTitleLocked) || other.isTitleLocked == isTitleLocked)&&(identical(other.originalBookId, originalBookId) || other.originalBookId == originalBookId)&&(identical(other.isHidden, isHidden) || other.isHidden == isHidden));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Chapter&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.index, index) || other.index == index)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._versions, _versions)&&(identical(other.lastSavedAt, lastSavedAt) || other.lastSavedAt == lastSavedAt)&&(identical(other.isTitleLocked, isTitleLocked) || other.isTitleLocked == isTitleLocked)&&(identical(other.originalBookId, originalBookId) || other.originalBookId == originalBookId)&&(identical(other.isHidden, isHidden) || other.isHidden == isHidden)&&(identical(other.revision, revision) || other.revision == revision));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,content,index,status,const DeepCollectionEquality().hash(_versions),lastSavedAt,isTitleLocked,originalBookId,isHidden);
+int get hashCode => Object.hash(runtimeType,id,title,content,index,status,const DeepCollectionEquality().hash(_versions),lastSavedAt,isTitleLocked,originalBookId,isHidden,revision);
 
 @override
 String toString() {
-  return 'Chapter(id: $id, title: $title, content: $content, index: $index, status: $status, versions: $versions, lastSavedAt: $lastSavedAt, isTitleLocked: $isTitleLocked, originalBookId: $originalBookId, isHidden: $isHidden)';
+  return 'Chapter(id: $id, title: $title, content: $content, index: $index, status: $status, versions: $versions, lastSavedAt: $lastSavedAt, isTitleLocked: $isTitleLocked, originalBookId: $originalBookId, isHidden: $isHidden, revision: $revision)';
 }
 
 
@@ -542,7 +544,7 @@ abstract mixin class _$ChapterCopyWith<$Res> implements $ChapterCopyWith<$Res> {
   factory _$ChapterCopyWith(_Chapter value, $Res Function(_Chapter) _then) = __$ChapterCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String content, int index, String? status, List<ChapterVersion>? versions, int? lastSavedAt, bool? isTitleLocked, String? originalBookId, bool isHidden
+ String id, String title, String content, int index, String? status, List<ChapterVersion>? versions, int? lastSavedAt, bool? isTitleLocked, String? originalBookId, bool isHidden, int revision
 });
 
 
@@ -559,7 +561,7 @@ class __$ChapterCopyWithImpl<$Res>
 
 /// Create a copy of Chapter
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? content = null,Object? index = null,Object? status = freezed,Object? versions = freezed,Object? lastSavedAt = freezed,Object? isTitleLocked = freezed,Object? originalBookId = freezed,Object? isHidden = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? content = null,Object? index = null,Object? status = freezed,Object? versions = freezed,Object? lastSavedAt = freezed,Object? isTitleLocked = freezed,Object? originalBookId = freezed,Object? isHidden = null,Object? revision = null,}) {
   return _then(_Chapter(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -571,7 +573,8 @@ as List<ChapterVersion>?,lastSavedAt: freezed == lastSavedAt ? _self.lastSavedAt
 as int?,isTitleLocked: freezed == isTitleLocked ? _self.isTitleLocked : isTitleLocked // ignore: cast_nullable_to_non_nullable
 as bool?,originalBookId: freezed == originalBookId ? _self.originalBookId : originalBookId // ignore: cast_nullable_to_non_nullable
 as String?,isHidden: null == isHidden ? _self.isHidden : isHidden // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

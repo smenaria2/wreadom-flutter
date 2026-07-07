@@ -14,6 +14,7 @@ class WriterCustomToolbar extends StatefulWidget {
     required this.onInsertVideo,
     required this.onVersionHistory,
     required this.onAiEdit,
+    this.isReadOnly = false,
   });
 
   final QuillController controller;
@@ -23,6 +24,7 @@ class WriterCustomToolbar extends StatefulWidget {
   final VoidCallback? onInsertVideo;
   final VoidCallback? onVersionHistory;
   final VoidCallback? onAiEdit;
+  final bool isReadOnly;
 
   @override
   State<WriterCustomToolbar> createState() => _WriterCustomToolbarState();
@@ -76,6 +78,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
       _isHindi(context) ? 'संस्करण' : 'Version';
 
   bool get _hasEditableText =>
+      !widget.isReadOnly &&
       widget.controller.document.toPlainText().trim().isNotEmpty;
 
   void _hideTextInput() {
@@ -94,7 +97,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     bool requireEditorFocus = true,
     bool hideAfterAction = true,
   }) {
-    if (action == null) return;
+    if (widget.isReadOnly || action == null) return;
     if (requireEditorFocus && !widget.focusNode.hasFocus) return;
     _hideTextInput();
     action();
@@ -164,7 +167,9 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
                   style: TextStyle(
                     fontStyle: FontStyle.italic,
                     fontSize: 17,
-                    color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
+                    color: isItalic
+                        ? theme.colorScheme.primary
+                        : onSurfaceColor,
                   ),
                 ),
                 label: _getItalicLabel(context),
@@ -179,7 +184,9 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                     fontSize: 17,
-                    color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
+                    color: isUnderline
+                        ? theme.colorScheme.primary
+                        : onSurfaceColor,
                   ),
                 ),
                 label: _getUnderlineLabel(context),
@@ -228,8 +235,10 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
                 child: _buildItem(
                   icon: const Icon(Icons.play_circle_outline_rounded),
                   label: l10n.insertMedia,
-                  onTap: () =>
-                      _runToolbarAction(widget.onInsertVideo, hideAfterAction: false),
+                  onTap: () => _runToolbarAction(
+                    widget.onInsertVideo,
+                    hideAfterAction: false,
+                  ),
                 ),
               ),
               Expanded(
@@ -284,7 +293,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     bool showLabel = true,
   }) {
     final theme = Theme.of(context);
-    final isEnabled = onTap != null;
+    final isEnabled = !widget.isReadOnly && onTap != null;
     final baseColor = isActive
         ? theme.colorScheme.primary
         : isEnabled
@@ -298,7 +307,7 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
         enabled: isEnabled,
         label: label,
         child: InkWell(
-          onTap: onTap,
+          onTap: isEnabled ? onTap : null,
           canRequestFocus: false,
           borderRadius: BorderRadius.circular(12),
           child: Padding(

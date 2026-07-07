@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
@@ -11,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../presentation/routing/app_router.dart';
 import '../presentation/routing/app_routes.dart';
 import '../presentation/routing/writer_pad_mode.dart';
+import 'audio_metadata_reader.dart';
 
 typedef SharedRouteTargetHandler = void Function(RouteSettings target);
 
@@ -101,7 +101,8 @@ class SharingIntentHandler {
 
     // Check if audio
     final mimeTypeLower = file.mimeType?.toLowerCase();
-    final isAudio = (mimeTypeLower != null && mimeTypeLower.startsWith('audio/')) ||
+    final isAudio =
+        (mimeTypeLower != null && mimeTypeLower.startsWith('audio/')) ||
         _hasExtension(path, [
           '.mp3',
           '.m4a',
@@ -143,16 +144,12 @@ class SharingIntentHandler {
         debugPrint("SharingIntentHandler: Error getting size: $e");
       }
 
-      // 2. Get duration via a temporary player
-      int durationMs = 0;
-      final player = AudioPlayer();
-      try {
-        final duration = await player.setAudioSource(AudioSource.file(resolvedPath));
-        durationMs = duration?.inMilliseconds ?? 0;
-      } catch (e) {
-        debugPrint("SharingIntentHandler: Error getting duration: $e");
-      } finally {
-        await player.dispose();
+      // 2. Get duration via just_audio with an Android metadata fallback.
+      final durationMs = await resolveAudioDurationMs(resolvedPath);
+      if (durationMs <= 0) {
+        debugPrint(
+          "SharingIntentHandler: Could not verify shared audio duration",
+        );
       }
 
       // 3. Guess MIME type from extension or file metadata

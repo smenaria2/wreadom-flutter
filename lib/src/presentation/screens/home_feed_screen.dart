@@ -23,7 +23,6 @@ class HomeFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
-  FeedFilter _selectedFilter = FeedFilter.following;
   late final PageController _pageController;
 
   @override
@@ -39,7 +38,6 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   }
 
   void _selectFilter(FeedFilter filter) {
-    setState(() => _selectedFilter = filter);
     _pageController.animateToPage(
       FeedFilter.values.indexOf(filter),
       duration: const Duration(milliseconds: 220),
@@ -92,8 +90,9 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                   final btn = IconButton(
                     tooltip: l10n.notifications,
                     icon: const Icon(Icons.notifications_none_rounded),
-                    onPressed: () => Navigator.of(context)
-                        .pushNamed(AppRoutes.notifications),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.notifications),
                   );
                   if (unread <= 0) return btn;
                   return Badge(
@@ -110,40 +109,6 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               ),
             ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: GlassControlSurface(
-                borderRadius: BorderRadius.circular(26),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SegmentedButton<FeedFilter>(
-                    segments: [
-                      ButtonSegment(
-                        value: FeedFilter.following,
-                        label: Text(l10n.following),
-                        icon: const Icon(Icons.people_outline_rounded),
-                      ),
-                      ButtonSegment(
-                        value: FeedFilter.public,
-                        label: Text(l10n.public),
-                        icon: const Icon(Icons.public_rounded),
-                      ),
-                      ButtonSegment(
-                        value: FeedFilter.mine,
-                        label: Text(l10n.mine),
-                        icon: const Icon(Icons.person_outline_rounded),
-                      ),
-                    ],
-                    selected: {_selectedFilter},
-                    onSelectionChanged: (selection) {
-                      _selectFilter(selection.first);
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
           SliverFillRemaining(
             child: PageView.builder(
               physics: lockScroll
@@ -152,12 +117,14 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               controller: _pageController,
               itemCount: FeedFilter.values.length,
               onPageChanged: (index) {
-                setState(() => _selectedFilter = FeedFilter.values[index]);
                 AppHaptics.selection();
               },
               itemBuilder: (context, index) {
                 final filter = FeedFilter.values[index];
-                return _FeedFilterPage(filter: filter);
+                return _FeedFilterPage(
+                  filter: filter,
+                  onFilterSelected: _selectFilter,
+                );
               },
             ),
           ),
@@ -197,9 +164,10 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
 }
 
 class _FeedFilterPage extends ConsumerStatefulWidget {
-  const _FeedFilterPage({required this.filter});
+  const _FeedFilterPage({required this.filter, required this.onFilterSelected});
 
   final FeedFilter filter;
+  final ValueChanged<FeedFilter> onFilterSelected;
 
   @override
   ConsumerState<_FeedFilterPage> createState() => _FeedFilterPageState();
@@ -221,8 +189,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final feedState = ref.watch(pagedFeedPostsProvider(widget.filter));
     final feedController = ref.read(
       pagedFeedPostsProvider(widget.filter).notifier,
@@ -244,25 +211,6 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
 
     Widget refreshable(Widget child) {
       return RefreshIndicator(onRefresh: feedController.refresh, child: child);
-    }
-
-    Widget centeredScrollable(Widget child) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return ListView(
-            physics: lockScroll
-                ? const NeverScrollableScrollPhysics()
-                : const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            children: [
-              SizedBox(
-                height: constraints.maxHeight,
-                child: Center(child: child),
-              ),
-            ],
-          );
-        },
-      );
     }
 
     final items = feedState.items.where((post) {
@@ -316,60 +264,75 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       ),
     );
 
-    if (feedState.isInitialLoading) {
-      return refreshable(
-        Column(
-          children: [
-            filterChips,
-            Expanded(
-              child: centeredScrollable(const CircularProgressIndicator()),
-            ),
-          ],
-        ),
+    final feedHeaders = <Widget>[
+      _FeedScopeSelector(
+        selectedFilter: widget.filter,
+        onFilterSelected: widget.onFilterSelected,
+      ),
+      filterChips,
+    ];
+
+    Widget centeredScrollable(Widget child) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            physics: lockScroll
+                ? const NeverScrollableScrollPhysics()
+                : const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(bottom: listBottomPadding),
+            children: [
+              ...feedHeaders,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  height: constraints.maxHeight,
+                  child: Center(child: child),
+                ),
+              ),
+            ],
+          );
+        },
       );
+    }
+
+    if (feedState.isInitialLoading) {
+      return refreshable(centeredScrollable(const CircularProgressIndicator()));
     }
     if (feedState.error != null) {
       return refreshable(
-        Column(
-          children: [
-            filterChips,
-            Expanded(
-              child: centeredScrollable(
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      size: 48,
-                      color: Colors.red[300],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.somethingWentWrong,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      feedState.error.toString(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colorScheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: feedController.refresh,
-                      icon: const Icon(Icons.refresh),
-                      label: Text(l10n.tryAgain),
-                    ),
-                  ],
+        centeredScrollable(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Colors.red[300],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.somethingWentWrong,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                feedState.error.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: feedController.refresh,
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.tryAgain),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -412,6 +375,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
               : const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.only(bottom: listBottomPadding),
           children: [
+            ...feedHeaders,
             _QuestionPromptCard(question: questionPrompt),
             SizedBox(height: 360, child: Center(child: emptyState)),
           ],
@@ -464,12 +428,19 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ? const NeverScrollableScrollPhysics()
             : const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(bottom: listBottomPadding),
-        itemCount: items.length + 1 + leadingPromptCount,
+        itemCount: items.length + 2 + leadingPromptCount,
         itemBuilder: (context, index) {
-          if (questionPrompt != null && index == 0) {
+          if (index == 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: feedHeaders,
+            );
+          }
+          final contentIndex = index - 1;
+          if (questionPrompt != null && contentIndex == 0) {
             return _QuestionPromptCard(question: questionPrompt);
           }
-          final itemIndex = index - leadingPromptCount;
+          final itemIndex = contentIndex - leadingPromptCount;
           if (itemIndex == items.length) {
             return _LoadMoreFeedButton(
               isLoading: feedState.isLoadingMore,
@@ -497,12 +468,53 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        filterChips,
-        Expanded(child: refreshable(body)),
-      ],
+    return refreshable(body);
+  }
+}
+
+class _FeedScopeSelector extends StatelessWidget {
+  const _FeedScopeSelector({
+    required this.selectedFilter,
+    required this.onFilterSelected,
+  });
+
+  final FeedFilter selectedFilter;
+  final ValueChanged<FeedFilter> onFilterSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: GlassControlSurface(
+        borderRadius: BorderRadius.circular(26),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<FeedFilter>(
+            segments: [
+              ButtonSegment(
+                value: FeedFilter.following,
+                label: Text(l10n.following),
+                icon: const Icon(Icons.people_outline_rounded),
+              ),
+              ButtonSegment(
+                value: FeedFilter.public,
+                label: Text(l10n.public),
+                icon: const Icon(Icons.public_rounded),
+              ),
+              ButtonSegment(
+                value: FeedFilter.mine,
+                label: Text(l10n.mine),
+                icon: const Icon(Icons.person_outline_rounded),
+              ),
+            ],
+            selected: {selectedFilter},
+            onSelectionChanged: (selection) {
+              onFilterSelected(selection.first);
+            },
+          ),
+        ),
+      ),
     );
   }
 }

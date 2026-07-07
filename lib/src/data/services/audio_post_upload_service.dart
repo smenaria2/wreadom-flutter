@@ -182,6 +182,10 @@ String? inferAudioPostMimeType({required String fileName, String? mimeType}) {
   if (name.endsWith('.mp3')) return 'audio/mpeg';
   if (name.endsWith('.mp4')) return 'audio/mp4';
   if (name.endsWith('.wav')) return 'audio/wav';
+  if (name.endsWith('.ogg')) return 'audio/ogg';
+  if (name.endsWith('.opus')) return 'audio/opus';
+  if (name.endsWith('.amr')) return 'audio/amr';
+  if (name.endsWith('.flac')) return 'audio/flac';
   return null;
 }
 
@@ -217,6 +221,10 @@ const _supportedAudioMimeTypes = {
   'audio/mp3',
   'audio/wav',
   'audio/x-wav',
+  'audio/ogg',
+  'audio/opus',
+  'audio/amr',
+  'audio/flac',
 };
 
 class AudioPostUploadResult {
