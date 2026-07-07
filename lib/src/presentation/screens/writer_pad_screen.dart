@@ -370,7 +370,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     unawaited(_syncCurrentChapterLock());
   }
 
-  Future<void> _hydrateAuthoringChapters() async {
+  Future<void> _hydrateAuthoringChapters({
+    Map<String, ChapterVersion>? localBackupVersions,
+  }) async {
     final bookId = _bookId ?? widget.book?.id;
     if (bookId == null || bookId.trim().isEmpty) return;
     try {
@@ -387,7 +389,22 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           ..clear()
           ..addAll(
             hydrated.map(
-              (chapter) => _ChapterDraft.fromChapter(chapter, _markDirty),
+              (chapter) {
+                var finalChapter = chapter;
+                if (localBackupVersions != null && localBackupVersions.containsKey(chapter.id)) {
+                  final backup = localBackupVersions[chapter.id]!;
+                  final currentVersions = chapter.versions ?? const <ChapterVersion>[];
+                  if (!currentVersions.any((v) => v.content == backup.content)) {
+                    final List<ChapterVersion> updatedVersions = List<ChapterVersion>.from(currentVersions);
+                    if (updatedVersions.length >= 10) {
+                      updatedVersions.removeAt(0);
+                    }
+                    updatedVersions.add(backup);
+                    finalChapter = chapter.copyWith(versions: updatedVersions);
+                  }
+                }
+                return _ChapterDraft.fromChapter(finalChapter, _markDirty);
+              },
             ),
           );
         _ensureVisibleChapter();
@@ -532,11 +549,44 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         .watchChapterLocks(bookId)
         .listen((locks) {
           if (!mounted) return;
+          final user = ref.read(currentUserProvider).asData?.value;
+          final currentChapterId = _chapters.isEmpty ? null : _currentChapter.id;
+          final wasLockedByOther = currentChapterId != null &&
+              _isChapterLockedByOther(_currentChapter, user);
+
+          final nextLocks = <String, ChapterEditLock>{
+            for (final lock in locks) lock.chapterId: lock,
+          };
+
+          // To check what will be locked by other after updating
+          final prevLocks = _chapterLocks;
+          _chapterLocks = nextLocks;
+          final willBeLockedByOther = currentChapterId != null &&
+              _isChapterLockedByOther(_currentChapter, user);
+          _chapterLocks = prevLocks;
+
           setState(() {
-            _chapterLocks = <String, ChapterEditLock>{
-              for (final lock in locks) lock.chapterId: lock,
-            };
+            _chapterLocks = nextLocks;
           });
+
+          if (wasLockedByOther && !willBeLockedByOther) {
+            // Lock was released!
+            final Map<String, ChapterVersion> backupVersions = {};
+            if (_chapters.isNotEmpty) {
+              final activeCh = _currentChapter;
+              if (activeCh.id != null && activeCh.hasLocalChanges) {
+                final currentHtml = htmlFromDocument(activeCh.controller.document);
+                backupVersions[activeCh.id!] = ChapterVersion(
+                  content: currentHtml,
+                  timestamp: DateTime.now().millisecondsSinceEpoch,
+                  wordCount: activeCh.wordCount,
+                );
+              }
+            }
+            // Re-hydrate chapters from Firestore to get the co-author's edits,
+            // silently backing up local changes into the version history.
+            unawaited(_hydrateAuthoringChapters(localBackupVersions: backupVersions));
+          }
         });
   }
 
@@ -1417,9 +1467,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Widget _buildToolbar(QuillController controller) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
+    return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
         child: GlassSurface(
