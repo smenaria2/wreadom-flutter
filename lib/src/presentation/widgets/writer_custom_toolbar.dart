@@ -32,6 +32,7 @@ class WriterCustomToolbar extends StatefulWidget {
 
 class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   bool _showSecondRow = false;
+  bool? _wasKeyboardOpen;
 
   @override
   void initState() {
@@ -130,156 +131,208 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     final isItalic = selectionStyle.containsKey(Attribute.italic.key);
     final isUnderline = selectionStyle.containsKey(Attribute.underline.key);
 
+    final undoItem = Expanded(
+      child: _buildItem(
+        icon: const Icon(Icons.undo_rounded),
+        label: _getUndoLabel(context),
+        onTap: () => _runToolbarAction(
+          widget.controller.undo,
+          hideAfterAction: false,
+        ),
+      ),
+    );
+
+    final redoItem = Expanded(
+      child: _buildItem(
+        icon: const Icon(Icons.redo_rounded),
+        label: _getRedoLabel(context),
+        onTap: () => _runToolbarAction(
+          widget.controller.redo,
+          hideAfterAction: false,
+        ),
+      ),
+    );
+
+    final boldItem = Expanded(
+      child: _buildItem(
+        icon: Text(
+          'B',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+            color: isBold ? theme.colorScheme.primary : onSurfaceColor,
+          ),
+        ),
+        label: _getBoldLabel(context),
+        onTap: () => _toggleFormat(Attribute.bold),
+        isActive: isBold,
+      ),
+    );
+
+    final italicItem = Expanded(
+      child: _buildItem(
+        icon: Text(
+          'I',
+          style: TextStyle(
+            fontStyle: FontStyle.italic,
+            fontSize: 17,
+            color: isItalic
+                ? theme.colorScheme.primary
+                : onSurfaceColor,
+          ),
+        ),
+        label: _getItalicLabel(context),
+        onTap: () => _toggleFormat(Attribute.italic),
+        isActive: isItalic,
+      ),
+    );
+
+    final underlineItem = Expanded(
+      child: _buildItem(
+        icon: Text(
+          'U',
+          style: TextStyle(
+            decoration: TextDecoration.underline,
+            fontSize: 17,
+            color: isUnderline
+                ? theme.colorScheme.primary
+                : onSurfaceColor,
+          ),
+        ),
+        label: _getUnderlineLabel(context),
+        onTap: () => _toggleFormat(Attribute.underline),
+        isActive: isUnderline,
+      ),
+    );
+
+    final showMoreItem = Expanded(
+      child: _buildItem(
+        icon: Icon(
+          _showSecondRow
+              ? Icons.keyboard_double_arrow_up_rounded
+              : Icons.keyboard_double_arrow_down_rounded,
+        ),
+        label: l10n.showMore,
+        onTap: () {
+          setState(() {
+            _showSecondRow = !_showSecondRow;
+          });
+        },
+        showLabel: false,
+      ),
+    );
+
+    final imageItem = Expanded(
+      child: _buildItem(
+        icon: widget.isUploadingInlineImage
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.image_outlined),
+        label: l10n.insertImage,
+        onTap: widget.isUploadingInlineImage
+            ? null
+            : () => _runToolbarAction(widget.onInsertImage),
+      ),
+    );
+
+    final videoItem = Expanded(
+      child: _buildItem(
+        icon: const Icon(Icons.play_circle_outline_rounded),
+        label: l10n.insertMedia,
+        onTap: () => _runToolbarAction(
+          widget.onInsertVideo,
+          hideAfterAction: false,
+        ),
+      ),
+    );
+
+    final aiItem = Expanded(
+      child: _buildItem(
+        icon: const Icon(Icons.auto_awesome_rounded),
+        label: l10n.aiEdit,
+        onTap: widget.onAiEdit == null || !_hasEditableText
+            ? null
+            : () => _runToolbarAction(
+                widget.onAiEdit,
+                requireEditorFocus: false,
+                hideAfterAction: false,
+              ),
+        showLabel: false,
+      ),
+    );
+
+    final versionItem = Expanded(
+      child: _buildItem(
+        icon: const Icon(Icons.access_time_rounded),
+        label: _getVersionLabel(context),
+        onTap: widget.onVersionHistory == null
+            ? null
+            : () => _runToolbarAction(
+                widget.onVersionHistory,
+                requireEditorFocus: false,
+              ),
+      ),
+    );
+
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (_wasKeyboardOpen != null && _wasKeyboardOpen != keyboardOpen) {
+      _showSecondRow = false;
+    }
+    _wasKeyboardOpen = keyboardOpen;
+
+    final List<Widget> topRowChildren;
+    final List<Widget> bottomRowChildren;
+
+    if (keyboardOpen) {
+      topRowChildren = [
+        undoItem,
+        redoItem,
+        _buildDivider(),
+        boldItem,
+        italicItem,
+        underlineItem,
+        _buildDivider(),
+        showMoreItem,
+      ];
+      bottomRowChildren = [
+        imageItem,
+        videoItem,
+        aiItem,
+        _buildDivider(),
+        versionItem,
+      ];
+    } else {
+      topRowChildren = [
+        imageItem,
+        videoItem,
+        aiItem,
+        _buildDivider(),
+        versionItem,
+        _buildDivider(),
+        showMoreItem,
+      ];
+      bottomRowChildren = [
+        undoItem,
+        redoItem,
+        _buildDivider(),
+        boldItem,
+        italicItem,
+        underlineItem,
+      ];
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
-          children: [
-            Expanded(
-              child: _buildItem(
-                icon: const Icon(Icons.undo_rounded),
-                label: _getUndoLabel(context),
-                onTap: () => _runToolbarAction(
-                  widget.controller.undo,
-                  hideAfterAction: false,
-                ),
-              ),
-            ),
-            Expanded(
-              child: _buildItem(
-                icon: const Icon(Icons.redo_rounded),
-                label: _getRedoLabel(context),
-                onTap: () => _runToolbarAction(
-                  widget.controller.redo,
-                  hideAfterAction: false,
-                ),
-              ),
-            ),
-            _buildDivider(),
-            Expanded(
-              child: _buildItem(
-                icon: Text(
-                  'B',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                    color: isBold ? theme.colorScheme.primary : onSurfaceColor,
-                  ),
-                ),
-                label: _getBoldLabel(context),
-                onTap: () => _toggleFormat(Attribute.bold),
-                isActive: isBold,
-              ),
-            ),
-            Expanded(
-              child: _buildItem(
-                icon: Text(
-                  'I',
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 17,
-                    color: isItalic
-                        ? theme.colorScheme.primary
-                        : onSurfaceColor,
-                  ),
-                ),
-                label: _getItalicLabel(context),
-                onTap: () => _toggleFormat(Attribute.italic),
-                isActive: isItalic,
-              ),
-            ),
-            Expanded(
-              child: _buildItem(
-                icon: Text(
-                  'U',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    fontSize: 17,
-                    color: isUnderline
-                        ? theme.colorScheme.primary
-                        : onSurfaceColor,
-                  ),
-                ),
-                label: _getUnderlineLabel(context),
-                onTap: () => _toggleFormat(Attribute.underline),
-                isActive: isUnderline,
-              ),
-            ),
-            _buildDivider(),
-            Expanded(
-              child: _buildItem(
-                icon: Icon(
-                  _showSecondRow
-                      ? Icons.keyboard_double_arrow_up_rounded
-                      : Icons.keyboard_double_arrow_down_rounded,
-                ),
-                label: l10n.showMore,
-                onTap: () {
-                  setState(() {
-                    _showSecondRow = !_showSecondRow;
-                  });
-                },
-                showLabel: false,
-              ),
-            ),
-          ],
+          children: topRowChildren,
         ),
         if (_showSecondRow) ...[
           const SizedBox(height: 8),
           Row(
-            children: [
-              Expanded(
-                child: _buildItem(
-                  icon: widget.isUploadingInlineImage
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.image_outlined),
-                  label: l10n.insertImage,
-                  onTap: widget.isUploadingInlineImage
-                      ? null
-                      : () => _runToolbarAction(widget.onInsertImage),
-                ),
-              ),
-              Expanded(
-                child: _buildItem(
-                  icon: const Icon(Icons.play_circle_outline_rounded),
-                  label: l10n.insertMedia,
-                  onTap: () => _runToolbarAction(
-                    widget.onInsertVideo,
-                    hideAfterAction: false,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildItem(
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  label: l10n.aiEdit,
-                  onTap: widget.onAiEdit == null || !_hasEditableText
-                      ? null
-                      : () => _runToolbarAction(
-                          widget.onAiEdit,
-                          requireEditorFocus: false,
-                          hideAfterAction: false,
-                        ),
-                  showLabel: false,
-                ),
-              ),
-              _buildDivider(),
-              Expanded(
-                child: _buildItem(
-                  icon: const Icon(Icons.access_time_rounded),
-                  label: _getVersionLabel(context),
-                  onTap: widget.onVersionHistory == null
-                      ? null
-                      : () => _runToolbarAction(
-                          widget.onVersionHistory,
-                          requireEditorFocus: false,
-                        ),
-                ),
-              ),
-            ],
+            children: bottomRowChildren,
           ),
         ],
       ],
