@@ -1419,10 +1419,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             height: 1.8,
           ),
           customStylesBuilder: (element) {
-            if (isPoem) {
-              return {'text-align': 'center'};
+            final tag = element.localName?.toLowerCase();
+            final Map<String, String> styles = {};
+            if (tag == 'ol' || tag == 'ul' || tag == 'li') {
+              styles['list-style-type'] = 'none';
+              styles['padding-left'] = '0';
+              styles['margin-left'] = '0';
             }
-            return null;
+            if (isPoem) {
+              styles['text-align'] = 'center';
+            }
+            return styles.isNotEmpty ? styles : null;
           },
           customWidgetBuilder: (element) {
             final tag = element.localName?.toLowerCase();
