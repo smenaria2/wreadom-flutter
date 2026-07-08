@@ -31,6 +31,10 @@ import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
 import '../components/interactive_features_sheet.dart';
 
+bool _isInitialHomepageLoad(AsyncValue<dynamic> value) {
+  return value.isLoading && !value.hasValue;
+}
+
 enum _HomeShelfDestination {
   communityClassics,
   originals,
@@ -127,6 +131,14 @@ class HomeBooksScreen extends ConsumerWidget {
     // Watch saved books for the new section
 
     final l10n = AppLocalizations.of(context)!;
+    final showProminentGuide =
+        _isInitialHomepageLoad(bannersAsync) ||
+        _isInitialHomepageLoad(originalsAsync) ||
+        _isInitialHomepageLoad(popularAsync) ||
+        _isInitialHomepageLoad(trendingAsync) ||
+        _isInitialHomepageLoad(recentAsync) ||
+        _isInitialHomepageLoad(iaAsync) ||
+        _isInitialHomepageLoad(leavesAsync);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -182,7 +194,11 @@ class HomeBooksScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _HomeBannerStrip(bannersAsync: bannersAsync),
-              const SizedBox(height: 16),
+              if (showProminentGuide) ...[
+                const InteractiveFeaturesSheet(prominent: true),
+                const SizedBox(height: 8),
+              ] else
+                const SizedBox(height: 16),
 
               const _AuthorSpotlight(),
               const SizedBox(height: 16),

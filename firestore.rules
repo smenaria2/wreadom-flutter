@@ -457,8 +457,33 @@ service cloud.firestore {
       match /chapterLocks/{lockId} {
         allow read: if isAdmin() ||
           (isVerified() && isBookAuthor(bookId));
-        allow write: if isAdmin() ||
-          (isVerified() && isBookAuthor(bookId));
+        allow create: if isAdmin() ||
+          (
+            isVerified() &&
+            isBookAuthor(bookId) &&
+            request.resource.data.chapterId == lockId &&
+            request.resource.data.holderId == uid()
+          );
+        allow update: if isAdmin() ||
+          (
+            isVerified() &&
+            isBookAuthor(bookId) &&
+            request.resource.data.chapterId == lockId &&
+            request.resource.data.holderId == uid() &&
+            (
+              resource.data.holderId == uid() ||
+              (
+                resource.data.expiresAt is int &&
+                resource.data.expiresAt <= request.time.toMillis()
+              )
+            )
+          );
+        allow delete: if isAdmin() ||
+          (
+            isVerified() &&
+            isBookAuthor(bookId) &&
+            resource.data.holderId == uid()
+          );
       }
     }
 

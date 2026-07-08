@@ -38,13 +38,13 @@ ChapterMergeResult mergeAuthoringChaptersForSave({
     final id = incoming.id.trim();
     if (id.isEmpty || deletedIds.contains(id)) continue;
     final existing = existingById[id];
-    final hasChanged = existing == null || _chapterChanged(incoming, existing);
     final baseRevision = baseChapterRevisions[id];
     final remoteRevision = existing?.revision ?? 0;
-    if (hasChanged && baseRevision != null && remoteRevision != baseRevision) {
+    if (baseRevision != null && remoteRevision != baseRevision) {
       conflicts.add(id);
       continue;
     }
+    final hasChanged = existing == null || _chapterChanged(incoming, existing);
     final nextRevision = hasChanged
         ? (existing == null ? incoming.revision + 1 : remoteRevision + 1)
         : remoteRevision;

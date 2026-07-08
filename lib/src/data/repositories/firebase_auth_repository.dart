@@ -20,7 +20,6 @@ class FirebaseAuthRepository implements AuthRepository {
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
   FirebaseFunctions get _functions => FirebaseFunctions.instance;
-  static const int _maxFanOutWritesPerBatch = 450;
   static const Duration _profileWriteTimeout = Duration(seconds: 8);
 
   @override
@@ -139,9 +138,11 @@ class FirebaseAuthRepository implements AuthRepository {
           'lastLogin': DateTime.now().millisecondsSinceEpoch,
         };
         if (needsHeal) {
-          patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
+          patch['username'] =
+              raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
           patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
-          patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+          patch['createdAt'] =
+              raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
           patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
           patch['readingHistory'] = raw['readingHistory'] ?? [];
           patch['savedBooks'] = raw['savedBooks'] ?? [];
@@ -152,8 +153,14 @@ class FirebaseAuthRepository implements AuthRepository {
         }
         if (raw['searchTerms'] is! List || needsHeal) {
           patch['searchTerms'] = buildProfileSearchTerms(
-            username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
-            email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
+            username:
+                patch['username']?.toString() ??
+                raw['username']?.toString() ??
+                fallbackUser.username,
+            email:
+                patch['email']?.toString() ??
+                raw['email']?.toString() ??
+                fallbackUser.email,
             displayName: raw['displayName']?.toString() ?? fbUser.displayName,
             penName: raw['penName']?.toString(),
           );
@@ -291,9 +298,11 @@ class FirebaseAuthRepository implements AuthRepository {
         'lastLogin': DateTime.now().millisecondsSinceEpoch,
       };
       if (needsHeal) {
-        patch['username'] = raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
+        patch['username'] =
+            raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
         patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
-        patch['createdAt'] = raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+        patch['createdAt'] =
+            raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
         patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
         patch['readingHistory'] = raw['readingHistory'] ?? [];
         patch['savedBooks'] = raw['savedBooks'] ?? [];
@@ -304,8 +313,14 @@ class FirebaseAuthRepository implements AuthRepository {
       }
       if (raw['searchTerms'] is! List || needsHeal) {
         patch['searchTerms'] = buildProfileSearchTerms(
-          username: patch['username']?.toString() ?? raw['username']?.toString() ?? fallbackUser.username,
-          email: patch['email']?.toString() ?? raw['email']?.toString() ?? fallbackUser.email,
+          username:
+              patch['username']?.toString() ??
+              raw['username']?.toString() ??
+              fallbackUser.username,
+          email:
+              patch['email']?.toString() ??
+              raw['email']?.toString() ??
+              fallbackUser.email,
           displayName: raw['displayName']?.toString() ?? fbUser.displayName,
           penName: raw['penName']?.toString(),
         );
@@ -503,92 +518,6 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
     await _firestore.collection('users').doc(userId).update(updates);
-    await _fanOutProfileUpdates(userId, updates);
-  }
-
-  Future<void> _fanOutProfileUpdates(
-    String userId,
-    Map<String, dynamic> updates,
-  ) async {
-    final feedUpdates = <String, dynamic>{};
-    final commentUpdates = <String, dynamic>{};
-    final notificationUpdates = <String, dynamic>{};
-    final conversationUpdates = <String, dynamic>{};
-    if (updates.containsKey('displayName')) {
-      feedUpdates['displayName'] = updates['displayName'];
-      commentUpdates['userName'] = updates['displayName'];
-      notificationUpdates['actorName'] = updates['displayName'];
-      conversationUpdates['participantDetails.$userId.displayName'] =
-          updates['displayName'];
-    }
-    if (updates.containsKey('photoURL')) {
-      feedUpdates['userPhotoURL'] = updates['photoURL'];
-      commentUpdates['userPhotoURL'] = updates['photoURL'];
-      notificationUpdates['actorPhotoURL'] = updates['photoURL'];
-      conversationUpdates['participantDetails.$userId.photoURL'] =
-          updates['photoURL'];
-    }
-    if (feedUpdates.isEmpty && commentUpdates.isEmpty) return;
-
-    final batches = <WriteBatch>[];
-    var currentWriteCount = 0;
-
-    WriteBatch activeBatch() {
-      if (batches.isEmpty || currentWriteCount >= _maxFanOutWritesPerBatch) {
-        batches.add(_firestore.batch());
-        currentWriteCount = 0;
-      }
-      return batches.last;
-    }
-
-    void queueUpdate(
-      DocumentReference<Map<String, dynamic>> ref,
-      Map<String, dynamic> data,
-    ) {
-      if (data.isEmpty) return;
-      if (currentWriteCount >= _maxFanOutWritesPerBatch) {
-        batches.add(_firestore.batch());
-        currentWriteCount = 0;
-      }
-      activeBatch().update(ref, data);
-      currentWriteCount++;
-    }
-
-    Future<void> queueQuery(
-      Query<Map<String, dynamic>> query,
-      Map<String, dynamic> data,
-    ) async {
-      if (data.isEmpty) return;
-      final snapshot = await query.get();
-      for (final doc in snapshot.docs) {
-        queueUpdate(doc.reference, data);
-      }
-    }
-
-    await queueQuery(
-      _firestore.collection('feed_posts').where('userId', isEqualTo: userId),
-      feedUpdates,
-    );
-    await queueQuery(
-      _firestore.collection('comments').where('userId', isEqualTo: userId),
-      commentUpdates,
-    );
-    await queueQuery(
-      _firestore
-          .collection('notifications')
-          .where('actorId', isEqualTo: userId),
-      notificationUpdates,
-    );
-    await queueQuery(
-      _firestore
-          .collection('conversations')
-          .where('participants', arrayContains: userId),
-      conversationUpdates,
-    );
-
-    for (final batch in batches) {
-      await batch.commit();
-    }
   }
 
   @override

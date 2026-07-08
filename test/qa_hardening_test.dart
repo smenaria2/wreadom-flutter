@@ -156,7 +156,10 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('final photoUrl = other?.photoURL?.trim();'));
-    expect(source, contains('CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)'));
+    expect(
+      source,
+      contains('CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)'),
+    );
     expect(source, contains('title.characters.first.toUpperCase()'));
   });
 
@@ -642,19 +645,17 @@ void main() {
     },
   );
 
-  test('profile fan-out updates are chunked below Firestore batch limits', () {
-    final source = File(
+  test('profile fan-out stays server-side', () {
+    final authSource = File(
       'lib/src/data/repositories/firebase_auth_repository.dart',
     ).readAsStringSync();
+    final functionsSource = File('functions/index.js').readAsStringSync();
 
-    expect(source, contains('_maxFanOutWritesPerBatch = 450'));
-    expect(source, contains('void queueUpdate('));
-    expect(
-      source,
-      contains('if (currentWriteCount >= _maxFanOutWritesPerBatch)'),
-    );
-    expect(source, contains('for (final batch in batches)'));
-    expect(source, isNot(contains('final batch = _firestore.batch();')));
+    expect(authSource, isNot(contains('_fanOutProfileUpdates')));
+    expect(authSource, isNot(contains("collection('notifications')")));
+    expect(functionsSource, contains('exports.onUserProfileUpdated'));
+    expect(functionsSource, contains('notificationSnapshot'));
+    expect(functionsSource, contains('actorPhotoURL: photoURL'));
   });
 
   test(

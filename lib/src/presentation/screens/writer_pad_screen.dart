@@ -388,24 +388,25 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _chapters
           ..clear()
           ..addAll(
-            hydrated.map(
-              (chapter) {
-                var finalChapter = chapter;
-                if (localBackupVersions != null && localBackupVersions.containsKey(chapter.id)) {
-                  final backup = localBackupVersions[chapter.id]!;
-                  final currentVersions = chapter.versions ?? const <ChapterVersion>[];
-                  if (!currentVersions.any((v) => v.content == backup.content)) {
-                    final List<ChapterVersion> updatedVersions = List<ChapterVersion>.from(currentVersions);
-                    if (updatedVersions.length >= 10) {
-                      updatedVersions.removeAt(0);
-                    }
-                    updatedVersions.add(backup);
-                    finalChapter = chapter.copyWith(versions: updatedVersions);
+            hydrated.map((chapter) {
+              var finalChapter = chapter;
+              if (localBackupVersions != null &&
+                  localBackupVersions.containsKey(chapter.id)) {
+                final backup = localBackupVersions[chapter.id]!;
+                final currentVersions =
+                    chapter.versions ?? const <ChapterVersion>[];
+                if (!currentVersions.any((v) => v.content == backup.content)) {
+                  final List<ChapterVersion> updatedVersions =
+                      List<ChapterVersion>.from(currentVersions);
+                  if (updatedVersions.length >= 10) {
+                    updatedVersions.removeAt(0);
                   }
+                  updatedVersions.add(backup);
+                  finalChapter = chapter.copyWith(versions: updatedVersions);
                 }
-                return _ChapterDraft.fromChapter(finalChapter, _markDirty);
-              },
-            ),
+              }
+              return _ChapterDraft.fromChapter(finalChapter, _markDirty);
+            }),
           );
         _ensureVisibleChapter();
         _setCurrentChapterIndex(
@@ -540,6 +541,24 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return lock.holderId.trim() != user.id.trim();
   }
 
+  bool _isCurrentChapterLockedByOther(UserModel? user) {
+    if (_chapters.isEmpty) return false;
+    return _isChapterLockedByOther(_currentChapter, user);
+  }
+
+  Map<String, ChapterVersion> _localBackupVersionsForChangedChapters() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return <String, ChapterVersion>{
+      for (final chapter in _chapters)
+        if (chapter.id != null && chapter.hasLocalChanges)
+          chapter.id!: ChapterVersion(
+            content: htmlFromDocument(chapter.controller.document),
+            timestamp: now,
+            wordCount: chapter.wordCount,
+          ),
+    };
+  }
+
   void _startChapterLockWatch() {
     if (!_canUseChapterLocks || _chapterLocksSubscription != null) return;
     final bookId = _bookId ?? widget.book?.id;
@@ -550,8 +569,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         .listen((locks) {
           if (!mounted) return;
           final user = ref.read(currentUserProvider).asData?.value;
-          final currentChapterId = _chapters.isEmpty ? null : _currentChapter.id;
-          final wasLockedByOther = currentChapterId != null &&
+          final currentChapterId = _chapters.isEmpty
+              ? null
+              : _currentChapter.id;
+          final wasLockedByOther =
+              currentChapterId != null &&
               _isChapterLockedByOther(_currentChapter, user);
 
           final nextLocks = <String, ChapterEditLock>{
@@ -561,7 +583,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           // To check what will be locked by other after updating
           final prevLocks = _chapterLocks;
           _chapterLocks = nextLocks;
-          final willBeLockedByOther = currentChapterId != null &&
+          final willBeLockedByOther =
+              currentChapterId != null &&
               _isChapterLockedByOther(_currentChapter, user);
           _chapterLocks = prevLocks;
 
@@ -570,22 +593,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           });
 
           if (wasLockedByOther && !willBeLockedByOther) {
-            // Lock was released!
-            final Map<String, ChapterVersion> backupVersions = {};
-            if (_chapters.isNotEmpty) {
-              final activeCh = _currentChapter;
-              if (activeCh.id != null && activeCh.hasLocalChanges) {
-                final currentHtml = htmlFromDocument(activeCh.controller.document);
-                backupVersions[activeCh.id!] = ChapterVersion(
-                  content: currentHtml,
-                  timestamp: DateTime.now().millisecondsSinceEpoch,
-                  wordCount: activeCh.wordCount,
-                );
-              }
-            }
+            final backupVersions = _localBackupVersionsForChangedChapters();
             // Re-hydrate chapters from Firestore to get the co-author's edits,
             // silently backing up local changes into the version history.
-            unawaited(_hydrateAuthoringChapters(localBackupVersions: backupVersions));
+            unawaited(
+              _hydrateAuthoringChapters(localBackupVersions: backupVersions),
+            );
           }
         });
   }
@@ -2663,6 +2676,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Future<void> _pickInlineImage() async {
     final l10n = AppLocalizations.of(context)!;
+    if (_isCurrentChapterLockedByOther(
+      ref.read(currentUserProvider).asData?.value,
+    )) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return;
+    }
     final user = await ref.read(currentUserProvider.future);
     if (user == null) {
       _showSnack(l10n.signInBeforeUploadingImages);
@@ -2681,6 +2701,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             userId: user.id,
             preset: ImageUploadPreset.inline,
           );
+      if (_isCurrentChapterLockedByOther(
+        ref.read(currentUserProvider).asData?.value,
+      )) {
+        final lock = _activeLockFor(_currentChapter.id);
+        _showSnack(
+          '${lock?.holderName ?? 'Co-author'} is editing this chapter.',
+        );
+        return;
+      }
       _insertEmbed(BlockEmbed.image(uploaded));
       _showSnack(l10n.imageInserted);
     } catch (error) {
@@ -2722,6 +2751,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Future<void> _showMediaInsertDialog() async {
     final l10n = AppLocalizations.of(context)!;
+    if (_isCurrentChapterLockedByOther(
+      ref.read(currentUserProvider).asData?.value,
+    )) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return;
+    }
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
@@ -2747,6 +2783,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     );
     controller.dispose();
     if (result == null) return;
+    if (_isCurrentChapterLockedByOther(
+      ref.read(currentUserProvider).asData?.value,
+    )) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return;
+    }
     final info = classifyWriterMediaUrl(result);
     if (info.isSupported) {
       _insertEmbed(BlockEmbed.video(info.originalUrl));
@@ -2757,6 +2800,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _insertEmbed(BlockEmbed embed) {
+    if (_isCurrentChapterLockedByOther(
+      ref.read(currentUserProvider).asData?.value,
+    )) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return;
+    }
     final controller = _currentChapter.controller;
     final selection = controller.selection;
     var index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
@@ -2791,6 +2841,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   void _insertText(String text) {
     if (text.trim().isEmpty) return;
+    if (_isCurrentChapterLockedByOther(
+      ref.read(currentUserProvider).asData?.value,
+    )) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return;
+    }
     final controller = _currentChapter.controller;
     final selection = controller.selection;
     final index = selection.baseOffset < 0 ? 0 : selection.baseOffset;
@@ -2834,6 +2891,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
     final user = await _currentUserOrNull();
     if (user == null) return false;
+    if (_isCurrentChapterLockedByOther(user)) {
+      final lock = _activeLockFor(_currentChapter.id);
+      _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
+      return false;
+    }
     if (_collabEnabled &&
         !isAcceptedCollaboration(widget.book ?? _emptyBookForCollabCheck()) &&
         (_selectedCollaboratorId == null ||
@@ -3132,8 +3194,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Map<String, int> _baseChapterRevisionsForSave() {
     return <String, int>{
       for (final draft in _chapters)
-        if (draft.id != null && draft.hasLocalChanges)
-          draft.id!: draft.revision,
+        if (draft.id != null) draft.id!: draft.revision,
     };
   }
 

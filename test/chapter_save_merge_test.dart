@@ -95,6 +95,21 @@ void main() {
     );
   });
 
+  test('stale base revision conflicts even without local edit', () {
+    expect(
+      () => mergeAuthoringChaptersForSave(
+        incomingChapters: [
+          chapter('chapter-1', content: '<p>Old local</p>', revision: 1),
+        ],
+        existingChapters: [
+          chapter('chapter-1', content: '<p>Remote edit</p>', revision: 2),
+        ],
+        baseChapterRevisions: const {'chapter-1': 1},
+      ),
+      throwsA(isA<ChapterSaveConflictException>()),
+    );
+  });
+
   test('legacy chapters without revision are treated as revision zero', () {
     final result = mergeAuthoringChaptersForSave(
       incomingChapters: [chapter('chapter-1', content: '<p>Local</p>')],

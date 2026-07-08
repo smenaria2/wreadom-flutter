@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../domain/models/book.dart';
@@ -25,7 +24,7 @@ class AnalyticsService {
   }
 
   static FirebaseAnalytics get analytics => FirebaseAnalytics.instance;
-  
+
   static NavigatorObserver get observer {
     if (!_hasFirebase) return _DummyObserver();
     return FirebaseAnalyticsObserver(analytics: analytics);

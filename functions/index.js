@@ -1882,6 +1882,9 @@ exports.onUserProfileUpdated = functionsV1.firestore.document("users/{userId}").
 
   const feedSnapshot = await db.collection("feed").where("userId", "==", userId).get();
   const commentSnapshot = await db.collection("comments").where("userId", "==", userId).get();
+  const notificationSnapshot = await db.collection("notifications")
+      .where("actorId", "==", userId)
+      .get();
   const conversationSnapshot = await db.collection("conversations")
       .where("participants", "array-contains", userId)
       .get();
@@ -1902,6 +1905,11 @@ exports.onUserProfileUpdated = functionsV1.firestore.document("users/{userId}").
     displayName: normalizeString(afterData.displayName) || null,
     penName: normalizeString(afterData.penName) || null,
     userPhotoURL: photoURL,
+  }));
+
+  await commitInChunks(notificationSnapshot.docs.map((doc) => doc.ref), () => ({
+    actorName: display,
+    actorPhotoURL: photoURL,
   }));
 
   await commitInChunks(conversationSnapshot.docs.map((doc) => doc.ref), () => ({

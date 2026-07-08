@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import '../widgets/glass_surface.dart';
 
 class InteractiveFeaturesSheet extends StatefulWidget {
-  const InteractiveFeaturesSheet({super.key});
+  const InteractiveFeaturesSheet({super.key, this.prominent = false});
+
+  final bool prominent;
 
   @override
   State<InteractiveFeaturesSheet> createState() => _InteractiveFeaturesSheetState();
@@ -141,9 +143,9 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
 
     return GlassSurface(
       strong: true,
-      borderRadius: BorderRadius.circular(24),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(widget.prominent ? 20 : 24),
+      margin: EdgeInsets.fromLTRB(16, widget.prominent ? 16 : 8, 16, 8),
+      padding: EdgeInsets.all(widget.prominent ? 18 : 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -163,7 +165,7 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
           const SizedBox(height: 16),
           // Carousel Area
           SizedBox(
-            height: 160,
+            height: widget.prominent ? 188 : 160,
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (page) {
@@ -1078,7 +1080,9 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                 AnimatedBuilder(
                   animation: _chaptersImported,
                   builder: (context, child) {
-                    if (!_chaptersImported.value) return const SizedBox.shrink();
+                    if (!_chaptersImported.value) {
+                      return const SizedBox.shrink();
+                    }
                     return Container(
                       width: 100,
                       height: 16,
