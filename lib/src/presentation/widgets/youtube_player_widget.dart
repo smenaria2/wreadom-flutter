@@ -10,6 +10,7 @@ class YoutubePlayerWidget extends StatefulWidget {
     super.key,
     required this.videoId,
     required this.originalUrl,
+    this.autoPlay = false,
   });
 
   /// The 11-character YouTube video ID.
@@ -17,6 +18,9 @@ class YoutubePlayerWidget extends StatefulWidget {
 
   /// The original URL used for the fallback button.
   final String originalUrl;
+
+  /// Whether to load and play the video immediately upon initialization.
+  final bool autoPlay;
 
   @override
   State<YoutubePlayerWidget> createState() => _YoutubePlayerWidgetState();
@@ -44,8 +48,12 @@ class _YoutubePlayerWidgetState extends State<YoutubePlayerWidget> {
         if (mounted) setState(() => _hasError = true);
       },
     );
-    // Cue (not auto-play) the video once the controller is ready.
-    _controller.cueVideoById(videoId: widget.videoId);
+    // Load (autoplay) or cue the video once the controller is ready.
+    if (widget.autoPlay) {
+      _controller.loadVideoById(videoId: widget.videoId);
+    } else {
+      _controller.cueVideoById(videoId: widget.videoId);
+    }
   }
 
   @override

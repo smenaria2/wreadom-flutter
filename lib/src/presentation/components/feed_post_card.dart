@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,13 +22,13 @@ import '../../utils/image_proxy_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/glass_surface.dart';
-import '../widgets/writer_media_embed.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'book/gradient_quote_card.dart';
 import 'book/gradient_book_card.dart';
 import 'book/gradient_review_card.dart';
 import '../widgets/audio_post_player.dart';
 import 'audio_post_creator.dart';
+import '../widgets/feed_media_playable_card.dart';
 
 /// Maps post type â†’ accent colour
 Color _typeColor(String type, ColorScheme scheme) {
@@ -1232,7 +1232,15 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             // â”€â”€â”€ Post image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (post.imageUrl != null) ...[
               GestureDetector(
-                onTap: () => _showZoomableImage(context, post.imageUrl!),
+                onTap: () {
+                  final optimizedUrl = optimizedImageUrl(
+                    post.imageUrl!,
+                    width: 1000,
+                    quality: 90,
+                    fit: 'cover',
+                  );
+                  _showZoomableImage(context, optimizedUrl);
+                },
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: CachedNetworkImage(
@@ -1349,7 +1357,7 @@ class _PostTextWithLinkPreview extends StatelessWidget {
         Text(text, style: const TextStyle(fontSize: 14, height: 1.45)),
         if (preview != null) ...[
           const SizedBox(height: 8),
-          WriterMediaPreview(url: preview.originalUrl, compact: true),
+          FeedMediaPlayableCard(url: preview.originalUrl),
         ],
       ],
     );
@@ -1691,12 +1699,7 @@ void _showZoomableImage(BuildContext context, String url) {
             minScale: 0.8,
             maxScale: 4.0,
             child: CachedNetworkImage(
-              imageUrl: optimizedImageUrl(
-                url,
-                width: 1600,
-                quality: 90,
-                fit: 'contain',
-              ),
+              imageUrl: url,
               fit: BoxFit.contain,
               placeholder: (context, url) =>
                   const Center(child: CircularProgressIndicator()),

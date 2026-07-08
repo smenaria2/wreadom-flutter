@@ -15,10 +15,12 @@ class InstagramEmbedWidget extends StatefulWidget {
     super.key,
     required this.embedUrl,
     required this.originalUrl,
+    this.interactive = false,
   });
 
   final String embedUrl;
   final String originalUrl;
+  final bool interactive;
 
   @override
   State<InstagramEmbedWidget> createState() => _InstagramEmbedWidgetState();
@@ -76,7 +78,7 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
           ),
         )
         // Load a minimal HTML shell that iframes the /embed URL at a fixed
-        // size â€” this avoids the flicker caused by Instagram's embed.js
+        // size — this avoids the flicker caused by Instagram's embed.js
         // resizing the container dynamically.
         ..loadHtmlString(_buildHtml(widget.embedUrl));
 
@@ -122,12 +124,12 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    // â”€â”€ Fallback card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Fallback card ————————————————————————————————————————————————————————
     if (_hasError || _controller == null) {
       return _buildFallbackCard(scheme);
     }
 
-    // â”€â”€ Actual preview with tap overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // —— Actual preview with tap overlay ——————————————————————————————————————
     return Container(
       height: 480,
       margin: const EdgeInsets.symmetric(vertical: 12),
@@ -150,44 +152,45 @@ class _InstagramEmbedWidgetState extends State<InstagramEmbedWidget> {
               child: Center(child: CircularProgressIndicator()),
             ),
 
-          // Transparent overlay â€” intercepts every tap and opens in browser.
-          // Using Positioned.fill so it covers the full WebView area.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _openInBrowser,
-              // Absorb all gestures so the WebView never receives them.
-              child: const ColoredBox(color: Colors.transparent),
+          // Transparent overlay — intercepts every tap and opens in browser (only if not interactive)
+          if (!widget.interactive) ...[
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _openInBrowser,
+                // Absorb all gestures so the WebView never receives them.
+                child: const ColoredBox(color: Colors.transparent),
+              ),
             ),
-          ),
 
-          // Small "open" hint badge in the top-right corner
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(6),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.open_in_new_rounded,
-                      color: Colors.white,
-                      size: 12,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Tap to open',
-                      style: TextStyle(color: Colors.white, fontSize: 11),
-                    ),
-                  ],
+            // Small "open" hint badge in the top-right corner
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.open_in_new_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Tap to open',
+                        style: TextStyle(color: Colors.white, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
