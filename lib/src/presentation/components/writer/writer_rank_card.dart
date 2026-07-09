@@ -5,8 +5,9 @@ import '../../theme/app_theme.dart';
 import '../../widgets/glass_surface.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../utils/tier_utils.dart';
-import '../../providers/navigation_providers.dart';
 import '../../../localization/generated/app_localizations.dart';
+import '../../routing/app_routes.dart';
+import '../../routing/app_router.dart';
 
 class WriterRankCard extends ConsumerWidget {
   const WriterRankCard({super.key, required this.user});
@@ -39,7 +40,6 @@ class WriterRankCard extends ConsumerWidget {
                 rank: user.authorRank,
                 points: authorPoints,
                 tier: authorTier,
-                cheatsheet: [l10n.publishChaptersPoints, l10n.receiveCommentsPoints],
                 category: 'author',
               ),
               const SizedBox(height: 10),
@@ -50,7 +50,6 @@ class WriterRankCard extends ConsumerWidget {
                 rank: user.readerRank,
                 points: readerPoints,
                 tier: readerTier,
-                cheatsheet: [l10n.readBooksPoints, l10n.postCommentsPoints],
                 category: 'reader',
               ),
             ] else
@@ -65,7 +64,6 @@ class WriterRankCard extends ConsumerWidget {
                       rank: user.authorRank,
                       points: authorPoints,
                       tier: authorTier,
-                      cheatsheet: [l10n.publishChaptersPoints, l10n.receiveCommentsPoints],
                       category: 'author',
                     ),
                   ),
@@ -78,7 +76,6 @@ class WriterRankCard extends ConsumerWidget {
                       rank: user.readerRank,
                       points: readerPoints,
                       tier: readerTier,
-                      cheatsheet: [l10n.readBooksPoints, l10n.postCommentsPoints],
                       category: 'reader',
                     ),
                   ),
@@ -96,8 +93,10 @@ class WriterRankCard extends ConsumerWidget {
     return GlassSurface(
       onTap: () {
         HapticFeedback.lightImpact();
-        ref.read(profileTabIndexProvider.notifier).setIndex(6);
-        ref.read(selectedTabProvider.notifier).setTab(4);
+        Navigator.of(context).pushNamed(
+          AppRoutes.leaderboard,
+          arguments: const LeaderboardScreenArguments(initialCategory: 'author'),
+        );
       },
       borderRadius: BorderRadius.circular(16),
       child: Padding(
@@ -136,7 +135,6 @@ class WriterRankCard extends ConsumerWidget {
     required int? rank,
     required int points,
     required TierInfo tier,
-    required List<String> cheatsheet,
     required String category,
   }) {
     final theme = Theme.of(context);
@@ -224,30 +222,6 @@ class WriterRankCard extends ConsumerWidget {
                 fontSize: 8,
               ),
             ),
-            const SizedBox(height: 10),
-            const Divider(),
-            const SizedBox(height: 6),
-            ...cheatsheet.map((text) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• ', style: TextStyle(color: scheme.primary, fontSize: 8)),
-                    Expanded(
-                      child: Text(
-                        text,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 9,
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
           ],
         ),
       ),
@@ -264,20 +238,46 @@ class AnimatedProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: progress),
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
       curve: Curves.easeOutCubic,
       builder: (context, animatedVal, child) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: animatedVal,
-            backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
-            minHeight: 5,
+        return Container(
+          height: 6,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: animatedVal.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  gradient: LinearGradient(
+                    colors: [
+                      scheme.primary,
+                      scheme.tertiary,
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },

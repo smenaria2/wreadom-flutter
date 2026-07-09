@@ -1,4 +1,4 @@
-﻿class AppRoutes {
+class AppRoutes {
   static const root = '/';
   static const login = '/login';
   static const main = '/main';
@@ -28,5 +28,6 @@
   static const archiveReader = '/archive-reader';
   static const adminDailyTopics = '/admin-daily-topics';
   static const questionAnswers = '/question-answers';
+  static const leaderboard = '/leaderboard';
   static const notFound = '/not-found';
 }

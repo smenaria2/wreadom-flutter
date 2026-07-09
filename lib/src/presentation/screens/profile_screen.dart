@@ -38,7 +38,6 @@ import '../components/profile/user_downloaded_tab.dart';
 import '../components/profile/user_content_tab.dart';
 import '../components/profile/profile_share_card.dart';
 import '../components/profile/rank_badges.dart';
-import '../components/profile/leaderboard_tab.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 
@@ -73,7 +72,7 @@ class ProfileScreen extends ConsumerWidget {
         }
 
         return DefaultTabController(
-          length: 7,
+          length: 6,
           initialIndex: initialTabIndex,
           child: Scaffold(
             backgroundColor: Colors.transparent,
@@ -217,7 +216,6 @@ class ProfileScreen extends ConsumerWidget {
                               Tab(text: l10n.history),
                               Tab(text: l10n.saved),
                               Tab(text: l10n.downloaded),
-                              Tab(text: l10n.leaderboard),
                             ],
                           ),
                         ),
@@ -235,15 +233,6 @@ class ProfileScreen extends ConsumerWidget {
                   const _ProfileTabBody(child: UserHistoryTab()),
                   const _ProfileTabBody(child: UserSavedTab()),
                   const _ProfileTabBody(child: UserDownloadedTab()),
-                  _ProfileTabBody(
-                    child: LeaderboardTab(
-                      currentUser: user,
-                      onUserClick: (userId) => Navigator.of(context).pushNamed(
-                        AppRoutes.publicProfile,
-                        arguments: userId,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -581,7 +570,10 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                       user: user,
                       showTierLabel: true,
                       onClick: (category) {
-                        DefaultTabController.of(context).animateTo(6);
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.leaderboard,
+                          arguments: LeaderboardScreenArguments(initialCategory: category),
+                        );
                       },
                     ),
                   ],

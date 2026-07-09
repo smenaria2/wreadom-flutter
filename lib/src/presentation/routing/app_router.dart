@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,6 +22,7 @@ import '../screens/notifications_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/profile_settings_screen.dart';
 import '../screens/public_profile_screen.dart';
+import '../screens/leaderboard_screen.dart';
 import '../screens/reader_screen.dart';
 import '../screens/saved_books_screen.dart';
 import '../screens/static_info_screen.dart';
@@ -47,6 +48,12 @@ class PublicProfileArguments {
   const PublicProfileArguments({required this.userId});
 
   final String userId;
+}
+
+class LeaderboardScreenArguments {
+  const LeaderboardScreenArguments({this.initialCategory = 'reader'});
+
+  final String initialCategory;
 }
 
 class BookDetailArguments {
@@ -362,6 +369,15 @@ class AppRouter {
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (_) => PublicProfileScreen(userId: userId!.trim()),
+        );
+      case AppRoutes.leaderboard:
+        final argsValue = resolvedArguments;
+        final initialCategory = argsValue is LeaderboardScreenArguments
+            ? argsValue.initialCategory
+            : 'reader';
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => LeaderboardScreen(initialCategory: initialCategory),
         );
       case AppRoutes.notifications:
         return MaterialPageRoute(

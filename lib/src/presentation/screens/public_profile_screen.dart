@@ -18,6 +18,7 @@ import '../routing/app_routes.dart';
 import '../components/book_card.dart';
 import '../components/feed_post_card.dart';
 import '../components/profile/profile_share_card.dart';
+import '../components/profile/rank_badges.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
@@ -619,6 +620,18 @@ class _PublicProfileHeader extends StatelessWidget {
                             : null,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  RankBadges(
+                    user: user,
+                    showTierLabel: true,
+                    centerAlign: true,
+                    onClick: (category) {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.leaderboard,
+                        arguments: LeaderboardScreenArguments(initialCategory: category),
+                      );
+                    },
                   ),
                 ],
               ),
