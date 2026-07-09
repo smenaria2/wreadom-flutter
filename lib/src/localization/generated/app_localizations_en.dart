@@ -414,7 +414,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genreRomance => 'Romance';
 
   @override
-  String get genreSciFi => 'Science Fiction';
+  String get genreSciFi => 'Sci-Fi';
 
   @override
   String get genreMystery => 'Mystery';
@@ -423,7 +423,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genreHorror => 'Horror';
 
   @override
-  String get genreHistorical => 'Historical';
+  String get genreHistorical => 'History';
 
   @override
   String get genreAdventure => 'Adventure';

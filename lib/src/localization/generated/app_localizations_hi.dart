@@ -410,13 +410,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get quoteAndComment => 'उद्धरण और टिप्पणी';
 
   @override
-  String get genreFantasy => 'फंतासी';
+  String get genreFantasy => 'फैंटसी';
 
   @override
-  String get genreRomance => 'रोमांस';
+  String get genreRomance => 'प्रेम';
 
   @override
-  String get genreSciFi => 'विज्ञान कथा';
+  String get genreSciFi => 'विज्ञान';
 
   @override
   String get genreMystery => 'रहस्य';
@@ -428,7 +428,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get genreHistorical => 'ऐतिहासिक';
 
   @override
-  String get genreAdventure => 'साहसिक';
+  String get genreAdventure => 'रोमांच';
 
   @override
   String get genrePoetry => 'कविता';
@@ -443,7 +443,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get genreHistory => 'इतिहास';
 
   @override
-  String get genreStories => 'कहानियाँ';
+  String get genreStories => 'लघुकथा';
 
   @override
   String get genreCompetition => 'रीडम् प्रतियोगिता #1';

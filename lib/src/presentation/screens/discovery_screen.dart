@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import '../../utils/category_utils.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/user_model.dart';
@@ -614,29 +615,5 @@ class _MiniPlaceholder extends StatelessWidget {
 }
 
 String _getLocalizedGenre(BuildContext context, String genre) {
-  final l10n = AppLocalizations.of(context)!;
-  switch (genre) {
-    case 'Fantasy':
-      return l10n.genreFantasy;
-    case 'Romance':
-      return l10n.genreRomance;
-    case 'Science Fiction':
-      return l10n.genreSciFi;
-    case 'Mystery':
-      return l10n.genreMystery;
-    case 'Horror':
-      return l10n.genreHorror;
-    case 'Historical':
-      return l10n.genreHistorical;
-    case 'Adventure':
-      return l10n.genreAdventure;
-    case 'Poetry':
-      return l10n.genrePoetry;
-    case 'Biography':
-      return l10n.genreBiography;
-    case 'Philosophy':
-      return l10n.genrePhilosophy;
-    default:
-      return genre;
-  }
+  return getLocalizedCategory(context, genre);
 }

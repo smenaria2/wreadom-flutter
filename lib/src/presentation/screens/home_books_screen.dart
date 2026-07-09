@@ -347,8 +347,10 @@ class HomeBooksScreen extends ConsumerWidget {
                   l10n,
                 ),
               ),
-              const InteractiveFeaturesSheet(),
-              const SizedBox(height: 16),
+              if (!showProminentGuide) ...[
+                const InteractiveFeaturesSheet(),
+                const SizedBox(height: 16),
+              ],
               SizedBox(height: bottomPadding),
             ],
           ),

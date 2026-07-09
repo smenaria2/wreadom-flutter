@@ -875,7 +875,7 @@ abstract class AppLocalizations {
   /// No description provided for @genreSciFi.
   ///
   /// In en, this message translates to:
-  /// **'Science Fiction'**
+  /// **'Sci-Fi'**
   String get genreSciFi;
 
   /// No description provided for @genreMystery.
@@ -893,7 +893,7 @@ abstract class AppLocalizations {
   /// No description provided for @genreHistorical.
   ///
   /// In en, this message translates to:
-  /// **'Historical'**
+  /// **'History'**
   String get genreHistorical;
 
   /// No description provided for @genreAdventure.

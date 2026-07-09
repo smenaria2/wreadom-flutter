@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../utils/category_utils.dart';
 
 import '../components/book_card.dart';
 import '../providers/homepage_providers.dart';
@@ -62,7 +63,7 @@ class CategoryBooksScreen extends ConsumerWidget {
 
     return GlassScaffold(
       appBar: glassAppBar(
-        title: Text(displayName ?? category),
+        title: Text(getLocalizedCategory(context, displayName ?? category)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -82,7 +83,7 @@ class CategoryBooksScreen extends ConsumerWidget {
                     height: MediaQuery.sizeOf(context).height * 0.65,
                     child: _CategoryMessage(
                       icon: Icons.auto_stories_outlined,
-                      message: l10n.noBooksFoundIn(displayName ?? category),
+                      message: l10n.noBooksFoundIn(getLocalizedCategory(context, displayName ?? category)),
                     ),
                   ),
                 ],

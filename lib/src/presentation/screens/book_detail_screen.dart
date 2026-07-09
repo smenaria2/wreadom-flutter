@@ -18,6 +18,7 @@ import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/book_publication_date.dart';
 import '../../utils/format_utils.dart';
+import '../../utils/category_utils.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
@@ -554,7 +555,7 @@ class _BookDetailBody extends ConsumerWidget {
                                 vertical: 8,
                               ),
                               child: Text(
-                                subject,
+                                getLocalizedCategory(context, subject),
                                 style: theme.textTheme.labelMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,

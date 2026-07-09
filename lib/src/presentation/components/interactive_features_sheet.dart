@@ -13,13 +13,15 @@ class InteractiveFeaturesSheet extends StatefulWidget {
 }
 
 class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
+  late final PageController _pageController;
+  late int _currentPage;
   Timer? _autoPlayTimer;
 
   @override
   void initState() {
     super.initState();
+    _currentPage = math.Random().nextInt(18);
+    _pageController = PageController(initialPage: _currentPage);
     _startAutoPlay();
   }
 

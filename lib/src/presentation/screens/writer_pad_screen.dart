@@ -19,6 +19,7 @@ import '../../data/services/analytics_service.dart';
 import '../../utils/app_review_helper.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/book_collaboration_utils.dart';
+import '../../utils/category_utils.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/follow_providers.dart';
@@ -3578,56 +3579,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   String _localizedCategory(String value) {
-    if (!_isHindiLocale) return _titleCase(value);
-    const labels = {
-      'romance': 'रोमांस',
-      'mystery': 'रहस्य',
-      'thriller': 'थ्रिलर',
-      'science fiction': 'विज्ञान कथा',
-      'fantasy': 'फंतासी',
-      'horror': 'हॉरर',
-      'adventure': 'साहसिक',
-      'historical fiction': 'ऐतिहासिक कथा',
-      'young adult': 'युवा साहित्य',
-      'literary fiction': 'साहित्यिक कथा',
-      'comedy': 'हास्य',
-      'drama': 'नाटक',
-      'crime': 'अपराध',
-      'stories': 'कहानियां',
-      'fan fiction': 'फैन फिक्शन',
-      'lyrical': 'गीतात्मक',
-      'narrative': 'कथात्मक',
-      'haiku': 'हाइकु',
-      'free verse': 'मुक्त छंद',
-      'sonnet': 'सॉनेट',
-      'ghazal': 'ग़ज़ल',
-      'blank verse': 'अतुकांत छंद',
-      'ode': 'ओड',
-      'elegy': 'शोकगीत',
-      'ballad': 'बैलेड',
-      'prose poetry': 'गद्य कविता',
-      'spoken word': 'स्पोकन वर्ड',
-      'visual poetry': 'दृश्य कविता',
-      'acrostic': 'अक्रॉस्टिक',
-      'experimental': 'प्रयोगात्मक',
-      'technology': 'प्रौद्योगिकी',
-      'science': 'विज्ञान',
-      'health': 'स्वास्थ्य',
-      'education': 'शिक्षा',
-      'business': 'व्यवसाय',
-      'politics': 'राजनीति',
-      'travel': 'यात्रा',
-      'lifestyle': 'जीवनशैली',
-      'personal development': 'व्यक्तिगत विकास',
-      'finance': 'वित्त',
-      'environment': 'पर्यावरण',
-      'arts & culture': 'कला और संस्कृति',
-      'food & cooking': 'भोजन और पाक-कला',
-      'sports': 'खेल',
-      'history': 'इतिहास',
-      'other': 'अन्य',
-    };
-    return labels[value.trim().toLowerCase()] ?? _titleCase(value);
+    return getLocalizedCategory(context, value);
   }
 
   String _localizedLanguage(String value) {
