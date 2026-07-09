@@ -9,3 +9,11 @@ class SelectedTab extends _$SelectedTab {
 
   void setTab(int index) => state = index;
 }
+
+@riverpod
+class ProfileTabIndex extends _$ProfileTabIndex {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) => state = index;
+}

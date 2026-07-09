@@ -112,7 +112,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final RestorableInt _restorableStep = RestorableInt(0);
   final RestorableInt _restorableCurrentChapterIndex = RestorableInt(0);
   final RestorableString _restorableContentType = RestorableString('story');
-  final RestorableString _restorableCategory = RestorableString('Romance');
+  final RestorableString _restorableCategory = RestorableString('Thriller');
   final RestorableString _restorableLanguage = RestorableString('Hindi');
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
@@ -142,7 +142,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _syncingBookTitleFromChapter = false;
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
-  String _category = 'Romance';
+  String _category = 'Thriller';
   String _language = 'Hindi';
   String? _coverUrl;
   final CoverImageService _coverImageService = CoverImageService();

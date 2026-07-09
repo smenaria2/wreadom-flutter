@@ -99,8 +99,8 @@ final writerTaxonomyProvider = Provider<WriterTaxonomy>((ref) {
       'Malayalam',
     ],
     contentTypeDefaults: {
-      'story': 'Romance',
-      'poem': 'Lyrical',
+      'story': 'Thriller',
+      'poem': 'Free Verse',
       'article': 'Technology',
     },
   );

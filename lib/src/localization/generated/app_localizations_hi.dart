@@ -2866,11 +2866,146 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteLeafContent => 'यह पुस्तक से लीफ को हटा देता है।';
 
   @override
-  String get add => 'जोड़ें';
+  String get add => 'Add';
 
   @override
   String get viewAllAnswers => 'सभी जवाब देखें';
 
   @override
   String get viewAllAnswersInFeed => 'फ़ीड में सभी जवाब देखें';
+
+  @override
+  String get leaderboard => 'लीडरबोर्ड';
+
+  @override
+  String get readers => 'पाठक';
+
+  @override
+  String get authors => 'लेखक';
+
+  @override
+  String get totalAllTime => 'कुल (सर्वकालिक)';
+
+  @override
+  String get daily => 'दैनिक';
+
+  @override
+  String get weekly => 'साप्ताहिक';
+
+  @override
+  String get monthly => 'मासिक';
+
+  @override
+  String get noRankingsPeriod => 'इस अवधि के लिए अभी तक कोई रैंकिंग नहीं है।';
+
+  @override
+  String get startReadingAppear =>
+      'यहाँ प्रदर्शित होने के लिए पढ़ना शुरू करें!';
+
+  @override
+  String get aboutLeaderboardTiers => 'लीडरबोर्ड और स्तरों के बारे में';
+
+  @override
+  String get wreadomRankSystem => 'रीडम रैंक प्रणाली के बारे में';
+
+  @override
+  String get howToEarnPoints => 'अंक कैसे अर्जित करें';
+
+  @override
+  String get publishChaptersPoints =>
+      'अध्याय प्रकाशित करना: प्रति प्रकाशित अध्याय पर +50 लेखक अंक।';
+
+  @override
+  String get receiveCommentsPoints =>
+      'टिप्पणियाँ प्राप्त करना: प्रति प्राप्त टिप्पणी पर +5 लेखक अंक।';
+
+  @override
+  String get readBooksPoints =>
+      'पुस्तकें पढ़ना: प्रति पढ़े गए अध्याय पर +10 पाठक अंक।';
+
+  @override
+  String get postCommentsPoints =>
+      'टिप्पणियाँ पोस्ट करना: प्रति पोस्ट की गई टिप्पणी पर +2 पाठक अंक।';
+
+  @override
+  String get tracksCalculations => 'ट्रैक और गणना';
+
+  @override
+  String get tracksExplanation =>
+      'आपके लेखक अंक आपकी लेखन गतिविधि को दर्शाते हैं, और पाठक अंक आपकी पढ़ने की व्यस्तता को मापते हैं। वे स्वतंत्र रूप से आगे बढ़ते हैं।';
+
+  @override
+  String get periodsExplanation =>
+      'दैनिक, साप्ताहिक और मासिक लीडरबोर्ड केवल उसी विशिष्ट समय सीमा में अर्जित अंकों की गणना करते हैं। \'कुल\' आपके जीवनकाल के अंक हैं।';
+
+  @override
+  String get tierProgressionLadder => 'स्तर प्रगति सीढ़ी';
+
+  @override
+  String ptsToNextTier(num points) {
+    return 'अगले स्तर के लिए $points अंक';
+  }
+
+  @override
+  String get maxLevelReached => 'अधिकतम स्तर प्राप्त ✨';
+
+  @override
+  String get viewFullLeaderboard => 'पूर्ण लीडरबोर्ड देखें';
+
+  @override
+  String get authorStatus => 'लेखक की स्थिति';
+
+  @override
+  String get readerStatus => 'पाठक की स्थिति';
+
+  @override
+  String get tier1ReaderTitle => 'जिज्ञासु मस्तिष्क';
+
+  @override
+  String get tier1AuthorTitle => 'महत्वाकांक्षी लेखक';
+
+  @override
+  String get tier2ReaderTitle => 'किताबी कीड़ा';
+
+  @override
+  String get tier2AuthorTitle => 'कहानियां सुनाने वाला';
+
+  @override
+  String get tier3ReaderTitle => 'कहानी खोजने वाला';
+
+  @override
+  String get tier3AuthorTitle => 'उभरता हुआ लेखक';
+
+  @override
+  String get tier4ReaderTitle => 'पन्ने पलटने वाला';
+
+  @override
+  String get tier4AuthorTitle => 'प्रकाशित आवाज';
+
+  @override
+  String get tier5ReaderTitle => 'साहित्यिक विद्वान';
+
+  @override
+  String get tier5AuthorTitle => 'शब्दों का जादूगर';
+
+  @override
+  String get tier6ReaderTitle => 'महान पाठक';
+
+  @override
+  String get tier6AuthorTitle => 'महान लेखक';
+
+  @override
+  String get tier7ReaderTitle => 'साहित्य का दिग्गज';
+
+  @override
+  String get tier7AuthorTitle => 'साहित्यिक किंवदंती';
+
+  @override
+  String get tier8ReaderTitle => 'अमर पाठक';
+
+  @override
+  String get tier8AuthorTitle => 'अमर मुंशी';
+
+  @override
+  String get you => 'आप';
 }

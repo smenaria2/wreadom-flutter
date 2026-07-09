@@ -151,6 +151,12 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       : NotificationSettings.fromJson(
           json['notificationSettings'] as Map<String, dynamic>,
         ),
+  authorPoints: (json['authorPoints'] as num?)?.toInt(),
+  authorRank: (json['authorRank'] as num?)?.toInt(),
+  readerPoints: (json['readerPoints'] as num?)?.toInt(),
+  readerRank: (json['readerRank'] as num?)?.toInt(),
+  booksReadCount: (json['booksReadCount'] as num?)?.toInt() ?? 0,
+  commentsPostedCount: (json['commentsPostedCount'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -178,4 +184,10 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'readingProgress': instance.readingProgress,
       'fcmTokens': instance.fcmTokens,
       'notificationSettings': instance.notificationSettings,
+      'authorPoints': instance.authorPoints,
+      'authorRank': instance.authorRank,
+      'readerPoints': instance.readerPoints,
+      'readerRank': instance.readerRank,
+      'booksReadCount': instance.booksReadCount,
+      'commentsPostedCount': instance.commentsPostedCount,
     };

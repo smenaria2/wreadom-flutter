@@ -93,6 +93,12 @@ abstract class UserModel with _$UserModel {
     Map<String, dynamic>? readingProgress,
     List<String>? fcmTokens,
     NotificationSettings? notificationSettings,
+    int? authorPoints,
+    int? authorRank,
+    int? readerPoints,
+    int? readerRank,
+    @Default(0) int booksReadCount,
+    @Default(0) int commentsPostedCount,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

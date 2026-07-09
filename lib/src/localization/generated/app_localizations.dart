@@ -5101,6 +5101,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View all answers in feed'**
   String get viewAllAnswersInFeed;
+
+  /// No description provided for @leaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get leaderboard;
+
+  /// No description provided for @readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Readers'**
+  String get readers;
+
+  /// No description provided for @authors.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get authors;
+
+  /// No description provided for @totalAllTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Total (All-time)'**
+  String get totalAllTime;
+
+  /// No description provided for @daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get daily;
+
+  /// No description provided for @weekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get weekly;
+
+  /// No description provided for @monthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get monthly;
+
+  /// No description provided for @noRankingsPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'No rankings for this period yet.'**
+  String get noRankingsPeriod;
+
+  /// No description provided for @startReadingAppear.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reading to appear here!'**
+  String get startReadingAppear;
+
+  /// No description provided for @aboutLeaderboardTiers.
+  ///
+  /// In en, this message translates to:
+  /// **'About Leaderboard & Tiers'**
+  String get aboutLeaderboardTiers;
+
+  /// No description provided for @wreadomRankSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'About the Wreadom Rank System'**
+  String get wreadomRankSystem;
+
+  /// No description provided for @howToEarnPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Earn Points'**
+  String get howToEarnPoints;
+
+  /// No description provided for @publishChaptersPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing Chapters: +50 Author Points per chapter.'**
+  String get publishChaptersPoints;
+
+  /// No description provided for @receiveCommentsPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving Comments: +5 Author Points per comment.'**
+  String get receiveCommentsPoints;
+
+  /// No description provided for @readBooksPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Books: +10 Reader Points per chapter.'**
+  String get readBooksPoints;
+
+  /// No description provided for @postCommentsPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Posting Comments: +2 Reader Points per post.'**
+  String get postCommentsPoints;
+
+  /// No description provided for @tracksCalculations.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks & Calculations'**
+  String get tracksCalculations;
+
+  /// No description provided for @tracksExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Author Points reflect your writing activity, and Reader Points measure your reading engagement. They progress independently.'**
+  String get tracksExplanation;
+
+  /// No description provided for @periodsExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily, Weekly, and Monthly leaderboards count points earned only in that specific time window. \'Total\' is your lifetime points.'**
+  String get periodsExplanation;
+
+  /// No description provided for @tierProgressionLadder.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier Progression Ladder'**
+  String get tierProgressionLadder;
+
+  /// No description provided for @ptsToNextTier.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} pts to next tier'**
+  String ptsToNextTier(num points);
+
+  /// No description provided for @maxLevelReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Max level reached ✨'**
+  String get maxLevelReached;
+
+  /// No description provided for @viewFullLeaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'View Full Leaderboard'**
+  String get viewFullLeaderboard;
+
+  /// No description provided for @authorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Author Status'**
+  String get authorStatus;
+
+  /// No description provided for @readerStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader Status'**
+  String get readerStatus;
+
+  /// No description provided for @tier1ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Curious Mind'**
+  String get tier1ReaderTitle;
+
+  /// No description provided for @tier1AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Aspiring Writer'**
+  String get tier1AuthorTitle;
+
+  /// No description provided for @tier2ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookworm'**
+  String get tier2ReaderTitle;
+
+  /// No description provided for @tier2AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storyteller'**
+  String get tier2AuthorTitle;
+
+  /// No description provided for @tier3ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Story Seeker'**
+  String get tier3ReaderTitle;
+
+  /// No description provided for @tier3AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rising Author'**
+  String get tier3AuthorTitle;
+
+  /// No description provided for @tier4ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Page Turner'**
+  String get tier4ReaderTitle;
+
+  /// No description provided for @tier4AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Published Voice'**
+  String get tier4AuthorTitle;
+
+  /// No description provided for @tier5ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Literary Scholar'**
+  String get tier5ReaderTitle;
+
+  /// No description provided for @tier5AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Master Wordsmith'**
+  String get tier5AuthorTitle;
+
+  /// No description provided for @tier6ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Reader'**
+  String get tier6ReaderTitle;
+
+  /// No description provided for @tier6AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Author'**
+  String get tier6AuthorTitle;
+
+  /// No description provided for @tier7ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend of Letters'**
+  String get tier7ReaderTitle;
+
+  /// No description provided for @tier7AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Literary Legend'**
+  String get tier7AuthorTitle;
+
+  /// No description provided for @tier8ReaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Eternal Reader'**
+  String get tier8ReaderTitle;
+
+  /// No description provided for @tier8AuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Eternal Scribe'**
+  String get tier8AuthorTitle;
+
+  /// No description provided for @you.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU'**
+  String get you;
 }
 
 class _AppLocalizationsDelegate

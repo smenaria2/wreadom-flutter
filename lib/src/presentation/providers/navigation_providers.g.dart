@@ -59,3 +59,55 @@ abstract class _$SelectedTab extends $Notifier<int> {
     element.handleCreate(ref, build);
   }
 }
+
+@ProviderFor(ProfileTabIndex)
+final profileTabIndexProvider = ProfileTabIndexProvider._();
+
+final class ProfileTabIndexProvider
+    extends $NotifierProvider<ProfileTabIndex, int> {
+  ProfileTabIndexProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'profileTabIndexProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$profileTabIndexHash();
+
+  @$internal
+  @override
+  ProfileTabIndex create() => ProfileTabIndex();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<int>(value),
+    );
+  }
+}
+
+String _$profileTabIndexHash() => r'dc481557ea93917a275b7d37816ba97e076146be';
+
+abstract class _$ProfileTabIndex extends $Notifier<int> {
+  int build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<int, int>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<int, int>,
+              int,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

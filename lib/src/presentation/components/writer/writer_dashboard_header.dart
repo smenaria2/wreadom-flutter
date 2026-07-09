@@ -9,6 +9,7 @@ import '../../providers/writer_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_surface.dart';
 import '../../../utils/image_proxy_utils.dart';
+import 'writer_rank_card.dart';
 
 class WriterDashboardHeader extends ConsumerWidget {
   const WriterDashboardHeader({super.key});
@@ -144,6 +145,10 @@ class WriterDashboardHeader extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 16),
+                WriterRankCard(user: user),
               ],
             ),
           ),

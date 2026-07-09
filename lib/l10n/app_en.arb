@@ -1547,5 +1547,251 @@
   "leafDeleted": "Leaf deleted.",
   "add": "Add",
   "viewAllAnswers": "View all answers",
-  "viewAllAnswersInFeed": "View all answers in feed"
+  "viewAllAnswersInFeed": "View all answers in feed",
+  "leaderboard": "Leaderboard",
+  "readers": "Readers",
+  "authors": "Authors",
+  "totalAllTime": "Total (All-time)",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "noRankingsPeriod": "No rankings for this period yet.",
+  "startReadingAppear": "Start reading to appear here!",
+  "aboutLeaderboardTiers": "About Leaderboard & Tiers",
+  "wreadomRankSystem": "About the Wreadom Rank System",
+  "howToEarnPoints": "How to Earn Points",
+  "publishChaptersPoints": "Publishing Chapters: +50 Author Points per chapter.",
+  "receiveCommentsPoints": "Receiving Comments: +5 Author Points per comment.",
+  "readBooksPoints": "Reading Books: +10 Reader Points per chapter.",
+  "postCommentsPoints": "Posting Comments: +2 Reader Points per post.",
+  "tracksCalculations": "Tracks & Calculations",
+  "tracksExplanation": "Your Author Points reflect your writing activity, and Reader Points measure your reading engagement. They progress independently.",
+  "periodsExplanation": "Daily, Weekly, and Monthly leaderboards count points earned only in that specific time window. 'Total' is your lifetime points.",
+  "tierProgressionLadder": "Tier Progression Ladder",
+  "ptsToNextTier": "{points} pts to next tier",
+  "@ptsToNextTier": {
+    "placeholders": {
+      "points": {
+        "type": "num"
+      }
+    }
+  },
+  "maxLevelReached": "Max level reached ✨",
+  "viewFullLeaderboard": "View Full Leaderboard",
+  "authorStatus": "Author Status",
+  "readerStatus": "Reader Status",
+  "tier1ReaderTitle": "Curious Mind",
+  "tier1AuthorTitle": "Aspiring Writer",
+  "tier2ReaderTitle": "Bookworm",
+  "tier2AuthorTitle": "Storyteller",
+  "tier3ReaderTitle": "Story Seeker",
+  "tier3AuthorTitle": "Rising Author",
+  "tier4ReaderTitle": "Page Turner",
+  "tier4AuthorTitle": "Published Voice",
+  "tier5ReaderTitle": "Literary Scholar",
+"selectBookForDraft": "Select a book",
+  "noPublishedBooksToAddDraft": "Publish a book before adding this draft to one.",
+  "draftAddedToBook": "Draft added to book.",
+  "couldNotAddDraftToBook": "Could not add draft to book: {error}",
+  "@couldNotAddDraftToBook": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDailyTopicsTitle": "Agaaz Topics Admin",
+  "adminAccessRequired": "Admin access required.",
+  "manageDailyTopics": "Manage Agaaz Topics",
+  "newTopic": "New Topic",
+  "editTopic": "Edit Topic",
+  "topicName": "Topic name",
+  "shortDescription": "Short description",
+  "fullDescription": "Full description",
+  "enabled": "Enabled",
+  "cover": "Cover",
+  "uploading": "Uploading...",
+  "saveTopic": "Save Topic",
+  "saving": "Saving...",
+  "topicNameRequired": "Topic name is required.",
+  "topicSaved": "Topic saved.",
+  "deleteTopicTitle": "Delete topic?",
+  "deleteTopicBody": "This removes \"{topic}\" permanently.",
+  "@deleteTopicBody": {
+    "placeholders": {
+      "topic": {
+        "type": "String"
+      }
+    }
+  },
+  "signInAgainToUploadImages": "Sign in again to upload images.",
+  "untitledTopic": "Untitled topic",
+  "noTopicsFound": "No topics found.",
+  "loadMoreTopics": "Load more topics",
+  "myContent": "Content",
+  "seeMoreContent": "See more content",
+  "chapterReviewPromptTitle": "What did you think of \"{chapterTitle}\"?",
+  "@chapterReviewPromptTitle": {
+    "placeholders": {
+      "chapterTitle": { "type": "String" }
+    }
+  },
+  "chapterReviewPromptBody": "Your review will encourage {authorName} to write more and grow.",
+  "@chapterReviewPromptBody": {
+    "placeholders": {
+      "authorName": { "type": "String" }
+    }
+  },
+  "chapterReviewVoicePrompt": "Rather say it aloud? Record a voice review.",
+  "chapterReviewPromptHint": "Share your thoughts about this chapter",
+  "chapterReviewTextOrVoiceRequired": "Write a few words or record a voice review to continue.",
+  "recordVoiceReview": "Record voice review",
+  "stopRecording": "Stop recording",
+  "cancelRecording": "Cancel recording",
+  "deleteAudio": "Delete audio",
+  "microphonePermissionRequired": "Microphone permission is needed to record.",
+  "recordingAudioDuration": "Recording {duration}",
+  "@recordingAudioDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "newAudioDuration": "New audio {duration}",
+  "@newAudioDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "audioReviewDuration": "Audio review {duration}",
+  "@audioReviewDuration": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "shareReview": "Share review",
+  "audioFileTooLarge": "Audio file must be 10MB or smaller.",
+  "audioUploadFailed": "Audio upload failed: {error}",
+  "@audioUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recordingVoiceNote": "Recording voice note... {duration}",
+  "@recordingVoiceNote": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "audioClipAttached": "Audio clip attached",
+  "audioClipDetails": "Duration: {duration} • Size: {size}",
+  "@audioClipDetails": {
+    "placeholders": {
+      "duration": { "type": "String" },
+      "size": { "type": "String" }
+    }
+  },
+  "audioCoverArt": "Audio cover art",
+  "referBook": "Refer book",
+  "customCover": "Custom cover",
+  "customCoverArt": "Custom cover art",
+  "usingBookCover": "Using book cover",
+  "customUploadedImage": "Custom uploaded image",
+  "previewAudio": "Preview audio",
+  "recordAudio": "Record audio",
+  "addAudio": "Add audio",
+  "replaceAudio": "Replace audio",
+  "removeAudio": "Remove audio",
+  "uploadAudio": "Upload audio",
+  "changeQuestion": "Change question",
+  "answerQuestionAction": "Answer question",
+  "feedFilterEmptyTitle": "No posts found for this filter",
+  "feedFilterEmptyBody": "Try loading more posts or choosing another filter.",
+  "postAudioHint": "Say something about this audio.",
+  "loadingFile": "Loading file...",
+  "uploadingAudio": "Uploading audio...",
+  "audioPosts": "Audio Posts",
+  "newAuthors": "Popular Authors",
+  "dragRecordToSeek": "Drag record to seek",
+  "completeVideoAdToUnlockChapter": "Watch the complete video ad to unlock the chapter. Ads help keep this app free for you.",
+  "tapToAnswerQuestion": "Tap to answer",
+  "yourRating": "Your Rating:",
+  "send": "Send",
+  "share": "Share",
+  "shareExternally": "Share Externally",
+  "shareImage": "Share Image",
+  "failedToShare": "Failed to share: {error}",
+  "@failedToShare": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToShareToFeed": "Failed to share to feed: {error}",
+  "@failedToShareToFeed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterMessage": "Please enter a message to share",
+  "deleteLeafTitle": "Delete Leaf?",
+  "deleteLeafContent": "This removes the Leaf from the book.",
+  "leafAdded": "Leaf added.",
+  "leafDeleted": "Leaf deleted.",
+  "add": "Add",
+  "viewAllAnswers": "View all answers",
+  "viewAllAnswersInFeed": "View all answers in feed",
+  "leaderboard": "Leaderboard",
+  "readers": "Readers",
+  "authors": "Authors",
+  "totalAllTime": "Total (All-time)",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "noRankingsPeriod": "No rankings for this period yet.",
+  "startReadingAppear": "Start reading to appear here!",
+  "aboutLeaderboardTiers": "About Leaderboard & Tiers",
+  "wreadomRankSystem": "About the Wreadom Rank System",
+  "howToEarnPoints": "How to Earn Points",
+  "publishChaptersPoints": "Publishing Chapters: +50 Author Points per chapter.",
+  "receiveCommentsPoints": "Receiving Comments: +5 Author Points per comment.",
+  "readBooksPoints": "Reading Books: +10 Reader Points per chapter.",
+  "postCommentsPoints": "Posting Comments: +2 Reader Points per post.",
+  "tracksCalculations": "Tracks & Calculations",
+  "tracksExplanation": "Your Author Points reflect your writing activity, and Reader Points measure your reading engagement. They progress independently.",
+  "periodsExplanation": "Daily, Weekly, and Monthly leaderboards count points earned only in that specific time window. 'Total' is your lifetime points.",
+  "tierProgressionLadder": "Tier Progression Ladder",
+  "ptsToNextTier": "{points} pts to next tier",
+  "@ptsToNextTier": {
+    "placeholders": {
+      "points": {
+        "type": "num"
+      }
+    }
+  },
+  "maxLevelReached": "Max level reached ✨",
+  "viewFullLeaderboard": "View Full Leaderboard",
+  "authorStatus": "Author Status",
+  "readerStatus": "Reader Status",
+  "tier1ReaderTitle": "Curious Mind",
+  "tier1AuthorTitle": "Aspiring Writer",
+  "tier2ReaderTitle": "Bookworm",
+  "tier2AuthorTitle": "Storyteller",
+  "tier3ReaderTitle": "Story Seeker",
+  "tier3AuthorTitle": "Rising Author",
+  "tier4ReaderTitle": "Page Turner",
+  "tier4AuthorTitle": "Published Voice",
+  "tier5ReaderTitle": "Literary Scholar",
+  "tier5AuthorTitle": "Master Wordsmith",
+  "tier6ReaderTitle": "Grand Reader",
+  "tier6AuthorTitle": "Grand Author",
+  "tier7ReaderTitle": "Legend of Letters",
+  "tier7AuthorTitle": "Literary Legend",
+  "tier8ReaderTitle": "Eternal Reader",
+  "tier8AuthorTitle": "Eternal Scribe",
+  "you": "YOU"
 }

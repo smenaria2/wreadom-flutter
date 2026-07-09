@@ -20,6 +20,7 @@ import '../providers/notification_providers.dart';
 import '../providers/profile_providers.dart';
 import '../providers/theme_provider.dart';
 import '../providers/writer_providers.dart';
+import '../providers/navigation_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/share_app_dialog.dart';
@@ -36,6 +37,8 @@ import '../components/profile/user_saved_tab.dart';
 import '../components/profile/user_downloaded_tab.dart';
 import '../components/profile/user_content_tab.dart';
 import '../components/profile/profile_share_card.dart';
+import '../components/profile/rank_badges.dart';
+import '../components/profile/leaderboard_tab.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 
@@ -62,8 +65,16 @@ class ProfileScreen extends ConsumerWidget {
               orElse: () => user.pinnedWorks?.length ?? 0,
             );
 
+        final initialTabIndex = ref.watch(profileTabIndexProvider);
+        if (initialTabIndex != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(profileTabIndexProvider.notifier).setIndex(0);
+          });
+        }
+
         return DefaultTabController(
-          length: 6,
+          length: 7,
+          initialIndex: initialTabIndex,
           child: Scaffold(
             backgroundColor: Colors.transparent,
             body: NestedScrollView(
@@ -206,6 +217,7 @@ class ProfileScreen extends ConsumerWidget {
                               Tab(text: l10n.history),
                               Tab(text: l10n.saved),
                               Tab(text: l10n.downloaded),
+                              Tab(text: l10n.leaderboard),
                             ],
                           ),
                         ),
@@ -223,6 +235,15 @@ class ProfileScreen extends ConsumerWidget {
                   const _ProfileTabBody(child: UserHistoryTab()),
                   const _ProfileTabBody(child: UserSavedTab()),
                   const _ProfileTabBody(child: UserDownloadedTab()),
+                  _ProfileTabBody(
+                    child: LeaderboardTab(
+                      currentUser: user,
+                      onUserClick: (userId) => Navigator.of(context).pushNamed(
+                        AppRoutes.publicProfile,
+                        arguments: userId,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -554,6 +575,14 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
+                    ),
+                    const SizedBox(height: 6),
+                    RankBadges(
+                      user: user,
+                      showTierLabel: true,
+                      onClick: (category) {
+                        DefaultTabController.of(context).animateTo(6);
+                      },
                     ),
                   ],
                 ),

@@ -2867,4 +2867,137 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAllAnswersInFeed => 'View all answers in feed';
+
+  @override
+  String get leaderboard => 'Leaderboard';
+
+  @override
+  String get readers => 'Readers';
+
+  @override
+  String get authors => 'Authors';
+
+  @override
+  String get totalAllTime => 'Total (All-time)';
+
+  @override
+  String get daily => 'Daily';
+
+  @override
+  String get weekly => 'Weekly';
+
+  @override
+  String get monthly => 'Monthly';
+
+  @override
+  String get noRankingsPeriod => 'No rankings for this period yet.';
+
+  @override
+  String get startReadingAppear => 'Start reading to appear here!';
+
+  @override
+  String get aboutLeaderboardTiers => 'About Leaderboard & Tiers';
+
+  @override
+  String get wreadomRankSystem => 'About the Wreadom Rank System';
+
+  @override
+  String get howToEarnPoints => 'How to Earn Points';
+
+  @override
+  String get publishChaptersPoints =>
+      'Publishing Chapters: +50 Author Points per chapter.';
+
+  @override
+  String get receiveCommentsPoints =>
+      'Receiving Comments: +5 Author Points per comment.';
+
+  @override
+  String get readBooksPoints => 'Reading Books: +10 Reader Points per chapter.';
+
+  @override
+  String get postCommentsPoints =>
+      'Posting Comments: +2 Reader Points per post.';
+
+  @override
+  String get tracksCalculations => 'Tracks & Calculations';
+
+  @override
+  String get tracksExplanation =>
+      'Your Author Points reflect your writing activity, and Reader Points measure your reading engagement. They progress independently.';
+
+  @override
+  String get periodsExplanation =>
+      'Daily, Weekly, and Monthly leaderboards count points earned only in that specific time window. \'Total\' is your lifetime points.';
+
+  @override
+  String get tierProgressionLadder => 'Tier Progression Ladder';
+
+  @override
+  String ptsToNextTier(num points) {
+    return '$points pts to next tier';
+  }
+
+  @override
+  String get maxLevelReached => 'Max level reached ✨';
+
+  @override
+  String get viewFullLeaderboard => 'View Full Leaderboard';
+
+  @override
+  String get authorStatus => 'Author Status';
+
+  @override
+  String get readerStatus => 'Reader Status';
+
+  @override
+  String get tier1ReaderTitle => 'Curious Mind';
+
+  @override
+  String get tier1AuthorTitle => 'Aspiring Writer';
+
+  @override
+  String get tier2ReaderTitle => 'Bookworm';
+
+  @override
+  String get tier2AuthorTitle => 'Storyteller';
+
+  @override
+  String get tier3ReaderTitle => 'Story Seeker';
+
+  @override
+  String get tier3AuthorTitle => 'Rising Author';
+
+  @override
+  String get tier4ReaderTitle => 'Page Turner';
+
+  @override
+  String get tier4AuthorTitle => 'Published Voice';
+
+  @override
+  String get tier5ReaderTitle => 'Literary Scholar';
+
+  @override
+  String get tier5AuthorTitle => 'Master Wordsmith';
+
+  @override
+  String get tier6ReaderTitle => 'Grand Reader';
+
+  @override
+  String get tier6AuthorTitle => 'Grand Author';
+
+  @override
+  String get tier7ReaderTitle => 'Legend of Letters';
+
+  @override
+  String get tier7AuthorTitle => 'Literary Legend';
+
+  @override
+  String get tier8ReaderTitle => 'Eternal Reader';
+
+  @override
+  String get tier8AuthorTitle => 'Eternal Scribe';
+
+  @override
+  String get you => 'YOU';
 }
