@@ -1524,20 +1524,20 @@ class AppLocalizationsHi extends AppLocalizations {
       'अभी कोई पोस्ट नहीं है।\nअपनी पढ़ने की यात्रा शेयर करना शुरू करें!';
 
   @override
-  String get changeProfilePicture => '?????? ????? ????';
+  String get changeProfilePicture => 'प्रोफ़ाइल तस्वीर बदलें';
 
   @override
-  String get changeCoverPicture => '??? ????? ????';
+  String get changeCoverPicture => 'कवर तस्वीर बदलें';
 
   @override
-  String get profilePictureUpdated => '?????? ????? ???? ?? ???';
+  String get profilePictureUpdated => 'प्रोफ़ाइल तस्वीर अपडेट हो गई।';
 
   @override
-  String get coverPictureUpdated => '??? ????? ???? ?? ???';
+  String get coverPictureUpdated => 'कवर तस्वीर अपडेट हो गई।';
 
   @override
   String couldNotUpdatePicture(String error) {
-    return '????? ???? ???? ?? ???: $error';
+    return 'तस्वीर अपडेट नहीं की जा सकी: $error';
   }
 
   @override
