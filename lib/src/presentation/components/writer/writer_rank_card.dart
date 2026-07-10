@@ -19,83 +19,173 @@ class WriterRankCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final tokens = theme.extension<GlassTokens>() ?? GlassTokens.light;
 
     final authorPoints = user.authorPoints ?? 0;
-    final readerPoints = user.readerPoints ?? 0;
     final authorTier = getTierInfo(authorPoints, 'author');
-    final readerTier = getTierInfo(readerPoints, 'reader');
+    final rank = user.authorRank;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Drop down to column on small phones (<500dp)
-        final useVerticalLayout = constraints.maxWidth < 500;
-
-        return Column(
-          children: [
-            if (useVerticalLayout) ...[
-              _buildTrackProgressCard(
-                context,
-                title: l10n.authorStatus,
-                icon: '🖋️',
-                rank: user.authorRank,
-                points: authorPoints,
-                tier: authorTier,
-                category: 'author',
-              ),
-              const SizedBox(height: 10),
-              _buildTrackProgressCard(
-                context,
-                title: l10n.readerStatus,
-                icon: '📖',
-                rank: user.readerRank,
-                points: readerPoints,
-                tier: readerTier,
-                category: 'reader',
-              ),
-            ] else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildTrackProgressCard(
-                      context,
-                      title: l10n.authorStatus,
-                      icon: '🖋️',
-                      rank: user.authorRank,
-                      points: authorPoints,
-                      tier: authorTier,
-                      category: 'author',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildTrackProgressCard(
-                      context,
-                      title: l10n.readerStatus,
-                      icon: '📖',
-                      rank: user.readerRank,
-                      points: readerPoints,
-                      tier: readerTier,
-                      category: 'reader',
-                    ),
-                  ),
+    return Column(
+      children: [
+        GlassSurface(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: tokens.borderColor),
+              gradient: LinearGradient(
+                colors: [
+                  authorTier.gradient.colors.first.withValues(alpha: 0.1),
+                  authorTier.gradient.colors.last.withValues(alpha: 0.02),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            const SizedBox(height: 12),
-            _buildLeaderboardShortcut(context, ref, theme, scheme, l10n),
-          ],
-        );
-      },
+            ),
+            child: Row(
+              children: [
+                // Glowing Tier Badge Icon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: authorTier.gradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: authorTier.gradient.colors.first.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      authorTier.icon,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Title, Tier, Points & Progress Bar
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            l10n.authorStatus.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              letterSpacing: 0.5,
+                              fontSize: 9,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '•  $authorPoints PTS',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: scheme.primary,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        getLocalizedTierTitle(context, authorTier.tier, 'author'),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AnimatedProgressBar(
+                              progress: authorTier.progressPercent / 100,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            authorTier.pointsToNext != null
+                                ? '${authorTier.pointsToNext} pts left'
+                                : 'Max Level',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Compact Rank Info (Without '#' prefix)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      rank != null ? '$rank' : '--',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                    ),
+                    Text(
+                      'RANK',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildLeaderboardShortcut(context, ref, theme, scheme, l10n),
+      ],
     );
   }
 
-  Widget _buildLeaderboardShortcut(BuildContext context, WidgetRef ref, ThemeData theme, ColorScheme scheme, AppLocalizations l10n) {
+  Widget _buildLeaderboardShortcut(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    ColorScheme scheme,
+    AppLocalizations l10n,
+  ) {
     return GlassSurface(
       onTap: () {
         HapticFeedback.lightImpact();
         Navigator.of(context).pushNamed(
           AppRoutes.leaderboard,
-          arguments: const LeaderboardScreenArguments(initialCategory: 'author'),
+          arguments: LeaderboardScreenArguments(
+            initialCategory: 'author',
+            targetUserId: user.id,
+            targetUserPoints: user.authorPoints ?? 0,
+            targetUserRank: user.authorRank,
+            targetUserReaderPoints: user.readerPoints ?? 0,
+            targetUserReaderRank: user.readerRank,
+            targetUserDisplayName: user.displayName ?? user.penName ?? user.username,
+            targetUserPhotoUrl: user.photoURL,
+          ),
         );
       },
       borderRadius: BorderRadius.circular(16),
@@ -127,109 +217,9 @@ class WriterRankCard extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _buildTrackProgressCard(
-    BuildContext context, {
-    required String title,
-    required String icon,
-    required int? rank,
-    required int points,
-    required TierInfo tier,
-    required String category,
-  }) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final tokens = theme.extension<GlassTokens>() ?? GlassTokens.light;
-    final l10n = AppLocalizations.of(context)!;
-
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: tokens.borderColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(icon, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              rank != null ? 'Rank #$rank' : 'Rank #--',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: scheme.onSurface,
-              ),
-            ),
-            Text(
-              '$points PTS',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: scheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: tier.gradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(tier.icon, style: const TextStyle(fontSize: 10)),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      getLocalizedTierTitle(context, tier.tier, category),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            // Custom Animated Progress Indicator
-            AnimatedProgressBar(progress: tier.progressPercent / 100),
-            
-            const SizedBox(height: 4),
-            Text(
-              tier.pointsToNext != null
-                  ? l10n.ptsToNextTier(tier.pointsToNext!)
-                  : l10n.maxLevelReached,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontSize: 8,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-// ── Custom Implicitly Animated Linear Indicator ──────────────────────────────
+// ── Custom Animated ProgressBar ──────────────────────────────────────────────
 
 class AnimatedProgressBar extends StatelessWidget {
   final double progress; // Range 0.0 to 1.0
@@ -248,7 +238,6 @@ class AnimatedProgressBar extends StatelessWidget {
       builder: (context, animatedVal, child) {
         return Container(
           height: 6,
-          width: double.infinity,
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(3),

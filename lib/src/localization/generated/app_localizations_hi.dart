@@ -2965,7 +2965,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get tier1AuthorTitle => 'महत्वाकांक्षी लेखक';
 
   @override
-  String get tier2ReaderTitle => 'किताबी कीड़ा';
+  String get tier2ReaderTitle => 'पुस्तक प्रेमी';
 
   @override
   String get tier2AuthorTitle => 'कहानियां सुनाने वाला';

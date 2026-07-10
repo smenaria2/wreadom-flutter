@@ -37,7 +37,7 @@ import '../components/profile/user_saved_tab.dart';
 import '../components/profile/user_downloaded_tab.dart';
 import '../components/profile/user_content_tab.dart';
 import '../components/profile/profile_share_card.dart';
-import '../components/profile/rank_badges.dart';
+import '../components/profile/premium_ranks_widget.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 
@@ -125,52 +125,61 @@ class ProfileScreen extends ConsumerWidget {
 
                   // ─── Stats & Summary ───────────────────────────
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: GlassControlSurface(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 10,
-                        ),
-                        borderRadius: BorderRadius.circular(28),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _StatItem(
-                              label: l10n.followers,
-                              value: FormatUtils.formatNumber(
-                                user.followersCount ?? 0,
-                              ),
-                              onTap: () => Navigator.of(context).pushNamed(
-                                AppRoutes.followList,
-                                arguments: FollowListArguments(
-                                  userId: user.id,
-                                  mode: FollowListMode.followers,
-                                  title: l10n.followers,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: GlassControlSurface(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 10,
+                            ),
+                            borderRadius: BorderRadius.circular(28),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _StatItem(
+                                  label: l10n.followers,
+                                  value: FormatUtils.formatNumber(
+                                    user.followersCount ?? 0,
+                                  ),
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.followList,
+                                    arguments: FollowListArguments(
+                                      userId: user.id,
+                                      mode: FollowListMode.followers,
+                                      title: l10n.followers,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            _StatItem(
-                              label: l10n.following,
-                              value: FormatUtils.formatNumber(
-                                user.followingCount ?? 0,
-                              ),
-                              onTap: () => Navigator.of(context).pushNamed(
-                                AppRoutes.followList,
-                                arguments: FollowListArguments(
-                                  userId: user.id,
-                                  mode: FollowListMode.following,
-                                  title: l10n.following,
+                                _StatItem(
+                                  label: l10n.following,
+                                  value: FormatUtils.formatNumber(
+                                    user.followingCount ?? 0,
+                                  ),
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.followList,
+                                    arguments: FollowListArguments(
+                                      userId: user.id,
+                                      mode: FollowListMode.following,
+                                      title: l10n.following,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                _StatItem(
+                                  label: l10n.works,
+                                  value: FormatUtils.formatNumber(worksCount),
+                                ),
+                              ],
                             ),
-                            _StatItem(
-                              label: l10n.works,
-                              value: FormatUtils.formatNumber(worksCount),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: PremiumRanksWidget(user: user),
+                        ),
+                      ],
                     ),
                   ),
 
@@ -556,7 +565,6 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
                     Text(
                       displayName,
                       style: TextStyle(
@@ -564,17 +572,6 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    RankBadges(
-                      user: user,
-                      showTierLabel: true,
-                      onClick: (category) {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.leaderboard,
-                          arguments: LeaderboardScreenArguments(initialCategory: category),
-                        );
-                      },
                     ),
                   ],
                 ),

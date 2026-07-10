@@ -273,6 +273,30 @@ class ProfileShareCard extends StatelessWidget {
             Positioned(
               left: 430,
               right: 72,
+              bottom: 194,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _CardRank(
+                      label: 'WRITER RANK',
+                      value: user.authorRank != null ? '${user.authorRank}' : '--',
+                      icon: '🖋️',
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _CardRank(
+                      label: 'READER RANK',
+                      value: user.readerRank != null ? '${user.readerRank}' : '--',
+                      icon: '📖',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 430,
+              right: 72,
               bottom: 82,
               child: Row(
                 children: [
@@ -408,4 +432,64 @@ String _safeFilePart(String value) {
       .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
       .replaceAll(RegExp(r'^-+|-+$'), '');
   return safe.isEmpty ? 'wreadom' : safe;
+}
+
+class _CardRank extends StatelessWidget {
+  const _CardRank({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final String icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D6F6A).withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF1D6F6A).withValues(alpha: 0.15),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color(0xFF1D6F6A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Color(0xFF172536),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

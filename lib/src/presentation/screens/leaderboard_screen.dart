@@ -9,10 +9,24 @@ import '../routing/app_routes.dart';
 
 class LeaderboardScreen extends ConsumerWidget {
   final String initialCategory;
+  final String? targetUserId;
+  final int? targetUserPoints;
+  final int? targetUserRank;
+  final String? targetUserDisplayName;
+  final String? targetUserPhotoUrl;
+  final int? targetUserReaderPoints;
+  final int? targetUserReaderRank;
 
   const LeaderboardScreen({
     super.key,
-    this.initialCategory = 'reader',
+    this.initialCategory = 'author',
+    this.targetUserId,
+    this.targetUserPoints,
+    this.targetUserRank,
+    this.targetUserDisplayName,
+    this.targetUserPhotoUrl,
+    this.targetUserReaderPoints,
+    this.targetUserReaderRank,
   });
 
   @override
@@ -39,6 +53,13 @@ class LeaderboardScreen extends ConsumerWidget {
           return LeaderboardTab(
             currentUser: user,
             initialCategory: initialCategory,
+            targetUserId: targetUserId,
+            targetUserPoints: targetUserPoints,
+            targetUserRank: targetUserRank,
+            targetUserDisplayName: targetUserDisplayName,
+            targetUserPhotoUrl: targetUserPhotoUrl,
+            targetUserReaderPoints: targetUserReaderPoints,
+            targetUserReaderRank: targetUserReaderRank,
             onUserClick: (userId) {
               Navigator.of(context).pushNamed(
                 AppRoutes.publicProfile,

@@ -51,9 +51,25 @@ class PublicProfileArguments {
 }
 
 class LeaderboardScreenArguments {
-  const LeaderboardScreenArguments({this.initialCategory = 'reader'});
+  const LeaderboardScreenArguments({
+    this.initialCategory = 'author',
+    this.targetUserId,
+    this.targetUserPoints,
+    this.targetUserRank,
+    this.targetUserDisplayName,
+    this.targetUserPhotoUrl,
+    this.targetUserReaderPoints,
+    this.targetUserReaderRank,
+  });
 
   final String initialCategory;
+  final String? targetUserId;
+  final int? targetUserPoints;
+  final int? targetUserRank;
+  final String? targetUserDisplayName;
+  final String? targetUserPhotoUrl;
+  final int? targetUserReaderPoints;
+  final int? targetUserReaderRank;
 }
 
 class BookDetailArguments {
@@ -374,10 +390,40 @@ class AppRouter {
         final argsValue = resolvedArguments;
         final initialCategory = argsValue is LeaderboardScreenArguments
             ? argsValue.initialCategory
-            : 'reader';
+            : 'author';
+        final targetUserId = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserId
+            : null;
+        final targetUserPoints = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserPoints
+            : null;
+        final targetUserRank = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserRank
+            : null;
+        final targetUserDisplayName = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserDisplayName
+            : null;
+        final targetUserPhotoUrl = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserPhotoUrl
+            : null;
+        final targetUserReaderPoints = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserReaderPoints
+            : null;
+        final targetUserReaderRank = argsValue is LeaderboardScreenArguments
+            ? argsValue.targetUserReaderRank
+            : null;
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => LeaderboardScreen(initialCategory: initialCategory),
+          builder: (_) => LeaderboardScreen(
+            initialCategory: initialCategory,
+            targetUserId: targetUserId,
+            targetUserPoints: targetUserPoints,
+            targetUserRank: targetUserRank,
+            targetUserDisplayName: targetUserDisplayName,
+            targetUserPhotoUrl: targetUserPhotoUrl,
+            targetUserReaderPoints: targetUserReaderPoints,
+            targetUserReaderRank: targetUserReaderRank,
+          ),
         );
       case AppRoutes.notifications:
         return MaterialPageRoute(
