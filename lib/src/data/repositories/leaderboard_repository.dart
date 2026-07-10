@@ -7,7 +7,7 @@ class LeaderboardRepository {
 
   Future<List<LeaderboardRank>> fetchLeaderboard({
     required String period, // 'daily' | 'weekly' | 'monthly' | 'total'
-    required String type,   // 'author' | 'reader'
+    required String type, // 'author' | 'reader'
   }) async {
     try {
       if (period == 'total') {
@@ -26,7 +26,8 @@ class LeaderboardRepository {
           return LeaderboardRank(
             rank: idx + 1,
             userId: doc.id,
-            displayName: data['penName'] ??
+            displayName:
+                data['penName'] ??
                 data['displayName'] ??
                 data['username'] ??
                 'Anonymous',
@@ -46,7 +47,7 @@ class LeaderboardRepository {
       return LeaderboardDoc.fromMap(docSnap.data()!).rankings;
     } catch (e) {
       debugPrint('LeaderboardRepository: failed to fetch: $e');
-      return [];
+      rethrow;
     }
   }
 }

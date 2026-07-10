@@ -2884,7 +2884,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get authors => 'लेखक';
 
   @override
-  String get totalAllTime => 'कुल (सर्वकालिक)';
+  String get totalAllTime => 'सर्वकालिक';
 
   @override
   String get daily => 'दैनिक';
@@ -2959,53 +2959,110 @@ class AppLocalizationsHi extends AppLocalizations {
   String get readerStatus => 'पाठक की स्थिति';
 
   @override
-  String get tier1ReaderTitle => 'जिज्ञासु मस्तिष्क';
+  String get tier1ReaderTitle => 'नवपाठक';
 
   @override
-  String get tier1AuthorTitle => 'महत्वाकांक्षी लेखक';
+  String get tier1AuthorTitle => 'नवलेखक';
 
   @override
-  String get tier2ReaderTitle => 'पुस्तक प्रेमी';
+  String get tier2ReaderTitle => 'जिज्ञासु';
 
   @override
-  String get tier2AuthorTitle => 'कहानियां सुनाने वाला';
+  String get tier2AuthorTitle => 'लेखनप्रेमी';
 
   @override
-  String get tier3ReaderTitle => 'कहानी खोजने वाला';
+  String get tier3ReaderTitle => 'शब्दरसिक';
 
   @override
-  String get tier3AuthorTitle => 'उभरता हुआ लेखक';
+  String get tier3AuthorTitle => 'शब्द शिल्पी';
 
   @override
-  String get tier4ReaderTitle => 'पन्ने पलटने वाला';
+  String get tier4ReaderTitle => 'कथा प्रेमी';
 
   @override
-  String get tier4AuthorTitle => 'प्रकाशित आवाज';
+  String get tier4AuthorTitle => 'कथा साधक';
 
   @override
-  String get tier5ReaderTitle => 'साहित्यिक विद्वान';
+  String get tier5ReaderTitle => 'साहित्य साधक';
 
   @override
-  String get tier5AuthorTitle => 'शब्दों का जादूगर';
+  String get tier5AuthorTitle => 'सृजन साधक';
 
   @override
-  String get tier6ReaderTitle => 'महान पाठक';
+  String get tier6ReaderTitle => 'महापाठक';
 
   @override
-  String get tier6AuthorTitle => 'महान लेखक';
+  String get tier6AuthorTitle => 'महालेखक';
 
   @override
-  String get tier7ReaderTitle => 'साहित्य का दिग्गज';
+  String get tier7ReaderTitle => 'साहित्य मर्मज्ञ';
 
   @override
-  String get tier7AuthorTitle => 'साहित्यिक किंवदंती';
+  String get tier7AuthorTitle => 'साहित्य मनीषी';
 
   @override
-  String get tier8ReaderTitle => 'अमर पाठक';
+  String get tier8ReaderTitle => 'शब्द सम्राट';
 
   @override
-  String get tier8AuthorTitle => 'अमर मुंशी';
+  String get tier8AuthorTitle => 'कलम सम्राट';
 
   @override
   String get you => 'आप';
+
+  @override
+  String get authorRankLabel => 'लेखक रैंक';
+
+  @override
+  String get readerRankLabel => 'पाठक रैंक';
+
+  @override
+  String get notRankedYet => 'अभी रैंक नहीं मिली';
+
+  @override
+  String get pointsLabel => 'अंक';
+
+  @override
+  String get placeLabel => 'स्थान';
+
+  @override
+  String get tierLabel => 'स्तर';
+
+  @override
+  String get currentTierMessage => 'आप अभी इस स्तर पर हैं।';
+
+  @override
+  String get completedTierMessage => 'पूरा किया गया स्तर';
+
+  @override
+  String get lockedTierMessage =>
+      'इस स्तर को खोलने के लिए अंक अर्जित करते रहें।';
+
+  @override
+  String get selectedProfile => 'चुनी गई प्रोफ़ाइल';
+
+  @override
+  String get leaderboardLoadError => 'लीडरबोर्ड लोड नहीं हो सका।';
+
+  @override
+  String get retry => 'फिर से कोशिश करें';
+
+  @override
+  String get viewLeaderboard => 'लीडरबोर्ड देखें';
+
+  @override
+  String get tierUpTitle => 'नया स्तर खुला!';
+
+  @override
+  String get tierUpBody => 'आपकी प्रगति एक नए स्तर पर पहुँच गई है।';
+
+  @override
+  String get authorPointsExplanation =>
+      'लेखक अंक लेखन और प्रकाशित रचनाओं पर सहभागिता से बढ़ते हैं।';
+
+  @override
+  String get readerPointsExplanation =>
+      'पाठक अंक पढ़ने और समुदाय में भाग लेने से बढ़ते हैं।';
+
+  @override
+  String get dismiss => 'बंद करें';
 }

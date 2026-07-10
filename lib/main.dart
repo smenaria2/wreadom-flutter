@@ -21,6 +21,9 @@ import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/providers/homepage_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
+import 'src/presentation/providers/tier_progress_provider.dart';
+import 'src/presentation/components/profile/tier_up_celebration_sheet.dart';
+import 'src/domain/models/user_model.dart';
 import 'src/presentation/routing/app_router.dart';
 import 'src/presentation/routing/app_routes.dart';
 import 'src/presentation/routing/pending_navigation_coordinator.dart';
@@ -687,6 +690,7 @@ class AuthWrapper extends ConsumerWidget {
       final user = next.asData?.value;
       if (user == null) return;
       AnalyticsService.identifyUser(user.displayName ?? user.username);
+      unawaited(_observeTierProgress(context, ref, user));
     });
     ref.listen(notificationEventProvider, (previous, next) {
       if (!next.hasValue) return;
@@ -755,4 +759,14 @@ class AuthWrapper extends ConsumerWidget {
       );
     });
   }
+}
+
+Future<void> _observeTierProgress(
+  BuildContext context,
+  WidgetRef ref,
+  UserModel user,
+) async {
+  final promotion = await ref.read(tierProgressStoreProvider).observe(user);
+  if (promotion == null || !context.mounted) return;
+  await showTierUpCelebration(context, user: user, promotion: promotion);
 }

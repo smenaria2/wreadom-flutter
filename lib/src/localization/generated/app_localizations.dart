@@ -5123,7 +5123,7 @@ abstract class AppLocalizations {
   /// No description provided for @totalAllTime.
   ///
   /// In en, this message translates to:
-  /// **'Total (All-time)'**
+  /// **'All time'**
   String get totalAllTime;
 
   /// No description provided for @daily.
@@ -5255,19 +5255,19 @@ abstract class AppLocalizations {
   /// No description provided for @tier1ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Curious Mind'**
+  /// **'Beginner Reader'**
   String get tier1ReaderTitle;
 
   /// No description provided for @tier1AuthorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Aspiring Writer'**
+  /// **'Beginner Author'**
   String get tier1AuthorTitle;
 
   /// No description provided for @tier2ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Bookworm'**
+  /// **'Curious Reader'**
   String get tier2ReaderTitle;
 
   /// No description provided for @tier2AuthorTitle.
@@ -5279,31 +5279,31 @@ abstract class AppLocalizations {
   /// No description provided for @tier3ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Story Seeker'**
+  /// **'Word Enthusiast'**
   String get tier3ReaderTitle;
 
   /// No description provided for @tier3AuthorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Rising Author'**
+  /// **'Wordsmith'**
   String get tier3AuthorTitle;
 
   /// No description provided for @tier4ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Page Turner'**
+  /// **'Story Lover'**
   String get tier4ReaderTitle;
 
   /// No description provided for @tier4AuthorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Published Voice'**
+  /// **'Word Sage'**
   String get tier4AuthorTitle;
 
   /// No description provided for @tier5ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Literary Scholar'**
+  /// **'Literature Devotee'**
   String get tier5ReaderTitle;
 
   /// No description provided for @tier5AuthorTitle.
@@ -5327,25 +5327,25 @@ abstract class AppLocalizations {
   /// No description provided for @tier7ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Legend of Letters'**
+  /// **'Literary Connoisseur'**
   String get tier7ReaderTitle;
 
   /// No description provided for @tier7AuthorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Literary Legend'**
+  /// **'Literary Sage'**
   String get tier7AuthorTitle;
 
   /// No description provided for @tier8ReaderTitle.
   ///
   /// In en, this message translates to:
-  /// **'Eternal Reader'**
+  /// **'Emperor of Words'**
   String get tier8ReaderTitle;
 
   /// No description provided for @tier8AuthorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Eternal Scribe'**
+  /// **'Emperor of the Pen'**
   String get tier8AuthorTitle;
 
   /// No description provided for @you.
@@ -5353,6 +5353,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'YOU'**
   String get you;
+
+  /// No description provided for @authorRankLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Author rank'**
+  String get authorRankLabel;
+
+  /// No description provided for @readerRankLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader rank'**
+  String get readerRankLabel;
+
+  /// No description provided for @notRankedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ranked yet'**
+  String get notRankedYet;
+
+  /// No description provided for @pointsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'points'**
+  String get pointsLabel;
+
+  /// No description provided for @placeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'place'**
+  String get placeLabel;
+
+  /// No description provided for @tierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier'**
+  String get tierLabel;
+
+  /// No description provided for @currentTierMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You are currently at this tier.'**
+  String get currentTierMessage;
+
+  /// No description provided for @completedTierMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed tier'**
+  String get completedTierMessage;
+
+  /// No description provided for @lockedTierMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep earning points to unlock this tier.'**
+  String get lockedTierMessage;
+
+  /// No description provided for @selectedProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected profile'**
+  String get selectedProfile;
+
+  /// No description provided for @leaderboardLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the leaderboard.'**
+  String get leaderboardLoadError;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @viewLeaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'View leaderboard'**
+  String get viewLeaderboard;
+
+  /// No description provided for @tierUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier unlocked!'**
+  String get tierUpTitle;
+
+  /// No description provided for @tierUpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your progress has reached a new tier.'**
+  String get tierUpBody;
+
+  /// No description provided for @authorPointsExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Author points grow through writing and engagement with your published work.'**
+  String get authorPointsExplanation;
+
+  /// No description provided for @readerPointsExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader points grow through reading and participating in the community.'**
+  String get readerPointsExplanation;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
 }
 
 class _AppLocalizationsDelegate

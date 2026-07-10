@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/components/feed_post_card.dart';
+import 'package:librebook_flutter/src/presentation/widgets/feed_media_playable_card.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
 
 void main() {
@@ -21,7 +22,11 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: FeedPostCard(post: post, openOnTap: false)),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FeedPostCard(post: post, openOnTap: false),
+          ),
+        ),
       ),
     );
   }
@@ -46,7 +51,7 @@ void main() {
     await tester.pump();
 
     expect(find.text(post.text), findsOneWidget);
-    expect(find.text('YouTube'), findsOneWidget);
+    expect(find.byType(FeedMediaPlayableCard), findsOneWidget);
     expect(find.text('https://youtu.be/dQw4w9WgXcQ'), findsOneWidget);
     expect(find.text('Unsupported link'), findsNothing);
   });

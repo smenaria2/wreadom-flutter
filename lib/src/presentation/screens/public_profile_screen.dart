@@ -145,12 +145,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           ],
                           if ((user.bio ?? '').isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            Text(
-                              user.bio!,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.copyWith(height: 1.5),
-                            ),
+                            _ExpandableBio(text: user.bio!),
                           ],
                           const SizedBox(height: 20),
                           Row(
@@ -193,8 +188,11 @@ class PublicProfileScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          PremiumRanksWidget(user: user),
+                          if ((user.authorPoints ?? 0) > 0 ||
+                              (user.readerPoints ?? 0) > 0) ...[
+                            const SizedBox(height: 12),
+                            PremiumRanksWidget(user: user, compact: true),
+                          ],
                           if (!isSelf) ...[
                             const SizedBox(height: 16),
                             followingAsync.when(
@@ -445,6 +443,58 @@ class _PrivacyNoticeCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ExpandableBio extends StatefulWidget {
+  const _ExpandableBio({required this.text});
+
+  final String text;
+
+  @override
+  State<_ExpandableBio> createState() => _ExpandableBioState();
+}
+
+class _ExpandableBioState extends State<_ExpandableBio> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5);
+    final l10n = AppLocalizations.of(context)!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.text, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 3,
+        )..layout(maxWidth: constraints.maxWidth);
+        final overflows = painter.didExceedMaxLines;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              maxLines: _expanded ? null : 3,
+              overflow: _expanded ? null : TextOverflow.ellipsis,
+              style: style,
+            ),
+            if (overflows || _expanded)
+              TextButton(
+                onPressed: () => setState(() => _expanded = !_expanded),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.only(top: 4),
+                  minimumSize: const Size(48, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(_expanded ? l10n.showLess : l10n.showMore),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -791,10 +841,7 @@ class _PublicPostsSection extends ConsumerWidget {
           Column(
             children: [
               for (final post in state.items)
-                FeedPostCard(
-                  key: ValueKey(post.id ?? ''),
-                  post: post,
-                ),
+                FeedPostCard(key: ValueKey(post.id ?? ''), post: post),
               if (state.hasMore)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),

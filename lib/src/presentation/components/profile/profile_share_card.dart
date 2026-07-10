@@ -195,15 +195,21 @@ class ProfileShareCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF172536),
-                      fontSize: 66,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
+                  SizedBox(
+                    height: 70,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Color(0xFF172536),
+                          fontSize: 66,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                   if (penName != null &&
@@ -273,13 +279,15 @@ class ProfileShareCard extends StatelessWidget {
             Positioned(
               left: 430,
               right: 72,
-              bottom: 194,
+              bottom: 82,
               child: Row(
                 children: [
                   Expanded(
                     child: _CardRank(
                       label: 'WRITER RANK',
-                      value: user.authorRank != null ? '${user.authorRank}' : '--',
+                      value: user.authorRank != null
+                          ? '${user.authorRank}'
+                          : '--',
                       icon: '🖋️',
                     ),
                   ),
@@ -287,7 +295,9 @@ class ProfileShareCard extends StatelessWidget {
                   Expanded(
                     child: _CardRank(
                       label: 'READER RANK',
-                      value: user.readerRank != null ? '${user.readerRank}' : '--',
+                      value: user.readerRank != null
+                          ? '${user.readerRank}'
+                          : '--',
                       icon: '📖',
                     ),
                   ),
@@ -297,7 +307,7 @@ class ProfileShareCard extends StatelessWidget {
             Positioned(
               left: 430,
               right: 72,
-              bottom: 82,
+              bottom: 194,
               child: Row(
                 children: [
                   Expanded(

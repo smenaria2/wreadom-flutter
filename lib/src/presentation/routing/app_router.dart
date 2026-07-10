@@ -53,6 +53,7 @@ class PublicProfileArguments {
 class LeaderboardScreenArguments {
   const LeaderboardScreenArguments({
     this.initialCategory = 'author',
+    this.initialPeriod = 'monthly',
     this.targetUserId,
     this.targetUserPoints,
     this.targetUserRank,
@@ -63,6 +64,7 @@ class LeaderboardScreenArguments {
   });
 
   final String initialCategory;
+  final String initialPeriod;
   final String? targetUserId;
   final int? targetUserPoints;
   final int? targetUserRank;
@@ -391,6 +393,9 @@ class AppRouter {
         final initialCategory = argsValue is LeaderboardScreenArguments
             ? argsValue.initialCategory
             : 'author';
+        final initialPeriod = argsValue is LeaderboardScreenArguments
+            ? argsValue.initialPeriod
+            : 'monthly';
         final targetUserId = argsValue is LeaderboardScreenArguments
             ? argsValue.targetUserId
             : null;
@@ -416,6 +421,7 @@ class AppRouter {
           settings: routeSettings,
           builder: (_) => LeaderboardScreen(
             initialCategory: initialCategory,
+            initialPeriod: initialPeriod,
             targetUserId: targetUserId,
             targetUserPoints: targetUserPoints,
             targetUserRank: targetUserRank,

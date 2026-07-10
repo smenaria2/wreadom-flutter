@@ -1,0 +1,79 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/domain/models/user_model.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:librebook_flutter/src/presentation/components/profile/profile_share_card.dart';
+
+void main() {
+  test(
+    'leaderboard and public profile keep the requested rank presentation',
+    () {
+      final leaderboard = File(
+        'lib/src/presentation/components/profile/leaderboard_tab.dart',
+      ).readAsStringSync();
+      final publicProfile = File(
+        'lib/src/presentation/screens/public_profile_screen.dart',
+      ).readAsStringSync();
+
+      expect(leaderboard, isNot(contains("value: 'daily'")));
+      expect(leaderboard, isNot(contains('PremiumRanksWidget(')));
+      expect(leaderboard, contains('Scrollable.ensureVisible'));
+      expect(leaderboard, contains('appendTarget'));
+      expect(leaderboard, isNot(contains('_buildPinnedUserCard')));
+      expect(
+        publicProfile,
+        contains('PremiumRanksWidget(user: user, compact: true)'),
+      );
+      expect(publicProfile, contains('_ExpandableBio(text: user.bio!)'));
+    },
+  );
+
+  testWidgets('share card fits a long name and places ranks below stats', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const longName =
+        'A Very Long Wreadom Creator Name That Must Fit Completely';
+    final user = UserModel(
+      id: 'user-1',
+      username: 'creator',
+      email: 'creator@example.com',
+      displayName: longName,
+      readingHistory: const [],
+      savedBooks: const [],
+      bookmarks: const [],
+      followersCount: 20,
+      followingCount: 10,
+      authorRank: 4,
+      readerRank: 8,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: ProfileShareCard(user: user, worksCount: 6)),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(longName), findsOneWidget);
+    expect(find.byType(FittedBox), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('FOLLOWERS')).dy,
+      lessThan(tester.getTopLeft(find.text('WRITER RANK')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+}

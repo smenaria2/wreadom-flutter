@@ -2878,7 +2878,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authors => 'Authors';
 
   @override
-  String get totalAllTime => 'Total (All-time)';
+  String get totalAllTime => 'All time';
 
   @override
   String get daily => 'Daily';
@@ -2951,31 +2951,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerStatus => 'Reader Status';
 
   @override
-  String get tier1ReaderTitle => 'Curious Mind';
+  String get tier1ReaderTitle => 'Beginner Reader';
 
   @override
-  String get tier1AuthorTitle => 'Aspiring Writer';
+  String get tier1AuthorTitle => 'Beginner Author';
 
   @override
-  String get tier2ReaderTitle => 'Bookworm';
+  String get tier2ReaderTitle => 'Curious Reader';
 
   @override
   String get tier2AuthorTitle => 'Storyteller';
 
   @override
-  String get tier3ReaderTitle => 'Story Seeker';
+  String get tier3ReaderTitle => 'Word Enthusiast';
 
   @override
-  String get tier3AuthorTitle => 'Rising Author';
+  String get tier3AuthorTitle => 'Wordsmith';
 
   @override
-  String get tier4ReaderTitle => 'Page Turner';
+  String get tier4ReaderTitle => 'Story Lover';
 
   @override
-  String get tier4AuthorTitle => 'Published Voice';
+  String get tier4AuthorTitle => 'Word Sage';
 
   @override
-  String get tier5ReaderTitle => 'Literary Scholar';
+  String get tier5ReaderTitle => 'Literature Devotee';
 
   @override
   String get tier5AuthorTitle => 'Master Wordsmith';
@@ -2987,17 +2987,73 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tier6AuthorTitle => 'Grand Author';
 
   @override
-  String get tier7ReaderTitle => 'Legend of Letters';
+  String get tier7ReaderTitle => 'Literary Connoisseur';
 
   @override
-  String get tier7AuthorTitle => 'Literary Legend';
+  String get tier7AuthorTitle => 'Literary Sage';
 
   @override
-  String get tier8ReaderTitle => 'Eternal Reader';
+  String get tier8ReaderTitle => 'Emperor of Words';
 
   @override
-  String get tier8AuthorTitle => 'Eternal Scribe';
+  String get tier8AuthorTitle => 'Emperor of the Pen';
 
   @override
   String get you => 'YOU';
+
+  @override
+  String get authorRankLabel => 'Author rank';
+
+  @override
+  String get readerRankLabel => 'Reader rank';
+
+  @override
+  String get notRankedYet => 'Not ranked yet';
+
+  @override
+  String get pointsLabel => 'points';
+
+  @override
+  String get placeLabel => 'place';
+
+  @override
+  String get tierLabel => 'Tier';
+
+  @override
+  String get currentTierMessage => 'You are currently at this tier.';
+
+  @override
+  String get completedTierMessage => 'Completed tier';
+
+  @override
+  String get lockedTierMessage => 'Keep earning points to unlock this tier.';
+
+  @override
+  String get selectedProfile => 'Selected profile';
+
+  @override
+  String get leaderboardLoadError => 'Could not load the leaderboard.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get viewLeaderboard => 'View leaderboard';
+
+  @override
+  String get tierUpTitle => 'Tier unlocked!';
+
+  @override
+  String get tierUpBody => 'Your progress has reached a new tier.';
+
+  @override
+  String get authorPointsExplanation =>
+      'Author points grow through writing and engagement with your published work.';
+
+  @override
+  String get readerPointsExplanation =>
+      'Reader points grow through reading and participating in the community.';
+
+  @override
+  String get dismiss => 'Dismiss';
 }

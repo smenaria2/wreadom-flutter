@@ -175,10 +175,12 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: PremiumRanksWidget(user: user),
-                        ),
+                        if ((user.authorPoints ?? 0) > 0 ||
+                            (user.readerPoints ?? 0) > 0)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: PremiumRanksWidget(user: user),
+                          ),
                       ],
                     ),
                   ),
@@ -1183,22 +1185,19 @@ void _showProfileSideMenu(BuildContext context) {
     pageBuilder: (context, animation, secondaryAnimation) {
       return const Align(
         alignment: Alignment.centerRight,
-        child: SizedBox(
-          width: 304,
-          child: _ProfileSideMenu(),
-        ),
+        child: SizedBox(width: 304, child: _ProfileSideMenu()),
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(1, 0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutQuart,
-          reverseCurve: Curves.easeInQuart,
-        )),
+        position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutQuart,
+                reverseCurve: Curves.easeInQuart,
+              ),
+            ),
         child: child,
       );
     },
@@ -1206,4 +1205,3 @@ void _showProfileSideMenu(BuildContext context) {
 }
 
 // QA Hardening Compatibility: _SubmitErrorDialog, submitErrorReport, deviceInfo, AppLogCollector.formattedLogs(), l10n.mustBeLoggedInToSubmitIssues
-

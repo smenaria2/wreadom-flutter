@@ -10,11 +10,12 @@ import '../../../utils/tier_utils.dart';
 import '../../../localization/generated/app_localizations.dart';
 import 'leaderboard_info_modal.dart';
 
-// ── Public Widget ─────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Public Widget Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class LeaderboardTab extends StatefulWidget {
   final UserModel currentUser;
   final String initialCategory;
+  final String initialPeriod;
   final void Function(String userId) onUserClick;
 
   final String? targetUserId;
@@ -32,6 +33,7 @@ class LeaderboardTab extends StatefulWidget {
     required this.currentUser,
     required this.onUserClick,
     this.initialCategory = 'author',
+    this.initialPeriod = 'monthly',
     this.targetUserId,
     this.targetUserPoints,
     this.targetUserRank,
@@ -45,18 +47,22 @@ class LeaderboardTab extends StatefulWidget {
   State<LeaderboardTab> createState() => _LeaderboardTabState();
 }
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ State Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
   final _repository = LeaderboardRepository();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _targetRowKey = GlobalKey();
+  String? _revealedCategory;
 
-  String _period = 'monthly';
+  late String _period;
   late String _category;
 
   // The ranked list shown (always capped at 20)
   List<LeaderboardRank> _rankings = [];
   bool _loading = true;
+  Object? _loadError;
+  int _loadRequest = 0;
 
   // Whether the target user card at the bottom was tapped
   String? _highlightedUserId;
@@ -65,6 +71,9 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   void initState() {
     super.initState();
     _category = widget.initialCategory;
+    _period = widget.initialPeriod == 'daily'
+        ? 'monthly'
+        : widget.initialPeriod;
     _highlightedUserId = widget.targetUserId;
     _loadLeaderboard();
   }
@@ -75,84 +84,101 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     super.dispose();
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   // Returns the target user's points for the currently active category tab
-  int? get _activeTargetPoints => _category == 'reader'
-      ? widget.targetUserReaderPoints
-      : widget.targetUserPoints;
+  int? get _activeTargetPoints {
+    if (_period != 'total') return null;
+    return _category == 'reader'
+        ? widget.targetUserReaderPoints
+        : widget.targetUserPoints;
+  }
 
   // Returns the target user's rank for the currently active category tab
-  int? get _activeTargetRank =>
-      _category == 'reader' ? widget.targetUserReaderRank : widget.targetUserRank;
+  int? get _activeTargetRank {
+    if (_period != 'total') return null;
+    return _category == 'reader'
+        ? widget.targetUserReaderRank
+        : widget.targetUserRank;
+  }
 
-  // ── Data ───────────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Data Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Future<void> _loadLeaderboard() async {
-    setState(() => _loading = true);
-    final results = await _repository.fetchLeaderboard(
-      period: _period,
-      type: _category,
-    );
-    if (!mounted) return;
-
-    // Always limit to 20 entries max
-    final limited = results.take(20).toList();
-
-    // Re-number displayed ranks sequentially (1…20) so that daily/weekly always
-    // shows 1, 2, 3 … instead of whatever the backend rank field contains.
-    final renumbered = limited.asMap().entries.map((e) {
-      return LeaderboardRank(
-        userId: e.value.userId,
-        displayName: e.value.displayName,
-        photoUrl: e.value.photoUrl,
-        points: e.value.points,
-        rank: e.key + 1, // 1-indexed position in the displayed list
-      );
-    }).toList();
-
+    final request = ++_loadRequest;
     setState(() {
-      _rankings = renumbered;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
-
-    if (widget.targetUserId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToTargetUser());
+    try {
+      final results = await _repository.fetchLeaderboard(
+        period: _period,
+        type: _category,
+      );
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        _rankings = results.take(20).toList();
+        _loading = false;
+      });
+      _scheduleTargetReveal();
+    } catch (error) {
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        _loadError = error;
+        _loading = false;
+      });
+      return;
     }
   }
 
-  void _scrollToTargetUser() {
-    if (!_scrollController.hasClients) return;
-    final targetIndex = _rankings.indexWhere((r) => r.userId == widget.targetUserId);
+  void _selectCategory(RankTrack track) {
+    if (_category == track.value) return;
+    setState(() {
+      _category = track.value;
+      _highlightedUserId = widget.targetUserId;
+      _revealedCategory = null;
+    });
+    _loadLeaderboard();
+  }
 
-    final hasPodium = _rankings.length >= 3;
-    double scrollOffset;
-
-    if (targetIndex == -1) {
-      // Target user is beyond the 20 shown → scroll to very bottom so the
-      // pinned card at the end is visible
-      scrollOffset = _scrollController.position.maxScrollExtent;
-    } else {
-      const double controlsHeight = 134.0;
-      const double cardHeight = 76.0;
-      if (hasPodium && targetIndex < 3) {
-        scrollOffset = 0.0;
-      } else {
-        const double podiumHeight = 260.0;
-        final listIndex = hasPodium ? targetIndex - 3 : targetIndex;
-        scrollOffset = controlsHeight +
-            (hasPodium ? podiumHeight : 0) +
-            listIndex * cardHeight;
-      }
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      if (scrollOffset > maxScroll) scrollOffset = maxScroll;
+  void _scheduleTargetReveal() {
+    if (widget.targetUserId == null ||
+        _period != 'total' ||
+        _activeTargetRank == null) {
+      return;
     }
-
-    _scrollController.animateTo(
-      scrollOffset,
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
-    );
+    if (_activeTargetRank! <= 3) {
+      _revealedCategory = _category;
+      return;
+    }
+    if (_revealedCategory == _category) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _revealedCategory == _category) return;
+      final targetContext = _targetRowKey.currentContext;
+      if (targetContext == null) {
+        if (_scrollController.hasClients) {
+          _scrollController
+              .animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 500),
+                curve: Curves.easeInOutCubic,
+              )
+              .then((_) => _scheduleTargetReveal());
+        }
+        return;
+      }
+      _revealedCategory = _category;
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: 0.82,
+      );
+    });
   }
 
   void _showInfoModal() {
@@ -160,11 +186,12 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const LeaderboardInfoModal(),
+      builder: (_) =>
+          LeaderboardInfoModal(initialTrack: RankTrack.fromValue(_category)),
     );
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Build Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   @override
   Widget build(BuildContext context) {
@@ -172,17 +199,20 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final targetInList = widget.targetUserId != null &&
-        _rankings.any((r) => r.userId == widget.targetUserId);
-    final showPinnedCard =
-        widget.targetUserId != null && !targetInList && _activeTargetRank != null;
+    final isSelectedProfile =
+        widget.targetUserId != null &&
+        widget.targetUserId != widget.currentUser.id;
+    final appendTarget =
+        isSelectedProfile &&
+        (_activeTargetRank ?? 0) > 20 &&
+        !_rankings.any((entry) => entry.userId == widget.targetUserId);
 
     // Podium: only when the first three renumbered ranks are 1, 2, 3
     final hasPodium = _rankings.length >= 3;
 
     return Column(
       children: [
-        // ── Controls ──────────────────────────────────────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Controls Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Column(
@@ -190,36 +220,38 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               GlassSegmentedControl(
                 selectedValue: _category,
                 options: {
-                  'author': '🖋️ ${l10n.authors}',
-                  'reader': '📖 ${l10n.readers}',
+                  'author': 'Ã°Å¸â€“â€¹Ã¯Â¸Â ${l10n.authors}',
+                  'reader': 'Ã°Å¸â€œâ€“ ${l10n.readers}',
                 },
-                onChanged: (val) {
-                  setState(() {
-                    _category = val;
-                    _highlightedUserId = widget.targetUserId;
-                  });
-                  _loadLeaderboard();
-                },
+                onChanged: (val) => _selectCategory(RankTrack.fromValue(val)),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: GlassControlSurface(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
                       borderRadius: BorderRadius.circular(20),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _period,
                           isExpanded: true,
-                          icon: Icon(Icons.expand_more_rounded,
-                              color: scheme.onSurfaceVariant, size: 20),
-                          dropdownColor:
-                              theme.extension<GlassTokens>()?.strongSurfaceColor,
+                          icon: Icon(
+                            Icons.expand_more_rounded,
+                            color: scheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          dropdownColor: theme
+                              .extension<GlassTokens>()
+                              ?.strongSurfaceColor,
                           borderRadius: BorderRadius.circular(20),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          style: theme.textTheme.labelLarge
-                              ?.copyWith(color: scheme.onSurface),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurface,
+                          ),
                           onChanged: (val) {
                             if (val != null) {
                               setState(() => _period = val);
@@ -228,17 +260,17 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
                           },
                           items: [
                             DropdownMenuItem(
-                                value: 'monthly',
-                                child: Text('🗓️  ${l10n.monthly}')),
+                              value: 'monthly',
+                              child: Text('Ã°Å¸â€”â€œÃ¯Â¸Â  ${l10n.monthly}'),
+                            ),
                             DropdownMenuItem(
-                                value: 'total',
-                                child: Text('🏆  ${l10n.totalAllTime}')),
+                              value: 'total',
+                              child: Text('Ã°Å¸Ââ€   ${l10n.totalAllTime}'),
+                            ),
                             DropdownMenuItem(
-                                value: 'daily',
-                                child: Text('☀️  ${l10n.daily}')),
-                            DropdownMenuItem(
-                                value: 'weekly',
-                                child: Text('📅  ${l10n.weekly}')),
+                              value: 'weekly',
+                              child: Text('Ã°Å¸â€œâ€¦  ${l10n.weekly}'),
+                            ),
                           ],
                         ),
                       ),
@@ -250,7 +282,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
                     icon: const Icon(Icons.info_outline_rounded),
                     style: IconButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ],
@@ -261,268 +294,83 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
         const SizedBox(height: 16),
 
-        // ── List ──────────────────────────────────────────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ List Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         Expanded(
           child: _loading
               ? Center(child: CircularProgressIndicator(color: scheme.primary))
+              : _loadError != null
+              ? _buildErrorState(context)
               : _rankings.isEmpty
-                  ? _buildEmptyState(context)
-                  : CustomScrollView(
-                      controller: _scrollController,
-                      slivers: [
-                        // Podium (renumbered 1-3)
-                        if (hasPodium)
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: LayoutBuilder(
-                                builder: (ctx, constraints) => _PodiumStrip(
-                                  top3: _rankings.take(3).toList(),
-                                  currentUserId: widget.currentUser.id,
-                                  highlightedUserId: _highlightedUserId,
-                                  category: _category,
-                                  width: constraints.maxWidth,
-                                  onUserClick: widget.onUserClick,
-                                  onBarTap: (uid) =>
-                                      setState(() => _highlightedUserId = uid),
-                                ),
+              ? _buildEmptyState(context)
+              : RefreshIndicator(
+                  onRefresh: _loadLeaderboard,
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      if (hasPodium)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: LayoutBuilder(
+                              builder: (ctx, constraints) => _PodiumStrip(
+                                top3: _rankings.take(3).toList(),
+                                currentUserId: widget.currentUser.id,
+                                highlightedUserId: _highlightedUserId,
+                                category: _category,
+                                width: constraints.maxWidth,
+                                onUserClick: widget.onUserClick,
+                                onBarTap: (uid) =>
+                                    setState(() => _highlightedUserId = uid),
                               ),
                             ),
                           ),
-
-                        // Ranks 4-20 (or 1-20 if no podium)
-                        SliverPadding(
-                          padding: EdgeInsets.fromLTRB(
-                              16, 12, 16, showPinnedCard ? 8 : 24),
-                          sliver: SliverList.builder(
-                            itemCount: hasPodium
-                                ? (_rankings.length > 3
-                                    ? _rankings.length - 3
-                                    : 0)
-                                : _rankings.length,
-                            itemBuilder: (ctx, index) {
-                              final entry =
-                                  _rankings[hasPodium ? index + 3 : index];
-                              final isMe =
-                                  entry.userId == widget.currentUser.id;
-                              final isTarget =
-                                  entry.userId == widget.targetUserId;
-                              return AnimatedEntrance(
-                                index: index,
-                                child: _RankingCard(
-                                  entry: entry,
-                                  isCurrentUser: isMe,
-                                  isTargetUser: isTarget,
-                                  category: _category,
-                                  onTap: () => widget.onUserClick(entry.userId),
-                                ),
-                              );
-                            },
-                          ),
                         ),
-
-                        // Pinned target-user card at the BOTTOM of the list
-                        // (only shown when the user's rank is beyond the 20 loaded)
-                        if (showPinnedCard)
-                          SliverPadding(
-                            padding:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                            sliver: SliverToBoxAdapter(
-                              child: _buildPinnedUserCard(
-                                  context, scheme, theme, l10n),
-                            ),
-                          ),
-                      ],
-                    ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        sliver: SliverList.builder(
+                          itemCount:
+                              (hasPodium
+                                  ? _rankings.length - 3
+                                  : _rankings.length) +
+                              (appendTarget ? 1 : 0),
+                          itemBuilder: (ctx, index) {
+                            final normalCount = hasPodium
+                                ? _rankings.length - 3
+                                : _rankings.length;
+                            final isAppendedTarget = index == normalCount;
+                            final entry = isAppendedTarget
+                                ? LeaderboardRank(
+                                    rank: _activeTargetRank!,
+                                    userId: widget.targetUserId!,
+                                    displayName:
+                                        widget.targetUserDisplayName ?? 'User',
+                                    photoUrl: widget.targetUserPhotoUrl ?? '',
+                                    points: _activeTargetPoints ?? 0,
+                                  )
+                                : _rankings[hasPodium ? index + 3 : index];
+                            final isMe = entry.userId == widget.currentUser.id;
+                            final isTarget =
+                                entry.userId == widget.targetUserId;
+                            return AnimatedEntrance(
+                              key: isTarget ? _targetRowKey : null,
+                              index: index,
+                              child: _RankingCard(
+                                entry: entry,
+                                isCurrentUser: isMe,
+                                isTargetUser: isTarget,
+                                category: _category,
+                                onTap: () => widget.onUserClick(entry.userId),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
-    );
-  }
-
-  // ── Pinned user card (after rank 20) ──────────────────────────────────────
-
-  Widget _buildPinnedUserCard(
-    BuildContext context,
-    ColorScheme scheme,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    final points = _activeTargetPoints ?? 0;
-    final rank = _activeTargetRank;
-    final displayName = widget.targetUserDisplayName ?? 'User';
-    final photoUrl = widget.targetUserPhotoUrl ?? '';
-    final tier = getTierInfo(points, _category);
-    final isMe = widget.targetUserId == widget.currentUser.id;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutBack,
-      builder: (_, val, child) => Transform.translate(
-        offset: Offset(0, 30 * (1 - val)),
-        child: Opacity(opacity: val, child: child),
-      ),
-      child: GlassSurface(
-        onTap: () {
-          if (widget.targetUserId != null) {
-            widget.onUserClick(widget.targetUserId!);
-          }
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: scheme.primary.withValues(alpha: 0.8),
-              width: 1.5,
-            ),
-            gradient: LinearGradient(
-              colors: [
-                scheme.primary.withValues(alpha: 0.14),
-                scheme.surface.withValues(alpha: 0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withValues(alpha: 0.2),
-                blurRadius: 14,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Rank circle
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    shape: BoxShape.circle),
-                child: Center(
-                  child: Text(
-                    rank != null ? '$rank' : '--',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Avatar
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: scheme.primary.withValues(alpha: 0.5), width: 1.5),
-                ),
-                child: ClipOval(
-                  child: photoUrl.isNotEmpty
-                      ? Image.network(photoUrl, fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, st) =>
-                              _initialsContainer(displayName, scheme))
-                      : _initialsContainer(displayName, scheme),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Name + tier
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: scheme.primary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            isMe ? l10n.you.toUpperCase() : 'SELECTED',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(tier.icon,
-                            style: const TextStyle(fontSize: 10)),
-                        const SizedBox(width: 4),
-                        Text(
-                          getLocalizedTierTitle(
-                                  context, tier.tier, _category)
-                              .toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            letterSpacing: 0.8,
-                            fontSize: 9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Points
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$points',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: scheme.primary),
-                  ),
-                  Text(
-                    'PTS',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant, fontSize: 8),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _initialsContainer(String name, ColorScheme scheme) {
-    return Container(
-      color: scheme.primary.withValues(alpha: 0.2),
-      child: Center(
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary),
-        ),
-      ),
     );
   }
 
@@ -533,23 +381,51 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🏆', style: TextStyle(fontSize: 56)),
+          const Text('Ã°Å¸Ââ€ ', style: TextStyle(fontSize: 56)),
           const SizedBox(height: 12),
           Text(
             l10n.noRankingsPeriod,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 6),
-          Text(l10n.startReadingAppear,
-              style: theme.textTheme.bodySmall),
+          Text(l10n.startReadingAppear, style: theme.textTheme.bodySmall),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 48, color: scheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              l10n.leaderboardLoadError,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _loadLeaderboard,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(l10n.retry),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Custom Sliding Segment Switcher ──────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Custom Sliding Segment Switcher Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class GlassSegmentedControl extends StatelessWidget {
   final String selectedValue;
@@ -578,19 +454,22 @@ class GlassSegmentedControl extends StatelessWidget {
             children: [
               AnimatedAlign(
                 alignment: Alignment(
-                    (selectedIdx / (keys.length - 1)) * 2 - 1, 0.0),
+                  (selectedIdx / (keys.length - 1)) * 2 - 1,
+                  0.0,
+                ),
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOutCubic,
                 child: Container(
                   width: itemWidth,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer
-                        .withValues(alpha: 0.85),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.85,
+                    ),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                        color: theme.colorScheme.primary
-                            .withValues(alpha: 0.24)),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.24),
+                    ),
                   ),
                 ),
               ),
@@ -629,33 +508,33 @@ class GlassSegmentedControl extends StatelessWidget {
   }
 }
 
-// ── Staggered Entrance Animator ──────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Staggered Entrance Animator Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class AnimatedEntrance extends StatelessWidget {
   final Widget child;
   final int index;
 
-  const AnimatedEntrance(
-      {super.key, required this.child, required this.index});
+  const AnimatedEntrance({super.key, required this.child, required this.index});
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration:
-          Duration(milliseconds: 300 + (index * 25).clamp(0, 300)),
+      duration: Duration(milliseconds: 300 + (index * 25).clamp(0, 300)),
       curve: Curves.easeOutCubic,
       builder: (_, val, child) => Opacity(
         opacity: val,
         child: Transform.translate(
-            offset: Offset(0, 18 * (1 - val)), child: child),
+          offset: Offset(0, 18 * (1 - val)),
+          child: child,
+        ),
       ),
       child: child,
     );
   }
 }
 
-// ── Podium Strip (stateful for bar tap highlights) ───────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Podium Strip (stateful for bar tap highlights) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _PodiumStrip extends StatelessWidget {
   const _PodiumStrip({
@@ -682,7 +561,7 @@ class _PodiumStrip extends StatelessWidget {
     // Display order: 2nd place left, 1st place centre, 3rd place right
     final order = [top3[1], top3[0], top3[2]];
     final heights = [90.0, 120.0, 75.0];
-    final medals = ['🥈', '🥇', '🥉'];
+    final medals = ['Ã°Å¸Â¥Ë†', 'Ã°Å¸Â¥â€¡', 'Ã°Å¸Â¥â€°'];
     final accentColors = [
       scheme.outlineVariant,
       scheme.tertiary,
@@ -694,13 +573,13 @@ class _PodiumStrip extends StatelessWidget {
       children: List.generate(3, (i) {
         final entry = order[i];
         final sizeFactor = i == 1 ? 1.0 : 0.82;
-        final isHighlighted = entry.userId == currentUserId ||
-            entry.userId == highlightedUserId;
+        final isHighlighted =
+            entry.userId == currentUserId || entry.userId == highlightedUserId;
 
         return Expanded(
           child: Column(
             children: [
-              // Avatar + name – tapping navigates to profile
+              // Avatar + name Ã¢â‚¬â€œ tapping navigates to profile
               GestureDetector(
                 onTap: () => onUserClick(entry.userId),
                 behavior: HitTestBehavior.opaque,
@@ -734,15 +613,16 @@ class _PodiumStrip extends StatelessWidget {
                           ),
                           child: ClipOval(
                             child: entry.photoUrl.isNotEmpty
-                                ? Image.network(entry.photoUrl,
+                                ? Image.network(
+                                    entry.photoUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (ctx, err, st) =>
-                                        _fallback(entry, scheme, i))
+                                        _fallback(entry, scheme, i),
+                                  )
                                 : _fallback(entry, scheme, i),
                           ),
                         ),
-                        Text(medals[i],
-                            style: const TextStyle(fontSize: 14)),
+                        Text(medals[i], style: const TextStyle(fontSize: 14)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -752,19 +632,19 @@ class _PodiumStrip extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: isHighlighted
-                                ? scheme.primary
-                                : scheme.onSurface,
-                          ),
+                        fontWeight: FontWeight.w700,
+                        color: isHighlighted
+                            ? scheme.primary
+                            : scheme.onSurface,
+                      ),
                     ),
                     Text(
                       '${entry.points} pts',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: accentColors[i],
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                          ),
+                        color: accentColors[i],
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
@@ -772,7 +652,7 @@ class _PodiumStrip extends StatelessWidget {
 
               const SizedBox(height: 6),
 
-              // Rank bar – tapping only highlights (no navigation)
+              // Rank bar Ã¢â‚¬â€œ tapping only highlights (no navigation)
               GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -785,7 +665,8 @@ class _PodiumStrip extends StatelessWidget {
                   curve: Curves.easeOutBack,
                   builder: (ctx, h, child) => GlassSurface(
                     borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12)),
+                      top: Radius.circular(12),
+                    ),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       width: double.infinity,
@@ -802,21 +683,22 @@ class _PodiumStrip extends StatelessWidget {
                           ],
                         ),
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12)),
+                          top: Radius.circular(12),
+                        ),
                         border: isHighlighted
                             ? Border(
                                 top: BorderSide(
-                                    color: scheme.primary
-                                        .withValues(alpha: 0.8),
-                                    width: 2),
+                                  color: scheme.primary.withValues(alpha: 0.8),
+                                  width: 2,
+                                ),
                                 left: BorderSide(
-                                    color: scheme.primary
-                                        .withValues(alpha: 0.6),
-                                    width: 1.5),
+                                  color: scheme.primary.withValues(alpha: 0.6),
+                                  width: 1.5,
+                                ),
                                 right: BorderSide(
-                                    color: scheme.primary
-                                        .withValues(alpha: 0.6),
-                                    width: 1.5),
+                                  color: scheme.primary.withValues(alpha: 0.6),
+                                  width: 1.5,
+                                ),
                               )
                             : null,
                       ),
@@ -862,7 +744,7 @@ class _PodiumStrip extends StatelessWidget {
   }
 }
 
-// ── Rank Card (rank 4+) ───────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Rank Card (rank 4+) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _RankingCard extends StatelessWidget {
   const _RankingCard({
@@ -897,13 +779,16 @@ class _RankingCard extends StatelessWidget {
             ? BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: scheme.primary.withValues(alpha: 0.8), width: 1.5),
+                  color: scheme.primary.withValues(alpha: 0.8),
+                  width: 1.5,
+                ),
                 color: scheme.primaryContainer.withValues(alpha: 0.12),
                 boxShadow: [
                   BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.15),
-                      blurRadius: 10,
-                      spreadRadius: 1),
+                    color: scheme.primary.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
                 ],
               )
             : null,
@@ -948,21 +833,24 @@ class _RankingCard extends StatelessWidget {
               ),
               child: ClipOval(
                 child: entry.photoUrl.isNotEmpty
-                    ? Image.network(entry.photoUrl,
+                    ? Image.network(
+                        entry.photoUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, err, st) => Container(
-                              color: scheme.primaryContainer,
-                              child: Center(
-                                child: Text(
-                                  entry.displayName.isNotEmpty
-                                      ? entry.displayName[0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: scheme.onPrimaryContainer),
-                                ),
+                          color: scheme.primaryContainer,
+                          child: Center(
+                            child: Text(
+                              entry.displayName.isNotEmpty
+                                  ? entry.displayName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onPrimaryContainer,
                               ),
-                            ))
+                            ),
+                          ),
+                        ),
+                      )
                     : Container(
                         color: scheme.primaryContainer,
                         child: Center(
@@ -971,8 +859,9 @@ class _RankingCard extends StatelessWidget {
                                 ? entry.displayName[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: scheme.onPrimaryContainer),
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onPrimaryContainer,
+                            ),
                           ),
                         ),
                       ),
@@ -991,15 +880,18 @@ class _RankingCard extends StatelessWidget {
                           entry.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       if (isCurrentUser) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: scheme.primary,
                             borderRadius: BorderRadius.circular(8),
@@ -1018,25 +910,29 @@ class _RankingCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Builder(builder: (_) {
-                    final tier = getTierInfo(entry.points, category);
-                    return Row(
-                      children: [
-                        Text(tier.icon,
-                            style: const TextStyle(fontSize: 10)),
-                        const SizedBox(width: 4),
-                        Text(
-                          getLocalizedTierTitle(context, tier.tier, category)
-                              .toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            letterSpacing: 0.8,
-                            fontSize: 9,
+                  Builder(
+                    builder: (_) {
+                      final tier = getTierInfo(entry.points, category);
+                      return Row(
+                        children: [
+                          Text(tier.icon, style: const TextStyle(fontSize: 10)),
+                          const SizedBox(width: 4),
+                          Text(
+                            getLocalizedTierTitle(
+                              context,
+                              tier.tier,
+                              category,
+                            ).toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              letterSpacing: 0.8,
+                              fontSize: 9,
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  }),
+                        ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1046,13 +942,17 @@ class _RankingCard extends StatelessWidget {
               children: [
                 Text(
                   '${entry.points}',
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w900, color: scheme.primary),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: scheme.primary,
+                  ),
                 ),
                 Text(
-                  'PTS',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: scheme.onSurfaceVariant, fontSize: 8),
+                  l10n.pointsLabel.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 8,
+                  ),
                 ),
               ],
             ),

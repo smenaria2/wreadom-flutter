@@ -1481,7 +1481,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Widget _buildToolbar(QuillController controller) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
         child: GlassSurface(

@@ -1,236 +1,323 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import '../../../domain/models/user_model.dart';
-import '../../../utils/tier_utils.dart';
 import '../../../localization/generated/app_localizations.dart';
-import '../../routing/app_routes.dart';
+import '../../../utils/app_haptics.dart';
+import '../../../utils/tier_utils.dart';
 import '../../routing/app_router.dart';
-import '../../widgets/glass_surface.dart';
+import '../../routing/app_routes.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/glass_surface.dart';
 
-class PremiumRanksWidget extends StatelessWidget {
-  final UserModel user;
-
+class PremiumRanksWidget extends StatefulWidget {
   const PremiumRanksWidget({
     super.key,
     required this.user,
+    this.compact = false,
+    this.onTrackSelected,
   });
+
+  final UserModel user;
+  final bool compact;
+  final ValueChanged<RankTrack>? onTrackSelected;
+
+  @override
+  State<PremiumRanksWidget> createState() => _PremiumRanksWidgetState();
+}
+
+class _PremiumRanksWidgetState extends State<PremiumRanksWidget> {
+  RankTrack _track = RankTrack.author;
+
+  bool get _hasAuthor => (widget.user.authorPoints ?? 0) > 0;
+  bool get _hasReader => (widget.user.readerPoints ?? 0) > 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _track = _hasAuthor ? RankTrack.author : RankTrack.reader;
+  }
+
+  @override
+  void didUpdateWidget(covariant PremiumRanksWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_hasAuthor) _track = RankTrack.reader;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    final readerPoints = user.readerPoints ?? 0;
-    final authorPoints = user.authorPoints ?? 0;
-    final readerTier = getTierInfo(readerPoints, 'reader');
-    final authorTier = getTierInfo(authorPoints, 'author');
-
-    final displayName = user.displayName ?? user.penName ?? user.username;
-
-    return Row(
-      children: [
-        // Writer Rank Card
-        Expanded(
-          child: _RankCard(
-            title: l10n.authors.replaceAll('s', ''), // "Author" or "Writer"
-            rank: user.authorRank,
-            icon: '🖋️',
-            points: authorPoints,
-            tier: authorTier,
-            category: 'author',
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Navigator.of(context).pushNamed(
-                AppRoutes.leaderboard,
-                arguments: LeaderboardScreenArguments(
-                  initialCategory: 'author',
-                  targetUserId: user.id,
-                  targetUserPoints: authorPoints,
-                  targetUserRank: user.authorRank,
-                  targetUserReaderPoints: readerPoints,
-                  targetUserReaderRank: user.readerRank,
-                  targetUserDisplayName: displayName,
-                  targetUserPhotoUrl: user.photoURL,
-                ),
-              );
-            },
+    if (!_hasAuthor && !_hasReader) return const SizedBox.shrink();
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return Semantics(
+      button: _hasAuthor,
+      onTap: _hasAuthor ? _flip : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _hasAuthor ? _flip : null,
+        child: AnimatedSwitcher(
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 520),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            if (reduceMotion) return child;
+            final rotation = Tween(
+              begin: math.pi / 2,
+              end: 0.0,
+            ).animate(animation);
+            return AnimatedBuilder(
+              animation: rotation,
+              child: child,
+              builder: (_, child) => Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.0015)
+                  ..rotateY(rotation.value),
+                child: child,
+              ),
+            );
+          },
+          child: _RankStatusFace(
+            key: ValueKey(_track),
+            user: widget.user,
+            track: _track,
+            onLeaderboardTap: () => _openLeaderboard(_track),
           ),
         ),
-        const SizedBox(width: 12),
-        // Reader Rank Card
-        Expanded(
-          child: _RankCard(
-            title: l10n.readers.replaceAll('s', ''), // "Reader"
-            rank: user.readerRank,
-            icon: '📖',
-            points: readerPoints,
-            tier: readerTier,
-            category: 'reader',
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Navigator.of(context).pushNamed(
-                AppRoutes.leaderboard,
-                arguments: LeaderboardScreenArguments(
-                  initialCategory: 'reader',
-                  targetUserId: user.id,
-                  targetUserPoints: authorPoints,
-                  targetUserRank: user.authorRank,
-                  targetUserReaderPoints: readerPoints,
-                  targetUserReaderRank: user.readerRank,
-                  targetUserDisplayName: displayName,
-                  targetUserPhotoUrl: user.photoURL,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
+    );
+  }
+
+  void _flip() {
+    unawaited(AppHaptics.light());
+    setState(() {
+      _track = _track == RankTrack.author ? RankTrack.reader : RankTrack.author;
+    });
+  }
+
+  void _openLeaderboard(RankTrack track) {
+    unawaited(AppHaptics.light());
+    final callback = widget.onTrackSelected;
+    if (callback != null) {
+      callback(track);
+      return;
+    }
+    Navigator.of(context).pushNamed(
+      AppRoutes.leaderboard,
+      arguments: LeaderboardScreenArguments(
+        initialCategory: track.value,
+        initialPeriod: 'total',
+        targetUserId: widget.user.id,
+        targetUserPoints: widget.user.authorPoints,
+        targetUserRank: widget.user.authorRank,
+        targetUserReaderPoints: widget.user.readerPoints,
+        targetUserReaderRank: widget.user.readerRank,
+        targetUserDisplayName:
+            widget.user.displayName ??
+            widget.user.penName ??
+            widget.user.username,
+        targetUserPhotoUrl: widget.user.photoURL,
+      ),
     );
   }
 }
 
-class _RankCard extends StatelessWidget {
-  final String title;
-  final int? rank;
-  final String icon;
-  final int points;
-  final TierInfo tier;
-  final String category;
-  final VoidCallback onTap;
-
-  const _RankCard({
-    required this.title,
-    required this.rank,
-    required this.icon,
-    required this.points,
-    required this.tier,
-    required this.category,
-    required this.onTap,
+class _RankStatusFace extends StatelessWidget {
+  const _RankStatusFace({
+    super.key,
+    required this.user,
+    required this.track,
+    required this.onLeaderboardTap,
   });
+
+  final UserModel user;
+  final RankTrack track;
+  final VoidCallback onLeaderboardTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tokens = theme.extension<GlassTokens>() ?? GlassTokens.light;
+    final l10n = AppLocalizations.of(context)!;
+    final points = track == RankTrack.author
+        ? (user.authorPoints ?? 0)
+        : (user.readerPoints ?? 0);
+    final rank = track == RankTrack.author ? user.authorRank : user.readerRank;
+    final tier = tierInfoFor(points, track);
+    final status = track == RankTrack.author
+        ? l10n.authorStatus
+        : l10n.readerStatus;
+    final title = localizedTierTitle(context, tier.tier, track);
 
-    final hasRank = rank != null;
-
-    return GlassSurface(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: tokens.borderColor),
-          gradient: LinearGradient(
-            colors: [
-              tier.gradient.colors.first.withValues(alpha: 0.08),
-              tier.gradient.colors.last.withValues(alpha: 0.02),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Semantics(
+      label: '$status, ${tier.tier}. $title, $points ${l10n.pointsLabel}',
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 98),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: tokens.borderColor),
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                tier.gradient.colors.first.withValues(alpha: 0.10),
+                tier.gradient.colors.last.withValues(alpha: 0.02),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            // Subtle glowing accent dot in top corner
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 6,
-                height: 6,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: tier.gradient,
                   boxShadow: [
                     BoxShadow(
-                      color: tier.gradient.colors.first.withValues(alpha: 0.5),
-                      blurRadius: 4,
+                      color: tier.gradient.colors.first.withValues(alpha: 0.3),
+                      blurRadius: 8,
                       spreadRadius: 1,
                     ),
                   ],
                 ),
+                child: Text(tier.icon, style: const TextStyle(fontSize: 18)),
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(icon, style: const TextStyle(fontSize: 12)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$title Rank'.toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-                        letterSpacing: 0.5,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  textBaseline: TextBaseline.alphabetic,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  children: [
-                    Text(
-                      hasRank ? '$rank' : '--',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: scheme.onSurface,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    if (hasRank) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        'PLACE',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 8,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            status.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                              letterSpacing: 0.5,
+                              fontSize: 9,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(tier.icon, style: const TextStyle(fontSize: 10)),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          getLocalizedTierTitle(context, tier.tier, category),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 6),
+                        Text(
+                          'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢  ${formatRankPointsExact(context, points)} PTS',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurface,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.primary,
                             fontSize: 9,
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${tier.tier}. $title',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(
+                              begin: 0,
+                              end: tier.progressPercent / 100,
+                            ),
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 700),
+                            builder: (context, value, child) =>
+                                LinearProgressIndicator(
+                                  value: value,
+                                  minHeight: 6,
+                                  borderRadius: BorderRadius.circular(3),
+                                  backgroundColor: scheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.4),
+                                  valueColor: AlwaysStoppedAnimation(
+                                    tier.gradient.colors.first,
+                                  ),
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          tier.pointsToNext == null
+                              ? l10n.maxLevelReached
+                              : l10n.ptsToNextTier(tier.pointsToNext!),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Semantics(
+                    button: true,
+                    label: l10n.viewLeaderboard,
+                    child: InkResponse(
+                      key: const ValueKey('rank-leaderboard-arrow'),
+                      onTap: onLeaderboardTap,
+                      radius: 22,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    rank?.toString() ?? '--',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    rank == null ? l10n.notRankedYet.toUpperCase() : 'RANK',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                      fontSize: rank == null ? 6 : 8,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
