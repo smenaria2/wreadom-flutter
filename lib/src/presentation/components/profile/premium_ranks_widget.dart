@@ -154,7 +154,7 @@ class _RankStatusFace extends StatelessWidget {
     final title = localizedTierTitle(context, tier.tier, track);
 
     return Semantics(
-      label: '$status, ${tier.tier}. $title, $points ${l10n.pointsLabel}',
+      label: '$status, $title, $points ${l10n.pointsLabel}',
       child: GlassSurface(
         borderRadius: BorderRadius.circular(20),
         child: Container(
@@ -216,7 +216,7 @@ class _RankStatusFace extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢  ${formatRankPointsExact(context, points)} PTS',
+                          '${formatRankPointsExact(context, points)} ${l10n.pointsLabel}',
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: scheme.primary,
@@ -227,7 +227,7 @@ class _RankStatusFace extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${tier.tier}. $title',
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -298,16 +298,37 @@ class _RankStatusFace extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    rank?.toString() ?? '--',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                      height: 1,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tier.definition.mainColor.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: tier.definition.mainColor.withValues(
+                          alpha: 0.55,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      rank?.toString() ?? '--',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: tier.definition.mainColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        height: 1,
+                      ),
                     ),
                   ),
                   Text(
-                    rank == null ? l10n.notRankedYet.toUpperCase() : 'RANK',
+                    rank == null
+                        ? l10n.notRankedYet.toUpperCase()
+                        : (track == RankTrack.author
+                                  ? l10n.authorRankLabel
+                                  : l10n.readerRankLabel)
+                              .toUpperCase(),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,

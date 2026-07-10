@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:librebook_flutter/src/domain/models/leaderboard_model.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/components/profile/profile_share_card.dart';
@@ -21,8 +22,20 @@ void main() {
       expect(leaderboard, isNot(contains("value: 'daily'")));
       expect(leaderboard, isNot(contains('PremiumRanksWidget(')));
       expect(leaderboard, contains('Scrollable.ensureVisible'));
+      expect(leaderboard, contains('_scrollController.jumpTo(0)'));
+      expect(leaderboard, contains('(_activeTargetPoints ?? 0) <= 0'));
+      expect(leaderboard, isNot(contains('Ã')));
       expect(leaderboard, contains('appendTarget'));
       expect(leaderboard, isNot(contains('_buildPinnedUserCard')));
+      expect(
+        leaderboard.indexOf("value: 'total'"),
+        lessThan(leaderboard.indexOf("value: 'monthly'")),
+      );
+      expect(
+        leaderboard,
+        contains('final isHighlighted = entry.userId == highlightedUserId;'),
+      );
+      expect(leaderboard, isNot(contains('entry.userId == currentUserId ||')));
       expect(
         publicProfile,
         contains('PremiumRanksWidget(user: user, compact: true)'),
@@ -72,8 +85,30 @@ void main() {
     expect(find.byType(FittedBox), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('FOLLOWERS')).dy,
-      lessThan(tester.getTopLeft(find.text('WRITER RANK')).dy),
+      lessThan(tester.getTopLeft(find.text('Author rank')).dy),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  test('leaderboard names skip blank profile fields', () {
+    expect(
+      resolveLeaderboardDisplayName({
+        'penName': '  ',
+        'displayName': ' आशुतोष गुप्ता ',
+        'username': 'ashutosh',
+      }),
+      'आशुतोष गुप्ता',
+    );
+    expect(
+      LeaderboardRank.fromMap({
+        'rank': 18,
+        'userId': 'ashutosh',
+        'displayName': '',
+        'username': 'ashutosh',
+        'photoURL': '',
+        'points': 122,
+      }).displayName,
+      'ashutosh',
+    );
   });
 }

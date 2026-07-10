@@ -284,21 +284,21 @@ class ProfileShareCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _CardRank(
-                      label: 'WRITER RANK',
+                      label: l10n.authorRankLabel,
                       value: user.authorRank != null
                           ? '${user.authorRank}'
                           : '--',
-                      icon: '🖋️',
+                      icon: '\u{270D}\u{FE0F}',
                     ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: _CardRank(
-                      label: 'READER RANK',
+                      label: l10n.readerRankLabel,
                       value: user.readerRank != null
                           ? '${user.readerRank}'
                           : '--',
-                      icon: '📖',
+                      icon: '\u{1F4D6}',
                     ),
                   ),
                 ],

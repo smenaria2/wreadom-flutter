@@ -17,11 +17,19 @@ class LeaderboardRank {
     return LeaderboardRank(
       rank: (map['rank'] as num).toInt(),
       userId: map['userId'] ?? '',
-      displayName: map['displayName'] ?? 'Anonymous',
+      displayName: resolveLeaderboardDisplayName(map),
       photoUrl: map['photoURL'] ?? '',
       points: (map['points'] as num).toInt(),
     );
   }
+}
+
+String resolveLeaderboardDisplayName(Map<String, dynamic> data) {
+  for (final key in const ['penName', 'displayName', 'username']) {
+    final value = data[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+  }
+  return 'Anonymous';
 }
 
 class LeaderboardDoc {
@@ -42,7 +50,8 @@ class LeaderboardDoc {
       period: map['period'] ?? '',
       type: map['type'] ?? '',
       lastUpdatedAt: (map['lastUpdatedAt'] as num).toInt(),
-      rankings: (map['rankings'] as List<dynamic>?)
+      rankings:
+          (map['rankings'] as List<dynamic>?)
               ?.map((r) => LeaderboardRank.fromMap(r as Map<String, dynamic>))
               .toList() ??
           [],

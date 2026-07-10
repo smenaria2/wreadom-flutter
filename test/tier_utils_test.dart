@@ -36,4 +36,25 @@ void main() {
       expect(info.progressPercent, 100);
     });
   });
+
+  test('uses the shared tier palette for reader and author tracks', () {
+    const expectedMainColors = [
+      0xFF22C55E,
+      0xFF14B8A6,
+      0xFF0EA5E9,
+      0xFF8B5CF6,
+      0xFFF59E0B,
+      0xFFF97316,
+      0xFF4F46E5,
+      0xFFD4AF37,
+    ];
+    for (var index = 0; index < tierDefinitions.length; index++) {
+      final definition = tierDefinitions[index];
+      expect(definition.mainColor.toARGB32(), expectedMainColors[index]);
+      expect(
+        definition.gradientFor(RankTrack.reader),
+        definition.gradientFor(RankTrack.author),
+      );
+    }
+  });
 }

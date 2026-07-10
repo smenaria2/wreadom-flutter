@@ -20,19 +20,20 @@ class TierDefinition {
     required this.minPoints,
     required this.readerIcon,
     required this.authorIcon,
-    required this.readerGradient,
-    required this.authorGradient,
+    required this.mainColor,
+    required this.lightColor,
   });
 
   final int tier;
   final int minPoints;
   final String readerIcon;
   final String authorIcon;
-  final LinearGradient readerGradient;
-  final LinearGradient authorGradient;
+  final Color mainColor;
+  final Color lightColor;
 
-  LinearGradient gradientFor(RankTrack track) =>
-      track == RankTrack.author ? authorGradient : readerGradient;
+  LinearGradient gradientFor(RankTrack track) => LinearGradient(
+    colors: [mainColor, Color.lerp(mainColor, lightColor, 0.55)!],
+  );
 
   String iconFor(RankTrack track) =>
       track == RankTrack.author ? authorIcon : readerIcon;
@@ -68,96 +69,64 @@ const List<TierDefinition> tierDefinitions = [
     minPoints: 0,
     readerIcon: '\u{1F331}',
     authorIcon: '\u{1F331}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF757575), Color(0xFFBDBDBD)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFF757575), Color(0xFFBDBDBD)],
-    ),
+    mainColor: Color(0xFF22C55E),
+    lightColor: Color(0xFFDCFCE7),
   ),
   TierDefinition(
     tier: 2,
     minPoints: 500,
     readerIcon: '\u{1F4D6}',
     authorIcon: '\u{270D}\u{FE0F}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFFF9A825), Color(0xFFFFD54F)],
-    ),
+    mainColor: Color(0xFF14B8A6),
+    lightColor: Color(0xFFCCFBF1),
   ),
   TierDefinition(
     tier: 3,
     minPoints: 5000,
     readerIcon: '\u{1F647}\u{200D}\u{2642}\u{FE0F}',
     authorIcon: '\u{2712}\u{FE0F}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF00796B), Color(0xFF4DB6AC)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFFF57F17), Color(0xFFFFCA28)],
-    ),
+    mainColor: Color(0xFF0EA5E9),
+    lightColor: Color(0xFFE0F2FE),
   ),
   TierDefinition(
     tier: 4,
     minPoints: 25000,
     readerIcon: '\u{1F60D}',
     authorIcon: '\u{1F4DC}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF00838F), Color(0xFF4DD0E1)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFFE65100), Color(0xFFFF8A65)],
-    ),
+    mainColor: Color(0xFF8B5CF6),
+    lightColor: Color(0xFFEDE9FE),
   ),
   TierDefinition(
     tier: 5,
     minPoints: 50000,
     readerIcon: '\u{1FA94}',
     authorIcon: '\u{1FA94}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFFC62828), Color(0xFFEF9A9A)],
-    ),
+    mainColor: Color(0xFFF59E0B),
+    lightColor: Color(0xFFFEF3C7),
   ),
   TierDefinition(
     tier: 6,
     minPoints: 100000,
     readerIcon: '\u{1F451}',
     authorIcon: '\u{1F451}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF283593), Color(0xFF7986CB)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFF9A6B00), Color(0xFFFFD700)],
-    ),
+    mainColor: Color(0xFFF97316),
+    lightColor: Color(0xFFFFEDD5),
   ),
   TierDefinition(
     tier: 7,
     minPoints: 500000,
     readerIcon: '\u{2B50}',
     authorIcon: '\u{2B50}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF4A148C), Color(0xFFCE93D8)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFF880E4F), Color(0xFFF48FB1)],
-    ),
+    mainColor: Color(0xFF4F46E5),
+    lightColor: Color(0xFFE0E7FF),
   ),
   TierDefinition(
     tier: 8,
     minPoints: 1000000,
     readerIcon: '\u{1F3C6}',
     authorIcon: '\u{1F3C6}',
-    readerGradient: LinearGradient(
-      colors: [Color(0xFF7C4DFF), Color(0xFF00ACC1), Color(0xFF00A86B)],
-    ),
-    authorGradient: LinearGradient(
-      colors: [Color(0xFFFF6D00), Color(0xFFFFC400), Color(0xFFD81B60)],
-    ),
+    mainColor: Color(0xFFD4AF37),
+    lightColor: Color(0xFFFFF7D6),
   ),
 ];
 

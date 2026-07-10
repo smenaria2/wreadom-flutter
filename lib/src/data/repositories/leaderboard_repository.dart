@@ -26,11 +26,7 @@ class LeaderboardRepository {
           return LeaderboardRank(
             rank: idx + 1,
             userId: doc.id,
-            displayName:
-                data['penName'] ??
-                data['displayName'] ??
-                data['username'] ??
-                'Anonymous',
+            displayName: resolveLeaderboardDisplayName(data),
             photoUrl: data['photoURL'] ?? '',
             points: (data[pointField] as num).toInt(),
           );

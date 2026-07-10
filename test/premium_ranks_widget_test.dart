@@ -28,21 +28,21 @@ void main() {
       ),
     );
     expect(find.text('AUTHOR STATUS'), findsOneWidget);
-    expect(find.text('2. Storyteller'), findsOneWidget);
+    expect(find.text('Storyteller'), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
 
-    await tester.tap(find.text('2. Storyteller'));
+    await tester.tap(find.text('Storyteller'));
     await tester.pumpAndSettle();
 
     expect(find.text('READER STATUS'), findsOneWidget);
-    expect(find.text('3. Word Enthusiast'), findsOneWidget);
+    expect(find.text('Word Enthusiast'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
   });
 
   testWidgets('reader-only card does not flip', (tester) async {
     await _pump(tester, _user(readerPoints: 500, readerRank: 8));
     expect(find.text('READER STATUS'), findsOneWidget);
-    await tester.tap(find.text('2. Curious Reader'));
+    await tester.tap(find.text('Curious Reader'));
     await tester.pumpAndSettle();
     expect(find.text('READER STATUS'), findsOneWidget);
     expect(find.text('AUTHOR STATUS'), findsNothing);
@@ -71,9 +71,9 @@ void main() {
       _user(authorPoints: 500, readerPoints: 500),
       disableAnimations: true,
     );
-    await tester.tap(find.text('2. Storyteller'));
+    await tester.tap(find.text('Storyteller'));
     await tester.pump();
-    expect(find.text('2. Curious Reader'), findsOneWidget);
+    expect(find.text('Curious Reader'), findsOneWidget);
   });
 }
 

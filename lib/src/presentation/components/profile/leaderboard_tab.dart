@@ -10,8 +10,6 @@ import '../../../utils/tier_utils.dart';
 import '../../../localization/generated/app_localizations.dart';
 import 'leaderboard_info_modal.dart';
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ Public Widget Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
 class LeaderboardTab extends StatefulWidget {
   final UserModel currentUser;
   final String initialCategory;
@@ -46,8 +44,6 @@ class LeaderboardTab extends StatefulWidget {
   @override
   State<LeaderboardTab> createState() => _LeaderboardTabState();
 }
-
-// Ã¢â€â‚¬Ã¢â€â‚¬ State Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
   final _repository = LeaderboardRepository();
@@ -84,8 +80,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     super.dispose();
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
   // Returns the target user's points for the currently active category tab
   int? get _activeTargetPoints {
     if (_period != 'total') return null;
@@ -101,8 +95,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         ? widget.targetUserReaderRank
         : widget.targetUserRank;
   }
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Data Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Future<void> _loadLeaderboard() async {
     final request = ++_loadRequest;
@@ -138,13 +130,19 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       _highlightedUserId = widget.targetUserId;
       _revealedCategory = null;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
     _loadLeaderboard();
   }
 
   void _scheduleTargetReveal() {
     if (widget.targetUserId == null ||
         _period != 'total' ||
-        _activeTargetRank == null) {
+        _activeTargetRank == null ||
+        (_activeTargetPoints ?? 0) <= 0) {
       return;
     }
     if (_activeTargetRank! <= 3) {
@@ -191,8 +189,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Build Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -212,7 +208,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
     return Column(
       children: [
-        // Ã¢â€â‚¬Ã¢â€â‚¬ Controls Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Column(
@@ -220,8 +215,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               GlassSegmentedControl(
                 selectedValue: _category,
                 options: {
-                  'author': 'Ã°Å¸â€“â€¹Ã¯Â¸Â ${l10n.authors}',
-                  'reader': 'Ã°Å¸â€œâ€“ ${l10n.readers}',
+                  'author': '\u{270D}\u{FE0F} ${l10n.authors}',
+                  'reader': '\u{1F4D6} ${l10n.readers}',
                 },
                 onChanged: (val) => _selectCategory(RankTrack.fromValue(val)),
               ),
@@ -260,16 +255,16 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
                           },
                           items: [
                             DropdownMenuItem(
-                              value: 'monthly',
-                              child: Text('Ã°Å¸â€”â€œÃ¯Â¸Â  ${l10n.monthly}'),
+                              value: 'total',
+                              child: Text('\u{1F3C6}  ${l10n.totalAllTime}'),
                             ),
                             DropdownMenuItem(
-                              value: 'total',
-                              child: Text('Ã°Å¸Ââ€   ${l10n.totalAllTime}'),
+                              value: 'monthly',
+                              child: Text('\u{1F5D3}\u{FE0F}  ${l10n.monthly}'),
                             ),
                             DropdownMenuItem(
                               value: 'weekly',
-                              child: Text('Ã°Å¸â€œâ€¦  ${l10n.weekly}'),
+                              child: Text('\u{1F4C5}  ${l10n.weekly}'),
                             ),
                           ],
                         ),
@@ -293,8 +288,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         ),
 
         const SizedBox(height: 16),
-
-        // Ã¢â€â‚¬Ã¢â€â‚¬ List Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         Expanded(
           child: _loading
               ? Center(child: CircularProgressIndicator(color: scheme.primary))
@@ -315,7 +308,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
                             child: LayoutBuilder(
                               builder: (ctx, constraints) => _PodiumStrip(
                                 top3: _rankings.take(3).toList(),
-                                currentUserId: widget.currentUser.id,
                                 highlightedUserId: _highlightedUserId,
                                 category: _category,
                                 width: constraints.maxWidth,
@@ -381,7 +373,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('Ã°Å¸Ââ€ ', style: TextStyle(fontSize: 56)),
+          const Text('\u{1F3C6}', style: TextStyle(fontSize: 56)),
           const SizedBox(height: 12),
           Text(
             l10n.noRankingsPeriod,
@@ -424,8 +416,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     );
   }
 }
-
-// Ã¢â€â‚¬Ã¢â€â‚¬ Custom Sliding Segment Switcher Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class GlassSegmentedControl extends StatelessWidget {
   final String selectedValue;
@@ -508,8 +498,6 @@ class GlassSegmentedControl extends StatelessWidget {
   }
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ Staggered Entrance Animator Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
 class AnimatedEntrance extends StatelessWidget {
   final Widget child;
   final int index;
@@ -534,12 +522,9 @@ class AnimatedEntrance extends StatelessWidget {
   }
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ Podium Strip (stateful for bar tap highlights) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
 class _PodiumStrip extends StatelessWidget {
   const _PodiumStrip({
     required this.top3,
-    required this.currentUserId,
     required this.highlightedUserId,
     required this.category,
     required this.width,
@@ -548,7 +533,6 @@ class _PodiumStrip extends StatelessWidget {
   });
 
   final List<LeaderboardRank> top3;
-  final String currentUserId;
   final String? highlightedUserId;
   final String category;
   final double width;
@@ -561,10 +545,10 @@ class _PodiumStrip extends StatelessWidget {
     // Display order: 2nd place left, 1st place centre, 3rd place right
     final order = [top3[1], top3[0], top3[2]];
     final heights = [90.0, 120.0, 75.0];
-    final medals = ['Ã°Å¸Â¥Ë†', 'Ã°Å¸Â¥â€¡', 'Ã°Å¸Â¥â€°'];
+    final medals = ['\u{1F948}', '\u{1F947}', '\u{1F949}'];
     final accentColors = [
-      scheme.outlineVariant,
-      scheme.tertiary,
+      const Color(0xFFE2E8F0),
+      const Color(0xFFD4AF37),
       const Color(0xFFCD7F32),
     ];
 
@@ -573,13 +557,11 @@ class _PodiumStrip extends StatelessWidget {
       children: List.generate(3, (i) {
         final entry = order[i];
         final sizeFactor = i == 1 ? 1.0 : 0.82;
-        final isHighlighted =
-            entry.userId == currentUserId || entry.userId == highlightedUserId;
+        final isHighlighted = entry.userId == highlightedUserId;
 
         return Expanded(
           child: Column(
             children: [
-              // Avatar + name Ã¢â‚¬â€œ tapping navigates to profile
               GestureDetector(
                 onTap: () => onUserClick(entry.userId),
                 behavior: HitTestBehavior.opaque,
@@ -651,8 +633,6 @@ class _PodiumStrip extends StatelessWidget {
               ),
 
               const SizedBox(height: 6),
-
-              // Rank bar Ã¢â‚¬â€œ tapping only highlights (no navigation)
               GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -678,8 +658,8 @@ class _PodiumStrip extends StatelessWidget {
                           colors: [
                             isHighlighted
                                 ? scheme.primary.withValues(alpha: 0.35)
-                                : accentColors[i].withValues(alpha: 0.15),
-                            accentColors[i].withValues(alpha: 0.03),
+                                : accentColors[i].withValues(alpha: 0.28),
+                            accentColors[i].withValues(alpha: 0.08),
                           ],
                         ),
                         borderRadius: const BorderRadius.vertical(
@@ -743,8 +723,6 @@ class _PodiumStrip extends StatelessWidget {
     );
   }
 }
-
-// Ã¢â€â‚¬Ã¢â€â‚¬ Rank Card (rank 4+) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _RankingCard extends StatelessWidget {
   const _RankingCard({
