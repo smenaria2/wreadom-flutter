@@ -15,7 +15,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|web/|favicon.png|manifest.json|flutter_service_worker.js|version.json|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico|.*\\.json).*)",
+      "source": "/((?!.well-known/|assets/|web/|favicon.png|manifest.json|flutter_service_worker.js|version.json|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico|.*\\.json).*)",
       "destination": "/index.html"
     }
   ]

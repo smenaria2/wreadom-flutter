@@ -1558,8 +1558,6 @@
   "noRankingsPeriod": "No rankings for this period yet.",
   "startReadingAppear": "Start reading to appear here!",
   "aboutLeaderboardTiers": "About Leaderboard & Tiers",
-  "wreadomRankSystem": "About the Wreadom Rank System",
-  "howToEarnPoints": "How to Earn Points",
   "publishChaptersPoints": "Publishing Chapters: +50 Author Points per chapter.",
   "receiveCommentsPoints": "Receiving Comments: +5 Author Points per comment.",
   "readBooksPoints": "Reading Books: +10 Reader Points per chapter.",
@@ -1755,7 +1753,7 @@
   "noRankingsPeriod": "No rankings for this period yet.",
   "startReadingAppear": "Start reading to appear here!",
   "aboutLeaderboardTiers": "About Leaderboard & Tiers",
-  "wreadomRankSystem": "About the Wreadom Rank System",
+  "wreadomRankSystem": "Wreadom Rank System",
   "howToEarnPoints": "How to Earn Points",
   "publishChaptersPoints": "Publishing Chapters: +50 Author Points per chapter.",
   "receiveCommentsPoints": "Receiving Comments: +5 Author Points per comment.",
@@ -1809,7 +1807,7 @@
   "viewLeaderboard": "View leaderboard",
   "tierUpTitle": "Tier unlocked!",
   "tierUpBody": "Your progress has reached a new tier.",
-  "authorPointsExplanation": "Author points grow through writing and engagement with your published work.",
-  "readerPointsExplanation": "Reader points grow through reading and participating in the community.",
+  "authorPointsExplanation": "Author can earn points when they publish content, readers read the content or get review on the content.",
+  "readerPointsExplanation": "Reader can earn point by reading content and reviewing content.",
   "dismiss": "Dismiss"
 }

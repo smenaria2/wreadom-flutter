@@ -2906,12 +2906,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get aboutLeaderboardTiers => 'लीडरबोर्ड और स्तरों के बारे में';
 
   @override
-  String get wreadomRankSystem => 'रीडम रैंक प्रणाली के बारे में';
-
-  @override
-  String get howToEarnPoints => 'अंक कैसे अर्जित करें';
-
-  @override
   String get publishChaptersPoints =>
       'अध्याय प्रकाशित करना: प्रति प्रकाशित अध्याय पर +50 लेखक अंक।';
 
@@ -2984,6 +2978,12 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get tier5ReaderTitle => 'साहित्य साधक';
+
+  @override
+  String get wreadomRankSystem => 'रीडम रैंक प्रणाली के बारे में';
+
+  @override
+  String get howToEarnPoints => 'अंक कैसे अर्जित करें';
 
   @override
   String get tier5AuthorTitle => 'सृजन साधक';

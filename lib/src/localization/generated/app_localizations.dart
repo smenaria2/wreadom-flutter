@@ -5162,18 +5162,6 @@ abstract class AppLocalizations {
   /// **'About Leaderboard & Tiers'**
   String get aboutLeaderboardTiers;
 
-  /// No description provided for @wreadomRankSystem.
-  ///
-  /// In en, this message translates to:
-  /// **'About the Wreadom Rank System'**
-  String get wreadomRankSystem;
-
-  /// No description provided for @howToEarnPoints.
-  ///
-  /// In en, this message translates to:
-  /// **'How to Earn Points'**
-  String get howToEarnPoints;
-
   /// No description provided for @publishChaptersPoints.
   ///
   /// In en, this message translates to:
@@ -5305,6 +5293,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Literature Devotee'**
   String get tier5ReaderTitle;
+
+  /// No description provided for @wreadomRankSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom Rank System'**
+  String get wreadomRankSystem;
+
+  /// No description provided for @howToEarnPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Earn Points'**
+  String get howToEarnPoints;
 
   /// No description provided for @tier5AuthorTitle.
   ///
@@ -5447,13 +5447,13 @@ abstract class AppLocalizations {
   /// No description provided for @authorPointsExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Author points grow through writing and engagement with your published work.'**
+  /// **'Author can earn points when they publish content, readers read the content or get review on the content.'**
   String get authorPointsExplanation;
 
   /// No description provided for @readerPointsExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Reader points grow through reading and participating in the community.'**
+  /// **'Reader can earn point by reading content and reviewing content.'**
   String get readerPointsExplanation;
 
   /// No description provided for @dismiss.

@@ -10,6 +10,12 @@ import '../../../utils/tier_utils.dart';
 import '../../../localization/generated/app_localizations.dart';
 import 'leaderboard_info_modal.dart';
 
+typedef LeaderboardLoader =
+    Future<List<LeaderboardRank>> Function({
+      required String period,
+      required String type,
+    });
+
 class LeaderboardTab extends StatefulWidget {
   final UserModel currentUser;
   final String initialCategory;
@@ -25,6 +31,7 @@ class LeaderboardTab extends StatefulWidget {
   final int? targetUserReaderRank;
   final String? targetUserDisplayName;
   final String? targetUserPhotoUrl;
+  final LeaderboardLoader? leaderboardLoader;
 
   const LeaderboardTab({
     super.key,
@@ -39,6 +46,7 @@ class LeaderboardTab extends StatefulWidget {
     this.targetUserReaderRank,
     this.targetUserDisplayName,
     this.targetUserPhotoUrl,
+    this.leaderboardLoader,
   });
 
   @override
@@ -46,10 +54,10 @@ class LeaderboardTab extends StatefulWidget {
 }
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  final _repository = LeaderboardRepository();
+  LeaderboardRepository? _repository;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _targetRowKey = GlobalKey();
-  String? _revealedCategory;
+  String? _revealedSelection;
 
   late String _period;
   late String _category;
@@ -66,6 +74,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   @override
   void initState() {
     super.initState();
+    if (widget.leaderboardLoader == null) _repository = LeaderboardRepository();
     _category = widget.initialCategory;
     _period = widget.initialPeriod == 'daily'
         ? 'monthly'
@@ -103,10 +112,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       _loadError = null;
     });
     try {
-      final results = await _repository.fetchLeaderboard(
-        period: _period,
-        type: _category,
-      );
+      final loader = widget.leaderboardLoader ?? _repository!.fetchLeaderboard;
+      final results = await loader(period: _period, type: _category);
       if (!mounted || request != _loadRequest) return;
       setState(() {
         _rankings = results.take(20).toList();
@@ -128,7 +135,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     setState(() {
       _category = track.value;
       _highlightedUserId = widget.targetUserId;
-      _revealedCategory = null;
+      _revealedSelection = null;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
@@ -138,44 +145,82 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     _loadLeaderboard();
   }
 
+  String get _selectionKey => '$_category:$_period';
+  void _selectPeriod(String period) {
+    if (_period == period) return;
+    setState(() {
+      _period = period;
+      _highlightedUserId = widget.targetUserId;
+      _revealedSelection = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+    _loadLeaderboard();
+  }
+
+  bool get _shouldAppendTarget =>
+      widget.targetUserId != null &&
+      _period == 'total' &&
+      (_activeTargetPoints ?? 0) > 0 &&
+      (_activeTargetRank ?? 0) > 20 &&
+      !_rankings.any((entry) => entry.userId == widget.targetUserId);
+
   void _scheduleTargetReveal() {
+    final selection = _selectionKey;
     if (widget.targetUserId == null ||
         _period != 'total' ||
         _activeTargetRank == null ||
         (_activeTargetPoints ?? 0) <= 0) {
+      _revealedSelection = selection;
       return;
     }
     if (_activeTargetRank! <= 3) {
-      _revealedCategory = _category;
+      _revealedSelection = selection;
       return;
     }
-    if (_revealedCategory == _category) return;
+    final targetWillRender =
+        _shouldAppendTarget ||
+        _rankings.any((entry) => entry.userId == widget.targetUserId);
+    if (!targetWillRender) {
+      _revealedSelection = selection;
+      return;
+    }
+    if (_revealedSelection == selection) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _revealedCategory == _category) return;
+      if (!mounted || _revealedSelection == selection) return;
+      _revealedSelection = selection;
       final targetContext = _targetRowKey.currentContext;
-      if (targetContext == null) {
-        if (_scrollController.hasClients) {
-          _scrollController
-              .animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : const Duration(milliseconds: 500),
-                curve: Curves.easeInOutCubic,
-              )
-              .then((_) => _scheduleTargetReveal());
-        }
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          alignment: 0.82,
+        );
         return;
       }
-      _revealedCategory = _category;
-      Scrollable.ensureVisible(
-        targetContext,
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-        alignment: 0.82,
-      );
+      if (_scrollController.hasClients) {
+        final disableAnimations = MediaQuery.disableAnimationsOf(context);
+        _scrollController
+            .animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 500),
+              curve: Curves.easeInOutCubic,
+            )
+            .then((_) {
+              if (!mounted || !_scrollController.hasClients) return;
+              _scrollController.jumpTo(
+                _scrollController.position.maxScrollExtent,
+              );
+            });
+      }
     });
   }
 
@@ -195,13 +240,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final isSelectedProfile =
-        widget.targetUserId != null &&
-        widget.targetUserId != widget.currentUser.id;
-    final appendTarget =
-        isSelectedProfile &&
-        (_activeTargetRank ?? 0) > 20 &&
-        !_rankings.any((entry) => entry.userId == widget.targetUserId);
+    final appendTarget = _shouldAppendTarget;
 
     // Podium: only when the first three renumbered ranks are 1, 2, 3
     final hasPodium = _rankings.length >= 3;
@@ -248,10 +287,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
                             color: scheme.onSurface,
                           ),
                           onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _period = val);
-                              _loadLeaderboard();
-                            }
+                            if (val != null) _selectPeriod(val);
                           },
                           items: [
                             DropdownMenuItem(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
@@ -32,6 +33,7 @@ import '../screens/archive_reader_screen.dart';
 import '../screens/admin_daily_topics_screen.dart';
 import '../screens/question_answers_screen.dart';
 import '../providers/feed_providers.dart';
+import '../providers/book_providers.dart';
 import '../components/create_post_sheet.dart';
 import '../components/main_route_gate.dart';
 import 'app_routes.dart';
@@ -134,6 +136,87 @@ class CreatePostArguments {
   final int? initialAudioSizeBytes;
   final String? initialAudioMimeType;
   final String? initialText;
+}
+
+class QuestionAnswersLinkArguments {
+  const QuestionAnswersLinkArguments({
+    required this.bookId,
+    required this.leafId,
+  });
+
+  final String bookId;
+  final String leafId;
+}
+
+class _LinkedQuestionAnswersScreen extends ConsumerWidget {
+  const _LinkedQuestionAnswersScreen({required this.arguments});
+
+  final QuestionAnswersLinkArguments arguments;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final bookAsync = ref.watch(bookDetailProvider(arguments.bookId));
+    return bookAsync.when(
+      data: (book) {
+        final matches = book?.leaves?.where(
+          (candidate) => candidate.id == arguments.leafId,
+        );
+        final leaf = matches == null || matches.isEmpty ? null : matches.first;
+        final question = (leaf?.question ?? leaf?.textPlain)?.trim();
+        if (book == null ||
+            leaf == null ||
+            question == null ||
+            question.isEmpty) {
+          return _QuestionLinkError(
+            message: l10n.couldNotLoad(l10n.answers),
+            onRetry: () => ref.invalidate(bookDetailProvider(arguments.bookId)),
+          );
+        }
+        return QuestionAnswersScreen(
+          query: QuestionLeafAnswersQuery(
+            bookId: arguments.bookId,
+            leafId: arguments.leafId,
+            question: question,
+          ),
+        );
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => _QuestionLinkError(
+        message: l10n.couldNotLoad(l10n.answers),
+        onRetry: () => ref.invalidate(bookDetailProvider(arguments.bookId)),
+      ),
+    );
+  }
+}
+
+class _QuestionLinkError extends StatelessWidget {
+  const _QuestionLinkError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.answers)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: Text(l10n.tryAgain)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CreatePostRouteScreen extends StatefulWidget {
@@ -274,6 +357,17 @@ class AppRouter {
     }
     if (resolved.route == AppRoutes.postDetail && resolved.payload != null) {
       return PostDetailArguments(postId: resolved.payload!);
+    }
+    if (resolved.route == AppRoutes.createPost) {
+      return CreatePostArguments(initialText: resolved.payload);
+    }
+    if (resolved.route == AppRoutes.questionAnswers &&
+        resolved.payload != null &&
+        resolved.leafId != null) {
+      return QuestionAnswersLinkArguments(
+        bookId: resolved.payload!,
+        leafId: resolved.leafId!,
+      );
     }
     if (resolved.route == AppRoutes.publicProfile && resolved.payload != null) {
       return PublicProfileArguments(userId: resolved.payload!);
@@ -438,13 +532,19 @@ class AppRouter {
         );
       case AppRoutes.questionAnswers:
         final args = resolvedArguments;
-        if (args is! QuestionLeafAnswersQuery) {
-          return _notFound('Question query details are missing.');
+        if (args is QuestionAnswersLinkArguments) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => _LinkedQuestionAnswersScreen(arguments: args),
+          );
         }
-        return MaterialPageRoute(
-          settings: routeSettings,
-          builder: (_) => QuestionAnswersScreen(query: args),
-        );
+        if (args is QuestionLeafAnswersQuery) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => QuestionAnswersScreen(query: args),
+          );
+        }
+        return _notFound('Question query details are missing.');
       case AppRoutes.conversation:
         final argsValue = resolvedArguments;
         if (argsValue is! ConversationArguments) {

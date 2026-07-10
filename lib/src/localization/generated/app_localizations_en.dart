@@ -2899,12 +2899,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutLeaderboardTiers => 'About Leaderboard & Tiers';
 
   @override
-  String get wreadomRankSystem => 'About the Wreadom Rank System';
-
-  @override
-  String get howToEarnPoints => 'How to Earn Points';
-
-  @override
   String get publishChaptersPoints =>
       'Publishing Chapters: +50 Author Points per chapter.';
 
@@ -2978,6 +2972,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tier5ReaderTitle => 'Literature Devotee';
 
   @override
+  String get wreadomRankSystem => 'Wreadom Rank System';
+
+  @override
+  String get howToEarnPoints => 'How to Earn Points';
+
+  @override
   String get tier5AuthorTitle => 'Master Wordsmith';
 
   @override
@@ -3048,11 +3048,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authorPointsExplanation =>
-      'Author points grow through writing and engagement with your published work.';
+      'Author can earn points when they publish content, readers read the content or get review on the content.';
 
   @override
   String get readerPointsExplanation =>
-      'Reader points grow through reading and participating in the community.';
+      'Reader can earn point by reading content and reviewing content.';
 
   @override
   String get dismiss => 'Dismiss';

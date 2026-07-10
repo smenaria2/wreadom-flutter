@@ -160,5 +160,82 @@ void main() {
       expect(terms?.payload, isNull);
       expect(wwwTerms?.route, AppRoutes.terms);
     });
+
+    test('builds canonical app page and function URLs', () {
+      expect(AppLinkHelper.createPost(), 'https://wreadom.in/create-post');
+      expect(AppLinkHelper.help(), 'https://wreadom.in/help');
+      expect(AppLinkHelper.search(), 'https://wreadom.in/search');
+      expect(AppLinkHelper.writer(), 'https://wreadom.in/writer');
+      expect(AppLinkHelper.savedBooks(), 'https://wreadom.in/saved-books');
+      expect(AppLinkHelper.notifications(), 'https://wreadom.in/notifications');
+      expect(
+        AppLinkHelper.profileSettings(),
+        'https://wreadom.in/settings/profile',
+      );
+      expect(
+        AppLinkHelper.languageSettings(),
+        'https://wreadom.in/settings/language',
+      );
+      expect(AppLinkHelper.leaderboard(), 'https://wreadom.in/leaderboard');
+      expect(
+        AppLinkHelper.questionAnswers('book 1', 'leaf/2'),
+        'https://wreadom.in/questions?book=book+1&leaf=leaf%2F2',
+      );
+    });
+
+    test('builds and resolves Unicode prefilled create-post URLs', () {
+      final link = AppLinkHelper.createPost(
+        text:
+            ' \u{0906}\u{091C} \u{0915}\u{0940} \u{0915}\u{0939}\u{093E}\u{0928}\u{0940} ',
+      );
+      final resolved = AppLinkHelper.resolve(link);
+
+      expect(resolved?.route, AppRoutes.createPost);
+      expect(
+        resolved?.payload,
+        '\u{0906}\u{091C} \u{0915}\u{0940} \u{0915}\u{0939}\u{093E}\u{0928}\u{0940}',
+      );
+      expect(AppLinkHelper.createPost(text: '   '), AppLinkHelper.createPost());
+    });
+
+    test('resolves create-post and help compatibility aliases', () {
+      for (final path in ['/create-post', '/new-post', '/compose']) {
+        expect(AppLinkHelper.resolve(path)?.route, AppRoutes.createPost);
+      }
+      for (final path in ['/help', '/guide']) {
+        expect(AppLinkHelper.resolve(path)?.route, AppRoutes.help);
+      }
+    });
+
+    test('resolves safe parameterless app pages on both hosts', () {
+      final routes = <String, String>{
+        '/saved-books': AppRoutes.savedBooks,
+        '/notifications': AppRoutes.notifications,
+        '/settings/profile': AppRoutes.profileSettings,
+        '/settings/language': AppRoutes.languageSettings,
+        '/leaderboard': AppRoutes.leaderboard,
+      };
+      for (final entry in routes.entries) {
+        expect(
+          AppLinkHelper.resolve('https://wreadom.in${entry.key}')?.route,
+          entry.value,
+        );
+        expect(
+          AppLinkHelper.resolve('https://www.wreadom.in${entry.key}')?.route,
+          entry.value,
+        );
+      }
+    });
+
+    test('resolves question IDs and rejects incomplete question links', () {
+      for (final path in ['/questions', '/answers']) {
+        final resolved = AppLinkHelper.resolve('$path?book=book-1&leaf=leaf-2');
+        expect(resolved?.route, AppRoutes.questionAnswers);
+        expect(resolved?.payload, 'book-1');
+        expect(resolved?.leafId, 'leaf-2');
+      }
+      expect(AppLinkHelper.resolve('/questions?book=book-1'), isNull);
+      expect(AppLinkHelper.resolve('/questions?leaf=leaf-2'), isNull);
+    });
   });
 }

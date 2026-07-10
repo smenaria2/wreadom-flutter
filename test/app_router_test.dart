@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
@@ -47,6 +47,41 @@ void main() {
       expect(args.initialReaderChapterIndex, 2);
     });
 
+    test('converts prefilled create-post links to typed arguments', () {
+      final settings = AppRouter.routeSettingsForAppLink(
+        'https://wreadom.in/create-post?text=%E0%A4%95%E0%A4%B9%E0%A4%BE%E0%A4%A8%E0%A5%80',
+      );
+
+      expect(settings?.name, AppRoutes.createPost);
+      expect(settings?.arguments, isA<CreatePostArguments>());
+      expect(
+        (settings!.arguments as CreatePostArguments).initialText,
+        '\u{0915}\u{0939}\u{093E}\u{0928}\u{0940}',
+      );
+    });
+
+    test('converts question links to stable typed identifiers', () {
+      final settings = AppRouter.routeSettingsForAppLink(
+        'https://wreadom.in/questions?book=book-1&leaf=leaf-2',
+      );
+
+      expect(settings?.name, AppRoutes.questionAnswers);
+      expect(settings?.arguments, isA<QuestionAnswersLinkArguments>());
+      final args = settings!.arguments as QuestionAnswersLinkArguments;
+      expect(args.bookId, 'book-1');
+      expect(args.leafId, 'leaf-2');
+    });
+
+    test('safe app-page links produce their route settings', () {
+      expect(
+        AppRouter.routeSettingsForAppLink('https://wreadom.in/help')?.name,
+        AppRoutes.help,
+      );
+      expect(
+        AppRouter.routeSettingsForAppLink('/leaderboard')?.name,
+        AppRoutes.leaderboard,
+      );
+    });
     test('parses user deep link correctly', () {
       const settings = RouteSettings(name: 'https://wreadom.in/user/456');
       final route = AppRouter.onGenerateRoute(settings);

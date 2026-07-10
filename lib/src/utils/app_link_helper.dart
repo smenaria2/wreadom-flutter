@@ -7,6 +7,26 @@ class AppLinkHelper {
   static const privacyPolicyUrl = '$origin/privacy';
   static const termsUrl = '$origin/terms';
 
+  static String createPost({String? text}) {
+    final normalized = text?.trim();
+    if (normalized == null || normalized.isEmpty) return '$origin/create-post';
+    return Uri.parse(
+      '$origin/create-post',
+    ).replace(queryParameters: {'text': normalized}).toString();
+  }
+
+  static String help() => '$origin/help';
+  static String questionAnswers(String bookId, String leafId) => Uri.parse(
+    '$origin/questions',
+  ).replace(queryParameters: {'book': bookId, 'leaf': leafId}).toString();
+  static String search() => '$origin/search';
+  static String writer() => '$origin/writer';
+  static String savedBooks() => '$origin/saved-books';
+  static String notifications() => '$origin/notifications';
+  static String profileSettings() => '$origin/settings/profile';
+  static String languageSettings() => '$origin/settings/language';
+  static String leaderboard() => '$origin/leaderboard';
+
   static String book(String bookId) {
     return 'https://wreadom.in/?book=$bookId';
   }
@@ -135,6 +155,44 @@ class AppLinkHelper {
           return const ResolvedAppLink(AppRoutes.discovery, null);
         case 'writer':
           return const ResolvedAppLink(AppRoutes.writerDashboard, null);
+        case 'create-post':
+        case 'new-post':
+        case 'compose':
+          final text = uri.queryParameters['text'];
+          return ResolvedAppLink(
+            AppRoutes.createPost,
+            _hasValue(text) ? text!.trim() : null,
+          );
+        case 'help':
+        case 'guide':
+          return const ResolvedAppLink(AppRoutes.help, null);
+        case 'questions':
+        case 'answers':
+          final bookId = queryBookId;
+          final leafId = queryLeafId;
+          if (_hasValue(bookId) && _hasValue(leafId)) {
+            return ResolvedAppLink(
+              AppRoutes.questionAnswers,
+              bookId!.trim(),
+              leafId: leafId!.trim(),
+            );
+          }
+          break;
+        case 'saved-books':
+          return const ResolvedAppLink(AppRoutes.savedBooks, null);
+        case 'notifications':
+          return const ResolvedAppLink(AppRoutes.notifications, null);
+        case 'settings':
+          final section = id?.trim().toLowerCase();
+          if (section == 'profile') {
+            return const ResolvedAppLink(AppRoutes.profileSettings, null);
+          }
+          if (section == 'language') {
+            return const ResolvedAppLink(AppRoutes.languageSettings, null);
+          }
+          break;
+        case 'leaderboard':
+          return const ResolvedAppLink(AppRoutes.leaderboard, null);
         case 'privacy':
         case 'privacy-policy':
           return const ResolvedAppLink(AppRoutes.privacy, null);
