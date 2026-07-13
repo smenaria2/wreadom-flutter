@@ -216,13 +216,6 @@ class _CollectionDetailScreenState
                           ),
                         ),
                       ],
-                      const SizedBox(height: 20),
-                      Text(
-                        'Stories inside collection',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -248,11 +241,11 @@ class _CollectionDetailScreenState
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                     sliver: SliverGrid.builder(
                       gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 190,
-                            childAspectRatio: 0.48,
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.44,
                             crossAxisSpacing: 12,
-                            mainAxisSpacing: 16,
+                            mainAxisSpacing: 28,
                           ),
                       itemCount: books.length,
                       itemBuilder: (context, index) {
@@ -567,7 +560,12 @@ class _CollectionAppBarBackground extends StatelessWidget {
                   dimension: 120,
                   child: Hero(
                     tag: collectionHeroTag(collection.id, heroScope),
-                    child: CollectionCoverCollage(collection: collection),
+                    child: ClipOval(
+                      child: CollectionCoverCollage(
+                        collection: collection,
+                        borderRadius: 0,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
