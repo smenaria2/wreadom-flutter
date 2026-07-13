@@ -1915,28 +1915,31 @@ void main() {
     expect(historySource, contains('_RemovableHistoryGridItem'));
   });
 
-  test('save flow asks before downloading and removing offline copy', () {
+  test('book quick actions keep save and offline download independent', () {
     final source = File(
       'lib/src/presentation/screens/book_detail_screen.dart',
     ).readAsStringSync();
     final l10n = englishL10n();
 
-    expect(source, contains('l10n.downloadSavedBookTitle'));
+    expect(source, contains('class _BookQuickActions'));
+    expect(source, contains('Future<void> _toggleSaved()'));
+    expect(source, contains('Future<void> _toggleDownload()'));
+    expect(source, contains('writeClipboardText(AppLinkHelper.book'));
     expect(source, contains('offlineServiceProvider'));
-    expect(source, contains('removeDownload == true'));
     expect(source, contains('homepageDownloadedBooksProvider'));
+    expect(source, isNot(contains('l10n.downloadSavedBookTitle')));
     for (final key in [
-      'bookSaved',
-      'downloadSavedBookTitle',
-      'downloadSavedBookBody',
-      'notNow',
+      'moreActions',
+      'saveForLater',
       'download',
-      'keep',
+      'downloaded',
+      'copyLink',
+      'linkCopied',
+      'addToCollection',
     ]) {
       expect(l10n[key], isA<String>());
     }
   });
-
   test('notifications group message rows and carry comment targets', () {
     final notificationSource = File(
       'lib/src/presentation/screens/notifications_screen.dart',

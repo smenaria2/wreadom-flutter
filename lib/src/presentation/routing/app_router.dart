@@ -8,6 +8,7 @@ import '../../domain/models/feed_post.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/app_link_helper.dart';
 import '../screens/book_detail_screen.dart';
+import '../screens/collection_detail_screen.dart';
 import '../screens/category_books_screen.dart';
 import '../screens/conversation_screen.dart';
 import '../screens/collaboration_request_screen.dart';
@@ -44,6 +45,16 @@ class ReaderArguments {
 
   final Book book;
   final int initialChapterIndex;
+}
+
+class CollectionDetailArguments {
+  const CollectionDetailArguments({
+    required this.collectionId,
+    this.heroScope = 'route',
+  });
+
+  final String collectionId;
+  final String heroScope;
 }
 
 class PublicProfileArguments {
@@ -355,6 +366,10 @@ class AppRouter {
         targetLeafId: resolved.leafId,
       );
     }
+    if (resolved.route == AppRoutes.collectionDetail &&
+        resolved.payload != null) {
+      return CollectionDetailArguments(collectionId: resolved.payload!);
+    }
     if (resolved.route == AppRoutes.postDetail && resolved.payload != null) {
       return PostDetailArguments(postId: resolved.payload!);
     }
@@ -455,6 +470,23 @@ class AppRouter {
             targetLeafId: args is BookDetailArguments
                 ? args.targetLeafId
                 : resolvedIncoming?.leafId,
+          ),
+        );
+      case AppRoutes.collectionDetail:
+        final args = resolvedArguments;
+        final collectionId = args is CollectionDetailArguments
+            ? args.collectionId
+            : args?.toString();
+        if (_isMissingRouteValue(collectionId)) {
+          return _notFound('Collection details are missing.');
+        }
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => CollectionDetailScreen(
+            collectionId: collectionId!.trim(),
+            heroScope: args is CollectionDetailArguments
+                ? args.heroScope
+                : 'route',
           ),
         );
       case AppRoutes.reader:

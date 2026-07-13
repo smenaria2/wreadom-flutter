@@ -5461,6 +5461,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get dismiss;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActions;
+
+  /// No description provided for @saveForLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Save for later'**
+  String get saveForLater;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get copyLink;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied.'**
+  String get linkCopied;
+
+  /// No description provided for @contentUnsaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from saved content.'**
+  String get contentUnsaved;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed: {error}'**
+  String downloadFailed(String error);
+
+  /// No description provided for @addToCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to collection'**
+  String get addToCollection;
 }
 
 class _AppLocalizationsDelegate

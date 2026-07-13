@@ -3056,4 +3056,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dismiss => 'Dismiss';
+
+  @override
+  String get moreActions => 'More actions';
+
+  @override
+  String get saveForLater => 'Save for later';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get linkCopied => 'Link copied.';
+
+  @override
+  String get contentUnsaved => 'Removed from saved content.';
+
+  @override
+  String downloadFailed(String error) {
+    return 'Download failed: $error';
+  }
+
+  @override
+  String get addToCollection => 'Add to collection';
 }

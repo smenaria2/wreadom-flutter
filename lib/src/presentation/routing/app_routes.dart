@@ -3,6 +3,7 @@ class AppRoutes {
   static const login = '/login';
   static const main = '/main';
   static const bookDetail = '/book-detail';
+  static const collectionDetail = '/collection-detail';
   static const reader = '/reader';
   static const publicProfile = '/public-profile';
   static const notifications = '/notifications';

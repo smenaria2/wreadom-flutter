@@ -2866,7 +2866,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get deleteLeafContent => 'यह पुस्तक से लीफ को हटा देता है।';
 
   @override
-  String get add => 'Add';
+  String get add => 'जोड़ें';
 
   @override
   String get viewAllAnswers => 'सभी जवाब देखें';
@@ -3065,4 +3065,27 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get dismiss => 'बंद करें';
+
+  @override
+  String get moreActions => 'और विकल्प';
+
+  @override
+  String get saveForLater => 'बाद के लिए सेव करें';
+
+  @override
+  String get copyLink => 'लिंक कॉपी करें';
+
+  @override
+  String get linkCopied => 'लिंक कॉपी हो गया।';
+
+  @override
+  String get contentUnsaved => 'सेव की गई सामग्री से हटाया गया।';
+
+  @override
+  String downloadFailed(String error) {
+    return 'डाउनलोड विफल: $error';
+  }
+
+  @override
+  String get addToCollection => 'संग्रह में जोड़ें';
 }

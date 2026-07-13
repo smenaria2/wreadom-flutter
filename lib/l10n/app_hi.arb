@@ -1139,6 +1139,7 @@
   "deleteLeafTitle": "Delete Leaf?",
   "deleteLeafBody": "This removes the Leaf from the content.",
   "leafAdded": "Leaf added.",
+  "add": "जोड़ें",
   "leafDeleted": "Leaf deleted.",
   "leafMaxLimit": "This content can have up to {count} Leaves.",
   "leafUploadFailed": "Leaf upload failed: {error}",
@@ -1368,5 +1369,12 @@
   "tierUpBody": "आपकी प्रगति एक नए स्तर पर पहुँच गई है।",
   "authorPointsExplanation": "लेखक अंक लेखन और प्रकाशित रचनाओं पर सहभागिता से बढ़ते हैं।",
   "readerPointsExplanation": "पाठक अंक पढ़ने और समुदाय में भाग लेने से बढ़ते हैं।",
-  "dismiss": "बंद करें"
-}
+  "dismiss": "बंद करें",
+  "moreActions": "\u0914\u0930 \u0935\u093f\u0915\u0932\u094d\u092a",
+  "saveForLater": "\u092c\u093e\u0926 \u0915\u0947 \u0932\u093f\u090f \u0938\u0947\u0935 \u0915\u0930\u0947\u0902",
+  "copyLink": "\u0932\u093f\u0902\u0915 \u0915\u0949\u092a\u0940 \u0915\u0930\u0947\u0902",
+  "linkCopied": "\u0932\u093f\u0902\u0915 \u0915\u0949\u092a\u0940 \u0939\u094b \u0917\u092f\u093e\u0964",
+  "contentUnsaved": "\u0938\u0947\u0935 \u0915\u0940 \u0917\u0908 \u0938\u093e\u092e\u0917\u094d\u0930\u0940 \u0938\u0947 \u0939\u091f\u093e\u092f\u093e \u0917\u092f\u093e\u0964",
+  "downloadFailed": "\u0921\u093e\u0909\u0928\u0932\u094b\u0921 \u0935\u093f\u092b\u0932: {error}",
+  "@downloadFailed": {"placeholders": {"error": {"type": "String"}}},
+  "addToCollection": "\u0938\u0902\u0917\u094d\u0930\u0939 \u092e\u0947\u0902 \u091c\u094b\u0921\u093c\u0947\u0902"}

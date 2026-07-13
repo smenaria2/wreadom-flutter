@@ -6,6 +6,7 @@ import '../../providers/book_providers.dart';
 import '../../components/book_card.dart';
 import '../../widgets/themed_empty_state.dart';
 import '../../widgets/see_more_content_button.dart';
+import '../collections/horizontal_collections_list.dart';
 
 class UserContentTab extends ConsumerStatefulWidget {
   final String userId;
@@ -26,44 +27,51 @@ class _UserContentTabState extends ConsumerState<UserContentTab> {
 
     return booksAsync.when(
       data: (books) {
-        if (books.isEmpty) {
-          return ThemedEmptyState(
-            icon: Icons.auto_stories_outlined,
-            message: l10n.noPublishedBooksYet,
-          );
-        }
-
         final visibleBooks = _showAll ? books : books.take(_pageSize).toList();
         final hasMore = !_showAll && books.length > _pageSize;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+          padding: const EdgeInsets.only(bottom: 120),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              GridView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.only(top: 8, bottom: 8),
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.44,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 28,
-                ),
-                itemCount: visibleBooks.length,
-                itemBuilder: (context, index) =>
-                    BookCard(book: visibleBooks[index], width: double.infinity),
-              ),
-              if (hasMore)
+              HorizontalCollectionsList(userId: widget.userId, canCreate: true),
+              if (books.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: SeeMoreContentButton(
-                      onPressed: () => setState(() => _showAll = true),
+                  padding: const EdgeInsets.only(top: 48, left: 16, right: 16),
+                  child: ThemedEmptyState(
+                    icon: Icons.auto_stories_outlined,
+                    message: l10n.noPublishedBooksYet,
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.44,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 28,
                     ),
+                    itemCount: visibleBooks.length,
+                    itemBuilder: (context, index) =>
+                        BookCard(book: visibleBooks[index], width: double.infinity),
                   ),
                 ),
+                if (hasMore)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SeeMoreContentButton(
+                        onPressed: () => setState(() => _showAll = true),
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         );
@@ -83,3 +91,4 @@ class _UserContentTabState extends ConsumerState<UserContentTab> {
     );
   }
 }
+

@@ -1,0 +1,697 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../../domain/models/book.dart';
+import '../../domain/models/book_collection.dart';
+import '../../utils/app_haptics.dart';
+import '../../utils/app_link_helper.dart';
+import '../components/book_card.dart';
+import '../components/collections/collection_form_sheet.dart';
+import '../components/collections/collection_widgets.dart';
+import '../widgets/glass_surface.dart';
+import '../providers/auth_providers.dart';
+import '../providers/book_providers.dart';
+import '../providers/collection_providers.dart';
+
+class CollectionDetailScreen extends ConsumerStatefulWidget {
+  const CollectionDetailScreen({
+    super.key,
+    required this.collectionId,
+    this.heroScope = 'default',
+  });
+
+  final String collectionId;
+  final String heroScope;
+
+  @override
+  ConsumerState<CollectionDetailScreen> createState() =>
+      _CollectionDetailScreenState();
+}
+
+class _CollectionDetailScreenState
+    extends ConsumerState<CollectionDetailScreen> {
+  bool _savingOrder = false;
+  List<Book>? _optimisticBooks;
+
+  Future<void> _delete(BookCollection collection) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete collection?'),
+        content: const Text(
+          'This permanently removes the collection and its book list.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(collectionMutationProvider(collection.id).notifier)
+          .run((repo) => repo.deleteCollection(collection.id));
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
+
+  void _showError(Object error) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(error.toString()),
+      action: SnackBarAction(label: 'Retry', onPressed: () {}),
+    ),
+  );
+
+  Future<void> _reorder(int oldIndex, int newIndex, List<Book> source) async {
+    if (_savingOrder) return;
+    if (oldIndex == newIndex) return;
+    final before = List<Book>.of(source);
+    final next = List<Book>.of(source);
+    final item = next.removeAt(oldIndex);
+    next.insert(newIndex, item);
+    setState(() {
+      _optimisticBooks = next;
+      _savingOrder = true;
+    });
+    await AppHaptics.light();
+    try {
+      await ref
+          .read(collectionMutationProvider(widget.collectionId).notifier)
+          .run(
+            (repo) => repo.reorderBooks(
+              widget.collectionId,
+              next.map((book) => book.id).toList(),
+            ),
+          );
+      ref.invalidate(resolvedCollectionBooksProvider(widget.collectionId));
+    } catch (error) {
+      if (mounted) {
+        setState(() => _optimisticBooks = before);
+        _showError(error);
+      }
+    } finally {
+      if (mounted) setState(() => _savingOrder = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final collectionAsync = ref.watch(
+      collectionDetailProvider(widget.collectionId),
+    );
+    final booksAsync = ref.watch(
+      resolvedCollectionBooksProvider(widget.collectionId),
+    );
+    final userId = ref.watch(currentUserProvider).asData?.value?.id;
+    return collectionAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('Could not load collection: $error')),
+      ),
+      data: (collection) {
+        if (collection == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text('Collection not found.')),
+          );
+        }
+        final isOwner = userId == collection.ownerId;
+        final mutation = ref.watch(collectionMutationProvider(collection.id));
+        final theme = Theme.of(context);
+        return Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 300,
+                actions: [
+                  IconButton(
+                    tooltip: 'Share collection',
+                    onPressed: () => Share.share(
+                      AppLinkHelper.collection(collection.id),
+                      subject: collection.title,
+                    ),
+                    icon: const Icon(Icons.share_outlined),
+                  ),
+                  if (isOwner)
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          _delete(collection);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete'),
+                        ),
+                      ],
+                    ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  title: _CollectionAppBarTitle(title: collection.title),
+                  background: _CollectionAppBarBackground(
+                    collection: collection,
+                    isOwner: isOwner,
+                    heroScope: widget.heroScope,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${collection.bookCount} ${collection.bookCount == 1 ? 'book' : 'books'}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (isOwner) ...[
+                        const SizedBox(height: 16),
+                        GlassSurface(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: mutation.isLoading
+                              ? null
+                              : () => _showAddBooks(context, collection),
+                          semanticButton: true,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.playlist_add,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Add books',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Text(
+                        'Stories inside collection',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              booksAsync.when(
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('Could not load books: $error')),
+                ),
+                data: (streamBooks) {
+                  final books = _optimisticBooks ?? streamBooks;
+                  if (books.isEmpty) {
+                    return const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: Text('This collection is empty.')),
+                    );
+                  }
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                    sliver: SliverGrid.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 190,
+                            childAspectRatio: 0.48,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
+                          ),
+                      itemCount: books.length,
+                      itemBuilder: (context, index) {
+                        final book = books[index];
+                        final baseCard = Stack(
+                          children: [
+                            BookCard(book: book, width: double.infinity),
+                            if (isOwner)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: mutation.isLoading
+                                      ? null
+                                      : () async {
+                                          try {
+                                            await ref
+                                                .read(
+                                                  collectionMutationProvider(
+                                                    collection.id,
+                                                  ).notifier,
+                                                )
+                                                .run(
+                                                  (repo) => repo.removeBook(
+                                                    collection.id,
+                                                    book.id,
+                                                  ),
+                                                );
+                                            ref.invalidate(
+                                              resolvedCollectionBooksProvider(
+                                                collection.id,
+                                              ),
+                                            );
+                                          } catch (error) {
+                                            if (context.mounted) {
+                                              _showError(error);
+                                            }
+                                          }
+                                        },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surface
+                                          .withValues(alpha: 0.9),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+
+                        if (isOwner) {
+                          return DragTarget<int>(
+                            onWillAcceptWithDetails: (details) =>
+                                details.data != index,
+                            onAcceptWithDetails: (details) {
+                              final oldIndex = details.data;
+                              _reorder(oldIndex, index, books);
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              final isHovered = candidateData.isNotEmpty;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isHovered
+                                        ? theme.colorScheme.primary
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: LongPressDraggable<int>(
+                                  data: index,
+                                  feedback: Material(
+                                    color: Colors.transparent,
+                                    child: Transform.scale(
+                                      scale: 1.05,
+                                      child: Opacity(
+                                        opacity: 0.8,
+                                        child: SizedBox(
+                                          width: 120,
+                                          height: 180,
+                                          child: BookCard(
+                                            book: book,
+                                            width: double.infinity,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  childWhenDragging: Opacity(
+                                    opacity: 0.3,
+                                    child: BookCard(
+                                      book: book,
+                                      width: double.infinity,
+                                    ),
+                                  ),
+                                  child: baseCard,
+                                ),
+                              );
+                            },
+                          );
+                        }
+
+                        return baseCard;
+                      },
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showAddBooks(
+    BuildContext context,
+    BookCollection collection,
+  ) async {
+    final added = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _AddBooksSheet(collection: collection),
+    );
+    if (added == null || added.isEmpty) return;
+    try {
+      await ref
+          .read(collectionMutationProvider(collection.id).notifier)
+          .run((repo) => repo.addBooks(collection.id, added));
+      ref.invalidate(resolvedCollectionBooksProvider(collection.id));
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
+}
+
+class _AddBooksSheet extends ConsumerStatefulWidget {
+  const _AddBooksSheet({required this.collection});
+  final BookCollection collection;
+
+  @override
+  ConsumerState<_AddBooksSheet> createState() => _AddBooksSheetState();
+}
+
+class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
+  String _query = '';
+  final Set<String> _selected = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final results = _query.trim().isEmpty
+        ? (currentUser == null
+              ? const AsyncValue<List<Book>>.data([])
+              : ref.watch(userBooksProvider(currentUser.id)))
+        : ref.watch(bookSearchProvider(_query.trim()));
+    return FractionallySizedBox(
+      heightFactor: 0.88,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text('Add books', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 12),
+            SearchBar(
+              hintText: 'Search your books and public stories',
+              leading: const Icon(Icons.search),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: results.when(
+                data: (books) => ListView.builder(
+                  itemCount: books.length,
+                  itemBuilder: (_, index) {
+                    final book = books[index];
+                    return CheckboxListTile(
+                      value: _selected.contains(book.id),
+                      title: Text(book.title),
+                      subtitle: Text(
+                        book.authors.map((author) => author.name).join(', '),
+                      ),
+                      onChanged: (value) => setState(() {
+                        value == true
+                            ? _selected.add(book.id)
+                            : _selected.remove(book.id);
+                      }),
+                    );
+                  },
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+              ),
+            ),
+            FilledButton(
+              onPressed: _selected.isEmpty
+                  ? null
+                  : () => Navigator.pop(context, _selected.toList()),
+              child: Text('Add ${_selected.length} selected'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionAppBarTitle extends StatelessWidget {
+  const _CollectionAppBarTitle({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+
+    double opacity = 0.0;
+    if (settings != null) {
+      final delta = settings.maxExtent - settings.minExtent;
+      final collapseProgress =
+          ((settings.maxExtent - settings.currentExtent) / delta).clamp(
+            0.0,
+            1.0,
+          );
+      // Fade in the title in the last 30% of scroll progress
+      opacity = ((collapseProgress - 0.7) / 0.3).clamp(0.0, 1.0);
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionAppBarBackground extends StatelessWidget {
+  const _CollectionAppBarBackground({
+    required this.collection,
+    required this.isOwner,
+    required this.heroScope,
+  });
+
+  final BookCollection collection;
+  final bool isOwner;
+  final String heroScope;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    double opacity = 1.0;
+    if (settings != null) {
+      final delta = settings.maxExtent - settings.minExtent;
+      final collapseProgress =
+          ((settings.maxExtent - settings.currentExtent) / delta).clamp(
+            0.0,
+            1.0,
+          );
+      // Fade out the expanded header completely by 60% of scroll progress
+      opacity = (1.0 - collapseProgress / 0.6).clamp(0.0, 1.0);
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CollectionCoverCollage(collection: collection, borderRadius: 0),
+          if (!reduceMotion)
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+              child: const ColoredBox(color: Color(0x52000000)),
+            )
+          else
+            const ColoredBox(color: Color(0x66000000)),
+          SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                SizedBox.square(
+                  dimension: 120,
+                  child: Hero(
+                    tag: collectionHeroTag(collection.id, heroScope),
+                    child: CollectionCoverCollage(collection: collection),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Title row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          collection.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(0, 1),
+                                blurRadius: 4,
+                                color: Colors.black54,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (isOwner) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => showCollectionFormSheet(
+                            context,
+                            collection: collection,
+                          ),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Description row
+                if (collection.description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            collection.description,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 1),
+                                  blurRadius: 3,
+                                  color: Colors.black38,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (isOwner) ...[
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => showCollectionFormSheet(
+                              context,
+                              collection: collection,
+                            ),
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: Colors.white60,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ] else if (isOwner) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => showCollectionFormSheet(
+                      context,
+                      collection: collection,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Add a description...',
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 12,
+                          color: Colors.white54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

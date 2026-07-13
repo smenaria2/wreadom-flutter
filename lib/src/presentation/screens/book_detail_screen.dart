@@ -20,9 +20,11 @@ import '../../utils/book_publication_date.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/category_utils.dart';
 import '../../utils/image_proxy_utils.dart';
+import '../../utils/clipboard_writer.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/collection_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/homepage_providers.dart';
@@ -43,6 +45,7 @@ import '../widgets/section_error.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/book/leaf_components.dart';
 import '../components/generated_book_cover.dart';
+import '../components/collections/add_to_collection_sheet.dart';
 import 'static_info_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../utils/book_share_utils.dart';
@@ -454,6 +457,13 @@ class _BookDetailBody extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 surfaceTintColor: Colors.transparent,
                 actions: [
+                  if (canAddLeaves)
+                    _HeaderIconButton(
+                      tooltip: 'Add Leaf',
+                      icon: Icons.eco_outlined,
+                      margin: const EdgeInsets.only(right: 8),
+                      onPressed: () => showAddLeafSheet(context, book: book),
+                    ),
                   if (canEdit)
                     _HeaderIconButton(
                       tooltip: AppLocalizations.of(context)!.editBook,
@@ -463,13 +473,6 @@ class _BookDetailBody extends ConsumerWidget {
                         AppRoutes.writerPad,
                         arguments: WriterPadArguments(book: book),
                       ),
-                    ),
-                  if (canAddLeaves)
-                    _HeaderIconButton(
-                      tooltip: 'Add Leaf',
-                      icon: Icons.eco_outlined,
-                      margin: const EdgeInsets.only(right: 8),
-                      onPressed: () => showAddLeafSheet(context, book: book),
                     ),
                   _HeaderIconButton(
                     tooltip: 'Share',
@@ -491,17 +494,7 @@ class _BookDetailBody extends ConsumerWidget {
                       }
                     },
                   ),
-                  if (!canEdit)
-                    _HeaderIconButton(
-                      tooltip: AppLocalizations.of(context)!.reportBook,
-                      icon: Icons.report_problem_outlined,
-                      margin: const EdgeInsets.only(right: 8),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (context) =>
-                            ReportDialog(targetId: book.id, targetType: 'book'),
-                      ),
-                    ),
+                  if (!canEdit) _HeaderReportMenu(bookId: book.id),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: _BookDetailHeader(book: book, heroTag: heroTag),
@@ -609,15 +602,19 @@ class _BookDetailBody extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _SaveDownloadButton(book: book),
+                        _CollectionActionButton(book: book),
                         const SizedBox(width: 8),
-                        GlassSurface(
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: () => _showSendToChatSheet(context, ref, book),
-                          semanticButton: true,
-                          child: const Padding(
-                            padding: EdgeInsets.all(14),
-                            child: Icon(Icons.send_rounded),
+                        Tooltip(
+                          message: AppLocalizations.of(context)!.moreActions,
+                          child: GlassSurface(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () =>
+                                _showMoreActionsSheet(context, ref, book),
+                            semanticButton: true,
+                            child: const Padding(
+                              padding: EdgeInsets.all(14),
+                              child: Icon(Icons.add_rounded),
+                            ),
                           ),
                         ),
                       ],
@@ -710,7 +707,7 @@ class _BookDetailBody extends ConsumerWidget {
     ref.invalidate(currentUserProvider);
   }
 
-  Future<void> _showSendToChatSheet(
+  Future<void> _showMoreActionsSheet(
     BuildContext context,
     WidgetRef ref,
     Book book,
@@ -724,126 +721,132 @@ class _BookDetailBody extends ConsumerWidget {
     final feedMessageController = TextEditingController(
       text: l10n.defaultShareMessage(book.title),
     );
+    var feedVisible = false;
+    var chatsVisible = false;
 
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+      ),
       showDragHandle: true,
       builder: (sheetContext) {
         return GlassSurface(
           strong: true,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          child: Consumer(
-            builder: (context, ref, _) {
-              final conversationsAsync = ref.watch(conversationsProvider);
-              final currentUser = ref.watch(currentUserProvider).value;
+          child: StatefulBuilder(
+            builder: (context, setModalState) => Consumer(
+              builder: (context, ref, _) {
+                final conversationsAsync = ref.watch(conversationsProvider);
+                final currentUser = ref.watch(currentUserProvider).value;
 
-              Future<void> shareToFeed() async {
-                final sender = await ref.read(currentUserProvider.future);
-                if (sender == null) return;
-                final text = feedMessageController.text.trim();
-                if (text.isEmpty) return;
-                await ref
-                    .read(feedRepositoryProvider)
-                    .createFeedPost(
-                      FeedPost(
-                        userId: sender.id,
-                        username: sender.username,
-                        displayName: sender.displayName,
-                        penName: sender.penName,
-                        userPhotoURL: sender.photoURL,
-                        type: 'post',
-                        text: text,
-                        bookId: book.id,
-                        bookTitle: book.title,
-                        bookAuthorName: bookAuthorName(book),
-                        bookCover: book.coverUrl,
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        likes: const [],
-                        visibility: 'public',
-                        privacy: 'public',
-                      ),
-                    );
-                await AppHaptics.light();
-                refreshFeedAfterPostPublish(ref, userId: sender.id);
-                if (!sheetContext.mounted) return;
-                Navigator.of(sheetContext).pop();
-                if (!rootContext.mounted) return;
-                ScaffoldMessenger.of(
-                  rootContext,
-                ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
-              }
-
-              return SafeArea(
-                child: conversationsAsync.when(
-                  data: (conversations) {
-                    if (currentUser == null) {
-                      return Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Center(child: Text(l10n.signInToShare)),
+                Future<void> shareToFeed() async {
+                  final sender = await ref.read(currentUserProvider.future);
+                  if (sender == null) return;
+                  final text = feedMessageController.text.trim();
+                  if (text.isEmpty) return;
+                  await ref
+                      .read(feedRepositoryProvider)
+                      .createFeedPost(
+                        FeedPost(
+                          userId: sender.id,
+                          username: sender.username,
+                          displayName: sender.displayName,
+                          penName: sender.penName,
+                          userPhotoURL: sender.photoURL,
+                          type: 'post',
+                          text: text,
+                          bookId: book.id,
+                          bookTitle: book.title,
+                          bookAuthorName: bookAuthorName(book),
+                          bookCover: book.coverUrl,
+                          timestamp: DateTime.now().millisecondsSinceEpoch,
+                          likes: const [],
+                          visibility: 'public',
+                          privacy: 'public',
+                        ),
                       );
-                    }
+                  await AppHaptics.light();
+                  refreshFeedAfterPostPublish(ref, userId: sender.id);
+                  if (!sheetContext.mounted) return;
+                  Navigator.of(sheetContext).pop();
+                  if (!rootContext.mounted) return;
+                  ScaffoldMessenger.of(
+                    rootContext,
+                  ).showSnackBar(SnackBar(content: Text(l10n.sharedToFeed)));
+                }
 
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: conversations.isEmpty
-                          ? 3
-                          : conversations.length + 2,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                            child: GlassSurface(
-                              strong: true,
-                              borderRadius: BorderRadius.circular(22),
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    l10n.shareToFeed,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(fontWeight: FontWeight.w800),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  TextField(
-                                    controller: feedMessageController,
-                                    maxLines: 3,
-                                    decoration: InputDecoration(
-                                      hintText: l10n.defaultShareMessage(
-                                        book.title,
+                return SafeArea(
+                  child: conversationsAsync.when(
+                    data: (conversations) {
+                      final items = <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          child: _BookQuickActions(book: book),
+                        ),
+                        if (currentUser == null)
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(child: Text(l10n.signInToShare)),
+                          )
+                        else ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: _SheetRevealButton(
+                              label: l10n.shareToFeed,
+                              icon: Icons.dynamic_feed_outlined,
+                              expanded: feedVisible,
+                              onTap: () => setModalState(() {
+                                feedVisible = !feedVisible;
+                                if (feedVisible) chatsVisible = false;
+                              }),
+                            ),
+                          ),
+                          if (feedVisible)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                              child: GlassSurface(
+                                strong: true,
+                                borderRadius: BorderRadius.circular(22),
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    TextField(
+                                      controller: feedMessageController,
+                                      maxLines: 3,
+                                      decoration: InputDecoration(
+                                        hintText: l10n.defaultShareMessage(
+                                          book.title,
+                                        ),
+                                        alignLabelWithHint: true,
                                       ),
-                                      alignLabelWithHint: true,
                                     ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  GlassSurface(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: shareToFeed,
-                                    semanticButton: true,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.dynamic_feed_outlined,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
+                                    const SizedBox(height: 12),
+                                    GlassSurface(
+                                      borderRadius: BorderRadius.circular(16),
+                                      onTap: shareToFeed,
+                                      semanticButton: true,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.dynamic_feed_outlined,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
                                               l10n.shareToFeed,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .labelLarge
@@ -854,108 +857,131 @@ class _BookDetailBody extends ConsumerWidget {
                                                     fontWeight: FontWeight.w800,
                                                   ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          );
-                        }
-                        if (index == 1) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                            child: Text(
-                              l10n.sendToChat,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w800),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: _SheetRevealButton(
+                              label: l10n.sendToChat,
+                              icon: Icons.chat_bubble_outline_rounded,
+                              expanded: chatsVisible,
+                              onTap: () => setModalState(() {
+                                chatsVisible = !chatsVisible;
+                                if (chatsVisible) feedVisible = false;
+                              }),
                             ),
-                          );
-                        }
-                        if (conversations.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                            child: Text(l10n.noRecentConversations),
-                          );
-                        }
-                        final conversation = conversations[index - 2];
-                        final otherId = conversation.participants.firstWhere(
-                          (id) => id != currentUser.id,
-                          orElse: () => conversation.participants.first,
-                        );
-                        final other = conversation.participantDetails[otherId];
-                        final title =
-                            conversation.name ??
-                            other?.displayName ??
-                            other?.username ??
-                            l10n.conversation;
-                        return ListTile(
-                          leading: CircleAvatar(
-                            child: Text(title.characters.first.toUpperCase()),
                           ),
-                          title: Text(title),
-                          subtitle: Text(
-                            conversation.lastMessage?.text ??
-                                l10n.noMessagesYet,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () async {
-                            final sender = await ref.read(
-                              currentUserProvider.future,
-                            );
-                            if (sender == null) return;
-                            try {
-                              await ref
-                                  .read(messageRepositoryProvider)
-                                  .sendStoryMessage(
-                                    conversationId: conversation.id,
-                                    sender: sender,
-                                    storyData: MessageStoryData(
-                                      id: book.id,
-                                      title: book.title,
-                                      coverUrl: book.coverUrl,
-                                      authorNames: authors.isEmpty
-                                          ? l10n.unknownAuthor
-                                          : authors,
+                          if (chatsVisible && conversations.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                10,
+                                16,
+                                16,
+                              ),
+                              child: Text(l10n.noRecentConversations),
+                            ),
+                          if (chatsVisible)
+                            ...conversations.map((conversation) {
+                              final otherId = conversation.participants
+                                  .firstWhere(
+                                    (id) => id != currentUser.id,
+                                    orElse: () =>
+                                        conversation.participants.first,
+                                  );
+                              final other =
+                                  conversation.participantDetails[otherId];
+                              final title =
+                                  conversation.name ??
+                                  other?.displayName ??
+                                  other?.username ??
+                                  l10n.conversation;
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  child: Text(
+                                    title.characters.first.toUpperCase(),
+                                  ),
+                                ),
+                                title: Text(title),
+                                subtitle: Text(
+                                  conversation.lastMessage?.text ??
+                                      l10n.noMessagesYet,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () async {
+                                  final sender = await ref.read(
+                                    currentUserProvider.future,
+                                  );
+                                  if (sender == null) return;
+                                  try {
+                                    await ref
+                                        .read(messageRepositoryProvider)
+                                        .sendStoryMessage(
+                                          conversationId: conversation.id,
+                                          sender: sender,
+                                          storyData: MessageStoryData(
+                                            id: book.id,
+                                            title: book.title,
+                                            coverUrl: book.coverUrl,
+                                            authorNames: authors.isEmpty
+                                                ? l10n.unknownAuthor
+                                                : authors,
+                                          ),
+                                        );
+                                  } on MessageLimitException {
+                                    return;
+                                  }
+                                  await AppHaptics.selection();
+                                  if (!sheetContext.mounted) return;
+                                  Navigator.of(sheetContext).pop();
+                                  if (!rootContext.mounted) return;
+                                  ScaffoldMessenger.of(
+                                    rootContext,
+                                  ).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.sentBookSnack(book.title),
+                                      ),
                                     ),
                                   );
-                            } on MessageLimitException {
-                              return;
-                            }
-                            await AppHaptics.selection();
-                            if (!sheetContext.mounted) return;
-                            Navigator.of(sheetContext).pop();
-                            if (!rootContext.mounted) return;
-                            ScaffoldMessenger.of(rootContext).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.sentBookSnack(book.title)),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, _) => Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(l10n.failedToLoadChats(error.toString())),
+                                },
+                              );
+                            }),
+                        ],
+                      ];
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 4),
+                        itemBuilder: (context, index) => items[index],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (error, _) => Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: Text(l10n.failedToLoadChats(error.toString())),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
     );
+    await Future<void>.delayed(const Duration(milliseconds: 500));
     feedMessageController.dispose();
   }
 }
@@ -1896,186 +1922,408 @@ class _ExpandableTextState extends State<_ExpandableText> {
   }
 }
 
-class _SaveDownloadButton extends ConsumerStatefulWidget {
-  const _SaveDownloadButton({required this.book});
+class _BookQuickActions extends ConsumerStatefulWidget {
+  const _BookQuickActions({required this.book});
 
   final Book book;
 
   @override
-  ConsumerState<_SaveDownloadButton> createState() =>
-      _SaveDownloadButtonState();
+  ConsumerState<_BookQuickActions> createState() => _BookQuickActionsState();
 }
 
-class _SaveDownloadButtonState extends ConsumerState<_SaveDownloadButton> {
-  bool _isDownloading = false;
-  bool _isDownloaded = false;
+class _BookQuickActionsState extends ConsumerState<_BookQuickActions> {
+  bool _loading = true;
+  bool _saving = false;
+  bool _downloading = false;
+  bool _saved = false;
+  bool _downloaded = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _checkStatus();
+    _loadState();
   }
 
-  Future<void> _checkStatus() async {
+  Future<void> _loadState() async {
+    final user = await ref.read(currentUserProvider.future);
     final downloaded = await ref
         .read(offlineServiceProvider)
         .isBookDownloaded(widget.book.id);
-    if (mounted) setState(() => _isDownloaded = downloaded);
+    final id = widget.book.id.toString();
+    if (!mounted) return;
+    setState(() {
+      _saved =
+          user?.savedBooks.any((value) => value?.toString() == id) ?? false;
+      _downloaded = downloaded;
+      _loading = false;
+    });
   }
 
-  Future<void> _handleSaveDownload() async {
-    final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
-    if (!mounted) return;
-
+  Future<void> _toggleSaved() async {
     final l10n = AppLocalizations.of(context)!;
-    final idStr = widget.book.id.toString();
-    final savedBooks = List<dynamic>.from(user.savedBooks);
-    final isSaved = savedBooks.any((id) => id?.toString() == idStr);
-
-    if (isSaved) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.removeSavedBookTitle),
-          content: Text(l10n.removeSavedBookBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                l10n.unsave,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        ),
-      );
-      if (confirmed == true) {
-        savedBooks.removeWhere((id) => id?.toString() == idStr);
-        await ref
-            .read(authRepositoryProvider)
-            .updateUserSavedBooks(user.id, savedBooks);
-        AnalyticsService.logBookmark(added: false, bookId: idStr);
-        if (_isDownloaded && mounted) {
-          final removeDownload = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(l10n.removeDownloadedBookTitle),
-              content: Text(l10n.removeDownloadedBookBody(widget.book.title)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(l10n.keep),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(l10n.remove),
-                ),
-              ],
-            ),
-          );
-          if (removeDownload == true) {
-            await ref.read(offlineServiceProvider).deleteBook(widget.book.id);
-            if (mounted) setState(() => _isDownloaded = false);
-            ref.invalidate(downloadedBooksProvider);
-            ref.invalidate(downloadedBookEntriesProvider);
-            ref.invalidate(homepageDownloadedBooksProvider);
-          }
-        }
-        ref.invalidate(currentUserProvider);
-        ref.invalidate(savedBooksProvider);
-      }
+    final user = await ref.read(currentUserProvider.future);
+    if (user == null) {
+      if (mounted) _requestBookActionSignIn(context);
       return;
     }
-
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
     try {
-      savedBooks.add(widget.book.id);
+      final id = widget.book.id.toString();
+      final next = List<dynamic>.from(user.savedBooks);
+      if (_saved) {
+        next.removeWhere((value) => value?.toString() == id);
+      } else {
+        next.add(widget.book.id);
+      }
       await ref
           .read(authRepositoryProvider)
-          .updateUserSavedBooks(user.id, savedBooks);
-      AnalyticsService.logBookmark(added: true, bookId: idStr);
+          .updateUserSavedBooks(user.id, next);
+      AnalyticsService.logBookmark(added: !_saved, bookId: id);
+      if (!mounted) return;
+      setState(() => _saved = !_saved);
       ref.invalidate(currentUserProvider);
       ref.invalidate(savedBooksProvider);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.bookSaved)));
-      final shouldDownload = await showDialog<bool>(
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_saved ? l10n.bookSaved : l10n.contentUnsaved)),
+      );
+    } catch (error) {
+      if (mounted) setState(() => _error = l10n.saveFailed(error.toString()));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggleDownload() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_downloaded) {
+      final remove = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(l10n.downloadSavedBookTitle),
-          content: Text(l10n.downloadSavedBookBody),
+          title: Text(l10n.removeDownloadedBookTitle),
+          content: Text(l10n.removeDownloadedBookBody(widget.book.title)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.notNow),
+              child: Text(l10n.keep),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.download),
+              child: Text(l10n.remove),
             ),
           ],
         ),
       );
-      if (shouldDownload != true) return;
-      setState(() => _isDownloading = true);
-      final chapters = await ref.read(
-        bookChaptersProvider(widget.book.id).future,
-      );
-      await ref
-          .read(offlineServiceProvider)
-          .downloadBook(widget.book, chapters);
-
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-          _isDownloaded = true;
-        });
-        ref.invalidate(downloadedBooksProvider);
-        ref.invalidate(downloadedBookEntriesProvider);
-        ref.invalidate(homepageDownloadedBooksProvider);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.bookSavedDownloaded)));
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isDownloading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.saveFailed(e.toString()))));
-      }
+      if (remove != true) return;
     }
+    setState(() {
+      _downloading = true;
+      _error = null;
+    });
+    try {
+      if (_downloaded) {
+        await ref.read(offlineServiceProvider).deleteBook(widget.book.id);
+      } else {
+        final chapters = await ref.read(
+          bookChaptersProvider(widget.book.id).future,
+        );
+        await ref
+            .read(offlineServiceProvider)
+            .downloadBook(widget.book, chapters);
+      }
+      if (!mounted) return;
+      setState(() => _downloaded = !_downloaded);
+      ref.invalidate(downloadedBooksProvider);
+      ref.invalidate(downloadedBookEntriesProvider);
+      ref.invalidate(homepageDownloadedBooksProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_downloaded ? l10n.downloaded : l10n.downloadRemoved),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = l10n.downloadFailed(error.toString()));
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  Future<void> _copyLink() async {
+    final l10n = AppLocalizations.of(context)!;
+    final copied = await writeClipboardText(AppLinkHelper.book(widget.book.id));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(copied ? l10n.linkCopied : l10n.couldNotCopyContent),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return GlassSurface(
-      borderRadius: BorderRadius.circular(18),
-      onTap: _isDownloading ? null : _handleSaveDownload,
-      semanticButton: true,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: _isDownloading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                _isDownloaded
-                    ? Icons.bookmark_added_rounded
-                    : Icons.bookmark_add_outlined,
-                color: _isDownloaded
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface,
-              ),
+      strong: true,
+      borderRadius: BorderRadius.circular(22),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.moreActions,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                SizedBox(
+                  width: 118,
+                  child: _BookQuickActionTile(
+                    label: _saved ? l10n.saved : l10n.saveForLater,
+                    icon: _saved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border,
+                    selected: _saved,
+                    loading: _saving,
+                    onTap: _saving ? null : _toggleSaved,
+                  ),
+                ),
+                SizedBox(
+                  width: 118,
+                  child: _BookQuickActionTile(
+                    label: _downloaded ? l10n.downloaded : l10n.download,
+                    icon: _downloaded
+                        ? Icons.download_done_rounded
+                        : Icons.download_outlined,
+                    selected: _downloaded,
+                    loading: _downloading,
+                    onTap: _downloading ? null : _toggleDownload,
+                  ),
+                ),
+                SizedBox(
+                  width: 118,
+                  child: _BookQuickActionTile(
+                    label: l10n.copyLink,
+                    icon: Icons.link_rounded,
+                    onTap: _copyLink,
+                  ),
+                ),
+              ],
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }
+}
+
+class _SheetRevealButton extends StatelessWidget {
+  const _SheetRevealButton({
+    required this.label,
+    required this.icon,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      semanticButton: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookQuickActionTile extends StatelessWidget {
+  const _BookQuickActionTile({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.selected = false,
+    this.loading = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool selected;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      semanticButton: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+        child: Column(
+          children: [
+            if (loading)
+              const SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(icon, color: selected ? scheme.primary : scheme.onSurface),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: selected ? scheme.primary : scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderReportMenu extends StatelessWidget {
+  const _HeaderReportMenu({required this.bookId});
+
+  final String bookId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return PopupMenuButton<void>(
+      tooltip: l10n.moreActions,
+      onSelected: (_) => showDialog<void>(
+        context: context,
+        builder: (context) =>
+            ReportDialog(targetId: bookId, targetType: 'book'),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.report_problem_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(l10n.reportBook),
+          ),
+        ),
+      ],
+      child: AbsorbPointer(
+        child: _HeaderIconButton(
+          tooltip: l10n.moreActions,
+          icon: Icons.more_vert_rounded,
+          margin: const EdgeInsets.only(right: 8),
+          onPressed: () {},
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionActionButton extends ConsumerWidget {
+  const _CollectionActionButton({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    final memberships = user == null
+        ? const AsyncValue<Set<String>>.data(<String>{})
+        : ref.watch(bookCollectionMembershipsProvider(book.id));
+    final selected = memberships.value?.isNotEmpty ?? false;
+    final l10n = AppLocalizations.of(context)!;
+    return Tooltip(
+      message: l10n.addToCollection,
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          if (user == null) {
+            _requestBookActionSignIn(context);
+            return;
+          }
+          showAddToCollectionSheet(context, book);
+        },
+        semanticButton: true,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: memberships.isLoading
+              ? const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  selected
+                      ? Icons.collections_bookmark_rounded
+                      : Icons.collections_bookmark_outlined,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+void _requestBookActionSignIn(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n.signInToContinueAction),
+      action: SnackBarAction(
+        label: l10n.login,
+        onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
+      ),
+    ),
+  );
 }

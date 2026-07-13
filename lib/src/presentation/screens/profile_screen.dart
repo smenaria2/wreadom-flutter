@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -23,6 +23,7 @@ import '../providers/writer_providers.dart';
 import '../providers/navigation_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/resilient_profile_avatar.dart';
 import '../widgets/share_app_dialog.dart';
 import '../widgets/social_links_menu.dart';
 import '../widgets/submit_error_dialog.dart';
@@ -79,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
             body: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
-                  // ─── Collapsible profile header ──────────────────
+                  // Collapsible profile header
                   SliverAppBar(
                     expandedHeight: 240,
                     pinned: true,
@@ -123,7 +124,7 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                   ),
 
-                  // ─── Stats & Summary ───────────────────────────
+                  // Stats and summary
                   SliverToBoxAdapter(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -185,7 +186,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // ─── Tab Bar ───────────────────────────────────
+                  // Tab bar
                   SliverPersistentHeader(
                     pinned: false,
                     delegate: _SliverAppBarDelegate(
@@ -508,29 +509,19 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                         CircleAvatar(
                           radius: 44,
                           backgroundColor: theme.colorScheme.surface,
-                          child: CircleAvatar(
+                          child: ResilientProfileAvatar(
                             radius: 42,
+                            initial: initial,
                             backgroundColor: theme.colorScheme.primary
                                 .withValues(alpha: 0.1),
-                            backgroundImage: user.photoURL != null
-                                ? CachedNetworkImageProvider(
-                                    optimizedAvatarUrl(
-                                      user.photoURL!,
-                                      width: 240,
-                                      height: 240,
-                                    )!,
-                                  )
-                                : null,
-                            child: user.photoURL == null
-                                ? Text(
-                                    initial,
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w700,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  )
-                                : null,
+                            foregroundColor: theme.colorScheme.primary,
+                            imageUrl: user.photoURL == null
+                                ? null
+                                : optimizedAvatarUrl(
+                                    user.photoURL!,
+                                    width: 240,
+                                    height: 240,
+                                  ),
                           ),
                         ),
                         Positioned(

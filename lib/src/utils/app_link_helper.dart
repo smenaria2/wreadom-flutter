@@ -38,6 +38,9 @@ class AppLinkHelper {
   static String post(String postId) =>
       '$origin/?page=feed&post=${Uri.encodeComponent(postId)}';
   static String user(String userId) => '$origin/user/$userId';
+  static String collection(String collectionId) => Uri.parse(
+    origin,
+  ).replace(pathSegments: ['collection', collectionId]).toString();
   static String category(String name) =>
       '$origin/category/${Uri.encodeComponent(name)}';
   static String dailyTopic(String topicId) =>
@@ -121,6 +124,12 @@ class AppLinkHelper {
           id ??= queryPostId;
           if (_hasValue(id)) {
             return ResolvedAppLink(AppRoutes.postDetail, id!);
+          }
+          break;
+        case 'collection':
+        case 'collections':
+          if (_hasValue(id)) {
+            return ResolvedAppLink(AppRoutes.collectionDetail, id!);
           }
           break;
         case 'user':

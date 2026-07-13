@@ -18,12 +18,14 @@ import '../routing/app_routes.dart';
 import '../components/book_card.dart';
 import '../components/feed_post_card.dart';
 import '../components/profile/profile_share_card.dart';
+import '../components/collections/horizontal_collections_list.dart';
 import '../components/profile/premium_ranks_widget.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/resilient_profile_avatar.dart';
 import '../widgets/see_more_content_button.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
@@ -623,30 +625,21 @@ class _PublicProfileHeader extends StatelessWidget {
                   CircleAvatar(
                     radius: 44,
                     backgroundColor: theme.colorScheme.surface,
-                    child: CircleAvatar(
+                    child: ResilientProfileAvatar(
                       radius: 42,
+                      initial: _safePublicProfileInitial(displayName),
                       backgroundColor: theme.colorScheme.primary.withValues(
                         alpha: 0.1,
                       ),
-                      backgroundImage: user.photoURL != null
-                          ? CachedNetworkImageProvider(
-                              optimizedAvatarUrl(
-                                user.photoURL!,
-                                width: 240,
-                                height: 240,
-                              )!,
-                            )
-                          : null,
-                      child: user.photoURL == null
-                          ? Text(
-                              _safePublicProfileInitial(displayName),
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                            )
-                          : null,
+                      foregroundColor: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      imageUrl: user.photoURL == null
+                          ? null
+                          : optimizedAvatarUrl(
+                              user.photoURL!,
+                              width: 240,
+                              height: 240,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -755,58 +748,72 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
   Widget build(BuildContext context) {
     final booksAsync = ref.watch(userBooksProvider(widget.userId));
     final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        booksAsync.when(
-          data: (books) {
-            if (books.isEmpty) {
-              return Text(l10n.noPublishedBooksYet);
-            }
-            final visibleBooks = _showAll
-                ? books
-                : books.take(_pageSize).toList();
-            final hasMore = !_showAll && books.length > _pageSize;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                GridView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(top: 8),
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.44,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 28,
-                  ),
-                  itemCount: visibleBooks.length,
-                  itemBuilder: (context, index) => BookCard(
-                    book: visibleBooks[index],
-                    width: double.infinity,
-                  ),
+    return booksAsync.when(
+      data: (books) {
+        final visibleBooks = _showAll ? books : books.take(_pageSize).toList();
+        final hasMore = !_showAll && books.length > _pageSize;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            HorizontalCollectionsList(userId: widget.userId, canCreate: false),
+            if (books.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
+                child: Text(
+                  l10n.noPublishedBooksYet,
+                  textAlign: TextAlign.center,
                 ),
-                if (hasMore)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: SeeMoreContentButton(
-                        onPressed: () => setState(() => _showAll = true),
-                      ),
+              )
+            else ...[
+              GridView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(top: 8),
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.44,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 28,
+                ),
+                itemCount: visibleBooks.length,
+                itemBuilder: (context, index) =>
+                    BookCard(book: visibleBooks[index], width: double.infinity),
+              ),
+              if (hasMore)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SeeMoreContentButton(
+                      onPressed: () => setState(() => _showAll = true),
                     ),
                   ),
-              ],
-            );
-          },
-          loading: () => const Center(
+                ),
+            ],
+          ],
+        );
+      },
+      loading: () => Column(
+        children: [
+          HorizontalCollectionsList(userId: widget.userId, canCreate: false),
+          const Center(
             child: Padding(
               padding: EdgeInsets.all(24.0),
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => Text(l10n.failedToLoadBooks(error.toString())),
-        ),
-      ],
+        ],
+      ),
+      error: (error, _) => Column(
+        children: [
+          HorizontalCollectionsList(userId: widget.userId, canCreate: false),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(l10n.failedToLoadBooks(error.toString())),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1809,5 +1809,12 @@
   "tierUpBody": "Your progress has reached a new tier.",
   "authorPointsExplanation": "Author can earn points when they publish content, readers read the content or get review on the content.",
   "readerPointsExplanation": "Reader can earn point by reading content and reviewing content.",
-  "dismiss": "Dismiss"
-}
+  "dismiss": "Dismiss",
+  "moreActions": "More actions",
+  "saveForLater": "Save for later",
+  "copyLink": "Copy link",
+  "linkCopied": "Link copied.",
+  "contentUnsaved": "Removed from saved content.",
+  "downloadFailed": "Download failed: {error}",
+  "@downloadFailed": {"placeholders": {"error": {"type": "String"}}},
+  "addToCollection": "Add to collection"}
