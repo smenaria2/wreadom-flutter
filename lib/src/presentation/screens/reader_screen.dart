@@ -502,7 +502,55 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
+  Future<void> _saveProgressLocally(int chapterIndex, double position) async {
+    try {
+      final key = 'local_progress_${widget.book.id}';
+      final value = '$chapterIndex|$position';
+      await _sharedPreferences.setString(key, value);
+    } catch (e, stack) {
+      debugPrint('Failed to save progress locally: $e\n$stack');
+    }
+  }
+
+  Future<Map<String, dynamic>?> _loadProgressLocally() async {
+    try {
+      final key = 'local_progress_${widget.book.id}';
+      final value = _sharedPreferences.getString(key);
+      if (value != null) {
+        final parts = value.split('|');
+        if (parts.length == 2) {
+          final chapterIndex = int.tryParse(parts[0]);
+          final position = double.tryParse(parts[1]);
+          if (chapterIndex != null && position != null) {
+            return {
+              'chapterIndex': chapterIndex,
+              'position': position,
+            };
+          }
+        }
+      }
+    } catch (e, stack) {
+      debugPrint('Failed to load progress locally: $e\n$stack');
+    }
+    return null;
+  }
+
   Future<void> _loadSavedScrollPosition() async {
+    final localProgress = await _loadProgressLocally();
+    if (localProgress != null) {
+      final savedChapterIndex = localProgress['chapterIndex'] as int;
+      final savedPosition = localProgress['position'] as double;
+      if (savedChapterIndex == _chapterIndex && savedPosition > 0) {
+        _pendingSavedScrollProgress = savedPosition.clamp(0.0, 1.0).toDouble();
+        setState(() {
+          _scrollProgress = _pendingSavedScrollProgress!;
+          _restorableScrollProgress.value = _scrollProgress;
+        });
+        _restorePendingScrollPosition();
+        return;
+      }
+    }
+
     final user = await ref.read(currentUserProvider.future);
     if (user != null &&
         user.readingProgress?.containsKey(widget.book.id.toString()) == true) {
@@ -608,6 +656,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }) async {
     _currentUserId = userId;
     final resolvedPosition = position ?? _currentProgressPosition();
+
+    // Save locally first
+    await _saveProgressLocally(chapterIndex, resolvedPosition);
+
     if (!force &&
         !_shouldPersistProgress(
           chapterIndex: chapterIndex,
@@ -645,12 +697,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     String? userId,
     bool force = false,
   }) {
+    final chapterIndex = _chapterIndex;
+    final position = _currentProgressPosition();
+
+    // ALWAYS save locally first
+    unawaited(_saveProgressLocally(chapterIndex, position));
+
     final targetUserId =
         userId ?? ref.read(currentUserProvider).value?.id ?? _currentUserId;
     if (targetUserId == null) return;
 
-    final chapterIndex = _chapterIndex;
-    final position = _currentProgressPosition();
     unawaited(
       _saveProgressForUser(
         targetUserId,
@@ -1330,28 +1386,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: SafeArea(
-                  top: false,
-                  child: _ReaderBottomBar(
-                    progress: _scrollProgress,
-                    visible: _showReaderChrome,
-                    onSwipeUp: () => _showDiscussion(chapter),
-                    onTap: () => _showDiscussion(chapter),
-                    chromeTheme: chromeTheme,
-                    theme: _getEffectiveTheme(),
-                    hasPrevious: _chapterIndex > 0,
-                    hasNext: _chapterIndex < chapters.length - 1,
-                    onPrevious: () {
-                      unawaited(AppHaptics.selection());
-                      _goToChapter(_chapterIndex - 1);
-                    },
-                    onNext: () {
-                      unawaited(AppHaptics.selection());
-                      unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
-                    },
-                    onClose: () =>
-                        unawaited(_handleReaderExit(_popReaderAfterPrompt)),
-                  ),
+                child: _ReaderBottomBar(
+                  progress: _scrollProgress,
+                  visible: _showReaderChrome,
+                  onSwipeUp: () => _showDiscussion(chapter),
+                  onTap: () => _showDiscussion(chapter),
+                  chromeTheme: chromeTheme,
+                  theme: _getEffectiveTheme(),
+                  hasPrevious: _chapterIndex > 0,
+                  hasNext: _chapterIndex < chapters.length - 1,
+                  onPrevious: () {
+                    unawaited(AppHaptics.selection());
+                    _goToChapter(_chapterIndex - 1);
+                  },
+                  onNext: () {
+                    unawaited(AppHaptics.selection());
+                    unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
+                  },
+                  onClose: () =>
+                      unawaited(_handleReaderExit(_popReaderAfterPrompt)),
                 ),
               ),
             ],
@@ -5198,13 +5251,14 @@ class _ReaderBottomBar extends StatelessWidget {
     final textColor = appColorScheme.onSurface;
     final progressColor = appColorScheme.primary;
     final progressBackground = appColorScheme.onSurface.withValues(alpha: 0.1);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Theme(
       data: chromeTheme,
       child: AnimatedContainer(
         duration: _readerChromeAnimationDuration,
         curve: Curves.easeOut,
-        height: visible ? _readerBottomBarHeight : 0,
+        height: visible ? (_readerBottomBarHeight + bottomPadding) : 0,
         child: ClipRect(
           child: GestureDetector(
             onVerticalDragEnd: (details) {
@@ -5226,46 +5280,49 @@ class _ReaderBottomBar extends StatelessWidget {
                     minHeight: 2,
                   ),
                   Expanded(
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            hasPrevious
-                                ? Icons.navigate_before_rounded
-                                : Icons.close_rounded,
-                          ),
-                          onPressed: hasPrevious ? onPrevious : onClose,
-                          color: textColor.withValues(alpha: 0.5),
-                          tooltip: hasPrevious
-                              ? AppLocalizations.of(context)!.back
-                              : AppLocalizations.of(context)!.closeReader,
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onVerticalDragEnd: (details) {
-                            if (details.primaryVelocity != null &&
-                                details.primaryVelocity! < -100) {
-                              onSwipeUp();
-                            }
-                          },
-                          onTap: onTap,
-                          child: Icon(
-                            Icons.keyboard_arrow_up_rounded,
-                            size: 24,
-                            color: textColor.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        const Spacer(),
-                        if (hasNext)
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: bottomPadding),
+                      child: Row(
+                        children: [
                           IconButton(
-                            icon: const Icon(Icons.navigate_next_rounded),
-                            onPressed: onNext,
+                            icon: Icon(
+                              hasPrevious
+                                  ? Icons.navigate_before_rounded
+                                  : Icons.close_rounded,
+                            ),
+                            onPressed: hasPrevious ? onPrevious : onClose,
                             color: textColor.withValues(alpha: 0.5),
-                            tooltip: AppLocalizations.of(context)!.nextChapter,
-                          )
-                        else
-                          const SizedBox(width: 48),
-                      ],
+                            tooltip: hasPrevious
+                                ? AppLocalizations.of(context)!.back
+                                : AppLocalizations.of(context)!.closeReader,
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onVerticalDragEnd: (details) {
+                              if (details.primaryVelocity != null &&
+                                  details.primaryVelocity! < -100) {
+                                onSwipeUp();
+                              }
+                            },
+                            onTap: onTap,
+                            child: Icon(
+                              Icons.keyboard_arrow_up_rounded,
+                              size: 24,
+                              color: textColor.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (hasNext)
+                            IconButton(
+                              icon: const Icon(Icons.navigate_next_rounded),
+                              onPressed: onNext,
+                              color: textColor.withValues(alpha: 0.5),
+                              tooltip: AppLocalizations.of(context)!.nextChapter,
+                            )
+                          else
+                            const SizedBox(width: 48),
+                        ],
+                      ),
                     ),
                   ),
                 ],

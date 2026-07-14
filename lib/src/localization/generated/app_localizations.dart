@@ -2858,6 +2858,12 @@ abstract class AppLocalizations {
   /// **'Publish'**
   String get writerPublish;
 
+  /// No description provided for @postToFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Post to Feed'**
+  String get postToFeed;
+
   /// No description provided for @printBook.
   ///
   /// In en, this message translates to:

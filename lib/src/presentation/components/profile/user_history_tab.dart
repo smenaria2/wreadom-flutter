@@ -6,7 +6,7 @@ import '../../providers/auth_providers.dart';
 import '../../providers/book_providers.dart';
 import '../../widgets/themed_empty_state.dart';
 import '../../widgets/see_more_content_button.dart';
-import 'history_book_card.dart';
+import '../book_card.dart';
 
 class UserHistoryTab extends ConsumerStatefulWidget {
   const UserHistoryTab({super.key});
@@ -44,7 +44,7 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.44,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 28,
                 ),
@@ -132,7 +132,7 @@ class _RemovableHistoryGridItem extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: HistoryBookCard(book: book, width: double.infinity),
+          child: BookCard(book: book, width: double.infinity),
         ),
         Positioned(
           top: -8,

@@ -1562,6 +1562,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get writerPublish => 'प्रकाशित करें';
 
   @override
+  String get postToFeed => 'फ़ीड पर पोस्ट करें';
+
+  @override
   String get printBook => 'प्रिंट';
 
   @override

@@ -673,6 +673,7 @@
   "writerDraft": "ड्राफ़्ट",
   "writerNext": "आगे",
   "writerPublish": "प्रकाशित करें",
+  "postToFeed": "फ़ीड पर पोस्ट करें",
   "printBook": "प्रिंट",
   "couldNotOpenPrintPage": "प्रिंट पेज नहीं खुल सका।",
   "writerChapterTitleHint": "अध्याय {number} का शीर्षक",

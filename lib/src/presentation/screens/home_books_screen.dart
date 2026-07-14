@@ -21,6 +21,8 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
+import '../providers/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/daily_topic_providers.dart';
 import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
@@ -877,6 +879,7 @@ class _ContinueReadingSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final booksAsync = ref.watch(readingHistoryBooksProvider(5));
     final user = ref.watch(currentUserProvider).asData?.value;
+    final prefs = ref.watch(sharedPreferencesProvider);
 
     final books = booksAsync.value ?? [];
     final hasData = booksAsync.hasValue && books.isNotEmpty;
@@ -907,7 +910,7 @@ class _ContinueReadingSection extends ConsumerWidget {
                     separatorBuilder: (_, _) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final book = books[index];
-                      final progress = _progressFor(user, book.id);
+                      final progress = _progressFor(prefs, user, book.id);
                       return _ContinueReadingCard(
                         book: book,
                         chapterIndex: progress.chapterIndex,
@@ -922,7 +925,21 @@ class _ContinueReadingSection extends ConsumerWidget {
     );
   }
 
-  _ReadingProgress _progressFor(UserModel? user, String bookId) {
+  _ReadingProgress _progressFor(SharedPreferences prefs, UserModel? user, String bookId) {
+    final key = 'local_progress_$bookId';
+    final localValue = prefs.getString(key);
+    if (localValue != null) {
+      final parts = localValue.split('|');
+      if (parts.length == 2) {
+        final chapterIndex = int.tryParse(parts[0]) ?? 0;
+        final position = double.tryParse(parts[1]) ?? 0.0;
+        return _ReadingProgress(
+          chapterIndex: chapterIndex,
+          position: position.clamp(0.0, 1.0),
+        );
+      }
+    }
+
     final raw = user?.readingProgress?[bookId];
     if (raw is! Map) return const _ReadingProgress();
     final progress = Map<String, dynamic>.from(raw);
@@ -2051,7 +2068,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                           // Only show first 5 books
                           final displayBooks = books.take(5).toList();
                           return SizedBox(
-                            height: 132,
+                            height: 154,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: displayBooks.length,
@@ -2074,7 +2091,8 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
+                                        AspectRatio(
+                                          aspectRatio: 2 / 3,
                                           child: Container(
                                             decoration: BoxDecoration(
                                               borderRadius:

@@ -75,18 +75,21 @@ class _StartupSplashScreenState extends State<StartupSplashScreen>
         child: Semantics(
           label: 'Wreadom',
           image: true,
-          child: SizedBox.square(
-            dimension: dimension,
-            child: Lottie.asset(
-              'assets/animations/startup_splash.json',
-              controller: _controller,
-              fit: BoxFit.contain,
-              repeat: false,
-              onLoaded: _play,
-              errorBuilder: (context, error, stackTrace) {
-                WidgetsBinding.instance.addPostFrameCallback((_) => _finish());
-                return const SizedBox.shrink();
-              },
+          child: RepaintBoundary(
+            child: SizedBox.square(
+              dimension: dimension,
+              child: Lottie.asset(
+                'assets/animations/startup_splash.json',
+                controller: _controller,
+                frameRate: FrameRate.max,
+                fit: BoxFit.contain,
+                repeat: false,
+                onLoaded: _play,
+                errorBuilder: (context, error, stackTrace) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _finish());
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ),
         ),

@@ -28,7 +28,7 @@ class UserSavedTab extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 0.5,
+            childAspectRatio: 0.44,
             crossAxisSpacing: 12,
             mainAxisSpacing: 28,
           ),

@@ -1564,6 +1564,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get writerPublish => 'Publish';
 
   @override
+  String get postToFeed => 'Post to Feed';
+
+  @override
   String get printBook => 'Print';
 
   @override

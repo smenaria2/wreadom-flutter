@@ -23,8 +23,8 @@ import '../../utils/image_proxy_utils.dart';
 import '../../utils/clipboard_writer.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
+import '../providers/theme_provider.dart';
 import '../providers/comment_providers.dart';
-import '../providers/collection_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/homepage_providers.dart';
@@ -583,7 +583,7 @@ class _BookDetailBody extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _hasProgress(userAsync, book.id) &&
+                                    _hasProgress(ref, userAsync, book.id) &&
                                             !_isArchiveBook(book)
                                         ? AppLocalizations.of(
                                             context,
@@ -672,7 +672,11 @@ class _BookDetailBody extends ConsumerWidget {
     );
   }
 
-  static bool _hasProgress(AsyncValue<dynamic> userAsync, String bookId) {
+  bool _hasProgress(WidgetRef ref, AsyncValue<dynamic> userAsync, String bookId) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final key = 'local_progress_$bookId';
+    if (prefs.containsKey(key)) return true;
+
     return userAsync.maybeWhen(
       data: (u) => _progressForBook(u?.readingProgress, bookId) != null,
       orElse: () => false,
@@ -694,12 +698,23 @@ class _BookDetailBody extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<dynamic> userAsync,
   ) async {
-    final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
-      data: (u) => _progressForBook(u?.readingProgress, book.id),
-      orElse: () => null,
-    );
-    var startChapter = 0;
-    startChapter = (progress?['chapterIndex'] as num?)?.toInt() ?? 0;
+    final prefs = ref.read(sharedPreferencesProvider);
+    final key = 'local_progress_${book.id}';
+    final localValue = prefs.getString(key);
+    int startChapter = 0;
+    if (localValue != null) {
+      final parts = localValue.split('|');
+      if (parts.length == 2) {
+        startChapter = int.tryParse(parts[0]) ?? 0;
+      }
+    } else {
+      final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
+        data: (u) => _progressForBook(u?.readingProgress, book.id),
+        orElse: () => null,
+      );
+      startChapter = (progress?['chapterIndex'] as num?)?.toInt() ?? 0;
+    }
+
     await Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArguments(book: book, initialChapterIndex: startChapter),
@@ -795,7 +810,7 @@ class _BookDetailBody extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                             child: _SheetRevealButton(
-                              label: l10n.writerPublish,
+                              label: l10n.postToFeed,
                               icon: Icons.dynamic_feed_outlined,
                               expanded: feedVisible,
                               onTap: () => setModalState(() {
@@ -2211,14 +2226,21 @@ class _BookQuickActionTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (loading)
-              const SizedBox.square(
-                dimension: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              const Center(
+                child: SizedBox.square(
+                  dimension: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               )
             else
-              Icon(icon, color: selected ? scheme.primary : scheme.onSurface),
+              Center(
+                child: Icon(icon, color: selected ? scheme.primary : scheme.onSurface),
+              ),
             const SizedBox(height: 6),
             Text(
               label,
@@ -2284,10 +2306,6 @@ class _CollectionActionButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).value;
-    final memberships = user == null
-        ? const AsyncValue<Set<String>>.data(<String>{})
-        : ref.watch(bookCollectionMembershipsProvider(book.id));
-    final selected = memberships.value?.isNotEmpty ?? false;
     final l10n = AppLocalizations.of(context)!;
     return Tooltip(
       message: l10n.addToCollection,
@@ -2303,17 +2321,10 @@ class _CollectionActionButton extends ConsumerWidget {
         semanticButton: true,
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: memberships.isLoading
-              ? const SizedBox.square(
-                  dimension: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(
-                  selected
-                      ? Icons.collections_bookmark_rounded
-                      : Icons.collections_bookmark_outlined,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+          child: Icon(
+            Icons.collections_bookmark_outlined,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ),
     );

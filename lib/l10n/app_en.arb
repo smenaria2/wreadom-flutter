@@ -874,6 +874,7 @@
   "writerDraft": "Draft",
   "writerNext": "Next",
   "writerPublish": "Publish",
+  "postToFeed": "Post to Feed",
   "printBook": "Print",
   "couldNotOpenPrintPage": "Could not open the print page.",
   "writerChapterTitleHint": "Chapter {number} title",
