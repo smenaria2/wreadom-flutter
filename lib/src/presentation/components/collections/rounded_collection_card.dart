@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../../../domain/models/book_collection.dart';
 import 'collection_widgets.dart';
 
@@ -17,14 +19,12 @@ class RoundedCollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cover = SizedBox(
       width: 80,
       height: 80,
       child: ClipOval(
-        child: CollectionCoverCollage(
-          collection: collection,
-          borderRadius: 0,
-        ),
+        child: CollectionCoverCollage(collection: collection, borderRadius: 0),
       ),
     );
 
@@ -32,7 +32,7 @@ class RoundedCollectionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -40,7 +40,9 @@ class RoundedCollectionCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   width: 2,
                 ),
                 boxShadow: [
@@ -69,7 +71,7 @@ class RoundedCollectionCard extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${collection.bookCount} ${collection.bookCount == 1 ? 'book' : 'books'}',
+              l10n.collectionBookCount(collection.bookCount),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 10,

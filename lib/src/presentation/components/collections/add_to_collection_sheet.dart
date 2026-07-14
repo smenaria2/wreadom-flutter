@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/book.dart';
 import '../../../utils/app_haptics.dart';
@@ -16,6 +17,7 @@ Future<void> showAddToCollectionSheet(BuildContext context, Book book) =>
 
 class AddToCollectionSheet extends ConsumerStatefulWidget {
   const AddToCollectionSheet({super.key, required this.book});
+
   final Book book;
 
   @override
@@ -63,6 +65,7 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final collections = ref.watch(currentUserCollectionsProvider);
     final memberships = ref.watch(
       bookCollectionMembershipsProvider(widget.book.id),
@@ -76,7 +79,7 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add to collection',
+              l10n.addToCollection,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 4),
@@ -91,9 +94,7 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                   ? const Center(child: CircularProgressIndicator())
                   : collections.when(
                       data: (items) => items.isEmpty
-                          ? const Center(
-                              child: Text('You have no collections yet.'),
-                            )
+                          ? Center(child: Text(l10n.noCollectionsYet))
                           : ListView.builder(
                               itemCount: items.length,
                               itemBuilder: (_, index) {
@@ -104,7 +105,9 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                                   value: selected,
                                   title: Text(collection.title),
                                   subtitle: Text(
-                                    '${collection.bookCount} books',
+                                    l10n.collectionBookCount(
+                                      collection.bookCount,
+                                    ),
                                   ),
                                   onChanged: _saving
                                       ? null
@@ -152,7 +155,7 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                       if (mounted) navigator.pop();
                     },
               icon: const Icon(Icons.add),
-              label: const Text('Create new collection'),
+              label: Text(l10n.createNewCollection),
             ),
             FilledButton(
               onPressed: _saving || _selected == null ? null : _save,
@@ -161,7 +164,7 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save selection'),
+                  : Text(l10n.saveSelection),
             ),
           ],
         ),

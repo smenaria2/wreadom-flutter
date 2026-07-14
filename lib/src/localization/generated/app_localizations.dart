@@ -5503,6 +5503,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to collection'**
   String get addToCollection;
+
+  /// No description provided for @collections.
+  ///
+  /// In en, this message translates to:
+  /// **'Collections'**
+  String get collections;
+
+  /// No description provided for @newCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newCollection;
+
+  /// No description provided for @collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get collection;
+
+  /// No description provided for @authorsWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'Author\'s works'**
+  String get authorsWorks;
+
+  /// No description provided for @collectionBookCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No books} =1{1 book} other{{count} books}}'**
+  String collectionBookCount(int count);
+
+  /// No description provided for @shareCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Share collection'**
+  String get shareCollection;
+
+  /// No description provided for @addBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Add books'**
+  String get addBooks;
+
+  /// No description provided for @deleteCollectionQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete collection?'**
+  String get deleteCollectionQuestion;
+
+  /// No description provided for @deleteCollectionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently removes the collection and its book list.'**
+  String get deleteCollectionWarning;
+
+  /// No description provided for @collectionNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection not found.'**
+  String get collectionNotFound;
+
+  /// No description provided for @collectionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This collection is empty.'**
+  String get collectionEmpty;
+
+  /// No description provided for @collectionLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load collection: {error}'**
+  String collectionLoadFailed(String error);
+
+  /// No description provided for @collectionBooksLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load books: {error}'**
+  String collectionBooksLoadFailed(String error);
+
+  /// No description provided for @createCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Create collection'**
+  String get createCollection;
+
+  /// No description provided for @editCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit collection'**
+  String get editCollection;
+
+  /// No description provided for @collectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection name'**
+  String get collectionName;
+
+  /// No description provided for @descriptionOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get descriptionOptional;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get saveChanges;
+
+  /// No description provided for @createNewCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new collection'**
+  String get createNewCollection;
+
+  /// No description provided for @saveSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Save selection'**
+  String get saveSelection;
+
+  /// No description provided for @noCollectionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no collections yet.'**
+  String get noCollectionsYet;
+
+  /// No description provided for @collectionNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a collection name of 1–60 characters.'**
+  String get collectionNameError;
+
+  /// No description provided for @collectionDescriptionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Description must be 300 characters or fewer.'**
+  String get collectionDescriptionError;
+
+  /// No description provided for @searchBooksForCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your books and public stories'**
+  String get searchBooksForCollection;
+
+  /// No description provided for @addSelectedBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {count} selected'**
+  String addSelectedBooks(int count);
 }
 
 class _AppLocalizationsDelegate

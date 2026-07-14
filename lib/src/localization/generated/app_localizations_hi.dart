@@ -3088,4 +3088,100 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get addToCollection => 'संग्रह में जोड़ें';
+
+  @override
+  String get collections => 'संग्रह';
+
+  @override
+  String get newCollection => 'नया';
+
+  @override
+  String get collection => 'संग्रह';
+
+  @override
+  String get authorsWorks => 'लेखक की रचनाएँ';
+
+  @override
+  String collectionBookCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count पुस्तकें',
+      one: '1 पुस्तक',
+      zero: 'कोई पुस्तक नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareCollection => 'संग्रह साझा करें';
+
+  @override
+  String get addBooks => 'पुस्तकें जोड़ें';
+
+  @override
+  String get deleteCollectionQuestion => 'संग्रह हटाएँ?';
+
+  @override
+  String get deleteCollectionWarning =>
+      'इससे संग्रह और उसकी पुस्तक सूची स्थायी रूप से हट जाएगी।';
+
+  @override
+  String get collectionNotFound => 'संग्रह नहीं मिला।';
+
+  @override
+  String get collectionEmpty => 'यह संग्रह खाली है।';
+
+  @override
+  String collectionLoadFailed(String error) {
+    return 'संग्रह लोड नहीं हो सका: $error';
+  }
+
+  @override
+  String collectionBooksLoadFailed(String error) {
+    return 'पुस्तकें लोड नहीं हो सकीं: $error';
+  }
+
+  @override
+  String get createCollection => 'संग्रह बनाएँ';
+
+  @override
+  String get editCollection => 'संग्रह संपादित करें';
+
+  @override
+  String get collectionName => 'संग्रह का नाम';
+
+  @override
+  String get descriptionOptional => 'विवरण (वैकल्पिक)';
+
+  @override
+  String get create => 'बनाएँ';
+
+  @override
+  String get saveChanges => 'बदलाव सहेजें';
+
+  @override
+  String get createNewCollection => 'नया संग्रह बनाएँ';
+
+  @override
+  String get saveSelection => 'चयन सहेजें';
+
+  @override
+  String get noCollectionsYet => 'अभी कोई संग्रह नहीं है।';
+
+  @override
+  String get collectionNameError => '1–60 अक्षरों का संग्रह नाम दर्ज करें।';
+
+  @override
+  String get collectionDescriptionError =>
+      'विवरण 300 अक्षरों या उससे कम होना चाहिए।';
+
+  @override
+  String get searchBooksForCollection =>
+      'अपनी पुस्तकें और सार्वजनिक रचनाएँ खोजें';
+
+  @override
+  String addSelectedBooks(int count) {
+    return '$count चयनित जोड़ें';
+  }
 }

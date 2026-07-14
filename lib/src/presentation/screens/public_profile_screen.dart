@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
+import '../providers/collection_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/follow_providers.dart';
 import '../providers/message_providers.dart';
@@ -747,6 +748,9 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
   @override
   Widget build(BuildContext context) {
     final booksAsync = ref.watch(userBooksProvider(widget.userId));
+    final hasCollections = ref
+        .watch(userCollectionsProvider(widget.userId))
+        .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
     final l10n = AppLocalizations.of(context)!;
     return booksAsync.when(
       data: (books) {
@@ -756,6 +760,22 @@ class _PublicBooksSectionState extends ConsumerState<_PublicBooksSection> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             HorizontalCollectionsList(userId: widget.userId, canCreate: false),
+            if (hasCollections) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(0, 0, 0, 16),
+                child: Divider(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  l10n.authorsWorks,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
             if (books.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 24, left: 16, right: 16),

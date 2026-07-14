@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../providers/collection_providers.dart';
 import '../../routing/app_router.dart';
@@ -19,6 +20,7 @@ class CollectionList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final collections = ref.watch(userCollectionsProvider(userId));
     return collections.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -32,13 +34,13 @@ class CollectionList extends ConsumerWidget {
               child: FilledButton.icon(
                 onPressed: () => showCollectionFormSheet(context),
                 icon: const Icon(Icons.add),
-                label: const Text('New collection'),
+                label: Text(l10n.createNewCollection),
               ),
             ),
           if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: Text('No collections yet.')),
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(child: Text(l10n.noCollectionsYet)),
             )
           else
             GridView.builder(

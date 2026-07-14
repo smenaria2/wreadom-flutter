@@ -20,6 +20,22 @@ class SharingIntentHandler {
 
   StreamSubscription<List<SharedMediaFile>>? _intentSub;
   bool _initialized = false;
+  List<SharedMediaFile>? _initialMedia;
+
+  Future<bool> hasInitialShare() async {
+    final cached = _initialMedia;
+    if (cached != null) return cached.isNotEmpty;
+    try {
+      final files = await ReceiveSharingIntent.instance.getInitialMedia();
+      _initialMedia = files;
+      return files.isNotEmpty;
+    } catch (error) {
+      debugPrint(
+        'SharingIntentHandler: Error checking initial share intent: $error',
+      );
+      return false;
+    }
+  }
 
   void init(
     GlobalKey<NavigatorState> navigatorKey, {
@@ -43,8 +59,10 @@ class SharingIntentHandler {
     );
 
     // 2. Handle sharing when app is opened from terminated state
-    ReceiveSharingIntent.instance
-        .getInitialMedia()
+    final initialMediaFuture = _initialMedia != null
+        ? Future<List<SharedMediaFile>>.value(_initialMedia!)
+        : ReceiveSharingIntent.instance.getInitialMedia();
+    initialMediaFuture
         .then((List<SharedMediaFile> files) {
           if (files.isNotEmpty) {
             Future.delayed(const Duration(milliseconds: 800), () {
@@ -63,6 +81,7 @@ class SharingIntentHandler {
     _intentSub?.cancel();
     _intentSub = null;
     _initialized = false;
+    _initialMedia = null;
   }
 
   Future<void> _handleSharedFiles(

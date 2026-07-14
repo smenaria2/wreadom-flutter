@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/models/book.dart';
@@ -11,7 +12,7 @@ import '../../utils/app_link_helper.dart';
 import '../components/book_card.dart';
 import '../components/collections/collection_form_sheet.dart';
 import '../components/collections/collection_widgets.dart';
-import '../widgets/glass_surface.dart';
+
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/collection_providers.dart';
@@ -37,21 +38,20 @@ class _CollectionDetailScreenState
   List<Book>? _optimisticBooks;
 
   Future<void> _delete(BookCollection collection) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete collection?'),
-        content: const Text(
-          'This permanently removes the collection and its book list.',
-        ),
+        title: Text(l10n.deleteCollectionQuestion),
+        content: Text(l10n.deleteCollectionWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -70,7 +70,10 @@ class _CollectionDetailScreenState
   void _showError(Object error) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(error.toString()),
-      action: SnackBarAction(label: 'Retry', onPressed: () {}),
+      action: SnackBarAction(
+        label: AppLocalizations.of(context)!.retry,
+        onPressed: () {},
+      ),
     ),
   );
 
@@ -108,6 +111,7 @@ class _CollectionDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final collectionAsync = ref.watch(
       collectionDetailProvider(widget.collectionId),
     );
@@ -120,13 +124,13 @@ class _CollectionDetailScreenState
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text('Could not load collection: $error')),
+        body: Center(child: Text(l10n.collectionLoadFailed(error.toString()))),
       ),
       data: (collection) {
         if (collection == null) {
           return Scaffold(
             appBar: AppBar(),
-            body: const Center(child: Text('Collection not found.')),
+            body: Center(child: Text(l10n.collectionNotFound)),
           );
         }
         final isOwner = userId == collection.ownerId;
@@ -139,8 +143,16 @@ class _CollectionDetailScreenState
                 pinned: true,
                 expandedHeight: 300,
                 actions: [
+                  if (isOwner)
+                    IconButton(
+                      tooltip: l10n.addBooks,
+                      onPressed: mutation.isLoading
+                          ? null
+                          : () => _showAddBooks(context, collection),
+                      icon: const Icon(Icons.playlist_add_rounded),
+                    ),
                   IconButton(
-                    tooltip: 'Share collection',
+                    tooltip: l10n.shareCollection,
                     onPressed: () => Share.share(
                       AppLinkHelper.collection(collection.id),
                       subject: collection.title,
@@ -155,9 +167,9 @@ class _CollectionDetailScreenState
                         }
                       },
                       itemBuilder: (_) => [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Text('Delete'),
+                          child: Text(l10n.delete),
                         ),
                       ],
                     ),
@@ -171,55 +183,6 @@ class _CollectionDetailScreenState
                   ),
                 ),
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${collection.bookCount} ${collection.bookCount == 1 ? 'book' : 'books'}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (isOwner) ...[
-                        const SizedBox(height: 16),
-                        GlassSurface(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: mutation.isLoading
-                              ? null
-                              : () => _showAddBooks(context, collection),
-                          semanticButton: true,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.playlist_add,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Add books',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
               booksAsync.when(
                 loading: () => const SliverFillRemaining(
                   hasScrollBody: false,
@@ -227,14 +190,18 @@ class _CollectionDetailScreenState
                 ),
                 error: (error, _) => SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text('Could not load books: $error')),
+                  child: Center(
+                    child: Text(
+                      l10n.collectionBooksLoadFailed(error.toString()),
+                    ),
+                  ),
                 ),
                 data: (streamBooks) {
                   final books = _optimisticBooks ?? streamBooks;
                   if (books.isEmpty) {
-                    return const SliverFillRemaining(
+                    return SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Center(child: Text('This collection is empty.')),
+                      child: Center(child: Text(l10n.collectionEmpty)),
                     );
                   }
                   return SliverPadding(
@@ -415,6 +382,7 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     final results = _query.trim().isEmpty
         ? (currentUser == null
@@ -427,10 +395,13 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text('Add books', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              l10n.addBooks,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 12),
             SearchBar(
-              hintText: 'Search your books and public stories',
+              hintText: l10n.searchBooksForCollection,
               leading: const Icon(Icons.search),
               onChanged: (value) => setState(() => _query = value),
             ),
@@ -463,7 +434,7 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
               onPressed: _selected.isEmpty
                   ? null
                   : () => Navigator.pop(context, _selected.toList()),
-              child: Text('Add ${_selected.length} selected'),
+              child: Text(l10n.addSelectedBooks(_selected.length)),
             ),
           ],
         ),
@@ -640,51 +611,17 @@ class _CollectionAppBarBackground extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (isOwner) ...[
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () => showCollectionFormSheet(
-                              context,
-                              collection: collection,
-                            ),
-                            child: const Icon(
-                              Icons.edit_outlined,
-                              size: 14,
-                              color: Colors.white60,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ] else if (isOwner) ...[
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => showCollectionFormSheet(
-                      context,
-                      collection: collection,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Add a description...',
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.edit_outlined,
-                          size: 12,
-                          color: Colors.white54,
-                        ),
                       ],
                     ),
                   ),
                 ],
+                const SizedBox(height: 6),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.collectionBookCount(collection.bookCount),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ],
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/book_collection.dart';
 
@@ -85,9 +86,11 @@ class CollectionCoverCollage extends StatelessWidget {
       );
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Semantics(
       image: true,
-      label: '${collection.title}, ${collection.bookCount} books',
+      label:
+          '${collection.title}, ${l10n.collectionBookCount(collection.bookCount)}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: ColoredBox(
@@ -109,9 +112,8 @@ class _CollageImage extends StatelessWidget {
       imageUrl: url,
       fit: BoxFit.cover,
       placeholder: (_, _) => const ColoredBox(color: Color(0x14000000)),
-      errorWidget: (_, _, _) => const Center(
-        child: Icon(Icons.auto_stories_outlined, size: 20),
-      ),
+      errorWidget: (_, _, _) =>
+          const Center(child: Icon(Icons.auto_stories_outlined, size: 20)),
     );
   }
 }
@@ -131,6 +133,7 @@ class CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final l10n = AppLocalizations.of(context)!;
     final cover = CollectionCoverCollage(collection: collection);
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -167,9 +170,7 @@ class CollectionCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    '${collection.bookCount} ${collection.bookCount == 1 ? 'book' : 'books'}',
-                  ),
+                  Text(l10n.collectionBookCount(collection.bookCount)),
                 ],
               ),
             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+
 import '../../providers/collection_providers.dart';
 import '../../routing/app_router.dart';
 import '../../routing/app_routes.dart';
@@ -21,6 +23,7 @@ class HorizontalCollectionsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final collectionsAsync = ref.watch(userCollectionsProvider(userId));
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return collectionsAsync.when(
       loading: () => const SizedBox(
@@ -37,9 +40,9 @@ class HorizontalCollectionsList extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Collections',
+                l10n.collections,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -49,7 +52,7 @@ class HorizontalCollectionsList extends ConsumerWidget {
             SizedBox(
               height: 146,
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 scrollDirection: Axis.horizontal,
                 itemCount: collections.length + (canCreate ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -84,13 +87,15 @@ class HorizontalCollectionsList extends ConsumerWidget {
 
 class _CreateCollectionButton extends StatelessWidget {
   const _CreateCollectionButton({required this.onTap});
+
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -114,7 +119,7 @@ class _CreateCollectionButton extends StatelessWidget {
           SizedBox(
             width: 84,
             child: Text(
-              'New',
+              l10n.newCollection,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -126,7 +131,7 @@ class _CreateCollectionButton extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Collection',
+            l10n.collection,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary.withValues(alpha: 0.7),
               fontSize: 10,

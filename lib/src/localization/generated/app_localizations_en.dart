@@ -3079,4 +3079,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addToCollection => 'Add to collection';
+
+  @override
+  String get collections => 'Collections';
+
+  @override
+  String get newCollection => 'New';
+
+  @override
+  String get collection => 'Collection';
+
+  @override
+  String get authorsWorks => 'Author\'s works';
+
+  @override
+  String collectionBookCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count books',
+      one: '1 book',
+      zero: 'No books',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareCollection => 'Share collection';
+
+  @override
+  String get addBooks => 'Add books';
+
+  @override
+  String get deleteCollectionQuestion => 'Delete collection?';
+
+  @override
+  String get deleteCollectionWarning =>
+      'This permanently removes the collection and its book list.';
+
+  @override
+  String get collectionNotFound => 'Collection not found.';
+
+  @override
+  String get collectionEmpty => 'This collection is empty.';
+
+  @override
+  String collectionLoadFailed(String error) {
+    return 'Could not load collection: $error';
+  }
+
+  @override
+  String collectionBooksLoadFailed(String error) {
+    return 'Could not load books: $error';
+  }
+
+  @override
+  String get createCollection => 'Create collection';
+
+  @override
+  String get editCollection => 'Edit collection';
+
+  @override
+  String get collectionName => 'Collection name';
+
+  @override
+  String get descriptionOptional => 'Description (optional)';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get saveChanges => 'Save changes';
+
+  @override
+  String get createNewCollection => 'Create new collection';
+
+  @override
+  String get saveSelection => 'Save selection';
+
+  @override
+  String get noCollectionsYet => 'You have no collections yet.';
+
+  @override
+  String get collectionNameError =>
+      'Enter a collection name of 1–60 characters.';
+
+  @override
+  String get collectionDescriptionError =>
+      'Description must be 300 characters or fewer.';
+
+  @override
+  String get searchBooksForCollection => 'Search your books and public stories';
+
+  @override
+  String addSelectedBooks(int count) {
+    return 'Add $count selected';
+  }
 }

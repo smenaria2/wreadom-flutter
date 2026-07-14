@@ -31,7 +31,9 @@ import 'src/presentation/screens/login_screen.dart';
 import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/screens/email_verification_screen.dart';
+import 'src/presentation/screens/startup_splash_screen.dart';
 import 'src/presentation/theme/app_theme.dart';
+import 'src/presentation/routing/startup_entry_policy.dart';
 import 'src/presentation/providers/email_verification_provider.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/analytics_service.dart';
@@ -77,17 +79,58 @@ Future<void> main() async {
       AppLogCollector.recordZoneError(error, stack);
       return false;
     };
+    final appLinks = AppLinks();
+    final startupEntryFuture = _resolveStartupEntry(appLinks);
     final sharedPreferences = await SharedPreferences.getInstance();
     final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
+    final startupEntry = await startupEntryFuture;
     runApp(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(sharedPreferences),
         ],
-        child: MyApp(firebaseBootstrap: firebaseBootstrap),
+        child: MyApp(
+          firebaseBootstrap: firebaseBootstrap,
+          appLinks: appLinks,
+          initialAppLink: startupEntry.initialAppLink,
+          skipStartupSplash: !shouldShowStartupSplash(
+            initialAppLink: startupEntry.initialAppLink,
+            hasInitialShare: startupEntry.hasInitialShare,
+          ),
+        ),
       ),
     );
   }, AppLogCollector.recordZoneError);
+}
+
+Future<({bool hasInitialShare, Uri? initialAppLink})> _resolveStartupEntry(
+  AppLinks appLinks,
+) async {
+  final initialLinkFuture = () async {
+    try {
+      return await appLinks.getInitialLink().timeout(
+        const Duration(seconds: 1),
+      );
+    } catch (error) {
+      debugPrint('Failed to inspect initial app link: $error');
+      return null;
+    }
+  }();
+  final initialShareFuture = () async {
+    try {
+      return await SharingIntentHandler.instance.hasInitialShare().timeout(
+        const Duration(seconds: 1),
+      );
+    } catch (error) {
+      debugPrint('Failed to inspect initial share intent: $error');
+      return false;
+    }
+  }();
+
+  return (
+    hasInitialShare: await initialShareFuture,
+    initialAppLink: await initialLinkFuture,
+  );
 }
 
 class FirebaseBootstrapResult {
@@ -224,9 +267,18 @@ Future<void> _activateFirebaseAppCheckIfNeeded() async {
 }
 
 class MyApp extends ConsumerStatefulWidget {
-  const MyApp({super.key, required this.firebaseBootstrap});
+  const MyApp({
+    super.key,
+    required this.firebaseBootstrap,
+    required this.appLinks,
+    required this.initialAppLink,
+    required this.skipStartupSplash,
+  });
 
   final FirebaseBootstrapResult firebaseBootstrap;
+  final AppLinks appLinks;
+  final Uri? initialAppLink;
+  final bool skipStartupSplash;
 
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
@@ -234,7 +286,7 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  late AppLinks _appLinks;
+  late final AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
   String? _lastDeepLinkKey;
@@ -245,6 +297,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   late bool _firestoreCacheConfigured;
   late bool _firebaseRetrying;
   final _pendingNavigation = PendingNavigationCoordinator();
+  late bool _showStartupSplash;
 
   static const Duration _duplicateDeepLinkWindow = Duration(seconds: 5);
   static const Duration _startupTimeout = Duration(seconds: 8);
@@ -252,17 +305,41 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    _appLinks = widget.appLinks;
+    _showStartupSplash = !widget.skipStartupSplash;
     _firebaseReady = widget.firebaseBootstrap.ready;
     _firebaseEmulatorsConfigured = widget.firebaseBootstrap.emulatorsConfigured;
     _appCheckConfigured = widget.firebaseBootstrap.appCheckConfigured;
     _firestoreCacheConfigured = widget.firebaseBootstrap.cacheConfigured;
     _firebaseRetrying = !_firebaseReady;
     _pendingNavigation.updateReadiness(firebaseReady: _firebaseReady);
+    final initialAppLink = widget.initialAppLink;
+    if (initialAppLink != null) {
+      _handleUri(initialAppLink);
+    }
+    unawaited(_initDeepLinks());
+    SharingIntentHandler.instance.init(
+      _navigatorKey,
+      onSharedTarget: _handleSharedRouteTarget,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingNavigation.updateReadiness(
+        navigatorReady:
+            !_showStartupSplash && _navigatorKey.currentState != null,
+      );
+      unawaited(_initializeAfterFirstFrame());
+    });
+  }
+
+  void _completeStartupSplash() {
+    if (!mounted || !_showStartupSplash) return;
+    setState(() => _showStartupSplash = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _pendingNavigation.updateReadiness(
         navigatorReady: _navigatorKey.currentState != null,
       );
-      unawaited(_initializeAfterFirstFrame());
+      _drainPendingDeepLinkTarget();
     });
   }
 
@@ -324,11 +401,6 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
       return GoogleSignInInitializer.ensureInitialized();
     });
-    unawaited(_initDeepLinks());
-    SharingIntentHandler.instance.init(
-      _navigatorKey,
-      onSharedTarget: _handleSharedRouteTarget,
-    );
   }
 
   Future<void> _retryFirebaseStartup() async {
@@ -424,17 +496,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   Future<void> _initDeepLinks() async {
-    _appLinks = AppLinks();
-
-    try {
-      final initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) {
-        _handleUri(initialUri);
-      }
-    } catch (e) {
-      debugPrint('Failed to get initial deep link: $e');
-    }
-
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) {
         _handleUri(uri);
@@ -478,7 +539,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _drainPendingDeepLinkTarget() {
     _pendingNavigation.updateReadiness(
       firebaseReady: _firebaseReady,
-      navigatorReady: _navigatorKey.currentState != null,
+      navigatorReady: !_showStartupSplash && _navigatorKey.currentState != null,
     );
     final target = _pendingNavigation.takeReadyTarget();
     if (target == null) return;
@@ -565,37 +626,41 @@ class _MyAppState extends ConsumerState<MyApp> {
             themeMode: themeMode,
             navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
             onGenerateRoute: AppRouter.onGenerateRoute,
-            home: ShakeToReportListener(
-              navigatorKey: _navigatorKey,
-              child: AuthWrapper(
-                firebaseReady: _firebaseReady,
-                firebaseRetrying: _firebaseRetrying,
-                onRetryFirebase: _retryFirebaseStartup,
-                onReadinessChanged:
-                    ({
-                      required authenticated,
-                      required emailVerified,
-                      required onboardingReady,
-                    }) {
-                      _pendingNavigation.updateReadiness(
-                        authenticated: authenticated,
-                        emailVerified: emailVerified,
-                        onboardingReady: onboardingReady,
-                      );
-                      _drainPendingDeepLinkTarget();
-                    },
-                onSignedOut: () {
-                  ref.read(isSigningOutProvider.notifier).setSigningOut(false);
-                  _pendingNavigation
-                    ..clear()
-                    ..updateReadiness(
-                      authenticated: false,
-                      emailVerified: false,
-                      onboardingReady: false,
-                    );
-                },
-              ),
-            ),
+            home: _showStartupSplash
+                ? StartupSplashScreen(onFinished: _completeStartupSplash)
+                : ShakeToReportListener(
+                    navigatorKey: _navigatorKey,
+                    child: AuthWrapper(
+                      firebaseReady: _firebaseReady,
+                      firebaseRetrying: _firebaseRetrying,
+                      onRetryFirebase: _retryFirebaseStartup,
+                      onReadinessChanged:
+                          ({
+                            required authenticated,
+                            required emailVerified,
+                            required onboardingReady,
+                          }) {
+                            _pendingNavigation.updateReadiness(
+                              authenticated: authenticated,
+                              emailVerified: emailVerified,
+                              onboardingReady: onboardingReady,
+                            );
+                            _drainPendingDeepLinkTarget();
+                          },
+                      onSignedOut: () {
+                        ref
+                            .read(isSigningOutProvider.notifier)
+                            .setSigningOut(false);
+                        _pendingNavigation
+                          ..clear()
+                          ..updateReadiness(
+                            authenticated: false,
+                            emailVerified: false,
+                            onboardingReady: false,
+                          );
+                      },
+                    ),
+                  ),
           ),
         );
       },
