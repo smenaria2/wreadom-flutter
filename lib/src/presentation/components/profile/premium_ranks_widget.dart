@@ -64,20 +64,41 @@ class _PremiumRanksWidgetState extends State<PremiumRanksWidget> {
           switchOutCurve: Curves.easeInCubic,
           transitionBuilder: (child, animation) {
             if (reduceMotion) return child;
-            final rotation = Tween(
-              begin: math.pi / 2,
-              end: 0.0,
-            ).animate(animation);
+            final isIncoming =
+                (child.key as ValueKey<RankTrack>?)?.value == _track;
+
             return AnimatedBuilder(
-              animation: rotation,
+              animation: animation,
               child: child,
-              builder: (_, child) => Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.0015)
-                  ..rotateY(rotation.value),
-                child: child,
-              ),
+              builder: (context, child) {
+                final value = animation.value;
+
+                if (isIncoming) {
+                  if (value < 0.5) {
+                    return const SizedBox.shrink();
+                  }
+                  final angle = -(1.0 - value) * math.pi;
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0015)
+                      ..rotateY(angle),
+                    child: child,
+                  );
+                } else {
+                  if (value < 0.5) {
+                    return const SizedBox.shrink();
+                  }
+                  final angle = (1.0 - value) * math.pi;
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0015)
+                      ..rotateY(angle),
+                    child: child,
+                  );
+                }
+              },
             );
           },
           child: _RankStatusFace(

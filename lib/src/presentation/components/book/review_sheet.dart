@@ -138,8 +138,15 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Icon(Icons.star_rounded, color: Colors.amber),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                tooltip: l10n.close,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.pop(context),
+              ),
               const SizedBox(width: 8),
+              const Icon(Icons.star_rounded, color: Colors.amber),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   l10n.reviewTitle(widget.book.title),

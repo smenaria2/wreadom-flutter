@@ -98,11 +98,23 @@ class _CollectionFormSheetState extends ConsumerState<CollectionFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            widget.collection == null
-                ? l10n.createCollection
-                : l10n.editCollection,
-            style: Theme.of(context).textTheme.headlineSmall,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.collection == null
+                      ? l10n.createCollection
+                      : l10n.editCollection,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                tooltip: l10n.close,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           TextField(

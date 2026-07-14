@@ -721,7 +721,7 @@ class _BookDetailBody extends ConsumerWidget {
     final feedMessageController = TextEditingController(
       text: l10n.defaultShareMessage(book.title),
     );
-    var feedVisible = false;
+    var feedVisible = true;
     var chatsVisible = false;
 
     await showModalBottomSheet<void>(
@@ -795,7 +795,7 @@ class _BookDetailBody extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                             child: _SheetRevealButton(
-                              label: l10n.shareToFeed,
+                              label: l10n.writerPublish,
                               icon: Icons.dynamic_feed_outlined,
                               expanded: feedVisible,
                               onTap: () => setModalState(() {
@@ -846,7 +846,7 @@ class _BookDetailBody extends ConsumerWidget {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              l10n.shareToFeed,
+                                              l10n.writerPublish,
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .labelLarge
@@ -2074,23 +2074,30 @@ class _BookQuickActionsState extends ConsumerState<_BookQuickActions> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.moreActions,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Text(
+                l10n.moreActions,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                tooltip: l10n.close,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                SizedBox(
-                  width: 118,
+                Expanded(
                   child: _BookQuickActionTile(
                     label: _saved ? l10n.saved : l10n.saveForLater,
                     icon: _saved
@@ -2101,8 +2108,8 @@ class _BookQuickActionsState extends ConsumerState<_BookQuickActions> {
                     onTap: _saving ? null : _toggleSaved,
                   ),
                 ),
-                SizedBox(
-                  width: 118,
+                const SizedBox(width: 8),
+                Expanded(
                   child: _BookQuickActionTile(
                     label: _downloaded ? l10n.downloaded : l10n.download,
                     icon: _downloaded
@@ -2113,8 +2120,8 @@ class _BookQuickActionsState extends ConsumerState<_BookQuickActions> {
                     onTap: _downloading ? null : _toggleDownload,
                   ),
                 ),
-                SizedBox(
-                  width: 118,
+                const SizedBox(width: 8),
+                Expanded(
                   child: _BookQuickActionTile(
                     label: l10n.copyLink,
                     icon: Icons.link_rounded,
@@ -2202,7 +2209,7 @@ class _BookQuickActionTile extends StatelessWidget {
       onTap: onTap,
       semanticButton: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
           children: [
             if (loading)
@@ -2305,9 +2312,7 @@ class _CollectionActionButton extends ConsumerWidget {
                   selected
                       ? Icons.collections_bookmark_rounded
                       : Icons.collections_bookmark_outlined,
-                  color: selected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
         ),
       ),

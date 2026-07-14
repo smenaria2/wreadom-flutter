@@ -1155,10 +1155,26 @@ Future<void> _showLinkLeaf(BuildContext context, LeafAttachment leaf) async {
       strong: true,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.72,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: InAppMediaWebView(url: url),
+        height: MediaQuery.sizeOf(context).height * 0.78,
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                child: InAppMediaWebView(url: url),
+              ),
+            ),
+          ],
         ),
       ),
     ),
@@ -1221,7 +1237,7 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
             children: [
               Row(
                 children: [
-                  if (widget.book.coverUrl?.trim().isNotEmpty == true)
+                  if (widget.book.coverUrl?.trim().isNotEmpty == true) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
@@ -1236,7 +1252,8 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
                     child: Text(
                       widget.book.title,
@@ -1246,6 +1263,11 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: l10n.close,
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),

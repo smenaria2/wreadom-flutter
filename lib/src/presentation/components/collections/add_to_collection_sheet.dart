@@ -78,9 +78,21 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.addToCollection,
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.addToCollection,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(

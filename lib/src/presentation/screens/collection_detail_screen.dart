@@ -9,7 +9,9 @@ import '../../domain/models/book.dart';
 import '../../domain/models/book_collection.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/app_link_helper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../components/book_card.dart';
+import '../components/generated_book_cover.dart';
 import '../components/collections/collection_form_sheet.dart';
 import '../components/collections/collection_widgets.dart';
 
@@ -218,61 +220,49 @@ class _CollectionDetailScreenState
                       itemBuilder: (context, index) {
                         final book = books[index];
                         final baseCard = Stack(
+                          clipBehavior: Clip.none,
                           children: [
                             BookCard(book: book, width: double.infinity),
                             if (isOwner)
                               Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: mutation.isLoading
-                                      ? null
-                                      : () async {
-                                          try {
-                                            await ref
-                                                .read(
-                                                  collectionMutationProvider(
-                                                    collection.id,
-                                                  ).notifier,
-                                                )
-                                                .run(
-                                                  (repo) => repo.removeBook(
-                                                    collection.id,
-                                                    book.id,
-                                                  ),
-                                                );
-                                            ref.invalidate(
-                                              resolvedCollectionBooksProvider(
-                                                collection.id,
-                                              ),
-                                            );
-                                          } catch (error) {
-                                            if (context.mounted) {
-                                              _showError(error);
+                                top: -8,
+                                right: -8,
+                                child: Material(
+                                  color: theme.colorScheme.surface,
+                                  shape: const CircleBorder(),
+                                  elevation: 2,
+                                  child: IconButton(
+                                    tooltip: l10n.remove,
+                                    visualDensity: VisualDensity.compact,
+                                    iconSize: 18,
+                                    onPressed: mutation.isLoading
+                                        ? null
+                                        : () async {
+                                            try {
+                                              await ref
+                                                  .read(
+                                                    collectionMutationProvider(
+                                                      collection.id,
+                                                    ).notifier,
+                                                  )
+                                                  .run(
+                                                    (repo) => repo.removeBook(
+                                                      collection.id,
+                                                      book.id,
+                                                    ),
+                                                  );
+                                              ref.invalidate(
+                                                resolvedCollectionBooksProvider(
+                                                  collection.id,
+                                                ),
+                                              );
+                                            } catch (error) {
+                                              if (context.mounted) {
+                                                _showError(error);
+                                              }
                                             }
-                                          }
-                                        },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.surface
-                                          .withValues(alpha: 0.9),
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.1,
-                                          ),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.close,
-                                      size: 16,
-                                      color: theme.colorScheme.onSurface,
-                                    ),
+                                          },
+                                    icon: const Icon(Icons.delete_outline_rounded),
                                   ),
                                 ),
                               ),
@@ -395,9 +385,21 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(
-              l10n.addBooks,
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.addBooks,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             SearchBar(
@@ -418,6 +420,51 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
                       subtitle: Text(
                         book.authors.map((author) => author.name).join(', '),
                       ),
+                      secondary: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 36,
+                          height: 54,
+                          child: book.coverUrl != null && book.coverUrl!.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: book.coverUrl!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => GeneratedBookCover(
+                                    title: book.title,
+                                    author: book.authors.isNotEmpty
+                                        ? book.authors.first.name
+                                        : null,
+                                    seed: book.id,
+                                    borderRadius: 6,
+                                    compact: true,
+                                  ),
+                                )
+                              : GeneratedBookCover(
+                                  title: book.title,
+                                  author: book.authors.isNotEmpty
+                                      ? book.authors.first.name
+                                      : null,
+                                  seed: book.id,
+                                  borderRadius: 6,
+                                  compact: true,
+                                ),
+                        ),
+                      ),
                       onChanged: (value) => setState(() {
                         value == true
                             ? _selected.add(book.id)
@@ -430,6 +477,7 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
                 error: (error, _) => Center(child: Text(error.toString())),
               ),
             ),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: _selected.isEmpty
                   ? null

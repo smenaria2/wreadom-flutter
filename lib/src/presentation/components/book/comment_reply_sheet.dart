@@ -232,13 +232,25 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n.replyingTo(
-                widget.comment.displayName ?? widget.comment.username,
-              ),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.replyingTo(
+                      widget.comment.displayName ?? widget.comment.username,
+                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             GlassSurface(

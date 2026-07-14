@@ -25,49 +25,52 @@ class CollectionList extends ConsumerWidget {
     return collections.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text(error.toString())),
-      data: (items) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (canCreate)
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: FilledButton.icon(
-                onPressed: () => showCollectionFormSheet(context),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.createNewCollection),
+      data: (items) {
+        final displayItems = items.where((c) => c.bookCount > 0).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (canCreate)
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: FilledButton.icon(
+                  onPressed: () => showCollectionFormSheet(context),
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.createNewCollection),
+                ),
               ),
-            ),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Center(child: Text(l10n.noCollectionsYet)),
-            )
-          else
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 260,
-                childAspectRatio: .78,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: items.length,
-              itemBuilder: (_, index) => CollectionCard(
-                collection: items[index],
-                heroScope: 'profile-$userId',
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppRoutes.collectionDetail,
-                  arguments: CollectionDetailArguments(
-                    collectionId: items[index].id,
-                    heroScope: 'profile-$userId',
+            if (displayItems.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(child: Text(l10n.noCollectionsYet)),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 260,
+                  childAspectRatio: .78,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: displayItems.length,
+                itemBuilder: (_, index) => CollectionCard(
+                  collection: displayItems[index],
+                  heroScope: 'profile-$userId',
+                  onTap: () => Navigator.of(context).pushNamed(
+                    AppRoutes.collectionDetail,
+                    arguments: CollectionDetailArguments(
+                      collectionId: displayItems[index].id,
+                      heroScope: 'profile-$userId',
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }

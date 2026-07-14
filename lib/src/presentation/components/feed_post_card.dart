@@ -263,11 +263,23 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    l10n.editPost,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.editPost,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        tooltip: l10n.close,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -1554,13 +1566,24 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              commentsAsync.when(
-                data: (comments) => l10n.commentsCount(comments.length),
-                loading: () => l10n.commentsLoading,
-                error: (_, _) => l10n.comments,
-              ),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    commentsAsync.when(
+                      data: (comments) => l10n.commentsCount(comments.length),
+                      loading: () => l10n.commentsLoading,
+                      error: (_, _) => l10n.comments,
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: l10n.close,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),

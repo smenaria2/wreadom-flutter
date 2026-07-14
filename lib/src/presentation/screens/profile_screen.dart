@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -179,7 +179,7 @@ class ProfileScreen extends ConsumerWidget {
                         if ((user.authorPoints ?? 0) > 0 ||
                             (user.readerPoints ?? 0) > 0)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                             child: PremiumRanksWidget(user: user),
                           ),
                       ],

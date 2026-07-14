@@ -32,7 +32,9 @@ class HorizontalCollectionsList extends ConsumerWidget {
       ),
       error: (error, _) => const SizedBox.shrink(),
       data: (collections) {
-        if (collections.isEmpty && !canCreate) {
+        final displayCollections =
+            collections.where((c) => c.bookCount > 0).toList();
+        if (displayCollections.isEmpty && !canCreate) {
           return const SizedBox.shrink();
         }
 
@@ -54,7 +56,7 @@ class HorizontalCollectionsList extends ConsumerWidget {
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 scrollDirection: Axis.horizontal,
-                itemCount: collections.length + (canCreate ? 1 : 0),
+                itemCount: displayCollections.length + (canCreate ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (canCreate && index == 0) {
                     return _CreateCollectionButton(
@@ -62,7 +64,7 @@ class HorizontalCollectionsList extends ConsumerWidget {
                     );
                   }
                   final collectionIndex = canCreate ? index - 1 : index;
-                  final collection = collections[collectionIndex];
+                  final collection = displayCollections[collectionIndex];
                   return RoundedCollectionCard(
                     collection: collection,
                     heroScope: 'profile-$userId',
