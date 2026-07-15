@@ -43,24 +43,21 @@ class HomeBannerScreen extends StatelessWidget {
                 end: 20,
                 bottom: 16,
               ),
-              title: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  banner.title,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 8)],
-                  ),
+              title: Text(
+                banner.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black87,
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
                 ),
               ),
               background: Stack(

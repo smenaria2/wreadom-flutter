@@ -187,6 +187,17 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     return _randomQuestion;
   }
 
+  void _changeQuestion(List<String> questions) {
+    if (questions.isEmpty) return;
+    final alternatives = questions
+        .where((question) => question != _randomQuestion)
+        .toList();
+    final pool = alternatives.isEmpty ? questions : alternatives;
+    setState(() {
+      _randomQuestion = pool[math.Random().nextInt(pool.length)];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -376,7 +387,10 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           padding: EdgeInsets.only(bottom: listBottomPadding),
           children: [
             ...feedHeaders,
-            _QuestionPromptCard(question: questionPrompt),
+            _QuestionPromptCard(
+              question: questionPrompt,
+              onChangeQuestion: () => _changeQuestion(activeQuestions),
+            ),
             SizedBox(height: 360, child: Center(child: emptyState)),
           ],
         );
@@ -438,7 +452,10 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           }
           final contentIndex = index - 1;
           if (questionPrompt != null && contentIndex == 0) {
-            return _QuestionPromptCard(question: questionPrompt);
+            return _QuestionPromptCard(
+              question: questionPrompt,
+              onChangeQuestion: () => _changeQuestion(activeQuestions),
+            );
           }
           final itemIndex = contentIndex - leadingPromptCount;
           if (itemIndex == items.length) {
@@ -520,9 +537,13 @@ class _FeedScopeSelector extends StatelessWidget {
 }
 
 class _QuestionPromptCard extends StatelessWidget {
-  const _QuestionPromptCard({required this.question});
+  const _QuestionPromptCard({
+    required this.question,
+    required this.onChangeQuestion,
+  });
 
   final String question;
+  final VoidCallback onChangeQuestion;
 
   @override
   Widget build(BuildContext context) {
@@ -539,9 +560,9 @@ class _QuestionPromptCard extends StatelessWidget {
         ),
         semanticButton: true,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
                 radius: 18,
@@ -551,28 +572,46 @@ class _QuestionPromptCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      question,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppLocalizations.of(context)!.tapToAnswerQuestion,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  question,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
                 ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                tooltip: AppLocalizations.of(context)!.viewAllAnswers,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.of(context).pushNamed(
+                  AppRoutes.questionAnswers,
+                  arguments: QuestionLeafAnswersQuery(
+                    bookId: '',
+                    leafId: '',
+                    question: question,
+                  ),
+                ),
+                icon: const Icon(Icons.forum_outlined, size: 18),
+              ),
+              const SizedBox(width: 6),
+              IconButton.outlined(
+                tooltip: AppLocalizations.of(context)!.changeQuestion,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+                padding: EdgeInsets.zero,
+                onPressed: onChangeQuestion,
+                icon: const Icon(Icons.shuffle_rounded, size: 18),
               ),
             ],
           ),
