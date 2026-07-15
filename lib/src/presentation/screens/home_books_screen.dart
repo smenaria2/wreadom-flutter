@@ -748,8 +748,8 @@ class _DailyTopicCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
-              Colors.black.withValues(alpha: 0.85),
-              Colors.black.withValues(alpha: 0.2),
+              Colors.black.withValues(alpha: 0.90),
+              Colors.black.withValues(alpha: 0.40),
             ],
             begin: Alignment.bottomLeft,
             end: Alignment.topRight,
@@ -790,13 +790,18 @@ class _DailyTopicCard extends StatelessWidget {
             const Spacer(),
             Text(
               topic.topicName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 height: 1.15,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    offset: const Offset(0, 1),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 6),
@@ -805,39 +810,49 @@ class _DailyTopicCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: Colors.white.withValues(alpha: 0.95),
                 fontSize: 13,
                 height: 1.3,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    offset: const Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushNamed(
-                  AppRoutes.dailyTopic,
-                  arguments: DailyTopicArguments(
-                    topicId: topic.id,
-                    topic: topic,
+            Align(
+              alignment: Alignment.center,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.dailyTopic,
+                    arguments: DailyTopicArguments(
+                      topicId: topic.id,
+                      topic: topic,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-              ),
-              child: Text(
-                l10n.readMore,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+                child: Text(
+                  l10n.readMore,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

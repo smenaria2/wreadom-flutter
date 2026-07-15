@@ -66,11 +66,6 @@ class ProfileScreen extends ConsumerWidget {
             );
 
         final initialTabIndex = ref.watch(profileTabIndexProvider);
-        if (initialTabIndex != 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ref.read(profileTabIndexProvider.notifier).setIndex(0);
-          });
-        }
 
         return DefaultTabController(
           length: 6,

@@ -143,7 +143,7 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
       ),
       _SlideData(
         title: "Create Collections",
-        description: "Group your favorite books into public or private collections on your profile.",
+        description: "Group your favorite books into your collections on profile.",
         animation: const _CollectionAnimation(),
       ),
       _SlideData(
@@ -163,10 +163,10 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, color: scheme.primary, size: 20),
+              Icon(Icons.help_outline_rounded, color: scheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                "Interactive Features Guide",
+                "Features Guide",
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: scheme.primary,
@@ -241,44 +241,31 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
           const SizedBox(height: 8),
           // Control Bar
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Slide Numbers indicator
-              Text(
-                "${_currentPage + 1} / 18",
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                visualDensity: VisualDensity.compact,
+                onPressed: _currentPage == 0
+                    ? null
+                    : () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                        );
+                      },
               ),
-              // Navigation Buttons
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: _currentPage == 0
-                        ? null
-                        : () {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOutCubic,
-                            );
-                          },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: _currentPage == slides.length - 1
-                        ? null
-                        : () {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOutCubic,
-                            );
-                          },
-                  ),
-                ],
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                visualDensity: VisualDensity.compact,
+                onPressed: _currentPage == slides.length - 1
+                    ? null
+                    : () {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                        );
+                      },
               ),
             ],
           ),
@@ -3030,6 +3017,12 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
     super.dispose();
   }
 
+  Color _getRankColor(int rank, Color primary) {
+    if (rank == 1) return Colors.amber;
+    if (rank == 2) return const Color(0xFFB0B0B0); // Silver
+    return const Color(0xFFCD7F32); // Bronze
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -3042,35 +3035,39 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
           AnimatedBuilder(
             animation: _other1YOffset,
             builder: (context, child) {
+              final rank = _other1YOffset.value > 12 ? 2 : 1;
               return Transform.translate(
                 offset: Offset(0, _other1YOffset.value),
-                child: _buildRankRow(1, "Alice", "1200", Colors.amber),
+                child: _buildRankRow(rank, "Alice", "1200", _getRankColor(rank, scheme.primary)),
               );
             },
           ),
           AnimatedBuilder(
             animation: _other2YOffset,
             builder: (context, child) {
+              final rank = _other2YOffset.value > 12 ? 3 : 2;
               return Transform.translate(
                 offset: Offset(0, _other2YOffset.value),
-                child: _buildRankRow(2, "Bob", "950", Colors.grey),
+                child: _buildRankRow(rank, "Bob", "950", _getRankColor(rank, scheme.primary)),
               );
             },
           ),
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
+              final rank = _userYOffset.value < -36 ? 1 : (_userYOffset.value < -12 ? 2 : 3);
               return Transform.translate(
                 offset: Offset(0, 48.0 + _userYOffset.value),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     _buildRankRow(
-                      _userYOffset.value < -24 ? 1 : 3,
+                      rank,
                       "You",
                       "${_userPoints.value}",
-                      scheme.primary,
+                      _getRankColor(rank, scheme.primary),
                       isUser: true,
+                      userBgColor: scheme.primary,
                     ),
                     if (_sparkleOpacity.value > 0)
                       Positioned(
@@ -3097,12 +3094,15 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
     String points,
     Color color, {
     bool isUser = false,
+    Color? userBgColor,
   }) {
     return Container(
       height: 20,
       margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
-        color: isUser ? color.withValues(alpha: 0.15) : Colors.transparent,
+        color: isUser && userBgColor != null
+            ? userBgColor.withValues(alpha: 0.15)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(

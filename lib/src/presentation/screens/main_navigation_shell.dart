@@ -182,7 +182,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => ref.read(selectedTabProvider.notifier).setTab(index),
+        onTap: () {
+          ref.read(selectedTabProvider.notifier).setTab(index);
+          if (index == 4) {
+            ref.read(profileTabIndexProvider.notifier).setIndex(0);
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
