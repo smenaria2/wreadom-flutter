@@ -88,14 +88,14 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ),
-                TextButton(
+                OutlinedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
                     Navigator.of(context).popUntil((route) => route.isFirst);
                     ref.read(selectedTabProvider.notifier).setTab(4);
                     ref.read(profileTabIndexProvider.notifier).setIndex(1);
                   },
-                  child: Text(l10n.collections),
+                  label: Text(l10n.collections),
                 ),
                 const SizedBox(width: 8),
                 IconButton(

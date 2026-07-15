@@ -3037,7 +3037,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             builder: (context, child) {
               final rank = _other1YOffset.value > 12 ? 2 : 1;
               return Transform.translate(
-                offset: Offset(0, _other1YOffset.value),
+                offset: Offset(0, -22.0 + _other1YOffset.value),
                 child: _buildRankRow(rank, "Alice", "1200", _getRankColor(rank, scheme.primary)),
               );
             },
@@ -3047,7 +3047,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             builder: (context, child) {
               final rank = _other2YOffset.value > 12 ? 3 : 2;
               return Transform.translate(
-                offset: Offset(0, _other2YOffset.value),
+                offset: Offset(0, 22.0 + _other2YOffset.value),
                 child: _buildRankRow(rank, "Bob", "950", _getRankColor(rank, scheme.primary)),
               );
             },
@@ -3117,7 +3117,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             ),
             child: Text(
               "$rank",
-              style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 6),
@@ -3132,7 +3132,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
           ),
           Text(
             "$points pts",
-            style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
           ),
         ],
       ),

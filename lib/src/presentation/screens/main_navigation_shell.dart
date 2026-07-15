@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,7 +15,6 @@ import 'home_books_screen.dart';
 import 'writer_dashboard_screen.dart';
 import 'profile_screen.dart';
 import '../providers/auth_providers.dart';
-import '../../data/services/notification_service.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -44,38 +43,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   }
 
   Future<void> _setupNotifications() async {
-    final notificationService = NotificationService.instance;
-    final hasPermission = await notificationService.requestPermission();
-
-    if (hasPermission) {
-      final token = await notificationService.getFcmToken();
-      if (token != null) {
-        final user = await ref.read(currentUserProvider.future);
-        if (user != null) {
-          try {
-            await ref
-                .read(authRepositoryProvider)
-                .claimFcmToken(user.id, token);
-            debugPrint('FCM Token updated successfully');
-          } catch (e) {
-            debugPrint('Failed to update FCM Token: $e');
-          }
-        }
-      }
-    }
-
-    _tokenRefreshSubscription ??= notificationService.onTokenRefresh.listen((
-      token,
-    ) async {
-      final user = await ref.read(currentUserProvider.future);
-      if (user == null) return;
-      try {
-        await ref.read(authRepositoryProvider).claimFcmToken(user.id, token);
-        debugPrint('Refreshed FCM token updated successfully');
-      } catch (e) {
-        debugPrint('Failed to update refreshed FCM token: $e');
-      }
-    });
+    // Notification permission is requested contextually from notification settings.
+    // Do not trigger a platform prompt when the main shell first opens.
   }
 
   @override

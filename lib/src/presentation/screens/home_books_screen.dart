@@ -384,7 +384,7 @@ class _HomeBannerStrip extends StatelessWidget {
               arguments: HomeBannerArguments(banner: banner),
             ),
             child: Ink(
-              height: 88,
+              height: 112,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 color: Theme.of(context).colorScheme.primaryContainer,
@@ -400,8 +400,8 @@ class _HomeBannerStrip extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.black.withValues(alpha: 0.72),
-                      Colors.black.withValues(alpha: 0.16),
+                      Colors.black.withValues(alpha: 0.88),
+                      Colors.black.withValues(alpha: 0.35),
                     ],
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
@@ -418,7 +418,7 @@ class _HomeBannerStrip extends StatelessWidget {
                           children: [
                             Text(
                               banner.title,
-                              maxLines: 1,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
@@ -469,7 +469,7 @@ class _HomeBannerFogPlaceholder extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
-        height: 88,
+        height: 112,
         child: FogReveal(
           revealed: false,
           strong: true,
@@ -941,7 +941,11 @@ class _ContinueReadingSection extends ConsumerWidget {
     );
   }
 
-  _ReadingProgress _progressFor(SharedPreferences prefs, UserModel? user, String bookId) {
+  _ReadingProgress _progressFor(
+    SharedPreferences prefs,
+    UserModel? user,
+    String bookId,
+  ) {
     final key = 'local_progress_$bookId';
     final localValue = prefs.getString(key);
     if (localValue != null) {
@@ -1219,7 +1223,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                               Flexible(
                                 child: Text(
                                   _rankingLabel(_ranking, l10n),
-                                  maxLines: 1,
+                                  maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12,
@@ -1300,7 +1304,7 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                               const SizedBox(height: 3),
                               Text(
                                 _metricLabel(ranked, l10n),
-                                maxLines: 1,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Theme.of(
@@ -2062,7 +2066,7 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
                                     ),
                                     child: Text(
                                       authorName,
-                                      maxLines: 1,
+                                      maxLines: 3,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         color: Color(0xFFFFD166),

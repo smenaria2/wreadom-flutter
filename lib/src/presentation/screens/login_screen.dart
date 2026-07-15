@@ -32,6 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
   bool _isLogin = true;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -65,7 +66,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final controller = ref.read(authControllerProvider.notifier);
     if (_isLogin) {
-      controller.signIn(_emailController.text, _passwordController.text);
+      controller.signIn(
+        _emailController.text.trim().toLowerCase(),
+        _passwordController.text,
+      );
     } else {
       controller.signUp(
         _emailController.text,
@@ -242,7 +246,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _passwordController,
                             hintText: l10n.password,
                             prefixIcon: Icons.lock_outline,
-                            obscureText: true,
+                            obscureText: _obscurePassword,
+                            autofillHints: [
+                              _isLogin
+                                  ? AutofillHints.password
+                                  : AutofillHints.newPassword,
+                            ],
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            suffixIcon: IconButton(
+                              tooltip: _obscurePassword
+                                  ? l10n.showPassword
+                                  : l10n.hidePassword,
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                            ),
                             validator: (val) => (val == null || val.length < 6)
                                 ? l10n.minChars
                                 : null,
@@ -273,53 +297,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                           SizedBox(height: 24.h),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () async {
-                                final messenger = ScaffoldMessenger.of(context);
-                                final colorScheme = Theme.of(
-                                  context,
-                                ).colorScheme;
-                                final email = _emailController.text.trim();
-                                if (email.isEmpty) {
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(l10n.enterEmailFirst),
-                                    ),
+                          if (_isLogin)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
                                   );
-                                  return;
-                                }
-                                try {
-                                  await ref
-                                      .read(authRepositoryProvider)
-                                      .resetPassword(email);
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(l10n.passwordResetSent),
-                                    ),
-                                  );
-                                } on firebase_auth.FirebaseAuthException catch (
-                                  e
-                                ) {
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(e.message ?? e.code),
-                                      backgroundColor: colorScheme.error,
-                                    ),
-                                  );
-                                } catch (e) {
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(e.toString()),
-                                      backgroundColor: colorScheme.error,
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Text(l10n.forgotPassword),
+                                  final colorScheme = Theme.of(
+                                    context,
+                                  ).colorScheme;
+                                  final email = _emailController.text.trim();
+                                  if (email.isEmpty) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(l10n.enterEmailFirst),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  try {
+                                    await ref
+                                        .read(authRepositoryProvider)
+                                        .resetPassword(email);
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(l10n.passwordResetSent),
+                                      ),
+                                    );
+                                  } on firebase_auth.FirebaseAuthException catch (
+                                    e
+                                  ) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          userFacingErrorMessage(l10n, e),
+                                        ),
+                                        backgroundColor: colorScheme.error,
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          userFacingErrorMessage(l10n, e),
+                                        ),
+                                        backgroundColor: colorScheme.error,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Text(l10n.forgotPassword),
+                              ),
                             ),
-                          ),
                           SizedBox(height: 8.h),
                           // Google Sign In Button
                           const GoogleSignInButton(),

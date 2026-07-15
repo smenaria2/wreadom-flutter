@@ -39,7 +39,7 @@ class HomeBannerScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 banner.title,
-                maxLines: 1,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
               background: Stack(
@@ -120,10 +120,12 @@ class HomeBannerScreen extends StatelessWidget {
                       if (banner.buttonText.trim().isNotEmpty &&
                           banner.buttonLink.trim().isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: () =>
-                              _openAnyLink(context, banner.buttonLink),
-                          child: Text(banner.buttonText),
+                        Center(
+                          child: FilledButton(
+                            onPressed: () =>
+                                _openAnyLink(context, banner.buttonLink),
+                            child: Text(banner.buttonText),
+                          ),
                         ),
                       ],
                     ],

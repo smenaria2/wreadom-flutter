@@ -55,6 +55,8 @@
   "signupBtn": "साइन अप",
   "orDivider": "या",
   "forgotPassword": "पासवर्ड भूल गए?",
+  "showPassword": "पासवर्ड दिखाएँ",
+  "hidePassword": "पासवर्ड छिपाएँ",
   "enterEmailFirst": "कृपया पहले अपना ईमेल डालें",
   "passwordResetSent": "पासवर्ड रीसेट ईमेल भेज दिया गया",
   "dontHaveAccount": "क्या आपका कोई खाता नहीं है? ",

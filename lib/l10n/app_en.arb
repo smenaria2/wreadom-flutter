@@ -58,6 +58,8 @@
   "signupBtn": "SIGN UP",
   "orDivider": "OR",
   "forgotPassword": "Forgot password?",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
   "enterEmailFirst": "Enter your email first",
   "passwordResetSent": "Password reset email sent",
   "dontHaveAccount": "Don't have an account? ",

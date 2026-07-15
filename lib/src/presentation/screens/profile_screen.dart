@@ -68,6 +68,7 @@ class ProfileScreen extends ConsumerWidget {
         final initialTabIndex = ref.watch(profileTabIndexProvider);
 
         return DefaultTabController(
+          key: ValueKey(initialTabIndex),
           length: 6,
           initialIndex: initialTabIndex,
           child: Scaffold(
