@@ -52,94 +52,104 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
 
     final slides = [
       _SlideData(
-        title: "1. Swipe to Reply",
+        title: "Swipe to Reply",
         description: "Swipe right on any review to quickly reply to that review.",
         animation: const _SwipeToReplyAnimation(),
       ),
       _SlideData(
-        title: "2. Double-Tap to Like",
+        title: "Double-Tap to Like",
         description: "Double-tap a post or comment to like that post or comment  .",
         animation: const _DoubleTapToLikeAnimation(),
       ),
       _SlideData(
-        title: "3. Share Review Card",
+        title: "Share Review Card",
         description: "Share reviews as a beautifully formatted review card.",
         animation: const _ShareCommentCardAnimation(),
       ),
       _SlideData(
-        title: "4. Share Profile Card",
+        title: "Share Profile Card",
         description: "Generate and export a personalized visiting card for your profile.",
         animation: const _ShareProfileCardAnimation(),
       ),
       _SlideData(
-        title: "5. Answer Post Questions",
+        title: "Answer Post Questions",
         description: "Tap the reply icon next to any question to submit your response.",
         animation: const _AnswerQuestionAnimation(),
       ),
       _SlideData(
-        title: "6. Import from Drafts",
+        title: "Import from Drafts",
         description: "Import single-chapter draft directly into your book.",
         animation: const _ImportDraftsAnimation(),
       ),
       _SlideData(
-        title: "7. Attach Book Leaves",
+        title: "Attach Book Leaves",
         description: "Tap the 'leaf icon' on book page to attach notes, questions, links and media.",
         animation: const _AddLeafAnimation(),
       ),
       _SlideData(
-        title: "8. Invite Co-Authors",
+        title: "Invite Co-Authors",
         description: "Enable collaboration on book detail page and invite a co-author.",
         animation: const _InviteCoAuthorAnimation(),
       ),
       _SlideData(
-        title: "9. Ebook PDF Mode",
+        title: "Ebook PDF Mode",
         description: "Tap the PDF icon in the reader bar on internet archieve book to switch to pdf mode.",
         animation: const _PdfModeAnimation(),
       ),
       _SlideData(
-        title: "10. Text Selection Menu",
+        title: "Text Selection Menu",
         description: "Drag text pins in the reader to prompt options like Share Quote, Read Aloud or Quote.",
         animation: const _TextSelectionAnimation(),
       ),
       _SlideData(
-        title: "11. TTS Tap-to-Seek",
+        title: "TTS Tap-to-Seek",
         description: "Tap any paragraph during TTS playback to jump narration to that sentence.",
         animation: const _TtsTapToSeekAnimation(),
       ),
       _SlideData(
-        title: "12. Save & Download Book",
+        title: "Save & Download Book",
         description: "Tap the bookmark icon to save books offline and read them anywhere.",
         animation: const _DownloadBookAnimation(),
       ),
       _SlideData(
-        title: "13. Record Voice Comments",
+        title: "Record Voice Comments",
         description: "Hold the microphone icon in comment field to send audio review/reply.",
         animation: const _VoiceCommentAnimation(),
       ),
       _SlideData(
-        title: "14. Audio Post Playback",
+        title: "Audio Post Playback",
         description: "Play audio reviews, adjust progress, and listen to voice posts.",
         animation: const _AudioPlayerAnimation(),
       ),
       _SlideData(
-        title: "15. Swipe to Delete Message",
+        title: "Swipe to Delete Message",
         description: "Swipe your sent chat message bubbles to the left to delete them.",
         animation: const _SwipeToDeleteMessageAnimation(),
       ),
       _SlideData(
-        title: "16. Make Profile Private",
+        title: "Make Profile Private",
         description: "Change your privacy level in settings to restrict profile visibility.",
         animation: const _MakePrivateAnimation(),
       ),
       _SlideData(
-        title: "17. Theme Selection Dialog",
+        title: "Theme Selection Dialog",
         description: "Tap theme in your preferences and choose between Light and Dark mode.",
         animation: const _ThemeSelectionAnimation(),
       ),
       _SlideData(
-        title: "18. Change App Language",
+        title: "Change App Language",
         description: "Switch your app localization dynamically between English and Hindi.",
         animation: const _LanguageSwitcherAnimation(),
+      ),
+      _SlideData(
+        title: "Create Collections",
+        description: "Group your favorite books into public or private collections on your profile.",
+        animation: const _CollectionAnimation(),
+      ),
+      _SlideData(
+        title: "Earn & Compete",
+        description: "Gain reading and writing points to rise up the rank tiers on the leaderboard.",
+        animation: const _LeaderboardAnimation(),
       ),
     ];
 
@@ -2830,6 +2840,302 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Animation 19: Collections ───
+class _CollectionAnimation extends StatefulWidget {
+  const _CollectionAnimation();
+
+  @override
+  State<_CollectionAnimation> createState() => _CollectionAnimationState();
+}
+
+class _CollectionAnimationState extends State<_CollectionAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _bookSlide;
+  late Animation<double> _bookOpacity;
+  late Animation<double> _folderScale;
+  late Animation<double> _checkOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+
+    _bookSlide = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
+      TweenSequenceItem(tween: Tween<double>(begin: -40.0, end: 15.0).chain(CurveTween(curve: Curves.easeIn)), weight: 40),
+      TweenSequenceItem(tween: ConstantTween(15.0), weight: 50),
+    ]).animate(_controller);
+
+    _bookOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 10),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 40),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 10),
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
+    ]).animate(_controller);
+
+    _folderScale = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 45),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.2).chain(CurveTween(curve: Curves.easeOut)), weight: 10),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 10),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 35),
+    ]).animate(_controller);
+
+    _checkOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 50),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 20),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 15),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        AnimatedBuilder(
+          animation: _folderScale,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _folderScale.value,
+              child: Icon(
+                Icons.folder_open_rounded,
+                size: 64,
+                color: scheme.primary,
+              ),
+            );
+          },
+        ),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _bookSlide.value),
+              child: Opacity(
+                opacity: _bookOpacity.value,
+                child: Icon(
+                  Icons.book_rounded,
+                  size: 24,
+                  color: scheme.secondary,
+                ),
+              ),
+            );
+          },
+        ),
+        Positioned(
+          top: 15,
+          right: 25,
+          child: AnimatedBuilder(
+            animation: _checkOpacity,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _checkOpacity.value,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    size: 10,
+                    color: Colors.white,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Animation 20: Leaderboard ───
+class _LeaderboardAnimation extends StatefulWidget {
+  const _LeaderboardAnimation();
+
+  @override
+  State<_LeaderboardAnimation> createState() => _LeaderboardAnimationState();
+}
+
+class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _userYOffset;
+  late Animation<double> _other1YOffset;
+  late Animation<double> _other2YOffset;
+  late Animation<int> _userPoints;
+  late Animation<double> _sparkleOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+
+    _userYOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: -48.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+      TweenSequenceItem(tween: ConstantTween(-48.0), weight: 40),
+    ]).animate(_controller);
+
+    _other1YOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 24.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+      TweenSequenceItem(tween: ConstantTween(24.0), weight: 40),
+    ]).animate(_controller);
+
+    _other2YOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 24.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+      TweenSequenceItem(tween: ConstantTween(24.0), weight: 40),
+    ]).animate(_controller);
+
+    _userPoints = IntTween(begin: 800, end: 1500).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.1, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _sparkleOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 55),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 15),
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 140,
+      height: 120,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _other1YOffset,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _other1YOffset.value),
+                child: _buildRankRow(1, "Alice", "1200", Colors.amber),
+              );
+            },
+          ),
+          AnimatedBuilder(
+            animation: _other2YOffset,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _other2YOffset.value),
+                child: _buildRankRow(2, "Bob", "950", Colors.grey),
+              );
+            },
+          ),
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, 48.0 + _userYOffset.value),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildRankRow(
+                      _userYOffset.value < -24 ? 1 : 3,
+                      "You",
+                      "${_userPoints.value}",
+                      scheme.primary,
+                      isUser: true,
+                    ),
+                    if (_sparkleOpacity.value > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Opacity(
+                          opacity: _sparkleOpacity.value,
+                          child: const Icon(Icons.star, size: 12, color: Colors.amber),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankRow(
+    int rank,
+    String name,
+    String points,
+    Color color, {
+    bool isUser = false,
+  }) {
+    return Container(
+      height: 20,
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        color: isUser ? color.withValues(alpha: 0.15) : Colors.transparent,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              "$rank",
+              style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: isUser ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          Text(
+            "$points pts",
+            style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 }

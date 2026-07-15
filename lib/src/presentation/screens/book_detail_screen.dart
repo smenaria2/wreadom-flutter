@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -703,9 +704,16 @@ class _BookDetailBody extends ConsumerWidget {
     final localValue = prefs.getString(key);
     int startChapter = 0;
     if (localValue != null) {
-      final parts = localValue.split('|');
-      if (parts.length == 2) {
-        startChapter = int.tryParse(parts[0]) ?? 0;
+      try {
+        final decoded = jsonDecode(localValue);
+        if (decoded is Map) {
+          startChapter = (decoded['chapterIndex'] as num?)?.toInt() ?? 0;
+        }
+      } catch (_) {
+        final parts = localValue.split('|');
+        if (parts.length == 2) {
+          startChapter = int.tryParse(parts[0]) ?? 0;
+        }
       }
     } else {
       final progress = userAsync.maybeWhen<Map<String, dynamic>?>(
@@ -854,7 +862,7 @@ class _BookDetailBody extends ConsumerWidget {
                                               MainAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.dynamic_feed_outlined,
+                                              Icons.send_rounded,
                                               color: Theme.of(
                                                 context,
                                               ).colorScheme.primary,
@@ -1909,30 +1917,43 @@ class _ExpandableTextState extends State<_ExpandableText> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.text,
-          maxLines: _expanded ? null : 4,
-          overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.8),
-            height: 1.5,
-          ),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(padding: EdgeInsets.zero),
-          onPressed: () => setState(() => _expanded = !_expanded),
-          child: Text(
-            _expanded
-                ? AppLocalizations.of(context)!.showLess
-                : AppLocalizations.of(context)!.readMore,
-          ),
-        ),
-      ],
+    final style = TextStyle(
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+      height: 1.5,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tp = TextPainter(
+          text: TextSpan(text: widget.text, style: style),
+          textDirection: TextDirection.ltr,
+          maxLines: 4,
+        );
+        tp.layout(maxWidth: constraints.maxWidth);
+        final isTruncated = tp.didExceedMaxLines;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              maxLines: _expanded ? null : 4,
+              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: style,
+            ),
+            if (isTruncated)
+              TextButton(
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                onPressed: () => setState(() => _expanded = !_expanded),
+                child: Text(
+                  _expanded
+                      ? AppLocalizations.of(context)!.showLess
+                      : AppLocalizations.of(context)!.readMore,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

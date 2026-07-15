@@ -7,6 +7,8 @@ import '../../../utils/app_haptics.dart';
 import '../../providers/collection_providers.dart';
 import 'collection_form_sheet.dart';
 
+import '../../providers/navigation_providers.dart';
+
 Future<void> showAddToCollectionSheet(BuildContext context, Book book) =>
     showModalBottomSheet<void>(
       context: context,
@@ -86,6 +88,17 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    ref.read(selectedTabProvider.notifier).setTab(4);
+                    ref.read(profileTabIndexProvider.notifier).setIndex(1);
+                  },
+                  icon: const Icon(Icons.collections_bookmark_outlined, size: 16),
+                  label: Text(l10n.collections),
+                ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20),
                   tooltip: l10n.close,

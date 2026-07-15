@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -929,14 +930,26 @@ class _ContinueReadingSection extends ConsumerWidget {
     final key = 'local_progress_$bookId';
     final localValue = prefs.getString(key);
     if (localValue != null) {
-      final parts = localValue.split('|');
-      if (parts.length == 2) {
-        final chapterIndex = int.tryParse(parts[0]) ?? 0;
-        final position = double.tryParse(parts[1]) ?? 0.0;
-        return _ReadingProgress(
-          chapterIndex: chapterIndex,
-          position: position.clamp(0.0, 1.0),
-        );
+      try {
+        final decoded = jsonDecode(localValue);
+        if (decoded is Map) {
+          final chapterIndex = (decoded['chapterIndex'] as num?)?.toInt() ?? 0;
+          final position = (decoded['position'] as num?)?.toDouble() ?? 0.0;
+          return _ReadingProgress(
+            chapterIndex: chapterIndex,
+            position: position.clamp(0.0, 1.0),
+          );
+        }
+      } catch (_) {
+        final parts = localValue.split('|');
+        if (parts.length == 2) {
+          final chapterIndex = int.tryParse(parts[0]) ?? 0;
+          final position = double.tryParse(parts[1]) ?? 0.0;
+          return _ReadingProgress(
+            chapterIndex: chapterIndex,
+            position: position.clamp(0.0, 1.0),
+          );
+        }
       }
     }
 

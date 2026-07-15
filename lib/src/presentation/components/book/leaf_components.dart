@@ -1044,7 +1044,11 @@ void _showImageLeaf(BuildContext context, LeafAttachment leaf) {
     MaterialPageRoute(
       builder: (_) => Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.transparent),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
         body: Center(
           child: InteractiveViewer(
             minScale: 0.8,

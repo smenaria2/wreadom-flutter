@@ -244,6 +244,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late SharedPreferences _sharedPreferences;
   String? _currentUserId;
   double _scrollProgress = 0.0;
+  int _restoreRetries = 0;
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool _isDiscussionOpen = false;
@@ -594,12 +595,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final position = _scrollController.position;
       final maxScroll = position.maxScrollExtent;
       if (maxScroll <= 0) {
-        _initialScrollRestored = true;
-        _pendingSavedScrollProgress = null;
-        setState(() {
-          _scrollProgress = 0.0;
-          _restorableScrollProgress.value = 0.0;
-        });
+        if (_restoreRetries < 10) {
+          _restoreRetries++;
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) _restorePendingScrollPosition();
+          });
+        } else {
+          _initialScrollRestored = true;
+          _pendingSavedScrollProgress = null;
+          setState(() {
+            _scrollProgress = 0.0;
+            _restorableScrollProgress.value = 0.0;
+          });
+        }
         return;
       }
 
@@ -608,6 +616,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
       _initialScrollRestored = true;
       _pendingSavedScrollProgress = null;
+      _restoreRetries = 0;
     });
   }
 
@@ -1448,10 +1457,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }) {
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
 
-    return ListView(
+    return SingleChildScrollView(
       controller: _scrollController,
       padding: contentPadding,
-      children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         SizedBox(key: _chapterContentStartKey, height: 1),
         Text(
           chapter?.title ?? widget.book.title,
@@ -1569,8 +1580,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
         const SizedBox(height: 100),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTtsListView(
     Chapter? chapter,
@@ -1581,10 +1593,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
     final blocks = _readerBlocksForChapter(chapter);
 
-    return ListView(
+    return SingleChildScrollView(
       controller: _scrollController,
       padding: contentPadding,
-      children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         SizedBox(key: _chapterContentStartKey, height: 1),
         for (final block in blocks)
           _ReaderTtsBlockView(
@@ -1627,8 +1641,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
         const SizedBox(height: 100),
       ],
-    );
-  }
+    ),
+  );
+}
 
   void _configureTts() {
     _tts.setStartHandler(() {

@@ -26,7 +26,7 @@ class CollectionList extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text(error.toString())),
       data: (items) {
-        final displayItems = items.where((c) => c.bookCount > 0).toList();
+        final displayItems = items;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

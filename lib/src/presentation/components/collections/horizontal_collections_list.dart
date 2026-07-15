@@ -32,8 +32,7 @@ class HorizontalCollectionsList extends ConsumerWidget {
       ),
       error: (error, _) => const SizedBox.shrink(),
       data: (collections) {
-        final displayCollections =
-            collections.where((c) => c.bookCount > 0).toList();
+        final displayCollections = collections;
         if (displayCollections.isEmpty && !canCreate) {
           return const SizedBox.shrink();
         }

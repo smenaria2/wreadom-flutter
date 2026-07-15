@@ -46,6 +46,8 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actionsIconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             tooltip: 'Share certificate',
@@ -54,9 +56,12 @@ class _CertificateLeafViewerState extends State<_CertificateLeafViewer> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   )
-                : const Icon(Icons.share_outlined),
+                : const Icon(Icons.share_outlined, color: Colors.white),
           ),
         ],
       ),
