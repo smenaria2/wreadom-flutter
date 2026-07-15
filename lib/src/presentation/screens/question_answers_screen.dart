@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
-
 import '../components/create_post_sheet.dart';
 import '../components/feed_post_card.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/glass_scaffold.dart';
+import '../../utils/app_link_helper.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../widgets/glass_surface.dart';
 
 class QuestionAnswersScreen extends ConsumerWidget {
   final QuestionLeafAnswersQuery query;
 
-  const QuestionAnswersScreen({
-    super.key,
-    required this.query,
-  });
+  const QuestionAnswersScreen({super.key, required this.query});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,6 +25,16 @@ class QuestionAnswersScreen extends ConsumerWidget {
     return GlassScaffold(
       appBar: glassAppBar(
         title: Text(l10n.answers),
+        actions: [
+          IconButton(
+            tooltip: l10n.share,
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => Share.share(
+              AppLinkHelper.questionAnswers(query.bookId, query.leafId),
+              subject: query.question,
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -122,7 +131,10 @@ class QuestionAnswersScreen extends ConsumerWidget {
                     }
                     return ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       itemCount: posts.length,
                       itemBuilder: (context, index) {
                         return Padding(
@@ -135,9 +147,8 @@ class QuestionAnswersScreen extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [

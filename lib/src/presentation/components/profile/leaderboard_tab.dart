@@ -583,7 +583,7 @@ class _PodiumStrip extends StatelessWidget {
     final heights = [90.0, 120.0, 75.0];
     final medals = ['\u{1F948}', '\u{1F947}', '\u{1F949}'];
     final accentColors = [
-      const Color(0xFFE2E8F0),
+      const Color(0xFF64748B),
       const Color(0xFFD4AF37),
       const Color(0xFFCD7F32),
     ];

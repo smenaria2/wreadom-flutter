@@ -825,35 +825,20 @@ class _DailyTopicCard extends StatelessWidget {
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.center,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(
-                    AppRoutes.dailyTopic,
-                    arguments: DailyTopicArguments(
-                      topicId: topic.id,
-                      topic: topic,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
+              child: IconButton(
+                tooltip: l10n.readMore,
+                onPressed: () => Navigator.of(context).pushNamed(
+                  AppRoutes.dailyTopic,
+                  arguments: DailyTopicArguments(
+                    topicId: topic.id,
+                    topic: topic,
                   ),
                 ),
-                child: Text(
-                  l10n.readMore,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.black.withValues(alpha: 0.18),
                 ),
+                icon: const Icon(Icons.chevron_right_rounded),
               ),
             ),
           ],

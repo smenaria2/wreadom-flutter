@@ -37,6 +37,7 @@ class CollectionDetailScreen extends ConsumerStatefulWidget {
 class _CollectionDetailScreenState
     extends ConsumerState<CollectionDetailScreen> {
   bool _savingOrder = false;
+  bool _isReordering = false;
   List<Book>? _optimisticBooks;
 
   Future<void> _delete(BookCollection collection) async {
@@ -139,6 +140,13 @@ class _CollectionDetailScreenState
         final mutation = ref.watch(collectionMutationProvider(collection.id));
         final theme = Theme.of(context);
         return Scaffold(
+          floatingActionButton: isOwner && _isReordering
+              ? FloatingActionButton.extended(
+                  onPressed: () => setState(() => _isReordering = false),
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Done reordering'),
+                )
+              : null,
           body: CustomScrollView(
             slivers: [
               SliverAppBar(
@@ -166,9 +174,17 @@ class _CollectionDetailScreenState
                       onSelected: (value) {
                         if (value == 'delete') {
                           _delete(collection);
+                        } else if (value == 'reorder') {
+                          setState(() => _isReordering = !_isReordering);
                         }
                       },
                       itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'reorder',
+                          child: Text(
+                            _isReordering ? 'Done reordering' : 'Reorder books',
+                          ),
+                        ),
                         PopupMenuItem(
                           value: 'delete',
                           child: Text(l10n.delete),
@@ -223,6 +239,24 @@ class _CollectionDetailScreenState
                           clipBehavior: Clip.none,
                           children: [
                             BookCard(book: book, width: double.infinity),
+                            if (_isReordering)
+                              Positioned(
+                                left: 8,
+                                top: 8,
+                                child: Material(
+                                  color: theme.colorScheme.surface.withValues(
+                                    alpha: 0.92,
+                                  ),
+                                  shape: const CircleBorder(),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6),
+                                    child: Icon(
+                                      Icons.drag_indicator_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             if (isOwner)
                               Positioned(
                                 top: -8,
@@ -262,14 +296,16 @@ class _CollectionDetailScreenState
                                               }
                                             }
                                           },
-                                    icon: const Icon(Icons.delete_outline_rounded),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                    ),
                                   ),
                                 ),
                               ),
                           ],
                         );
 
-                        if (isOwner) {
+                        if (isOwner && _isReordering) {
                           return DragTarget<int>(
                             onWillAcceptWithDetails: (details) =>
                                 details.data != index,
@@ -425,7 +461,8 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
                         child: SizedBox(
                           width: 36,
                           height: 54,
-                          child: book.coverUrl != null && book.coverUrl!.isNotEmpty
+                          child:
+                              book.coverUrl != null && book.coverUrl!.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: book.coverUrl!,
                                   fit: BoxFit.cover,
@@ -444,15 +481,16 @@ class _AddBooksSheetState extends ConsumerState<_AddBooksSheet> {
                                       ),
                                     ),
                                   ),
-                                  errorWidget: (context, url, error) => GeneratedBookCover(
-                                    title: book.title,
-                                    author: book.authors.isNotEmpty
-                                        ? book.authors.first.name
-                                        : null,
-                                    seed: book.id,
-                                    borderRadius: 6,
-                                    compact: true,
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      GeneratedBookCover(
+                                        title: book.title,
+                                        author: book.authors.isNotEmpty
+                                            ? book.authors.first.name
+                                            : null,
+                                        seed: book.id,
+                                        borderRadius: 6,
+                                        compact: true,
+                                      ),
                                 )
                               : GeneratedBookCover(
                                   title: book.title,

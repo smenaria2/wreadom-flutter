@@ -89,6 +89,14 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                   ),
                 ),
                 OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  icon: const Icon(
+                    Icons.collections_bookmark_outlined,
+                    size: 18,
+                  ),
                   onPressed: () {
                     Navigator.pop(context);
                     Navigator.of(context).popUntil((route) => route.isFirst);

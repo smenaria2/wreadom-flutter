@@ -9,7 +9,8 @@ class InteractiveFeaturesSheet extends StatefulWidget {
   final bool prominent;
 
   @override
-  State<InteractiveFeaturesSheet> createState() => _InteractiveFeaturesSheetState();
+  State<InteractiveFeaturesSheet> createState() =>
+      _InteractiveFeaturesSheetState();
 }
 
 class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
@@ -53,12 +54,14 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
     final slides = [
       _SlideData(
         title: "Swipe to Reply",
-        description: "Swipe right on any review to quickly reply to that review.",
+        description:
+            "Swipe right on any review to quickly reply to that review.",
         animation: const _SwipeToReplyAnimation(),
       ),
       _SlideData(
         title: "Double-Tap to Like",
-        description: "Double-tap a post or comment to like that post or comment  .",
+        description:
+            "Double-tap a post or comment to like that post or comment  .",
         animation: const _DoubleTapToLikeAnimation(),
       ),
       _SlideData(
@@ -68,12 +71,14 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
       ),
       _SlideData(
         title: "Share Profile Card",
-        description: "Generate and export a personalized visiting card for your profile.",
+        description:
+            "Generate and export a personalized visiting card for your profile.",
         animation: const _ShareProfileCardAnimation(),
       ),
       _SlideData(
         title: "Answer Post Questions",
-        description: "Tap the reply icon next to any question to submit your response.",
+        description:
+            "Tap the reply icon next to any question to submit your response.",
         animation: const _AnswerQuestionAnimation(),
       ),
       _SlideData(
@@ -83,72 +88,86 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
       ),
       _SlideData(
         title: "Attach Book Leaves",
-        description: "Tap the 'leaf icon' on book page to attach notes, questions, links and media.",
+        description:
+            "Tap the 'leaf icon' on book page to attach notes, questions, links and media.",
         animation: const _AddLeafAnimation(),
       ),
       _SlideData(
         title: "Invite Co-Authors",
-        description: "Enable collaboration on book detail page and invite a co-author.",
+        description:
+            "Enable collaboration on book detail page and invite a co-author.",
         animation: const _InviteCoAuthorAnimation(),
       ),
       _SlideData(
         title: "Ebook PDF Mode",
-        description: "Tap the PDF icon in the reader bar on internet archieve book to switch to pdf mode.",
+        description:
+            "Tap the PDF icon in the reader bar on internet archieve book to switch to pdf mode.",
         animation: const _PdfModeAnimation(),
       ),
       _SlideData(
         title: "Text Selection Menu",
-        description: "Drag text pins in the reader to prompt options like Share Quote, Read Aloud or Quote.",
+        description:
+            "Drag text pins in the reader to prompt options like Share Quote, Read Aloud or Quote.",
         animation: const _TextSelectionAnimation(),
       ),
       _SlideData(
         title: "TTS Tap-to-Seek",
-        description: "Tap any paragraph during TTS playback to jump narration to that sentence.",
+        description:
+            "Tap any paragraph during TTS playback to jump narration to that sentence.",
         animation: const _TtsTapToSeekAnimation(),
       ),
       _SlideData(
         title: "Save & Download Book",
-        description: "Tap the bookmark icon to save books offline and read them anywhere.",
+        description:
+            "Tap the bookmark icon to save books offline and read them anywhere.",
         animation: const _DownloadBookAnimation(),
       ),
       _SlideData(
         title: "Record Voice Comments",
-        description: "Hold the microphone icon in comment field to send audio review/reply.",
+        description:
+            "Hold the microphone icon in comment field to send audio review/reply.",
         animation: const _VoiceCommentAnimation(),
       ),
       _SlideData(
         title: "Audio Post Playback",
-        description: "Play audio reviews, adjust progress, and listen to voice posts.",
+        description:
+            "Play audio reviews, adjust progress, and listen to voice posts.",
         animation: const _AudioPlayerAnimation(),
       ),
       _SlideData(
         title: "Swipe to Delete Message",
-        description: "Swipe your sent chat message bubbles to the left to delete them.",
+        description:
+            "Swipe your sent chat message bubbles to the left to delete them.",
         animation: const _SwipeToDeleteMessageAnimation(),
       ),
       _SlideData(
         title: "Make Profile Private",
-        description: "Change your privacy level in settings to restrict profile visibility.",
+        description:
+            "Change your privacy level in settings to restrict profile visibility.",
         animation: const _MakePrivateAnimation(),
       ),
       _SlideData(
         title: "Theme Selection Dialog",
-        description: "Tap theme in your preferences and choose between Light and Dark mode.",
+        description:
+            "Tap theme in your preferences and choose between Light and Dark mode.",
         animation: const _ThemeSelectionAnimation(),
       ),
       _SlideData(
         title: "Change App Language",
-        description: "Switch your app localization dynamically between English and Hindi.",
+        description:
+            "Switch your app localization dynamically between English and Hindi.",
         animation: const _LanguageSwitcherAnimation(),
       ),
       _SlideData(
         title: "Create Collections",
-        description: "Group your favorite books into your collections on profile.",
+        description:
+            "Group your favorite books into your collections on profile.",
         animation: const _CollectionAnimation(),
       ),
       _SlideData(
         title: "Earn & Compete",
-        description: "Gain reading and writing points to rise up the rank tiers on the leaderboard.",
+        description:
+            "Gain reading and writing points to rise up the rank tiers on the leaderboard.",
         animation: const _LeaderboardAnimation(),
       ),
     ];
@@ -196,7 +215,9 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
                       width: 140,
                       height: 130,
                       decoration: BoxDecoration(
-                        color: scheme.surfaceContainerLow.withValues(alpha: 0.5),
+                        color: scheme.surfaceContainerLow.withValues(
+                          alpha: 0.5,
+                        ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: scheme.outlineVariant.withValues(alpha: 0.15),
@@ -337,12 +358,27 @@ class _SwipeToReplyAnimationState extends State<_SwipeToReplyAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
     _slideAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 50.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 35),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 50.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 35,
+      ),
       TweenSequenceItem(tween: ConstantTween(50.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 50.0, end: 0.0).chain(CurveTween(curve: Curves.easeInCubic)), weight: 20),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 50.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeInCubic)),
+        weight: 20,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
     ]).animate(_controller);
     _fingerOpacity = TweenSequence<double>([
@@ -353,7 +389,13 @@ class _SwipeToReplyAnimationState extends State<_SwipeToReplyAnimation>
     ]).animate(_controller);
     _fingerSlide = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(15.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 15.0, end: 65.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 35),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 15.0,
+          end: 65.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 35,
+      ),
       TweenSequenceItem(tween: ConstantTween(65.0), weight: 50),
     ]).animate(_controller);
   }
@@ -374,8 +416,15 @@ class _SwipeToReplyAnimationState extends State<_SwipeToReplyAnimation>
           left: 14,
           child: Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.reply_rounded, color: Colors.white, size: 12),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.reply_rounded,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
         ),
         AnimatedBuilder(
@@ -385,11 +434,16 @@ class _SwipeToReplyAnimationState extends State<_SwipeToReplyAnimation>
               offset: Offset(_slideAnimation.value, 0),
               child: Container(
                 width: 110,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -397,15 +451,30 @@ class _SwipeToReplyAnimationState extends State<_SwipeToReplyAnimation>
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(radius: 5, backgroundColor: scheme.primary),
+                        CircleAvatar(
+                          radius: 5,
+                          backgroundColor: scheme.primary,
+                        ),
                         const SizedBox(width: 4),
-                        Container(width: 32, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                        Container(
+                          width: 32,
+                          height: 3,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 5),
-                    Container(width: 80, height: 2.5, color: scheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                    Container(
+                      width: 80,
+                      height: 2.5,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    ),
                     const SizedBox(height: 3),
-                    Container(width: 50, height: 2.5, color: scheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                    Container(
+                      width: 50,
+                      height: 2.5,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    ),
                   ],
                 ),
               ),
@@ -441,7 +510,8 @@ class _DoubleTapToLikeAnimation extends StatefulWidget {
   const _DoubleTapToLikeAnimation();
 
   @override
-  State<_DoubleTapToLikeAnimation> createState() => _DoubleTapToLikeAnimationState();
+  State<_DoubleTapToLikeAnimation> createState() =>
+      _DoubleTapToLikeAnimationState();
 }
 
 class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
@@ -456,19 +526,34 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
     _heartScale = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 35),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.elasticOut)), weight: 25),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.2,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 25,
+      ),
       TweenSequenceItem(tween: ConstantTween(1.2), weight: 15),
       TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 0.0), weight: 15),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
     ]).animate(_controller);
     _heartOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 35),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.95), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.95),
+        weight: 10,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.95), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.95, end: 0.0), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.95, end: 0.0),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
     ]).animate(_controller);
     _fingerTapOpacity = TweenSequence<double>([
@@ -487,7 +572,10 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 77),
     ]).animate(_controller);
     _likeCount = IntTween(begin: 14, end: 15).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.40, 0.45, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.40, 0.45, curve: Curves.easeOut),
+      ),
     );
   }
 
@@ -509,7 +597,9 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.2)),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.2),
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -519,11 +609,22 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
                 children: [
                   CircleAvatar(radius: 5, backgroundColor: scheme.tertiary),
                   const SizedBox(width: 4),
-                  Container(width: 32, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                  Container(
+                    width: 32,
+                    height: 3,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
-              Container(width: 90, height: 30, decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(6))),
+              Container(
+                width: 90,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -532,8 +633,12 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
                     builder: (context, child) {
                       final hasLiked = _likeCount.value == 15;
                       return Icon(
-                        hasLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: hasLiked ? Colors.red : scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        hasLiked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: hasLiked
+                            ? Colors.red
+                            : scheme.onSurfaceVariant.withValues(alpha: 0.6),
                         size: 11,
                       );
                     },
@@ -542,7 +647,14 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
                   AnimatedBuilder(
                     animation: _likeCount,
                     builder: (context, child) {
-                      return Text('${_likeCount.value}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)));
+                      return Text(
+                        '${_likeCount.value}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -557,7 +669,11 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
               scale: _heartScale.value,
               child: Opacity(
                 opacity: _heartOpacity.value,
-                child: const Icon(Icons.favorite_rounded, color: Colors.red, size: 38),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Colors.red,
+                  size: 38,
+                ),
               ),
             );
           },
@@ -572,7 +688,10 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
                 child: Container(
                   width: 24,
                   height: 24,
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: scheme.primary, width: 2)),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.primary, width: 2),
+                  ),
                 ),
               ),
             );
@@ -588,7 +707,8 @@ class _ShareCommentCardAnimation extends StatefulWidget {
   const _ShareCommentCardAnimation();
 
   @override
-  State<_ShareCommentCardAnimation> createState() => _ShareCommentCardAnimationState();
+  State<_ShareCommentCardAnimation> createState() =>
+      _ShareCommentCardAnimationState();
 }
 
 class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
@@ -600,12 +720,27 @@ class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
     _sheetY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(100.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 100.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 20),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 100.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 20,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 100.0).chain(CurveTween(curve: Curves.easeIn)), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 100.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(100.0), weight: 5),
     ]).animate(_controller);
     _fingerOpacity = TweenSequence<double>([
@@ -639,14 +774,26 @@ class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 80, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+              Container(
+                width: 80,
+                height: 4,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
               const SizedBox(height: 6),
-              Container(width: 90, height: 30, color: scheme.surfaceContainerLow),
+              Container(
+                width: 90,
+                height: 30,
+                color: scheme.surfaceContainerLow,
+              ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(width: 30, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                  Container(
+                    width: 30,
+                    height: 4,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  ),
                   Icon(Icons.share_outlined, size: 10, color: scheme.primary),
                 ],
               ),
@@ -668,26 +815,67 @@ class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: scheme.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4)],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(14),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Container(width: 32, height: 3, color: scheme.outlineVariant, margin: const EdgeInsets.only(bottom: 6)),
-                      Text("Share Preview", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: scheme.primary)),
+                      Container(
+                        width: 32,
+                        height: 3,
+                        color: scheme.outlineVariant,
+                        margin: const EdgeInsets.only(bottom: 6),
+                      ),
+                      Text(
+                        "Share Preview",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(6)),
-                            child: Text("Feed", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: scheme.onPrimaryContainer)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              "Feed",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: scheme.onPrimaryContainer,
+                              ),
+                            ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                            child: const Text("External", style: TextStyle(fontSize: 8)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.outlineVariant,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              "External",
+                              style: TextStyle(fontSize: 8),
+                            ),
                           ),
                         ],
                       ),
@@ -705,7 +893,11 @@ class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
           child: AnimatedBuilder(
             animation: _fingerOpacity,
             builder: (context, child) {
-              return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary);
+              return _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              );
             },
           ),
         ),
@@ -719,7 +911,8 @@ class _ShareProfileCardAnimation extends StatefulWidget {
   const _ShareProfileCardAnimation();
 
   @override
-  State<_ShareProfileCardAnimation> createState() => _ShareProfileCardAnimationState();
+  State<_ShareProfileCardAnimation> createState() =>
+      _ShareProfileCardAnimationState();
 }
 
 class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
@@ -732,7 +925,10 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 5),
       TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5),
@@ -748,9 +944,18 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
     ]).animate(_controller);
     _trayY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(80.0), weight: 45),
-      TweenSequenceItem(tween: Tween<double>(begin: 80.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 80.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 80.0), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 80.0),
+        weight: 10,
+      ),
     ]).animate(_controller);
   }
 
@@ -775,16 +980,28 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 40, height: 5, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                    Container(
+                      width: 40,
+                      height: 5,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
                     Icon(Icons.share_outlined, size: 12, color: scheme.primary),
                   ],
                 ),
                 const SizedBox(height: 14),
                 CircleAvatar(radius: 14, backgroundColor: scheme.primary),
                 const SizedBox(height: 8),
-                Container(width: 50, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                Container(
+                  width: 50,
+                  height: 3,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 4),
-                Container(width: 80, height: 2.5, color: scheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                Container(
+                  width: 80,
+                  height: 2.5,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                ),
               ],
             ),
           ),
@@ -798,7 +1015,14 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
               child: Container(
                 color: Colors.black45,
                 child: const Center(
-                  child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             );
@@ -816,21 +1040,46 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
                 offset: Offset(0, _trayY.value),
                 child: Container(
                   height: 60,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Container(width: 32, height: 2.5, color: scheme.outlineVariant, margin: const EdgeInsets.only(bottom: 6)),
+                      Container(
+                        width: 32,
+                        height: 2.5,
+                        color: scheme.outlineVariant,
+                        margin: const EdgeInsets.only(bottom: 6),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Icon(Icons.message_rounded, size: 16, color: Colors.green[600]),
-                          Icon(Icons.mail_rounded, size: 16, color: Colors.red[600]),
-                          Icon(Icons.copy_rounded, size: 16, color: Colors.grey[700]),
+                          Icon(
+                            Icons.message_rounded,
+                            size: 16,
+                            color: Colors.green[600],
+                          ),
+                          Icon(
+                            Icons.mail_rounded,
+                            size: 16,
+                            color: Colors.red[600],
+                          ),
+                          Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: Colors.grey[700],
+                          ),
                         ],
                       ),
                     ],
@@ -847,7 +1096,11 @@ class _ShareProfileCardAnimationState extends State<_ShareProfileCardAnimation>
           child: AnimatedBuilder(
             animation: _fingerOpacity,
             builder: (context, child) {
-              return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary);
+              return _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              );
             },
           ),
         ),
@@ -861,7 +1114,8 @@ class _AnswerQuestionAnimation extends StatefulWidget {
   const _AnswerQuestionAnimation();
 
   @override
-  State<_AnswerQuestionAnimation> createState() => _AnswerQuestionAnimationState();
+  State<_AnswerQuestionAnimation> createState() =>
+      _AnswerQuestionAnimationState();
 }
 
 class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
@@ -874,7 +1128,10 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 5),
       TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5),
@@ -889,7 +1146,10 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 2),
     ]).animate(_controller);
     _textCharacters = IntTween(begin: 0, end: 14).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.25, 0.75, curve: Curves.linear)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.25, 0.75, curve: Curves.linear),
+      ),
     );
   }
 
@@ -917,14 +1177,32 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Question of Day", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: scheme.primary)),
+              Text(
+                "Question of Day",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.primary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Container(width: 80, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
+              Container(
+                width: 80,
+                height: 3,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(width: 60, height: 10, decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(4))),
+                  Container(
+                    width: 60,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   Icon(Icons.reply_rounded, size: 12, color: scheme.primary),
                 ],
               ),
@@ -938,7 +1216,9 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
             return Opacity(
               opacity: _dialogOpacity.value,
               child: Transform.scale(
-                scale: _dialogOpacity.value > 0.0 ? 0.8 + (_dialogOpacity.value * 0.2) : 0.8,
+                scale: _dialogOpacity.value > 0.0
+                    ? 0.8 + (_dialogOpacity.value * 0.2)
+                    : 0.8,
                 child: child,
               ),
             );
@@ -949,12 +1229,17 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
             decoration: BoxDecoration(
               color: scheme.surface,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 6),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("Your Answer", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Your Answer",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 Container(
                   width: 80,
@@ -966,16 +1251,35 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
                     animation: _textCharacters,
                     builder: (context, child) {
                       const text = "Great thoughts!";
-                      final currentText = text.substring(0, math.min(_textCharacters.value, text.length));
-                      return Text(currentText, style: const TextStyle(fontSize: 7));
+                      final currentText = text.substring(
+                        0,
+                        math.min(_textCharacters.value, text.length),
+                      );
+                      return Text(
+                        currentText,
+                        style: const TextStyle(fontSize: 7),
+                      );
                     },
                   ),
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(4)),
-                  child: Text("Send", style: TextStyle(fontSize: 6, color: scheme.onPrimary, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    "Send",
+                    style: TextStyle(
+                      fontSize: 6,
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -988,7 +1292,11 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
           child: AnimatedBuilder(
             animation: _fingerOpacity,
             builder: (context, child) {
-              return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary);
+              return _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              );
             },
           ),
         ),
@@ -1016,24 +1324,45 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 8),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Import Menu
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Import Menu
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 6),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Checkbox
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Checkbox
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 6),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Import Button
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Import Button
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 6),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 39),
     ]).animate(_controller);
     _dialogY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(90.0), weight: 14),
-      TweenSequenceItem(tween: Tween<double>(begin: 90.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 12),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 90.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 12,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 48),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 90.0), weight: 12),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 90.0),
+        weight: 12,
+      ),
       TweenSequenceItem(tween: ConstantTween(90.0), weight: 14),
     ]).animate(_controller);
     _checkboxChecked = TweenSequence<bool>([
@@ -1068,13 +1397,28 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 44, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
-                    Icon(Icons.get_app_rounded, size: 10, color: scheme.primary),
+                    Container(
+                      width: 44,
+                      height: 4,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                    Icon(
+                      Icons.get_app_rounded,
+                      size: 10,
+                      color: scheme.primary,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 // Chapter tiles
-                Container(width: 100, height: 16, decoration: BoxDecoration(color: scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(4))),
+                Container(
+                  width: 100,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
                 const SizedBox(height: 4),
                 AnimatedBuilder(
                   animation: _chaptersImported,
@@ -1085,13 +1429,27 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                     return Container(
                       width: 100,
                       height: 16,
-                      decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4), border: Border.all(color: scheme.primary.withValues(alpha: 0.2))),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: scheme.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
                       child: Row(
                         children: [
                           const SizedBox(width: 4),
-                          Icon(Icons.check_rounded, size: 8, color: scheme.primary),
+                          Icon(
+                            Icons.check_rounded,
+                            size: 8,
+                            color: scheme.primary,
+                          ),
                           const SizedBox(width: 4),
-                          Container(width: 40, height: 3, color: scheme.primary.withValues(alpha: 0.6)),
+                          Container(
+                            width: 40,
+                            height: 3,
+                            color: scheme.primary.withValues(alpha: 0.6),
+                          ),
                         ],
                       ),
                     );
@@ -1116,26 +1474,43 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: scheme.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 4),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Container(width: 32, height: 2, color: scheme.outlineVariant, margin: const EdgeInsets.only(bottom: 6)),
+                      Container(
+                        width: 32,
+                        height: 2,
+                        color: scheme.outlineVariant,
+                        margin: const EdgeInsets.only(bottom: 6),
+                      ),
                       Row(
                         children: [
                           AnimatedBuilder(
                             animation: _checkboxChecked,
                             builder: (context, child) {
                               return Icon(
-                                _checkboxChecked.value ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                                _checkboxChecked.value
+                                    ? Icons.check_box_rounded
+                                    : Icons.check_box_outline_blank_rounded,
                                 size: 11,
                                 color: scheme.primary,
                               );
                             },
                           ),
                           const SizedBox(width: 6),
-                          Container(width: 50, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                          Container(
+                            width: 50,
+                            height: 3,
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: 0.7,
+                            ),
+                          ),
                         ],
                       ),
                       const Spacer(),
@@ -1144,9 +1519,26 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                         builder: (context, child) {
                           final active = _checkboxChecked.value;
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: active ? scheme.primary : scheme.outlineVariant, borderRadius: BorderRadius.circular(4)),
-                            child: Text("Import Draft", style: TextStyle(fontSize: 7, color: active ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? scheme.primary
+                                  : scheme.outlineVariant,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              "Import Draft",
+                              style: TextStyle(
+                                fontSize: 7,
+                                color: active
+                                    ? scheme.onPrimary
+                                    : scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -1174,7 +1566,11 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
             return Positioned(
               left: x,
               top: y,
-              child: _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -1202,12 +1598,27 @@ class _AddLeafAnimationState extends State<_AddLeafAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
     _sheetY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(90.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 90.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 20),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 90.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 20,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 45),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 90.0).chain(CurveTween(curve: Curves.easeInCubic)), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 90.0,
+        ).chain(CurveTween(curve: Curves.easeInCubic)),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(90.0), weight: 5),
     ]).animate(_controller);
     _fingerTap = TweenSequence<double>([
@@ -1253,21 +1664,53 @@ class _AddLeafAnimationState extends State<_AddLeafAnimation>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: 60, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                Container(
+                  width: 60,
+                  height: 4,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
                 const SizedBox(height: 6),
-                Container(width: 100, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                Container(
+                  width: 100,
+                  height: 3,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 4),
-                Container(width: 80, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                Container(
+                  width: 80,
+                  height: 3,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10), border: Border.all(color: scheme.primary.withValues(alpha: 0.22))),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.22),
+                    ),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add_circle_outline_rounded, size: 10, color: scheme.primary),
+                      Icon(
+                        Icons.add_circle_outline_rounded,
+                        size: 10,
+                        color: scheme.primary,
+                      ),
                       const SizedBox(width: 4),
-                      Text("Leaf", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: scheme.primary)),
+                      Text(
+                        "Leaf",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1289,13 +1732,25 @@ class _AddLeafAnimationState extends State<_AddLeafAnimation>
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: scheme.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(14),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 50, height: 3, margin: const EdgeInsets.only(bottom: 6), color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                      Container(
+                        width: 50,
+                        height: 3,
+                        margin: const EdgeInsets.only(bottom: 6),
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -1305,14 +1760,37 @@ class _AddLeafAnimationState extends State<_AddLeafAnimation>
                               final active = _selectedIconHighlight.value > 0.5;
                               return Container(
                                 padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(color: active ? scheme.primary : Colors.transparent, borderRadius: BorderRadius.circular(6)),
-                                child: Icon(Icons.edit_note_rounded, size: 16, color: active ? scheme.onPrimary : scheme.primary),
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? scheme.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.edit_note_rounded,
+                                  size: 16,
+                                  color: active
+                                      ? scheme.onPrimary
+                                      : scheme.primary,
+                                ),
                               );
                             },
                           ),
-                          Icon(Icons.question_mark_rounded, size: 16, color: scheme.secondary),
-                          Icon(Icons.image_outlined, size: 16, color: scheme.tertiary),
-                          Icon(Icons.link_rounded, size: 16, color: Colors.blue),
+                          Icon(
+                            Icons.question_mark_rounded,
+                            size: 16,
+                            color: scheme.secondary,
+                          ),
+                          Icon(
+                            Icons.image_outlined,
+                            size: 16,
+                            color: scheme.tertiary,
+                          ),
+                          Icon(
+                            Icons.link_rounded,
+                            size: 16,
+                            color: Colors.blue,
+                          ),
                         ],
                       ),
                     ],
@@ -1329,7 +1807,11 @@ class _AddLeafAnimationState extends State<_AddLeafAnimation>
             return Positioned(
               left: isTap2 ? 26 : 28,
               top: isTap2 ? 96 : 38,
-              child: _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -1343,7 +1825,8 @@ class _InviteCoAuthorAnimation extends StatefulWidget {
   const _InviteCoAuthorAnimation();
 
   @override
-  State<_InviteCoAuthorAnimation> createState() => _InviteCoAuthorAnimationState();
+  State<_InviteCoAuthorAnimation> createState() =>
+      _InviteCoAuthorAnimationState();
 }
 
 class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
@@ -1357,13 +1840,22 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 5),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Toggle Switch
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Toggle Switch
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 35),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Select Author
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Select Author
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 34),
     ]).animate(_controller);
@@ -1373,7 +1865,13 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
     ]).animate(_controller);
     _drawerY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(60.0), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: 60.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 60.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 75),
     ]).animate(_controller);
     _coauthorOpacity = TweenSequence<double>([
@@ -1405,7 +1903,11 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 60, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                    Container(
+                      width: 60,
+                      height: 4,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
                     AnimatedBuilder(
                       animation: _switchOn,
                       builder: (context, child) {
@@ -1414,9 +1916,21 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
                           width: 22,
                           height: 12,
                           padding: const EdgeInsets.all(1.5),
-                          decoration: BoxDecoration(color: val ? scheme.primary : scheme.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                          alignment: val ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Container(width: 9, height: 9, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                          decoration: BoxDecoration(
+                            color: val ? scheme.primary : scheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          alignment: val
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            width: 9,
+                            height: 9,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -1438,7 +1952,14 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(width: 80, height: 12, decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(4))),
+                              Container(
+                                width: 80,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: scheme.surface,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               // Selected co-author card
                               AnimatedBuilder(
@@ -1447,13 +1968,28 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
                                   return Opacity(
                                     opacity: _coauthorOpacity.value,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                      decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
                                       child: Row(
                                         children: [
-                                          CircleAvatar(radius: 4, backgroundColor: scheme.primary),
+                                          CircleAvatar(
+                                            radius: 4,
+                                            backgroundColor: scheme.primary,
+                                          ),
                                           const SizedBox(width: 4),
-                                          Container(width: 32, height: 2, color: scheme.primary),
+                                          Container(
+                                            width: 32,
+                                            height: 2,
+                                            color: scheme.primary,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -1485,7 +2021,11 @@ class _InviteCoAuthorAnimationState extends State<_InviteCoAuthorAnimation>
             return Positioned(
               left: x,
               top: y,
-              child: _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -1513,7 +2053,10 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
     _textOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 30),
       TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 15),
@@ -1559,7 +2102,13 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
         Container(
           width: 120,
           height: 110,
-          decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.2))),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -1570,11 +2119,21 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 32, height: 3, color: scheme.onSurface.withValues(alpha: 0.6)),
+                    Container(
+                      width: 32,
+                      height: 3,
+                      color: scheme.onSurface.withValues(alpha: 0.6),
+                    ),
                     AnimatedBuilder(
                       animation: _isPdfActive,
                       builder: (context, child) {
-                        return Icon(Icons.picture_as_pdf_outlined, size: 11, color: _isPdfActive.value ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.7));
+                        return Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 11,
+                          color: _isPdfActive.value
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        );
                       },
                     ),
                   ],
@@ -1591,11 +2150,23 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 90, height: 3, color: scheme.onSurface.withValues(alpha: 0.6)),
+                            Container(
+                              width: 90,
+                              height: 3,
+                              color: scheme.onSurface.withValues(alpha: 0.6),
+                            ),
                             const SizedBox(height: 4),
-                            Container(width: 100, height: 3, color: scheme.onSurface.withValues(alpha: 0.6)),
+                            Container(
+                              width: 100,
+                              height: 3,
+                              color: scheme.onSurface.withValues(alpha: 0.6),
+                            ),
                             const SizedBox(height: 4),
-                            Container(width: 70, height: 3, color: scheme.onSurface.withValues(alpha: 0.6)),
+                            Container(
+                              width: 70,
+                              height: 3,
+                              color: scheme.onSurface.withValues(alpha: 0.6),
+                            ),
                           ],
                         ),
                       ),
@@ -1607,14 +2178,28 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
                         child: Container(
                           width: double.infinity,
                           height: double.infinity,
-                          decoration: BoxDecoration(color: const Color(0xFFF9F7EE), border: Border.all(color: const Color(0xFFE3DCB9), width: 1.5)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9F7EE),
+                            border: Border.all(
+                              color: const Color(0xFFE3DCB9),
+                              width: 1.5,
+                            ),
+                          ),
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.description_rounded, size: 18, color: Colors.grey[700]),
+                                Icon(
+                                  Icons.description_rounded,
+                                  size: 18,
+                                  color: Colors.grey[700],
+                                ),
                                 const SizedBox(height: 3),
-                                Container(width: 32, height: 2, color: Colors.grey[400]),
+                                Container(
+                                  width: 32,
+                                  height: 2,
+                                  color: Colors.grey[400],
+                                ),
                               ],
                             ),
                           ),
@@ -1633,7 +2218,11 @@ class _PdfModeAnimationState extends State<_PdfModeAnimation>
             return Positioned(
               right: 14,
               top: 15,
-              child: _FingerTapIndicator(opacity: _fingerTapOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerTapOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -1647,7 +2236,8 @@ class _TextSelectionAnimation extends StatefulWidget {
   const _TextSelectionAnimation();
 
   @override
-  State<_TextSelectionAnimation> createState() => _TextSelectionAnimationState();
+  State<_TextSelectionAnimation> createState() =>
+      _TextSelectionAnimationState();
 }
 
 class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
@@ -1660,7 +2250,10 @@ class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
     _pinsOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
       TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 10),
@@ -1669,12 +2262,24 @@ class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
     ]).animate(_controller);
     _rightPinX = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(24.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 24.0, end: 94.0).chain(CurveTween(curve: Curves.easeOut)), weight: 30),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 24.0,
+          end: 94.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
       TweenSequenceItem(tween: ConstantTween(94.0), weight: 50),
     ]).animate(_controller);
     _menuScale = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 52),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 18),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 18,
+      ),
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 20),
       TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 10),
     ]).animate(_controller);
@@ -1699,7 +2304,11 @@ class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: 100, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                Container(
+                  width: 100,
+                  height: 4,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 6),
                 // Sentence with animated highlight overlay
                 Stack(
@@ -1720,12 +2329,20 @@ class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
                     ),
                     Positioned(
                       left: 16,
-                      child: Container(width: 80, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
+                      child: Container(
+                        width: 80,
+                        height: 4,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Container(width: 60, height: 4, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                Container(
+                  width: 60,
+                  height: 4,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
               ],
             ),
           ),
@@ -1738,21 +2355,28 @@ class _TextSelectionAnimationState extends State<_TextSelectionAnimation>
               top: 24,
               child: Opacity(
                 opacity: _menuScale.value.clamp(0.0, 1.0),
-                child: Transform.scale(
-                  scale: _menuScale.value,
-                  child: child,
-                ),
+                child: Transform.scale(scale: _menuScale.value, child: child),
               ),
             );
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: const Row(
               children: [
                 Icon(Icons.volume_up_rounded, size: 10, color: Colors.white),
                 SizedBox(width: 4),
-                Text("Read Aloud", style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold)),
+                Text(
+                  "Read Aloud",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 6,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1798,10 +2422,16 @@ class _TtsTapToSeekAnimationState extends State<_TtsTapToSeekAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Paragraph 2
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Paragraph 2
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 67),
     ]).animate(_controller);
@@ -1839,15 +2469,33 @@ class _TtsTapToSeekAnimationState extends State<_TtsTapToSeekAnimation>
                     return Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: active ? scheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                        color: active
+                            ? scheme.primary.withValues(alpha: 0.15)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(width: 80, height: 4, color: active ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          Container(
+                            width: 80,
+                            height: 4,
+                            color: active
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
                           const SizedBox(height: 3),
-                          Container(width: 100, height: 4, color: active ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          Container(
+                            width: 100,
+                            height: 4,
+                            color: active
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
                         ],
                       ),
                     );
@@ -1862,15 +2510,33 @@ class _TtsTapToSeekAnimationState extends State<_TtsTapToSeekAnimation>
                     return Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: active ? scheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                        color: active
+                            ? scheme.primary.withValues(alpha: 0.15)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(width: 90, height: 4, color: active ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          Container(
+                            width: 90,
+                            height: 4,
+                            color: active
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
                           const SizedBox(height: 3),
-                          Container(width: 60, height: 4, color: active ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          Container(
+                            width: 60,
+                            height: 4,
+                            color: active
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
                         ],
                       ),
                     );
@@ -1887,7 +2553,11 @@ class _TtsTapToSeekAnimationState extends State<_TtsTapToSeekAnimation>
           child: AnimatedBuilder(
             animation: _fingerOpacity,
             builder: (context, child) {
-              return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary);
+              return _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              );
             },
           ),
         ),
@@ -1914,7 +2584,10 @@ class _DownloadBookAnimationState extends State<_DownloadBookAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
     _progress = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
       TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 60),
@@ -1922,8 +2595,20 @@ class _DownloadBookAnimationState extends State<_DownloadBookAnimation>
     ]).animate(_controller);
     _bookmarkScale = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 70),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.35).chain(CurveTween(curve: Curves.easeOutBack)), weight: 12),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.35, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 12),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.35,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 12,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.35,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 12,
+      ),
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 6),
     ]).animate(_controller);
     _isCompleted = TweenSequence<bool>([
@@ -1950,7 +2635,9 @@ class _DownloadBookAnimationState extends State<_DownloadBookAnimation>
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.25),
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -1960,26 +2647,46 @@ class _DownloadBookAnimationState extends State<_DownloadBookAnimation>
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [scheme.primary.withValues(alpha: 0.8), scheme.tertiary.withValues(alpha: 0.7)],
+                      colors: [
+                        scheme.primary.withValues(alpha: 0.8),
+                        scheme.tertiary.withValues(alpha: 0.7),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
-                  child: const Center(child: Icon(Icons.book_rounded, color: Colors.white, size: 24)),
+                  child: const Center(
+                    child: Icon(
+                      Icons.book_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ),
               ),
               Expanded(
                 flex: 2,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 3,
+                  ),
                   color: scheme.surface,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 44, height: 3, color: scheme.onSurface.withValues(alpha: 0.6)),
+                      Container(
+                        width: 44,
+                        height: 3,
+                        color: scheme.onSurface.withValues(alpha: 0.6),
+                      ),
                       const SizedBox(height: 3),
-                      Container(width: 32, height: 2, color: scheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                      Container(
+                        width: 32,
+                        height: 2,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      ),
                     ],
                   ),
                 ),
@@ -2001,24 +2708,40 @@ class _DownloadBookAnimationState extends State<_DownloadBookAnimation>
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: showComplete ? Colors.blue[600] : scheme.surfaceContainerHighest,
+                    color: showComplete
+                        ? Colors.blue[600]
+                        : scheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: showComplete
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          )
                         : isRunning
-                            ? SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  value: _progress.value,
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
-                                  backgroundColor: scheme.outlineVariant.withValues(alpha: 0.3),
-                                ),
-                              )
-                            : Icon(Icons.bookmark_border_rounded, color: scheme.onSurfaceVariant.withValues(alpha: 0.8), size: 13),
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              value: _progress.value,
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                scheme.primary,
+                              ),
+                              backgroundColor: scheme.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            Icons.bookmark_border_rounded,
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: 0.8,
+                            ),
+                            size: 13,
+                          ),
                   ),
                 ),
               ),
@@ -2050,12 +2773,21 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
     _micPressed = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.86), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.86),
+        weight: 10,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.86), weight: 65),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.86, end: 1.0), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.86, end: 1.0),
+        weight: 10,
+      ),
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 5),
     ]).animate(_controller);
     _pulseScale1 = TweenSequence<double>([
@@ -2065,7 +2797,10 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
     ]).animate(_controller);
     _pulseOpacity1 = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.35, end: 0.0), weight: 60),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.35, end: 0.0),
+        weight: 60,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
     ]).animate(_controller);
     _pulseScale2 = TweenSequence<double>([
@@ -2075,7 +2810,10 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
     ]).animate(_controller);
     _pulseOpacity2 = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.35, end: 0.0), weight: 50),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.35, end: 0.0),
+        weight: 50,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
     ]).animate(_controller);
   }
@@ -2100,9 +2838,14 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
-                final active = _controller.value > 0.15 && _controller.value < 0.85;
+                final active =
+                    _controller.value > 0.15 && _controller.value < 0.85;
                 return CustomPaint(
-                  painter: _WavePainter(progress: _controller.value, isActive: active, color: scheme.primary),
+                  painter: _WavePainter(
+                    progress: _controller.value,
+                    isActive: active,
+                    color: scheme.primary,
+                  ),
                 );
               },
             ),
@@ -2118,7 +2861,17 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
                 builder: (context, child) {
                   return Transform.scale(
                     scale: _pulseScale1.value,
-                    child: Opacity(opacity: _pulseOpacity1.value, child: Container(width: 32, height: 32, decoration: BoxDecoration(shape: BoxShape.circle, color: scheme.primary.withValues(alpha: 0.4)))),
+                    child: Opacity(
+                      opacity: _pulseOpacity1.value,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: scheme.primary.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -2127,21 +2880,41 @@ class _VoiceCommentAnimationState extends State<_VoiceCommentAnimation>
                 builder: (context, child) {
                   return Transform.scale(
                     scale: _pulseScale2.value,
-                    child: Opacity(opacity: _pulseOpacity2.value, child: Container(width: 32, height: 32, decoration: BoxDecoration(shape: BoxShape.circle, color: scheme.primary.withValues(alpha: 0.4)))),
+                    child: Opacity(
+                      opacity: _pulseOpacity2.value,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: scheme.primary.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
               AnimatedBuilder(
                 animation: _micPressed,
                 builder: (context, child) {
-                  final isPressed = _controller.value > 0.18 && _controller.value < 0.88;
+                  final isPressed =
+                      _controller.value > 0.18 && _controller.value < 0.88;
                   return Transform.scale(
                     scale: _micPressed.value,
                     child: Container(
                       width: 34,
                       height: 34,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: isPressed ? scheme.primary : scheme.surfaceContainerHigh),
-                      child: Icon(Icons.mic_rounded, color: isPressed ? scheme.onPrimary : scheme.primary, size: 16),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isPressed
+                            ? scheme.primary
+                            : scheme.surfaceContainerHigh,
+                      ),
+                      child: Icon(
+                        Icons.mic_rounded,
+                        color: isPressed ? scheme.onPrimary : scheme.primary,
+                        size: 16,
+                      ),
                     ),
                   );
                 },
@@ -2168,7 +2941,9 @@ class _WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = isActive ? color.withValues(alpha: 0.8) : color.withValues(alpha: 0.15)
+      ..color = isActive
+          ? color.withValues(alpha: 0.8)
+          : color.withValues(alpha: 0.15)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
@@ -2186,7 +2961,11 @@ class _WavePainter extends CustomPainter {
         height = 3.0 + (factor.abs() * 12 * envelope);
       }
 
-      canvas.drawLine(Offset(x, midY - height), Offset(x, midY + height), paint);
+      canvas.drawLine(
+        Offset(x, midY - height),
+        Offset(x, midY + height),
+        paint,
+      );
     }
   }
 
@@ -2215,20 +2994,35 @@ class _AudioPlayerAnimationState extends State<_AudioPlayerAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 5),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Play
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Play
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Drag Slider Start
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Drag Slider Start
       TweenSequenceItem(tween: ConstantTween(0.7), weight: 30),
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 24),
     ]).animate(_controller);
     _fingerX = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(36.0), weight: 33),
-      TweenSequenceItem(tween: Tween<double>(begin: 36.0, end: 84.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 30),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 36.0,
+          end: 84.0,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 30,
+      ),
       TweenSequenceItem(tween: ConstantTween(84.0), weight: 37),
     ]).animate(_controller);
     _sliderProgress = TweenSequence<double>([
@@ -2272,7 +3066,9 @@ class _AudioPlayerAnimationState extends State<_AudioPlayerAnimation>
                     animation: _isPlaying,
                     builder: (context, child) {
                       return Icon(
-                        _isPlaying.value ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
+                        _isPlaying.value
+                            ? Icons.pause_circle_filled_rounded
+                            : Icons.play_circle_fill_rounded,
                         color: scheme.primary,
                         size: 20,
                       );
@@ -2289,7 +3085,10 @@ class _AudioPlayerAnimationState extends State<_AudioPlayerAnimation>
                           builder: (context, child) {
                             return FractionallySizedBox(
                               widthFactor: _sliderProgress.value,
-                              child: Container(height: 3, color: scheme.primary),
+                              child: Container(
+                                height: 3,
+                                color: scheme.primary,
+                              ),
                             );
                           },
                         ),
@@ -2307,7 +3106,11 @@ class _AudioPlayerAnimationState extends State<_AudioPlayerAnimation>
                   builder: (context, child) {
                     final playing = _isPlaying.value;
                     return CustomPaint(
-                      painter: _WavePainter(progress: _controller.value, isActive: playing, color: scheme.primary),
+                      painter: _WavePainter(
+                        progress: _controller.value,
+                        isActive: playing,
+                        color: scheme.primary,
+                      ),
                     );
                   },
                 ),
@@ -2329,7 +3132,11 @@ class _AudioPlayerAnimationState extends State<_AudioPlayerAnimation>
             return Positioned(
               left: x,
               top: y,
-              child: _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -2343,10 +3150,12 @@ class _SwipeToDeleteMessageAnimation extends StatefulWidget {
   const _SwipeToDeleteMessageAnimation();
 
   @override
-  State<_SwipeToDeleteMessageAnimation> createState() => _SwipeToDeleteMessageAnimationState();
+  State<_SwipeToDeleteMessageAnimation> createState() =>
+      _SwipeToDeleteMessageAnimationState();
 }
 
-class _SwipeToDeleteMessageAnimationState extends State<_SwipeToDeleteMessageAnimation>
+class _SwipeToDeleteMessageAnimationState
+    extends State<_SwipeToDeleteMessageAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _bubbleX;
@@ -2357,12 +3166,24 @@ class _SwipeToDeleteMessageAnimationState extends State<_SwipeToDeleteMessageAni
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
     _bubbleX = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: -44.0).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 30),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: -44.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 30,
+      ),
       TweenSequenceItem(tween: ConstantTween(-44.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: -44.0, end: 0.0), weight: 15),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -44.0, end: 0.0),
+        weight: 15,
+      ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
     ]).animate(_controller);
     _fingerOpacity = TweenSequence<double>([
@@ -2374,12 +3195,21 @@ class _SwipeToDeleteMessageAnimationState extends State<_SwipeToDeleteMessageAni
     ]).animate(_controller);
     _fingerX = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(80.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 80.0, end: 36.0).chain(CurveTween(curve: Curves.easeOut)), weight: 30),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 80.0,
+          end: 36.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
       TweenSequenceItem(tween: ConstantTween(36.0), weight: 55),
     ]).animate(_controller);
     _bubbleOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 55),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 10), // Deleted flash
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0),
+        weight: 10,
+      ), // Deleted flash
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 35),
     ]).animate(_controller);
   }
@@ -2401,8 +3231,15 @@ class _SwipeToDeleteMessageAnimationState extends State<_SwipeToDeleteMessageAni
           right: 14,
           child: Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 12),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
         ),
         // Chat Message bubble
@@ -2415,8 +3252,14 @@ class _SwipeToDeleteMessageAnimationState extends State<_SwipeToDeleteMessageAni
                 opacity: _bubbleOpacity.value,
                 child: Container(
                   width: 90,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -2474,21 +3317,39 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 8),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Dropdown
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Dropdown
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 7),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Select Private
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Select Private
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 7),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 53),
     ]).animate(_controller);
     _dropdownY = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 13), // Hidden scale
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 12), // Pop open
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 12,
+      ), // Pop open
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 10), // Close
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0),
+        weight: 10,
+      ), // Close
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 50),
     ]).animate(_controller);
     _isPrivate = TweenSequence<bool>([
@@ -2517,12 +3378,22 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(width: 40, height: 3, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                Container(
+                  width: 40,
+                  height: 3,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
                 const SizedBox(height: 5),
                 // Dropdown box
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(color: scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -2531,14 +3402,26 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
                         builder: (context, child) {
                           return Row(
                             children: [
-                              if (_isPrivate.value) Icon(Icons.lock_outline_rounded, size: 8, color: scheme.primary),
+                              if (_isPrivate.value)
+                                Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 8,
+                                  color: scheme.primary,
+                                ),
                               if (_isPrivate.value) const SizedBox(width: 4),
-                              Text(_isPrivate.value ? "Private" : "Public", style: const TextStyle(fontSize: 8)),
+                              Text(
+                                _isPrivate.value ? "Private" : "Public",
+                                style: const TextStyle(fontSize: 8),
+                              ),
                             ],
                           );
                         },
                       ),
-                      Icon(Icons.arrow_drop_down, size: 10, color: scheme.primary),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        size: 10,
+                        color: scheme.primary,
+                      ),
                     ],
                   ),
                 ),
@@ -2552,22 +3435,28 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
           builder: (context, child) {
             return Opacity(
               opacity: _dropdownY.value.clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: _dropdownY.value,
-                child: child,
-              ),
+              child: Transform.scale(scale: _dropdownY.value, child: child),
             );
           },
           child: Container(
             width: 100,
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(6), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 4),
+              ],
+            ),
             child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text("Public", style: TextStyle(fontSize: 8)),
                 Divider(height: 8),
-                Text("Private", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
+                Text(
+                  "Private",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ),
@@ -2586,7 +3475,11 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
             return Positioned(
               left: x,
               top: y,
-              child: _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary),
+              child: _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              ),
             );
           },
         ),
@@ -2600,7 +3493,8 @@ class _ThemeSelectionAnimation extends StatefulWidget {
   const _ThemeSelectionAnimation();
 
   @override
-  State<_ThemeSelectionAnimation> createState() => _ThemeSelectionAnimationState();
+  State<_ThemeSelectionAnimation> createState() =>
+      _ThemeSelectionAnimationState();
 }
 
 class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
@@ -2613,10 +3507,16 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 8),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Dark Option
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Dark Option
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 7),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 80),
     ]).animate(_controller);
@@ -2662,9 +3562,17 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 44, height: 6, color: fg.withValues(alpha: 0.7)),
+                    Container(
+                      width: 44,
+                      height: 6,
+                      color: fg.withValues(alpha: 0.7),
+                    ),
                     const SizedBox(height: 6),
-                    Container(width: 80, height: 4, color: fg.withValues(alpha: 0.3)),
+                    Container(
+                      width: 80,
+                      height: 4,
+                      color: fg.withValues(alpha: 0.3),
+                    ),
                   ],
                 ),
               ),
@@ -2674,7 +3582,10 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
                 builder: (context, child) {
                   return Opacity(
                     opacity: _dialogOpacity.value,
-                    child: Transform.scale(scale: 0.8 + (_dialogOpacity.value * 0.2), child: child),
+                    child: Transform.scale(
+                      scale: 0.8 + (_dialogOpacity.value * 0.2),
+                      child: child,
+                    ),
                   );
                 },
                 child: Container(
@@ -2684,21 +3595,44 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
                     color: dark ? const Color(0xFF1B2230) : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: outline),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 4),
+                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text("Theme Mode", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: fg)),
+                      Text(
+                        "Theme Mode",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: fg,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: dark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(
+                          color: dark ? Colors.white12 : Colors.black12,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Dark Theme", style: TextStyle(fontSize: 7, color: fg, fontWeight: FontWeight.bold)),
-                            Icon(Icons.check_circle_rounded, size: 8, color: dark ? Colors.purple[300] : Colors.blue),
+                            Text(
+                              "Dark Theme",
+                              style: TextStyle(
+                                fontSize: 7,
+                                color: fg,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 8,
+                              color: dark ? Colors.purple[300] : Colors.blue,
+                            ),
                           ],
                         ),
                       ),
@@ -2713,7 +3647,11 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
                 child: AnimatedBuilder(
                   animation: _fingerOpacity,
                   builder: (context, child) {
-                    return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: Colors.blue);
+                    return _FingerTapIndicator(
+                      opacity: _fingerOpacity.value,
+                      scale: 1.0,
+                      color: Colors.blue,
+                    );
                   },
                 ),
               ),
@@ -2730,7 +3668,8 @@ class _LanguageSwitcherAnimation extends StatefulWidget {
   const _LanguageSwitcherAnimation();
 
   @override
-  State<_LanguageSwitcherAnimation> createState() => _LanguageSwitcherAnimationState();
+  State<_LanguageSwitcherAnimation> createState() =>
+      _LanguageSwitcherAnimationState();
 }
 
 class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
@@ -2742,10 +3681,16 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
     _fingerOpacity = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.7), weight: 5), // Tap Hindi Option
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 0.7),
+        weight: 5,
+      ), // Tap Hindi Option
       TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 0.0), weight: 8),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 72),
     ]).animate(_controller);
@@ -2780,13 +3725,29 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
                   builder: (context, child) {
                     final selected = !_isHindiSelected.value;
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? scheme.primary.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("English / English", style: TextStyle(fontSize: 8)),
-                          if (selected) Icon(Icons.check_circle_rounded, size: 8, color: scheme.primary),
+                          const Text(
+                            "English / English",
+                            style: TextStyle(fontSize: 8),
+                          ),
+                          if (selected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 8,
+                              color: scheme.primary,
+                            ),
                         ],
                       ),
                     );
@@ -2799,13 +3760,29 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
                   builder: (context, child) {
                     final selected = _isHindiSelected.value;
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: selected ? scheme.primary.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? scheme.primary.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(selected ? "हिंदी / Hindi" : "Hindi / हिंदी", style: const TextStyle(fontSize: 8)),
-                          if (selected) Icon(Icons.check_circle_rounded, size: 8, color: scheme.primary),
+                          Text(
+                            selected ? "हिंदी / Hindi" : "Hindi / हिंदी",
+                            style: const TextStyle(fontSize: 8),
+                          ),
+                          if (selected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 8,
+                              color: scheme.primary,
+                            ),
                         ],
                       ),
                     );
@@ -2822,7 +3799,11 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
           child: AnimatedBuilder(
             animation: _fingerOpacity,
             builder: (context, child) {
-              return _FingerTapIndicator(opacity: _fingerOpacity.value, scale: 1.0, color: scheme.primary);
+              return _FingerTapIndicator(
+                opacity: _fingerOpacity.value,
+                scale: 1.0,
+                color: scheme.primary,
+              );
             },
           ),
         ),
@@ -2857,7 +3838,13 @@ class _CollectionAnimationState extends State<_CollectionAnimation>
 
     _bookSlide = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: -40.0, end: 15.0).chain(CurveTween(curve: Curves.easeIn)), weight: 40),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: -40.0,
+          end: 15.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 40,
+      ),
       TweenSequenceItem(tween: ConstantTween(15.0), weight: 50),
     ]).animate(_controller);
 
@@ -2870,8 +3857,20 @@ class _CollectionAnimationState extends State<_CollectionAnimation>
 
     _folderScale = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 45),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.2).chain(CurveTween(curve: Curves.easeOut)), weight: 10),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.2,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 10,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.2,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 10,
+      ),
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 35),
     ]).animate(_controller);
 
@@ -2938,11 +3937,7 @@ class _CollectionAnimationState extends State<_CollectionAnimation>
                     color: Colors.green,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 10,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.check, size: 10, color: Colors.white),
                 ),
               );
             },
@@ -2966,7 +3961,6 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
   late AnimationController _controller;
   late Animation<double> _userYOffset;
   late Animation<double> _other1YOffset;
-  late Animation<double> _other2YOffset;
   late Animation<int> _userPoints;
   late Animation<double> _sparkleOpacity;
 
@@ -2980,19 +3974,25 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
 
     _userYOffset = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: -48.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: -48.0,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 40,
+      ),
       TweenSequenceItem(tween: ConstantTween(-48.0), weight: 40),
     ]).animate(_controller);
 
     _other1YOffset = TweenSequence<double>([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 24.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
-      TweenSequenceItem(tween: ConstantTween(24.0), weight: 40),
-    ]).animate(_controller);
-
-    _other2YOffset = TweenSequence<double>([
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 24.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 24.0,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 40,
+      ),
       TweenSequenceItem(tween: ConstantTween(24.0), weight: 40),
     ]).animate(_controller);
 
@@ -3037,27 +4037,22 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             builder: (context, child) {
               final rank = _other1YOffset.value > 12 ? 2 : 1;
               return Transform.translate(
-                offset: Offset(0, -22.0 + _other1YOffset.value),
-                child: _buildRankRow(rank, "Alice", "1200", _getRankColor(rank, scheme.primary)),
-              );
-            },
-          ),
-          AnimatedBuilder(
-            animation: _other2YOffset,
-            builder: (context, child) {
-              final rank = _other2YOffset.value > 12 ? 3 : 2;
-              return Transform.translate(
-                offset: Offset(0, 22.0 + _other2YOffset.value),
-                child: _buildRankRow(rank, "Bob", "950", _getRankColor(rank, scheme.primary)),
+                offset: const Offset(0, 6),
+                child: _buildRankRow(
+                  rank,
+                  "Alice",
+                  "1200",
+                  _getRankColor(rank, scheme.primary),
+                ),
               );
             },
           ),
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final rank = _userYOffset.value < -36 ? 1 : (_userYOffset.value < -12 ? 2 : 3);
+              final rank = _userYOffset.value < -12 ? 1 : 2;
               return Transform.translate(
-                offset: Offset(0, 48.0 + _userYOffset.value),
+                offset: const Offset(0, 54),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -3075,7 +4070,11 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
                         top: -4,
                         child: Opacity(
                           opacity: _sparkleOpacity.value,
-                          child: const Icon(Icons.star, size: 12, color: Colors.amber),
+                          child: const Icon(
+                            Icons.star,
+                            size: 12,
+                            color: Colors.amber,
+                          ),
                         ),
                       ),
                   ],
@@ -3097,7 +4096,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
     Color? userBgColor,
   }) {
     return Container(
-      height: 20,
+      height: 24,
       margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
         color: isUser && userBgColor != null
@@ -3111,13 +4110,14 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             width: 14,
             height: 14,
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Text(
               "$rank",
-              style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 9,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 6),
@@ -3125,7 +4125,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             child: Text(
               name,
               style: TextStyle(
-                fontSize: 8,
+                fontSize: 10,
                 fontWeight: isUser ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -3139,4 +4139,3 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
     );
   }
 }
-

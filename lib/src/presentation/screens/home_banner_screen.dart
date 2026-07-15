@@ -37,10 +37,31 @@ class HomeBannerScreen extends StatelessWidget {
             pinned: true,
             expandedHeight: 280,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                banner.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+              centerTitle: false,
+              titlePadding: const EdgeInsetsDirectional.only(
+                start: 20,
+                end: 20,
+                bottom: 16,
+              ),
+              title: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  banner.title,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                  ),
+                ),
               ),
               background: Stack(
                 fit: StackFit.expand,
