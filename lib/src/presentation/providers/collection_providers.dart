@@ -16,23 +16,17 @@ final collectionRepositoryProvider = Provider<CollectionRepository>((ref) {
 });
 
 final userCollectionsProvider =
-    StreamProvider.family<List<BookCollection>, String>((ref, userId) {
-      return ref
-          .watch(collectionRepositoryProvider)
-          .watchUserCollections(userId);
+    FutureProvider.family<List<BookCollection>, String>((ref, userId) {
+      return ref.watch(collectionRepositoryProvider).getUserCollections(userId);
     });
 
-final currentUserCollectionsProvider = StreamProvider<List<BookCollection>>((
+final currentUserCollectionsProvider = FutureProvider<List<BookCollection>>((
   ref,
-) async* {
+) async {
   final user = await ref.watch(currentUserProvider.future);
-  if (user == null) {
-    yield const [];
-    return;
-  }
-  yield* ref.watch(collectionRepositoryProvider).watchUserCollections(user.id);
+  if (user == null) return const [];
+  return ref.watch(collectionRepositoryProvider).getUserCollections(user.id);
 });
-
 final collectionDetailProvider = StreamProvider.family<BookCollection?, String>(
   (ref, collectionId) {
     return ref
@@ -98,7 +92,11 @@ class CollectionMutationController extends Notifier<CollectionMutationState> {
     state = const CollectionMutationState(isLoading: true);
     try {
       final value = await action(ref.read(collectionRepositoryProvider));
-      if (ref.mounted) state = const CollectionMutationState();
+      if (ref.mounted) {
+        ref.invalidate(userCollectionsProvider);
+        ref.invalidate(currentUserCollectionsProvider);
+        state = const CollectionMutationState();
+      }
       return value;
     } catch (error) {
       if (ref.mounted) state = CollectionMutationState(error: error);

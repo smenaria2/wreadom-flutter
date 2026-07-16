@@ -74,7 +74,10 @@ class _CollectionFormSheetState extends ConsumerState<CollectionFormSheet> {
           : widget.collection!.id;
       if (widget.collection != null) {
         await repo.updateCollection(id, title: title, description: description);
+        ref.invalidate(collectionDetailProvider(id));
       }
+      ref.invalidate(userCollectionsProvider);
+      ref.invalidate(currentUserCollectionsProvider);
       if (mounted) Navigator.pop(context, id);
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());

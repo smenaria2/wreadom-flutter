@@ -58,8 +58,11 @@ class DictionaryLookupResult {
         .map(DictionaryEntry.fromJson)
         .where((entry) => entry.senses.isNotEmpty)
         .toList(growable: false);
-    if ((json['word']?.toString() ?? '').isEmpty || entries.isEmpty) {
+    if ((json['word']?.toString() ?? '').isEmpty) {
       throw const DictionaryFailure(DictionaryFailureType.invalidResponse);
+    }
+    if (entries.isEmpty) {
+      throw const DictionaryFailure(DictionaryFailureType.wordNotFound);
     }
     return DictionaryLookupResult(
       word: json['word'].toString(),

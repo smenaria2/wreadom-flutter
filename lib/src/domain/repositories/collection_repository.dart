@@ -2,6 +2,7 @@ import '../models/book_collection.dart';
 import '../models/collection_book.dart';
 
 abstract interface class CollectionRepository {
+  Future<List<BookCollection>> getUserCollections(String userId);
   Stream<List<BookCollection>> watchUserCollections(String userId);
   Stream<BookCollection?> watchCollection(String collectionId);
   Stream<List<CollectionBook>> watchCollectionEntries(String collectionId);

@@ -29,16 +29,35 @@ class FirebaseCollectionRepository implements CollectionRepository {
       _firestore.collection('collections');
 
   @override
+  Future<List<BookCollection>> getUserCollections(String userId) async {
+    final snapshot = await _collections
+        .where('ownerId', isEqualTo: userId)
+        .get(const GetOptions(source: Source.serverAndCache));
+    return _normalizeCollections(snapshot.docs);
+  }
+
+  @override
   Stream<List<BookCollection>> watchUserCollections(String userId) =>
       _collections
           .where('ownerId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
           .snapshots()
-          .map(
-            (snapshot) => snapshot.docs
-                .map((doc) => normalizeCollection(doc.data(), doc.id))
-                .toList(),
-          );
+          .map((snapshot) => _normalizeCollections(snapshot.docs));
+
+  List<BookCollection> _normalizeCollections(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) {
+    final collections = documents
+        .map((doc) => normalizeCollection(doc.data(), doc.id))
+        .toList();
+    collections.sort((a, b) {
+      final createdComparison = (b.createdAt ?? b.updatedAt ?? 0).compareTo(
+        a.createdAt ?? a.updatedAt ?? 0,
+      );
+      if (createdComparison != 0) return createdComparison;
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+    return collections;
+  }
 
   @override
   Stream<BookCollection?> watchCollection(String collectionId) => _collections

@@ -3208,7 +3208,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dictionaryNotFound =>
-      'No dictionary entry was found for this word.';
+      'A definition is not available for this word.';
 
   @override
   String get dictionaryRateLimited =>

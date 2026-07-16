@@ -104,6 +104,79 @@ void main() {
     expect(find.byKey(const ValueKey('writer-topic-प्रेम')), findsOneWidget);
   });
 
+  testWidgets('keyboard keeps a bounded menu above the visible input', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          popularTopicTagsProvider.overrideWith((ref) async {
+            return const [
+              'Love',
+              'Poetry',
+              'Life',
+              'Friendship',
+              'Mystery',
+              'Nature',
+              'History',
+              'Travel',
+            ];
+          }),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: const [
+            ...AppLocalizations.localizationsDelegates,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.only(top: 280),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: WriterTopicInput(
+                  controller: controller,
+                  label: 'Topics',
+                  hint: 'Type a topic',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final input = find.byKey(const ValueKey('writer-topic-input'));
+    await tester.tap(input);
+    await tester.pump();
+    await tester.pump();
+
+    final menu = find.byKey(const ValueKey('writer-topic-menu'));
+    expect(menu, findsOneWidget);
+    final inputRect = tester.getRect(
+      find.byKey(const ValueKey('writer-topic-input')).first,
+    );
+    final menuRect = tester.getRect(menu);
+    expect(menuRect.bottom, lessThanOrEqualTo(inputRect.top));
+    expect(inputRect.bottom, lessThanOrEqualTo(500));
+    expect(menuRect.height, lessThanOrEqualTo(280));
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(menu, findsOneWidget);
+  });
+
   testWidgets('focus shows most-used topics instead of a static example', (
     tester,
   ) async {

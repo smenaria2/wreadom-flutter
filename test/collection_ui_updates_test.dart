@@ -67,6 +67,36 @@ void main() {
     expect(source, contains('tooltip: l10n.shareCollection'));
   });
 
+  test('profile collections use a direct fetch and refresh after writes', () {
+    final repositorySource = File(
+      'lib/src/data/repositories/firebase_collection_repository.dart',
+    ).readAsStringSync();
+    final fetchStart = repositorySource.indexOf('getUserCollections');
+    final fetchEnd = repositorySource.indexOf(
+      'watchUserCollections',
+      fetchStart,
+    );
+    final fetchSource = repositorySource.substring(fetchStart, fetchEnd);
+
+    expect(fetchSource, contains("where('ownerId', isEqualTo: userId)"));
+    expect(fetchSource, contains('.get(const GetOptions('));
+    expect(fetchSource, isNot(contains("orderBy('createdAt'")));
+
+    final providerSource = File(
+      'lib/src/presentation/providers/collection_providers.dart',
+    ).readAsStringSync();
+    expect(
+      providerSource,
+      contains('FutureProvider.family<List<BookCollection>, String>'),
+    );
+    expect(providerSource, contains('.getUserCollections(userId)'));
+    expect(providerSource, contains('ref.invalidate(userCollectionsProvider)'));
+
+    final formSource = File(
+      'lib/src/presentation/components/collections/collection_form_sheet.dart',
+    ).readAsStringSync();
+    expect(formSource, contains('ref.invalidate(userCollectionsProvider)'));
+  });
   test('author works separator is conditional on real collections', () {
     final source = File(
       'lib/src/presentation/components/profile/user_content_tab.dart',

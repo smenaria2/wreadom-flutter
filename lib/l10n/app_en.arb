@@ -1858,7 +1858,7 @@
   "dictionarySynonyms": "Synonyms",
   "dictionaryAntonyms": "Antonyms",
   "dictionaryCached": "Cached",
-  "dictionaryNotFound": "No dictionary entry was found for this word.",
+  "dictionaryNotFound": "A definition is not available for this word.",
   "dictionaryRateLimited": "The dictionary is receiving too many requests. Try again later.",
   "dictionaryOffline": "Connect to the internet to look up this word.",
   "dictionaryTimeout": "The dictionary took too long to respond.",

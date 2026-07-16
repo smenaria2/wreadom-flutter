@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/models/dictionary_entry.dart';
 import '../../providers/dictionary_providers.dart';
@@ -44,7 +43,6 @@ class _DictionarySheetState extends ConsumerState<DictionarySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.7,
@@ -95,32 +93,6 @@ class _DictionarySheetState extends ConsumerState<DictionarySheet> {
                 _DictionaryError(error: snapshot.error, onRetry: _retry)
               else if (snapshot.data case final result?)
                 _DictionaryResult(result: result),
-              const SizedBox(height: 20),
-              Text(
-                l10n.dictionaryAttribution,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-              if (snapshot.data case final result?)
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    if (result.sourceUrl.isNotEmpty)
-                      TextButton(
-                        onPressed: () => launchUrl(Uri.parse(result.sourceUrl)),
-                        child: const Text('Wiktionary'),
-                      ),
-                    TextButton(
-                      onPressed: () => launchUrl(
-                        Uri.parse('https://freedictionaryapi.com/'),
-                      ),
-                      child: const Text('FreeDictionaryAPI.com'),
-                    ),
-                    TextButton(
-                      onPressed: () => launchUrl(Uri.parse(result.licenseUrl)),
-                      child: Text(result.licenseName),
-                    ),
-                  ],
-                ),
             ],
           );
         },
@@ -254,8 +226,10 @@ class _DictionaryError extends StatelessWidget {
         const Icon(Icons.menu_book_rounded, size: 44),
         const SizedBox(height: 12),
         Text(message, textAlign: TextAlign.center),
-        const SizedBox(height: 12),
-        FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
+        if (type != DictionaryFailureType.wordNotFound) ...[
+          const SizedBox(height: 12),
+          FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
+        ],
       ],
     );
   }

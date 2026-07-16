@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/domain/models/dictionary_entry.dart';
 
@@ -44,16 +46,26 @@ void main() {
     );
   });
 
-  test('rejects responses without usable entries', () {
+  test('classifies responses without usable entries as word not found', () {
     expect(
       () => DictionaryLookupResult.fromJson({'word': 'missing', 'entries': []}),
       throwsA(
         isA<DictionaryFailure>().having(
           (failure) => failure.type,
           'type',
-          DictionaryFailureType.invalidResponse,
+          DictionaryFailureType.wordNotFound,
         ),
       ),
     );
+  });
+
+  test('dictionary sheet omits attribution and retry for missing words', () {
+    final source = File(
+      'lib/src/presentation/components/reader/dictionary_sheet.dart',
+    ).readAsStringSync();
+
+    expect(source, isNot(contains('dictionaryAttribution')));
+    expect(source, isNot(contains('FreeDictionaryAPI.com')));
+    expect(source, contains('type != DictionaryFailureType.wordNotFound'));
   });
 }

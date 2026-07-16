@@ -3216,7 +3216,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get dictionaryCached => 'कैश किया हुआ';
 
   @override
-  String get dictionaryNotFound => 'इस शब्द का अर्थ नहीं मिला।';
+  String get dictionaryNotFound => 'इस शब्द की परिभाषा उपलब्ध नहीं है।';
 
   @override
   String get dictionaryRateLimited =>

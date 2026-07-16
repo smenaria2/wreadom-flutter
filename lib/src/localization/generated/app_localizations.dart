@@ -5723,7 +5723,7 @@ abstract class AppLocalizations {
   /// No description provided for @dictionaryNotFound.
   ///
   /// In en, this message translates to:
-  /// **'No dictionary entry was found for this word.'**
+  /// **'A definition is not available for this word.'**
   String get dictionaryNotFound;
 
   /// No description provided for @dictionaryRateLimited.
