@@ -16,9 +16,25 @@ class AppLinkHelper {
   }
 
   static String help() => '$origin/help';
-  static String questionAnswers(String bookId, String leafId) => Uri.parse(
-    '$origin/questions',
-  ).replace(queryParameters: {'book': bookId, 'leaf': leafId}).toString();
+  static String questionAnswers(
+    String bookId,
+    String leafId, {
+    String? question,
+  }) {
+    final queryParameters = <String, String>{};
+    if (_hasValue(bookId) && _hasValue(leafId)) {
+      queryParameters['book'] = bookId.trim();
+      queryParameters['leaf'] = leafId.trim();
+    } else if (_hasValue(question)) {
+      queryParameters['question'] = question!.trim();
+    }
+    return Uri.parse('$origin/questions')
+        .replace(
+          queryParameters: queryParameters.isEmpty ? null : queryParameters,
+        )
+        .toString();
+  }
+
   static String search() => '$origin/search';
   static String writer() => '$origin/writer';
   static String savedBooks() => '$origin/saved-books';
@@ -70,6 +86,7 @@ class AppLinkHelper {
       final queryPostId = uri.queryParameters['post'];
       final queryTopicId = uri.queryParameters['id'];
       final queryLeafId = uri.queryParameters['leaf'];
+      final queryQuestion = uri.queryParameters['question'];
       final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
       final queryMode = uri.queryParameters['mode']?.trim().toLowerCase();
       if (segments.isEmpty) {
@@ -186,6 +203,13 @@ class AppLinkHelper {
               leafId: leafId!.trim(),
             );
           }
+          if (_hasValue(queryQuestion)) {
+            return ResolvedAppLink(
+              AppRoutes.questionAnswers,
+              null,
+              question: queryQuestion!.trim(),
+            );
+          }
           break;
         case 'saved-books':
           return const ResolvedAppLink(AppRoutes.savedBooks, null);
@@ -253,10 +277,12 @@ class ResolvedAppLink {
     this.payload, {
     this.chapterIndex,
     this.leafId,
+    this.question,
   });
 
   final String route;
   final String? payload;
   final int? chapterIndex;
   final String? leafId;
+  final String? question;
 }

@@ -186,46 +186,57 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ),
         actions: [
-          if (currentUser != null)
+          if (currentUser != null) ...[
+            IconButton.filledTonal(
+              tooltip: l10n.markAllRead,
+              style: IconButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                fixedSize: const Size.square(40),
+              ),
+              onPressed: _markingAllRead
+                  ? null
+                  : () async {
+                      setState(() => _markingAllRead = true);
+                      try {
+                        await ref
+                            .read(notificationRepositoryProvider)
+                            .markAllAsRead(currentUser.id);
+                        await notificationsController.refresh();
+                      } finally {
+                        if (mounted) {
+                          setState(() => _markingAllRead = false);
+                        }
+                      }
+                    },
+              icon: _markingAllRead
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.done_all_rounded, size: 20),
+            ),
+            const SizedBox(width: 8),
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    textStyle: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  onPressed: _markingAllRead
-                      ? null
-                      : () async {
-                          setState(() => _markingAllRead = true);
-                          try {
-                            await ref
-                                .read(notificationRepositoryProvider)
-                                .markAllAsRead(currentUser.id);
-                            await notificationsController.refresh();
-                          } finally {
-                            if (mounted) {
-                              setState(() => _markingAllRead = false);
-                            }
-                          }
-                        },
-                  icon: _markingAllRead
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.done_all_rounded, size: 18),
-                  label: Text(l10n.markAllRead),
+              child: IconButton.filledTonal(
+                tooltip: l10n.settings,
+                style: IconButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  fixedSize: const Size.square(40),
                 ),
+                onPressed: () {
+                  AppHaptics.selection();
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.profileSettings,
+                    arguments: const ProfileSettingsArguments(
+                      expandNotificationSettings: true,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.settings_outlined, size: 20),
               ),
             ),
+          ],
         ],
       ),
       body: Stack(
@@ -334,7 +345,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                             backgroundImage:
                                                 item.actorPhotoURL != null
                                                 ? CachedNetworkImageProvider(
-                                                    optimizedAvatarUrl(item.actorPhotoURL!)!,
+                                                    optimizedAvatarUrl(
+                                                      item.actorPhotoURL!,
+                                                    )!,
                                                   )
                                                 : null,
                                             child: item.actorPhotoURL == null

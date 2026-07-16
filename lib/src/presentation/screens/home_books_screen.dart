@@ -848,23 +848,6 @@ class _DailyTopicCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: IgnorePointer(
-                      child: IconButton(
-                        tooltip: l10n.readMore,
-                        onPressed: openTopic,
-                        style: IconButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.black.withValues(alpha: 0.18),
-                        ),
-                        icon: const Icon(Icons.chevron_right_rounded),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

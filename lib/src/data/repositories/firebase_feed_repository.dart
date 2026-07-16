@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/comment.dart';
@@ -159,10 +159,18 @@ class FirebaseFeedRepository implements FeedRepository {
     final snapshot = await query.get();
     return snapshot.docs
         .map((doc) {
-          final raw = asStringMap(doc.data());
-          if (raw['userIsDeactivated'] == true) return null;
-          final data = mapFirestoreData(raw, doc.id);
-          return FeedPost.fromJson(data);
+          try {
+            final raw = asStringMap(doc.data());
+            if (raw['userIsDeactivated'] == true) return null;
+            final data = mapFirestoreData(raw, doc.id);
+            return FeedPost.fromJson(data);
+          } catch (error) {
+            debugPrint(
+              '[FirebaseFeedRepository] ERROR parsing following post '
+              '${doc.id}: $error',
+            );
+            return null;
+          }
         })
         .whereType<FeedPost>()
         .toList();

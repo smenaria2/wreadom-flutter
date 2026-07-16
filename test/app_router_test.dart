@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
+import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
 import 'package:librebook_flutter/src/presentation/screens/daily_topic_screen.dart';
 import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 
@@ -72,6 +73,18 @@ void main() {
       expect(args.leafId, 'leaf-2');
     });
 
+    test('converts text-only question links to an answers query', () {
+      final settings = AppRouter.routeSettingsForAppLink(
+        'https://wreadom.in/questions?question=How+to+write%3F',
+      );
+
+      expect(settings?.name, AppRoutes.questionAnswers);
+      expect(settings?.arguments, isA<QuestionLeafAnswersQuery>());
+      final query = settings!.arguments as QuestionLeafAnswersQuery;
+      expect(query.bookId, isEmpty);
+      expect(query.leafId, isEmpty);
+      expect(query.question, 'How to write?');
+    });
     test('safe app-page links produce their route settings', () {
       expect(
         AppRouter.routeSettingsForAppLink('https://wreadom.in/help')?.name,

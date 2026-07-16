@@ -309,7 +309,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     if (feedState.isInitialLoading) {
       return refreshable(centeredScrollable(const CircularProgressIndicator()));
     }
-    if (feedState.error != null) {
+    if (feedState.error != null && feedState.items.isEmpty) {
       return refreshable(
         centeredScrollable(
           Column(
@@ -329,12 +329,6 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                feedState.error.toString(),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -572,14 +566,28 @@ class _QuestionPromptCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  question,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1.25,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      question,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      AppLocalizations.of(context)!.tapToAnswerQuestion,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),

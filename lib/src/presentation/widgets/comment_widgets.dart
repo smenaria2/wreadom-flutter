@@ -1402,6 +1402,9 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
                   ? const Duration(milliseconds: 180)
                   : Duration.zero,
               curve: Curves.easeOutCubic,
+              color: _dragOffset == 0
+                  ? Colors.transparent
+                  : Theme.of(context).colorScheme.surface,
               transform: Matrix4.translationValues(_dragOffset, 0, 0),
               child: widget.child,
             ),

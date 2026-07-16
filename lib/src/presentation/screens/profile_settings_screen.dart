@@ -10,7 +10,12 @@ import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
-  const ProfileSettingsScreen({super.key});
+  const ProfileSettingsScreen({
+    super.key,
+    this.initiallyExpandNotificationSettings = false,
+  });
+
+  final bool initiallyExpandNotificationSettings;
 
   @override
   ConsumerState<ProfileSettingsScreen> createState() =>
@@ -26,6 +31,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   Map<String, bool> _notificationAppValues = const {};
   bool _isSaving = false;
   String? _populatedUserId;
+  final _notificationPreferencesKey = GlobalKey();
+  bool _didRevealNotificationSettings = false;
 
   @override
   void dispose() {
@@ -61,6 +68,20 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             _populatedUserId = user.id;
           }
           final notificationSettings = _notificationSettings;
+          if (widget.initiallyExpandNotificationSettings &&
+              !_didRevealNotificationSettings) {
+            _didRevealNotificationSettings = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final targetContext = _notificationPreferencesKey.currentContext;
+              if (targetContext == null) return;
+              Scrollable.ensureVisible(
+                targetContext,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                alignment: 0.08,
+              );
+            });
+          }
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -113,6 +134,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               const SizedBox(height: 20),
               if (notificationSettings != null) ...[
                 _NotificationPreferencesSection(
+                  key: _notificationPreferencesKey,
+                  initiallyExpanded: widget.initiallyExpandNotificationSettings,
                   specs: _notificationToggleSpecs(l10n),
                   values: _notificationAppValues,
                   onChanged: (key, value) {
@@ -343,11 +366,14 @@ enum _NotificationPreferenceGroup {
 
 class _NotificationPreferencesSection extends StatefulWidget {
   const _NotificationPreferencesSection({
+    super.key,
     required this.specs,
     required this.values,
     required this.onChanged,
+    this.initiallyExpanded = false,
   });
 
+  final bool initiallyExpanded;
   final List<_NotificationToggleSpec> specs;
   final Map<String, bool> values;
   final void Function(String key, bool value) onChanged;
@@ -359,7 +385,13 @@ class _NotificationPreferencesSection extends StatefulWidget {
 
 class _NotificationPreferencesSectionState
     extends State<_NotificationPreferencesSection> {
-  var _isExpanded = false;
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -373,7 +405,7 @@ class _NotificationPreferencesSectionState
       strong: true,
       borderRadius: BorderRadius.circular(18),
       child: ExpansionTile(
-        initiallyExpanded: false,
+        initiallyExpanded: widget.initiallyExpanded,
         onExpansionChanged: (expanded) {
           setState(() => _isExpanded = expanded);
         },

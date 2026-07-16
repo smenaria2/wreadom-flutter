@@ -6,6 +6,7 @@ import '../../../domain/models/book.dart';
 import '../../../utils/app_haptics.dart';
 import '../../providers/collection_providers.dart';
 import 'collection_form_sheet.dart';
+import 'collection_widgets.dart';
 
 import '../../providers/navigation_providers.dart';
 
@@ -135,6 +136,19 @@ class _AddToCollectionSheetState extends ConsumerState<AddToCollectionSheet> {
                                     _selected?.contains(collection.id) ?? false;
                                 return CheckboxListTile(
                                   value: selected,
+                                  secondary:
+                                      collection.coverBooks.any(
+                                        (cover) => cover.coverUrl.isNotEmpty,
+                                      )
+                                      ? SizedBox(
+                                          width: 44,
+                                          height: 54,
+                                          child: CollectionCoverCollage(
+                                            collection: collection,
+                                            borderRadius: 8,
+                                          ),
+                                        )
+                                      : null,
                                   title: Text(collection.title),
                                   subtitle: Text(
                                     l10n.collectionBookCount(

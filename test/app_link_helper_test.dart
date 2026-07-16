@@ -181,6 +181,10 @@ void main() {
         AppLinkHelper.questionAnswers('book 1', 'leaf/2'),
         'https://wreadom.in/questions?book=book+1&leaf=leaf%2F2',
       );
+      expect(
+        AppLinkHelper.questionAnswers('', '', question: 'How to write?'),
+        'https://wreadom.in/questions?question=How+to+write%3F',
+      );
     });
 
     test('builds and resolves Unicode prefilled create-post URLs', () {
@@ -234,6 +238,11 @@ void main() {
         expect(resolved?.payload, 'book-1');
         expect(resolved?.leafId, 'leaf-2');
       }
+      final textQuestion = AppLinkHelper.resolve(
+        '/questions?question=How+to+write%3F',
+      );
+      expect(textQuestion?.route, AppRoutes.questionAnswers);
+      expect(textQuestion?.question, 'How to write?');
       expect(AppLinkHelper.resolve('/questions?book=book-1'), isNull);
       expect(AppLinkHelper.resolve('/questions?leaf=leaf-2'), isNull);
     });

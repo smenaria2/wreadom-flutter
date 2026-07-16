@@ -4819,12 +4819,20 @@ class _ChapterEndActions extends StatelessWidget {
   }
 }
 
-class _ChapterReactionRow extends StatelessWidget {
+class _ChapterReactionRow extends StatefulWidget {
   const _ChapterReactionRow({
     required this.actionColor,
     required this.onReaction,
   });
 
+  final Color actionColor;
+  final ValueChanged<String> onReaction;
+
+  @override
+  State<_ChapterReactionRow> createState() => _ChapterReactionRowState();
+}
+
+class _ChapterReactionRowState extends State<_ChapterReactionRow> {
   static const _reactions = [
     '\u{2764}\u{FE0F}',
     '\u{1F44F}',
@@ -4833,8 +4841,68 @@ class _ChapterReactionRow extends StatelessWidget {
     '\u{1F614}',
   ];
 
-  final Color actionColor;
-  final ValueChanged<String> onReaction;
+  bool _animating = false;
+
+  Future<void> _handleReaction(
+    BuildContext reactionContext,
+    String reaction,
+  ) async {
+    if (_animating) return;
+    setState(() => _animating = true);
+    unawaited(AppHaptics.selection());
+    _showFlyingReaction(reactionContext, reaction);
+    await Future<void>.delayed(const Duration(milliseconds: 520));
+    if (!mounted) return;
+    setState(() => _animating = false);
+    widget.onReaction(reaction);
+  }
+
+  void _showFlyingReaction(BuildContext reactionContext, String reaction) {
+    final renderBox = reactionContext.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+    final center = renderBox.localToGlobal(
+      Offset(renderBox.size.width / 2, renderBox.size.height / 2),
+    );
+    final overlay = Overlay.of(context);
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: center.dx - 24,
+        top: center.dy - 28,
+        child: IgnorePointer(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 520),
+            curve: Curves.easeOutCubic,
+            onEnd: () {
+              if (entry.mounted) entry.remove();
+            },
+            builder: (_, value, child) => Opacity(
+              opacity: 1 - value,
+              child: Transform.translate(
+                offset: Offset(0, -76 * value),
+                child: Transform.scale(scale: 1 + (0.28 * value), child: child),
+              ),
+            ),
+            child: Text(
+              reaction,
+              style: const TextStyle(
+                fontSize: 30,
+                shadows: [
+                  Shadow(
+                    color: Color(0x55000000),
+                    offset: Offset(0, 3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(entry);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4847,24 +4915,25 @@ class _ChapterReactionRow extends StatelessWidget {
         runSpacing: 8,
         children: [
           for (final reaction in _reactions)
-            InkWell(
-              onTap: () {
-                unawaited(AppHaptics.selection());
-                onReaction(reaction);
-              },
-              customBorder: const CircleBorder(),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: actionColor.withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: actionColor.withValues(alpha: 0.18),
+            Builder(
+              builder: (reactionContext) => InkWell(
+                onTap: _animating
+                    ? null
+                    : () => _handleReaction(reactionContext, reaction),
+                customBorder: const CircleBorder(),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: widget.actionColor.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.actionColor.withValues(alpha: 0.18),
+                    ),
                   ),
-                ),
-                child: SizedBox.square(
-                  dimension: 44,
-                  child: Center(
-                    child: Text(reaction, style: theme.textTheme.titleLarge),
+                  child: SizedBox.square(
+                    dimension: 44,
+                    child: Center(
+                      child: Text(reaction, style: theme.textTheme.titleLarge),
+                    ),
                   ),
                 ),
               ),

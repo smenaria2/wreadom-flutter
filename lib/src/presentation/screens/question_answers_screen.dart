@@ -30,7 +30,11 @@ class QuestionAnswersScreen extends ConsumerWidget {
             tooltip: l10n.share,
             icon: const Icon(Icons.share_outlined),
             onPressed: () => Share.share(
-              AppLinkHelper.questionAnswers(query.bookId, query.leafId),
+              AppLinkHelper.questionAnswers(
+                query.bookId,
+                query.leafId,
+                question: query.question,
+              ),
               subject: query.question,
             ),
           ),

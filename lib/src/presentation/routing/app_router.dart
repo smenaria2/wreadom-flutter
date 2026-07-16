@@ -63,6 +63,12 @@ class PublicProfileArguments {
   final String userId;
 }
 
+class ProfileSettingsArguments {
+  const ProfileSettingsArguments({this.expandNotificationSettings = false});
+
+  final bool expandNotificationSettings;
+}
+
 class LeaderboardScreenArguments {
   const LeaderboardScreenArguments({
     this.initialCategory = 'author',
@@ -382,6 +388,14 @@ class AppRouter {
       return QuestionAnswersLinkArguments(
         bookId: resolved.payload!,
         leafId: resolved.leafId!,
+      );
+    }
+    if (resolved.route == AppRoutes.questionAnswers &&
+        resolved.question != null) {
+      return QuestionLeafAnswersQuery(
+        bookId: '',
+        leafId: '',
+        question: resolved.question!,
       );
     }
     if (resolved.route == AppRoutes.publicProfile && resolved.payload != null) {
@@ -706,9 +720,14 @@ class AppRouter {
           ),
         );
       case AppRoutes.profileSettings:
+        final args = resolvedArguments;
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const ProfileSettingsScreen(),
+          builder: (_) => ProfileSettingsScreen(
+            initiallyExpandNotificationSettings:
+                args is ProfileSettingsArguments &&
+                args.expandNotificationSettings,
+          ),
         );
       case AppRoutes.help:
         return MaterialPageRoute(

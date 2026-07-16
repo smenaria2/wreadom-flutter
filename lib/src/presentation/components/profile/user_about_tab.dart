@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/user_model.dart';
+import '../../routing/app_routes.dart';
 import 'author_stats_panel.dart';
 
 class UserAboutTab extends StatelessWidget {
@@ -15,9 +16,25 @@ class UserAboutTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       children: [
-        Text(
-          l10n.bio,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.bio,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            IconButton.outlined(
+              tooltip: l10n.editProfile,
+              visualDensity: VisualDensity.compact,
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.profileSettings),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Text(
