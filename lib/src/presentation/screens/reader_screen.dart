@@ -29,11 +29,13 @@ import '../../data/services/reader_ad_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/dictionary_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
 import '../../utils/app_review_helper.dart';
 import '../utils/chapter_review_prompt_policy.dart';
+import '../utils/dictionary_lookup_utils.dart';
 import '../utils/error_message_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
@@ -51,6 +53,7 @@ import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/book/quote_share_preview_sheet.dart';
 import '../components/book/leaf_components.dart';
+import '../components/reader/dictionary_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
@@ -1286,12 +1289,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               },
                               contextMenuBuilder: (context, selectableRegionState) {
                                 final selected = _selectedText.trim();
+                                final selectedWord = normalizeSelectedDictionaryWord(selected);
                                 final ctxChapter =
                                     _chapterIndex >= 0 &&
                                         _chapterIndex < chapters.length
                                     ? chapters[_chapterIndex]
                                     : null;
                                 final buttonItems = <ContextMenuButtonItem>[
+                                  if (selectedWord != null)
+                                    ContextMenuButtonItem(
+                                      label: AppLocalizations.of(context)!.defineWord,
+                                      onPressed: () {
+                                        selectableRegionState.hideToolbar();
+                                        showModalBottomSheet<void>(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          useSafeArea: true,
+                                          builder: (_) => DictionarySheet(
+                                            word: selectedWord,
+                                            sourceLanguage: normalizeDictionaryLanguageCode(
+                                              widget.book.languages,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ContextMenuButtonItem(
                                     label: 'Share Quote',
                                     onPressed: selected.isEmpty
@@ -4052,6 +4074,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         },
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: ref.read(dictionaryTargetLanguageProvider),
+                    decoration: InputDecoration(
+                      labelText: l10n.dictionaryTranslationLanguage,
+                      prefixIcon: const Icon(Icons.translate_rounded),
+                    ),
+                    items: dictionaryLanguages.entries
+                        .map(
+                          (entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      ref
+                          .read(dictionaryTargetLanguageProvider.notifier)
+                          .setLanguage(value);
+                    },
                   ),
                 ],
               ),

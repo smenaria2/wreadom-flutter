@@ -73,6 +73,93 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function cleanTopicTagName(value) {
+  return normalizeString(value)
+    .replace(/_+/g, " ")
+    .replace(/[#"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeTopicTagName(value) {
+  return cleanTopicTagName(value).toLowerCase();
+}
+
+function publishedTopicMap(data) {
+  if (normalizeString(data?.status).toLowerCase() !== "published") {
+    return new Map();
+  }
+  const topics = Array.isArray(data?.topics) ? data.topics : [];
+  const result = new Map();
+  for (const value of topics) {
+    const displayName = cleanTopicTagName(value);
+    const normalizedName = normalizeTopicTagName(displayName);
+    if (normalizedName && !result.has(normalizedName)) {
+      result.set(normalizedName, displayName);
+    }
+  }
+  return result;
+}
+
+function topicTagChanges(beforeData, afterData) {
+  const before = publishedTopicMap(beforeData);
+  const after = publishedTopicMap(afterData);
+  return {
+    added: [...after.entries()].filter(([name]) => !before.has(name)),
+    removed: [...before.entries()].filter(([name]) => !after.has(name)),
+  };
+}
+
+function topicTagDocumentId(normalizedName) {
+  return Buffer.from(normalizedName, "utf8").toString("base64url");
+}
+
+async function syncBookTopicTags(beforeData, afterData, eventId) {
+  const changes = topicTagChanges(beforeData, afterData);
+  if (changes.added.length === 0 && changes.removed.length === 0) return;
+
+  const operations = [
+    ...changes.added.map(([normalizedName, displayName]) => ({
+      normalizedName,
+      displayName,
+      delta: 1,
+    })),
+    ...changes.removed.map(([normalizedName, displayName]) => ({
+      normalizedName,
+      displayName,
+      delta: -1,
+    })),
+  ];
+
+  await db.runTransaction(async (transaction) => {
+    const refs = operations.map((operation) =>
+      db.collection("topic-tags").doc(topicTagDocumentId(operation.normalizedName)));
+    const eventRef = db.collection("topic-tag-events").doc(eventId);
+    const [eventSnapshot, ...snapshots] = await Promise.all([
+      transaction.get(eventRef),
+      ...refs.map((ref) => transaction.get(ref)),
+    ]);
+    if (eventSnapshot.exists) return;
+
+    transaction.set(eventRef, {createdAt: Date.now()});
+    operations.forEach((operation, index) => {
+      const ref = refs[index];
+      const snapshot = snapshots[index];
+      const currentCount = Number(snapshot.data()?.usageCount || 0);
+      const usageCount = Math.max(0, currentCount + operation.delta);
+      if (usageCount === 0) {
+        transaction.delete(ref);
+        return;
+      }
+      transaction.set(ref, {
+        normalizedName: operation.normalizedName,
+        displayName: snapshot.data()?.displayName || operation.displayName,
+        usageCount,
+        updatedAt: Date.now(),
+      }, {merge: true});
+    });
+  });
+}
 function isAdminContext(context) {
   const token = context.auth?.token || {};
   return token.admin === true;
@@ -1986,6 +2073,7 @@ exports.onMessageCreated = functionsV1.firestore.document("conversations/{conver
 exports.onBookWritten = functionsV1.firestore.document("books/{bookId}").onWrite(async (change, context) => {
   const beforeData = change.before.exists ? change.before.data() : null;
   const afterData = change.after.exists ? change.after.data() : null;
+  await syncBookTopicTags(beforeData, afterData, context.eventId);
   if (!afterData) {
     return;
   }
@@ -2692,5 +2780,9 @@ if (process.env.LIBREBOOK_FUNCTIONS_TEST_HELPERS === "true") {
     formatMilestoneCount,
     authorReadMilestoneNotificationText,
     crossedAuthorReadMilestones,
+    cleanTopicTagName,
+    normalizeTopicTagName,
+    topicTagChanges,
+    topicTagDocumentId,
   };
 }

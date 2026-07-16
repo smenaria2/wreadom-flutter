@@ -594,6 +594,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Canonical writer topic catalogue. Maintained by Cloud Functions only.
+    match /topic-tags/{tagId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Daily topics
     match /daily-topics/{topicId} {
       allow read: if true;

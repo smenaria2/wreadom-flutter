@@ -3005,7 +3005,7 @@ abstract class AppLocalizations {
   /// No description provided for @topicsHint.
   ///
   /// In en, this message translates to:
-  /// **'magic, friendship, survival'**
+  /// **'Type a topic'**
   String get topicsHint;
 
   /// No description provided for @publishContent.
@@ -5677,6 +5677,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add {count} selected'**
   String addSelectedBooks(int count);
+
+  /// No description provided for @defineWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Define'**
+  String get defineWord;
+
+  /// No description provided for @dictionary.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictionary'**
+  String get dictionary;
+
+  /// No description provided for @dictionaryMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Meaning'**
+  String get dictionaryMeaning;
+
+  /// No description provided for @dictionaryTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get dictionaryTranslation;
+
+  /// No description provided for @dictionarySynonyms.
+  ///
+  /// In en, this message translates to:
+  /// **'Synonyms'**
+  String get dictionarySynonyms;
+
+  /// No description provided for @dictionaryAntonyms.
+  ///
+  /// In en, this message translates to:
+  /// **'Antonyms'**
+  String get dictionaryAntonyms;
+
+  /// No description provided for @dictionaryCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get dictionaryCached;
+
+  /// No description provided for @dictionaryNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No dictionary entry was found for this word.'**
+  String get dictionaryNotFound;
+
+  /// No description provided for @dictionaryRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'The dictionary is receiving too many requests. Try again later.'**
+  String get dictionaryRateLimited;
+
+  /// No description provided for @dictionaryOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet to look up this word.'**
+  String get dictionaryOffline;
+
+  /// No description provided for @dictionaryTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The dictionary took too long to respond.'**
+  String get dictionaryTimeout;
+
+  /// No description provided for @dictionaryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The dictionary is temporarily unavailable.'**
+  String get dictionaryUnavailable;
+
+  /// No description provided for @dictionaryAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictionary data from Wiktionary via FreeDictionaryAPI.com (CC BY-SA 4.0).'**
+  String get dictionaryAttribution;
+
+  /// No description provided for @dictionaryTranslationLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictionary translation language'**
+  String get dictionaryTranslationLanguage;
+
+  /// No description provided for @createTopicTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Create \"{tag}\"'**
+  String createTopicTag(String tag);
+
+  /// No description provided for @popularTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular topics'**
+  String get popularTopics;
+
+  /// No description provided for @topicSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get topicSuggestions;
 }
 
 class _AppLocalizationsDelegate

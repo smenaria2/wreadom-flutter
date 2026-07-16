@@ -27,6 +27,8 @@ import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_routes.dart';
+import '../components/writer_topic_input.dart';
+import '../providers/topic_tag_providers.dart';
 import '../routing/writer_pad_mode.dart';
 import '../utils/chapter_version_history.dart';
 import '../utils/writer_html_codec.dart';
@@ -1451,7 +1453,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 },
               ),
               const SizedBox(height: 14),
-              _darkField(
+              WriterTopicInput(
                 controller: _topicsController.value,
                 label: l10n.topicsOptional,
                 hint: l10n.topicsHint,
@@ -3060,11 +3062,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       );
     }
 
-    final topics = _topicsController.value.text
-        .split(',')
-        .map((topic) => topic.trim())
-        .where((topic) => topic.isNotEmpty)
-        .toList();
+    final topicsByNormalizedName = <String, String>{};
+    for (final rawTopic in _topicsController.value.text.split(',')) {
+      final topic = cleanTopicTag(rawTopic);
+      final normalizedTopic = normalizeTopicTag(topic);
+      if (normalizedTopic.isNotEmpty) {
+        topicsByNormalizedName.putIfAbsent(normalizedTopic, () => topic);
+      }
+    }
+    final topics = topicsByNormalizedName.values.toList(growable: false);
     final subjects = <String>{_category, ...topics}.toList();
     final existingBook = widget.book;
     final primaryAuthorId = existingBook?.authorId?.trim().isNotEmpty == true

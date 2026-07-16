@@ -309,3 +309,34 @@ test("scheduled discovery pushes use dedicated notification setting keys", () =>
       "newCreations",
   );
 });
+test("topic catalogue normalizes and diffs published book topics", () => {
+  assert.equal(exported.__test.cleanTopicTagName(' _#Magic__Realism" '), "Magic Realism");
+  assert.equal(exported.__test.normalizeTopicTagName("  Magic   Realism "), "magic realism");
+  assert.equal(exported.__test.normalizeTopicTagName('_#Magic__Realism"'), "magic realism");
+
+  const changes = exported.__test.topicTagChanges(
+      {status: "published", topics: ["Magic", "Friendship"]},
+      {status: "published", topics: ["magic", "Survival", "survival"]},
+  );
+
+  assert.deepEqual(changes.added, [["survival", "Survival"]]);
+  assert.deepEqual(changes.removed, [["friendship", "Friendship"]]);
+});
+
+test("topic catalogue removes tags when a book is unpublished or deleted", () => {
+  const unpublished = exported.__test.topicTagChanges(
+      {status: "published", topics: ["Magic"]},
+      {status: "draft", topics: ["Magic"]},
+  );
+  const deleted = exported.__test.topicTagChanges(
+      {status: "published", topics: ["Magic"]},
+      null,
+  );
+
+  assert.deepEqual(unpublished.removed, [["magic", "Magic"]]);
+  assert.deepEqual(deleted.removed, [["magic", "Magic"]]);
+  assert.equal(
+      exported.__test.topicTagDocumentId("?????/?????").includes("/"),
+      false,
+  );
+});

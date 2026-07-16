@@ -9,7 +9,10 @@
     "serve": "firebase emulators:start --only auth,firestore,functions",
     "shell": "firebase functions:shell",
     "deploy": "firebase deploy --only functions",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "backfill:topic-tags": "node scripts/backfill_topic_tags.js",
+    "clean:topic-tags": "node scripts/clean_topic_tags.js",
+    "clean:topic-tags:apply": "node scripts/clean_topic_tags.js --apply"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.946.0",

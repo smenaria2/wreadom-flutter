@@ -1638,7 +1638,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get topicsOptional => 'Topics (optional)';
 
   @override
-  String get topicsHint => 'magic, friendship, survival';
+  String get topicsHint => 'Type a topic';
 
   @override
   String get publishContent => 'Publish Content';
@@ -3184,4 +3184,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String addSelectedBooks(int count) {
     return 'Add $count selected';
   }
+
+  @override
+  String get defineWord => 'Define';
+
+  @override
+  String get dictionary => 'Dictionary';
+
+  @override
+  String get dictionaryMeaning => 'Meaning';
+
+  @override
+  String get dictionaryTranslation => 'Translation';
+
+  @override
+  String get dictionarySynonyms => 'Synonyms';
+
+  @override
+  String get dictionaryAntonyms => 'Antonyms';
+
+  @override
+  String get dictionaryCached => 'Cached';
+
+  @override
+  String get dictionaryNotFound =>
+      'No dictionary entry was found for this word.';
+
+  @override
+  String get dictionaryRateLimited =>
+      'The dictionary is receiving too many requests. Try again later.';
+
+  @override
+  String get dictionaryOffline =>
+      'Connect to the internet to look up this word.';
+
+  @override
+  String get dictionaryTimeout => 'The dictionary took too long to respond.';
+
+  @override
+  String get dictionaryUnavailable =>
+      'The dictionary is temporarily unavailable.';
+
+  @override
+  String get dictionaryAttribution =>
+      'Dictionary data from Wiktionary via FreeDictionaryAPI.com (CC BY-SA 4.0).';
+
+  @override
+  String get dictionaryTranslationLanguage => 'Dictionary translation language';
+
+  @override
+  String createTopicTag(String tag) {
+    return 'Create \"$tag\"';
+  }
+
+  @override
+  String get popularTopics => 'Popular topics';
+
+  @override
+  String get topicSuggestions => 'Suggestions';
 }

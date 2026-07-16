@@ -1636,7 +1636,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get topicsOptional => 'विषय (वैकल्पिक)';
 
   @override
-  String get topicsHint => 'जादू, दोस्ती, संघर्ष';
+  String get topicsHint => 'विषय लिखें';
 
   @override
   String get publishContent => 'रचना प्रकाशित करें';
@@ -3193,4 +3193,59 @@ class AppLocalizationsHi extends AppLocalizations {
   String addSelectedBooks(int count) {
     return '$count चयनित जोड़ें';
   }
+
+  @override
+  String get defineWord => 'अर्थ देखें';
+
+  @override
+  String get dictionary => 'शब्दकोश';
+
+  @override
+  String get dictionaryMeaning => 'अर्थ';
+
+  @override
+  String get dictionaryTranslation => 'अनुवाद';
+
+  @override
+  String get dictionarySynonyms => 'पर्यायवाची';
+
+  @override
+  String get dictionaryAntonyms => 'विलोम';
+
+  @override
+  String get dictionaryCached => 'कैश किया हुआ';
+
+  @override
+  String get dictionaryNotFound => 'इस शब्द का अर्थ नहीं मिला।';
+
+  @override
+  String get dictionaryRateLimited =>
+      'अभी बहुत अनुरोध हैं। बाद में फिर प्रयास करें।';
+
+  @override
+  String get dictionaryOffline => 'इस शब्द को देखने के लिए इंटरनेट से जुड़ें।';
+
+  @override
+  String get dictionaryTimeout => 'शब्दकोश ने जवाब देने में बहुत समय लिया।';
+
+  @override
+  String get dictionaryUnavailable => 'शब्दकोश अभी उपलब्ध नहीं है।';
+
+  @override
+  String get dictionaryAttribution =>
+      'Wiktionary शब्दकोश डेटा, FreeDictionaryAPI.com (CC BY-SA 4.0) के माध्यम से।';
+
+  @override
+  String get dictionaryTranslationLanguage => 'शब्दकोश अनुवाद भाषा';
+
+  @override
+  String createTopicTag(String tag) {
+    return '\"$tag\" बनाएँ';
+  }
+
+  @override
+  String get popularTopics => 'लोकप्रिय विषय';
+
+  @override
+  String get topicSuggestions => 'सुझाव';
 }
