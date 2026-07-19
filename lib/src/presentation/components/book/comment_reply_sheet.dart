@@ -12,6 +12,7 @@ import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
 import '../../providers/local_comments_notifier.dart';
+import '../../utils/optimistic_mutation.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/modal_feedback_scope.dart';
 
@@ -158,6 +159,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
     if (!_canSubmit) return;
 
     setState(() => _submitting = true);
+    String? localId;
     try {
       if (_isRecording) {
         await _stopRecording();
@@ -178,63 +180,54 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             );
       }
 
-      await ref
-          .read(commentRepositoryProvider)
-          .addReply(
-            widget.comment.id!,
-            CommentReply(
-              userId: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              penName: user.penName,
-              text: text,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-              userPhotoURL: user.photoURL,
-              audioUrl: uploadedAudio?.audioUrl,
-              audioObjectKey: uploadedAudio?.audioObjectKey,
-              audioDurationMs: uploadedAudio?.audioDurationMs,
-              audioMimeType: uploadedAudio?.audioMimeType,
-              audioSizeBytes: uploadedAudio?.audioSizeBytes,
-            ),
-          );
+      final reply = CommentReply(
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        penName: user.penName,
+        text: text,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        userPhotoURL: user.photoURL,
+        audioUrl: uploadedAudio?.audioUrl,
+        audioObjectKey: uploadedAudio?.audioObjectKey,
+        audioDurationMs: uploadedAudio?.audioDurationMs,
+        audioMimeType: uploadedAudio?.audioMimeType,
+        audioSizeBytes: uploadedAudio?.audioSizeBytes,
+      );
+      final localComments = ref.read(failedCommentsProvider.notifier);
+      localId = localComments.addPendingComment(
+        targetId: widget.bookId,
+        target: FailedCommentTarget.book,
+        parentCommentId: widget.comment.id,
+        reply: reply,
+      );
 
-      await AppHaptics.light();
       _controller.value.clear();
       await _removeRecording();
+      if (mounted) Navigator.pop(context);
+
+      await runOptimisticMutation(
+        ref.read(commentRepositoryProvider).addReply(widget.comment.id!, reply),
+      );
+      localComments.removeFailedComment(localId);
+      await AppHaptics.light();
       ref.invalidate(liveBookCommentsProvider(widget.bookId));
       ref.invalidate(bookCommentsProvider(widget.bookId));
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      final user = ref.read(currentUserProvider).asData?.value;
-      if (user != null) {
+    } catch (error) {
+      if (localId != null) {
         ref
             .read(failedCommentsProvider.notifier)
-            .addFailedComment(
-              targetId: widget.bookId,
-              target: FailedCommentTarget.book,
-              parentCommentId: widget.comment.id,
-              reply: CommentReply(
-                userId: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                penName: user.penName,
-                text: text,
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-                userPhotoURL: user.photoURL,
-              ),
-              error: e.toString(),
-            );
+            .markFailed(localId, error.toString());
       }
       if (mounted) {
         ModalFeedbackScope.show(
           context,
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.failedToPostReply(e.toString()),
+              AppLocalizations.of(context)!.failedToPostReply(error.toString()),
             ),
           ),
         );
-        Navigator.pop(context);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -323,20 +316,14 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
               child: GlassSurface(
                 strong: true,
                 borderRadius: BorderRadius.circular(18),
-                onTap: _submitting || !_canSubmit ? null : _submit,
+                onTap: _canSubmit ? _submit : null,
                 semanticButton: true,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
                     vertical: 12,
                   ),
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(l10n.reply),
+                  child: Text(l10n.reply),
                 ),
               ),
             ),

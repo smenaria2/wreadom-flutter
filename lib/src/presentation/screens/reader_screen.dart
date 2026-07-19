@@ -31,12 +31,14 @@ import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/dictionary_providers.dart';
 import '../providers/feed_providers.dart';
+import '../providers/local_comments_notifier.dart';
 import '../providers/reader_settings_provider.dart';
 import '../providers/writer_providers.dart';
 import '../../utils/app_review_helper.dart';
 import '../utils/chapter_review_prompt_policy.dart';
 import '../utils/dictionary_lookup_utils.dart';
 import '../utils/error_message_utils.dart';
+import '../utils/optimistic_mutation.dart';
 import '../utils/writer_media_utils.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/glass_surface.dart';
@@ -526,10 +528,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           final chapterIndex = int.tryParse(parts[0]);
           final position = double.tryParse(parts[1]);
           if (chapterIndex != null && position != null) {
-            return {
-              'chapterIndex': chapterIndex,
-              'position': position,
-            };
+            return {'chapterIndex': chapterIndex, 'position': position};
           }
         }
       }
@@ -1289,7 +1288,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               },
                               contextMenuBuilder: (context, selectableRegionState) {
                                 final selected = _selectedText.trim();
-                                final selectedWord = normalizeSelectedDictionaryWord(selected);
+                                final selectedWord =
+                                    normalizeSelectedDictionaryWord(selected);
                                 final ctxChapter =
                                     _chapterIndex >= 0 &&
                                         _chapterIndex < chapters.length
@@ -1298,7 +1298,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 final buttonItems = <ContextMenuButtonItem>[
                                   if (selectedWord != null)
                                     ContextMenuButtonItem(
-                                      label: AppLocalizations.of(context)!.defineWord,
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.defineWord,
                                       onPressed: () {
                                         selectableRegionState.hideToolbar();
                                         showModalBottomSheet<void>(
@@ -1307,9 +1309,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                           useSafeArea: true,
                                           builder: (_) => DictionarySheet(
                                             word: selectedWord,
-                                            sourceLanguage: normalizeDictionaryLanguageCode(
-                                              widget.book.languages,
-                                            ),
+                                            sourceLanguage:
+                                                normalizeDictionaryLanguageCode(
+                                                  widget.book.languages,
+                                                ),
                                           ),
                                         );
                                       },
@@ -1485,126 +1488,126 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-        SizedBox(key: _chapterContentStartKey, height: 1),
-        Text(
-          chapter?.title ?? widget.book.title,
-          textAlign: isPoem ? TextAlign.center : TextAlign.start,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: _getTextColor(),
+          SizedBox(key: _chapterContentStartKey, height: 1),
+          Text(
+            chapter?.title ?? widget.book.title,
+            textAlign: isPoem ? TextAlign.center : TextAlign.start,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: _getTextColor(),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        HtmlWidget(
-          chapter?.content ??
-              widget.book.description ??
-              'No readable content available yet.',
-          textStyle: TextStyle(
-            color: _getTextColor(),
-            fontSize: _fontSize,
-            height: 1.8,
-          ),
-          customStylesBuilder: (element) {
-            final tag = element.localName?.toLowerCase();
-            final Map<String, String> styles = {};
-            if (tag == 'ol' || tag == 'ul' || tag == 'li') {
-              styles['list-style-type'] = 'none';
-              styles['padding-left'] = '0';
-              styles['margin-left'] = '0';
-            }
-            if (isPoem) {
-              styles['text-align'] = 'center';
-            }
-            return styles.isNotEmpty ? styles : null;
-          },
-          customWidgetBuilder: (element) {
-            final tag = element.localName?.toLowerCase();
-            if (tag == 'a') {
-              final href = element.attributes['href'];
-              if (isAllowedWriterLink(href)) {
-                return WriterMediaPreview(
-                  url: href!,
-                  textColor: _getTextColor(),
-                );
+          const SizedBox(height: 16),
+          HtmlWidget(
+            chapter?.content ??
+                widget.book.description ??
+                'No readable content available yet.',
+            textStyle: TextStyle(
+              color: _getTextColor(),
+              fontSize: _fontSize,
+              height: 1.8,
+            ),
+            customStylesBuilder: (element) {
+              final tag = element.localName?.toLowerCase();
+              final Map<String, String> styles = {};
+              if (tag == 'ol' || tag == 'ul' || tag == 'li') {
+                styles['list-style-type'] = 'none';
+                styles['padding-left'] = '0';
+                styles['margin-left'] = '0';
               }
-              return Text(
-                element.text,
-                style: TextStyle(
-                  fontSize: _fontSize,
-                  height: 1.8,
-                  color: _getTextColor(),
-                  fontStyle: isPoem ? FontStyle.italic : null,
-                ),
-              );
-            }
-            if (tag == 'img') {
-              final src = element.attributes['src'];
-              if (isTrustedWriterImageUrl(src)) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      src!,
-                      width: double.infinity,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox.shrink(),
-                    ),
+              if (isPoem) {
+                styles['text-align'] = 'center';
+              }
+              return styles.isNotEmpty ? styles : null;
+            },
+            customWidgetBuilder: (element) {
+              final tag = element.localName?.toLowerCase();
+              if (tag == 'a') {
+                final href = element.attributes['href'];
+                if (isAllowedWriterLink(href)) {
+                  return WriterMediaPreview(
+                    url: href!,
+                    textColor: _getTextColor(),
+                  );
+                }
+                return Text(
+                  element.text,
+                  style: TextStyle(
+                    fontSize: _fontSize,
+                    height: 1.8,
+                    color: _getTextColor(),
+                    fontStyle: isPoem ? FontStyle.italic : null,
                   ),
                 );
               }
-              return const SizedBox.shrink();
-            }
-            if (tag == 'iframe') {
-              final src = element.attributes['src'];
-              if (src != null && src.isNotEmpty) {
-                if (isAllowedWriterLink(src)) {
-                  return InAppMediaWebView(url: src);
+              if (tag == 'img') {
+                final src = element.attributes['src'];
+                if (isTrustedWriterImageUrl(src)) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        src!,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                  );
                 }
+                return const SizedBox.shrink();
               }
-              return const SizedBox.shrink();
-            }
-            return null;
-          },
-          onTapUrl: (url) async {
-            if (!isAllowedWriterLink(url)) return false;
-            final uri = Uri.tryParse(url);
-            if (uri == null) return false;
-            return launchUrl(uri, mode: LaunchMode.externalApplication);
-          },
-        ),
-        const SizedBox(height: 24),
-        KeyedSubtree(
-          key: _chapterEndActionsKey,
-          child: _ChapterEndActions(
-            actionColor: _getReaderActionColor(),
-            hasNextChapter: _chapterIndex < chapters.length - 1,
-            hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
-            onNextChapter: _chapterIndex < chapters.length - 1
-                ? _markChapterCompleteAndGoNext
-                : null,
-            onViewComments: () => _showDiscussion(chapter),
-            onShare: () => _handleShareChapter(chapter),
-            onReaction: (reaction) => _showDiscussion(
-              chapter,
-              focusComposer: false,
-              prefillText: reaction,
-            ),
-            book: widget.book,
-            chromeTheme: _getReaderChromeTheme(),
+              if (tag == 'iframe') {
+                final src = element.attributes['src'];
+                if (src != null && src.isNotEmpty) {
+                  if (isAllowedWriterLink(src)) {
+                    return InAppMediaWebView(url: src);
+                  }
+                }
+                return const SizedBox.shrink();
+              }
+              return null;
+            },
+            onTapUrl: (url) async {
+              if (!isAllowedWriterLink(url)) return false;
+              final uri = Uri.tryParse(url);
+              if (uri == null) return false;
+              return launchUrl(uri, mode: LaunchMode.externalApplication);
+            },
           ),
-        ),
-        const SizedBox(height: 20),
-        const AdaptiveBannerAd(
-          adUnitId: 'ca-app-pub-7031076798250177/8829012161',
-          horizontalInset: 40,
-        ),
-        const SizedBox(height: 100),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 24),
+          KeyedSubtree(
+            key: _chapterEndActionsKey,
+            child: _ChapterEndActions(
+              actionColor: _getReaderActionColor(),
+              hasNextChapter: _chapterIndex < chapters.length - 1,
+              hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+              onNextChapter: _chapterIndex < chapters.length - 1
+                  ? _markChapterCompleteAndGoNext
+                  : null,
+              onViewComments: () => _showDiscussion(chapter),
+              onShare: () => _handleShareChapter(chapter),
+              onReaction: (reaction) => _showDiscussion(
+                chapter,
+                focusComposer: false,
+                prefillText: reaction,
+              ),
+              book: widget.book,
+              chromeTheme: _getReaderChromeTheme(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const AdaptiveBannerAd(
+            adUnitId: 'ca-app-pub-7031076798250177/8829012161',
+            horizontalInset: 40,
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTtsListView(
     Chapter? chapter,
@@ -1621,51 +1624,52 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-        SizedBox(key: _chapterContentStartKey, height: 1),
-        for (final block in blocks)
-          _ReaderTtsBlockView(
-            block: block,
-            textColor: _getTextColor(),
-            mutedColor: _getSecondaryTextColor(),
-            accentColor: _getReaderActionColor(),
-            fontSize: _fontSize,
-            isPoem: isPoem,
-            isActive: block.ttsIndex == _activeTtsBlockIndex,
-            onTap: block.ttsIndex == null || chapter == null
-                ? null
-                : () => unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
-          ),
-        const SizedBox(height: 24),
-        KeyedSubtree(
-          key: _chapterEndActionsKey,
-          child: _ChapterEndActions(
-            actionColor: _getReaderActionColor(),
-            hasNextChapter: _chapterIndex < chapters.length - 1,
-            hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
-            onNextChapter: _chapterIndex < chapters.length - 1
-                ? _markChapterCompleteAndGoNext
-                : null,
-            onViewComments: () => _showDiscussion(chapter),
-            onShare: () => _handleShareChapter(chapter),
-            onReaction: (reaction) => _showDiscussion(
-              chapter,
-              focusComposer: false,
-              prefillText: reaction,
+          SizedBox(key: _chapterContentStartKey, height: 1),
+          for (final block in blocks)
+            _ReaderTtsBlockView(
+              block: block,
+              textColor: _getTextColor(),
+              mutedColor: _getSecondaryTextColor(),
+              accentColor: _getReaderActionColor(),
+              fontSize: _fontSize,
+              isPoem: isPoem,
+              isActive: block.ttsIndex == _activeTtsBlockIndex,
+              onTap: block.ttsIndex == null || chapter == null
+                  ? null
+                  : () =>
+                        unawaited(_startTtsFromBlock(chapter, block.ttsIndex!)),
             ),
-            book: widget.book,
-            chromeTheme: _getReaderChromeTheme(),
+          const SizedBox(height: 24),
+          KeyedSubtree(
+            key: _chapterEndActionsKey,
+            child: _ChapterEndActions(
+              actionColor: _getReaderActionColor(),
+              hasNextChapter: _chapterIndex < chapters.length - 1,
+              hasComments: (commentCounts[_chapterIndex] ?? 0) > 0,
+              onNextChapter: _chapterIndex < chapters.length - 1
+                  ? _markChapterCompleteAndGoNext
+                  : null,
+              onViewComments: () => _showDiscussion(chapter),
+              onShare: () => _handleShareChapter(chapter),
+              onReaction: (reaction) => _showDiscussion(
+                chapter,
+                focusComposer: false,
+                prefillText: reaction,
+              ),
+              book: widget.book,
+              chromeTheme: _getReaderChromeTheme(),
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        const AdaptiveBannerAd(
-          adUnitId: 'ca-app-pub-7031076798250177/8829012161',
-          horizontalInset: 40,
-        ),
-        const SizedBox(height: 100),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 20),
+          const AdaptiveBannerAd(
+            adUnitId: 'ca-app-pub-7031076798250177/8829012161',
+            horizontalInset: 40,
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
 
   void _configureTts() {
     _tts.setStartHandler(() {
@@ -2668,22 +2672,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   );
                   return;
                 }
-                setModalState(() {});
-                await _submitComment(
-                  candidate.chapter,
-                  chapterIndex: candidate.chapterIndex,
-                  feedbackContext: sheetContext,
+                unawaited(
+                  _submitComment(
+                    candidate.chapter,
+                    chapterIndex: candidate.chapterIndex,
+                    feedbackContext: context,
+                  ),
                 );
-                if (!sheetContext.mounted || _existingUserReview == null) {
-                  setModalState(() {});
-                  return;
-                }
                 AnalyticsService.logChapterReviewPromptSubmitted(
                   bookId: widget.book.id,
                   chapterIndex: candidate.chapterIndex,
-                  usedVoice:
-                      _existingUserReview?.audioUrl != null ||
-                      _existingUserReview?.audioObjectKey != null,
+                  usedVoice: _hasReviewAudio,
                 );
                 Navigator.of(
                   sheetContext,
@@ -2845,14 +2844,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               onPressed: _isSubmittingComment || !canSubmit
                                   ? null
                                   : submit,
-                              icon: _isSubmittingComment
-                                  ? const SizedBox.square(
-                                      dimension: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.send_rounded),
+                              icon: const Icon(Icons.send_rounded),
                               label: Text(l10n.shareReview),
                             ),
                           ],
@@ -3200,30 +3192,49 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 durationMs: _pendingAudioReviewDurationMs,
               );
         }
-        await ref
-            .read(commentRepositoryProvider)
-            .addReply(
-              _replyingTo!.id!,
-              CommentReply(
-                userId: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                penName: user.penName,
-                text: text,
-                timestamp: now,
-                userPhotoURL: user.photoURL,
-                audioUrl: uploadedAudio?.audioUrl,
-                audioObjectKey: uploadedAudio?.audioObjectKey,
-                audioDurationMs: uploadedAudio?.audioDurationMs,
-                audioMimeType: uploadedAudio?.audioMimeType,
-                audioSizeBytes: uploadedAudio?.audioSizeBytes,
-              ),
-            );
-        AnalyticsService.logCommentCreate(targetType: 'book_review_reply');
+        final replyingTo = _replyingTo!;
+        final reply = CommentReply(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          penName: user.penName,
+          text: text,
+          timestamp: now,
+          userPhotoURL: user.photoURL,
+          audioUrl: uploadedAudio?.audioUrl,
+          audioObjectKey: uploadedAudio?.audioObjectKey,
+          audioDurationMs: uploadedAudio?.audioDurationMs,
+          audioMimeType: uploadedAudio?.audioMimeType,
+          audioSizeBytes: uploadedAudio?.audioSizeBytes,
+        );
+        final localComments = ref.read(failedCommentsProvider.notifier);
+        final localId = localComments.addPendingComment(
+          targetId: widget.book.id,
+          target: FailedCommentTarget.book,
+          parentCommentId: replyingTo.id,
+          reply: reply,
+        );
+        _commentController.value.clear();
         _updateState(() {
           _replyingTo = null;
           _clearAudioReviewState();
         });
+        try {
+          await runOptimisticMutation(
+            ref.read(commentRepositoryProvider).addReply(replyingTo.id!, reply),
+          );
+          localComments.removeFailedComment(localId);
+        } catch (error) {
+          localComments.markFailed(localId, error.toString());
+          if (mounted) {
+            ModalFeedbackScope.show(
+              feedbackContext ?? context,
+              SnackBar(content: Text(l10n.saveFailed(error.toString()))),
+            );
+          }
+          return;
+        }
+        AnalyticsService.logCommentCreate(targetType: 'book_review_reply');
       } else {
         if (_isOwnOriginalBook(user.id)) {
           ModalFeedbackScope.show(
@@ -3242,6 +3253,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         if (!_canSubmitReview) return;
         if (_existingUserReview != null && !_isReviewEditMode) return;
         AudioReviewUploadResult? uploadedAudio;
+        final localComments = ref.read(failedCommentsProvider.notifier);
+        String? reviewLocalId;
         final oldAudioObjectKey =
             _audioObjectKeyPendingDelete ??
             (_pendingAudioReviewPath != null ? _reviewAudioObjectKey : null);
@@ -3283,9 +3296,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 uploadedAudio?.audioSizeBytes ?? _reviewAudioSizeBytes,
           );
 
-          final savedReviewId = await ref
-              .read(commentRepositoryProvider)
-              .upsertChapterReview(comment);
+          reviewLocalId = localComments.addPendingComment(
+            targetId: widget.book.id,
+            target: FailedCommentTarget.book,
+            comment: comment,
+          );
+          _updateState(() {
+            _existingUserReview = comment.copyWith(id: 'local-$reviewLocalId');
+            _isReviewEditMode = false;
+          });
+          final savedReviewId = await runOptimisticMutation(
+            ref.read(commentRepositoryProvider).upsertChapterReview(comment),
+          );
+          localComments.removeFailedComment(reviewLocalId);
           AnalyticsService.logCommentCreate(targetType: 'book_review');
           unawaited(AppReviewHelper.incrementActionAndCheck());
 
@@ -3323,6 +3346,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             );
           }
         } catch (e) {
+          if (reviewLocalId != null) {
+            localComments.markFailed(reviewLocalId, e.toString());
+          }
           if (mounted) {
             ModalFeedbackScope.show(
               feedbackContext ?? context,
@@ -3702,33 +3728,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                             ),
                                             child: IconButton(
                                               tooltip: l10n.send,
-                                              icon: _isSubmittingComment
-                                                  ? SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color:
-                                                            _getReaderActionColor(),
-                                                      ),
-                                                    )
-                                                  : Icon(
-                                                      Icons.send_rounded,
-                                                      color: _getReaderActionColor().withValues(
-                                                        alpha:
-                                                            (_replyingTo ==
-                                                                        null &&
-                                                                    ((_existingUserReview !=
-                                                                                null &&
-                                                                            !_isReviewEditMode) ||
-                                                                        !_canSubmitReview)) ||
-                                                                (_replyingTo !=
-                                                                        null &&
-                                                                    !_canSubmitReply)
-                                                            ? 0.35
-                                                            : 1,
-                                                      ),
-                                                    ),
+                                              icon: Icon(
+                                                Icons.send_rounded,
+                                                color: _getReaderActionColor().withValues(
+                                                  alpha:
+                                                      (_replyingTo == null &&
+                                                              ((_existingUserReview !=
+                                                                          null &&
+                                                                      !_isReviewEditMode) ||
+                                                                  !_canSubmitReview)) ||
+                                                          (_replyingTo !=
+                                                                  null &&
+                                                              !_canSubmitReply)
+                                                      ? 0.35
+                                                      : 1,
+                                                ),
+                                              ),
                                               onPressed:
                                                   _isSubmittingComment ||
                                                       (_replyingTo == null &&
@@ -5445,7 +5460,9 @@ class _ReaderBottomBar extends StatelessWidget {
                               icon: const Icon(Icons.navigate_next_rounded),
                               onPressed: onNext,
                               color: textColor.withValues(alpha: 0.5),
-                              tooltip: AppLocalizations.of(context)!.nextChapter,
+                              tooltip: AppLocalizations.of(
+                                context,
+                              )!.nextChapter,
                             )
                           else
                             const SizedBox(width: 48),

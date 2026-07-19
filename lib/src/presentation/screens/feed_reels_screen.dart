@@ -15,6 +15,7 @@ import '../../utils/image_proxy_utils.dart';
 import '../components/feed_post_card.dart';
 import '../components/reel_post_content.dart';
 import '../providers/theme_provider.dart';
+import '../utils/optimistic_mutation.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
@@ -22,6 +23,8 @@ import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../widgets/audio_post_player.dart';
 import '../widgets/report_dialog.dart';
+
+final Set<String> _reelGuideShownForSession = <String>{};
 
 class FeedReelsScreen extends ConsumerStatefulWidget {
   const FeedReelsScreen({super.key});
@@ -35,7 +38,8 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   late final PageController _pageController;
   int _activeIndex = 0;
 
-  bool _showSwipeGuide = true;
+  bool _showSwipeGuide = false;
+  String? _guideSessionKey;
   final Map<String, bool> _liked = <String, bool>{};
   final Map<String, int> _likeCounts = <String, int>{};
   final Set<String> _liking = <String>{};
@@ -47,10 +51,6 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(viewportFraction: .96);
     AnalyticsService.logEvent('feed_reel_open');
-
-    // Read SharedPreferences to determine if onboarding was already dismissed
-    final prefs = ref.read(sharedPreferencesProvider);
-    _showSwipeGuide = !(prefs.getBool('has_seen_reel_onboarding') ?? false);
   }
 
   @override
@@ -68,6 +68,17 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
 
   void _stopPlayback() {
     ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+  }
+
+  void _syncSwipeGuideFor(String sessionKey) {
+    if (_guideSessionKey == sessionKey) return;
+    _guideSessionKey = sessionKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _guideSessionKey != sessionKey) return;
+      setState(() {
+        _showSwipeGuide = _reelGuideShownForSession.add(sessionKey);
+      });
+    });
   }
 
   void _onPageChanged(int index, List<FeedPost> posts) {
@@ -120,7 +131,9 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     }
 
     try {
-      await ref.read(feedRepositoryProvider).toggleLike(postId, user.id);
+      await runOptimisticMutation(
+        ref.read(feedRepositoryProvider).toggleLike(postId, user.id),
+      );
       AnalyticsService.logEvent(
         wasLiked ? 'feed_reel_unlike' : 'feed_reel_like',
         parameters: {'post_id': postId},
@@ -223,8 +236,17 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
               )
             else
               ListTile(
-                leading: const Icon(Icons.report_problem_outlined),
-                title: Text(l10n.reportPost),
+                leading: const Icon(
+                  Icons.report_problem_outlined,
+                  color: Colors.redAccent,
+                ),
+                title: Text(
+                  l10n.reportPost,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   if (post.id == null) return;
@@ -249,6 +271,8 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
       pagedFeedPostsProvider(FeedFilter.public).notifier,
     );
     final posts = state.items;
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    _syncSwipeGuideFor(currentUser?.id ?? 'guest');
 
     return PopScope(
       onPopInvokedWithResult: (_, _) => _stopPlayback(),
@@ -279,37 +303,44 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 scrollDirection: Axis.horizontal,
                 onPageChanged: (index) => _onPageChanged(index, posts),
                 itemCount: posts.length,
-                itemBuilder: (context, index) => AnimatedScale(
-                  scale: index == _activeIndex ? 1 : .97,
-                  duration: const Duration(milliseconds: 220),
+                itemBuilder: (context, index) => AnimatedSlide(
+                  offset: index == _activeIndex
+                      ? Offset.zero
+                      : const Offset(0, .045),
+                  duration: const Duration(milliseconds: 520),
                   curve: Curves.easeOutCubic,
-                  child: AnimatedOpacity(
-                    opacity: index == _activeIndex ? 1 : .78,
-                    duration: const Duration(milliseconds: 180),
-                    child: _ReelPage(
-                      key: PageStorageKey('reel-${posts[index].id}'),
-                      post: posts[index],
-                      isActive: index == _activeIndex,
-                      liked:
-                          _liked[posts[index].id] ??
-                          (ref.watch(currentUserProvider).asData?.value !=
-                                  null &&
-                              posts[index].likes.contains(
-                                ref
-                                    .watch(currentUserProvider)
-                                    .asData!
-                                    .value!
-                                    .id,
-                              )),
-                      likeCount:
-                          _likeCounts[posts[index].id] ??
-                          posts[index].likesCount ??
-                          posts[index].likes.length,
-                      liking: _liking.contains(posts[index].id),
-                      showHeart: _heartPostId == posts[index].id,
-                      onLike: () => _toggleLike(posts[index]),
-                      onDoubleTap: () =>
-                          _toggleLike(posts[index], showHeart: true),
+                  child: AnimatedScale(
+                    scale: index == _activeIndex ? 1 : .935,
+                    duration: const Duration(milliseconds: 560),
+                    curve: Curves.easeOutBack,
+                    child: AnimatedOpacity(
+                      opacity: index == _activeIndex ? 1 : .68,
+                      duration: const Duration(milliseconds: 360),
+                      child: _ReelPage(
+                        key: PageStorageKey('reel-${posts[index].id}'),
+                        post: posts[index],
+                        isActive: index == _activeIndex,
+                        liked:
+                            _liked[posts[index].id] ??
+                            (ref.watch(currentUserProvider).asData?.value !=
+                                    null &&
+                                posts[index].likes.contains(
+                                  ref
+                                      .watch(currentUserProvider)
+                                      .asData!
+                                      .value!
+                                      .id,
+                                )),
+                        likeCount:
+                            _likeCounts[posts[index].id] ??
+                            posts[index].likesCount ??
+                            posts[index].likes.length,
+                        liking: false,
+                        showHeart: _heartPostId == posts[index].id,
+                        onLike: () => _toggleLike(posts[index]),
+                        onDoubleTap: () =>
+                            _toggleLike(posts[index], showHeart: true),
+                      ),
                     ),
                   ),
                 ),
@@ -321,8 +352,6 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 bottom: MediaQuery.paddingOf(context).bottom + 205,
                 child: _SwipeGuide(
                   onDismiss: () {
-                    final prefs = ref.read(sharedPreferencesProvider);
-                    prefs.setBool('has_seen_reel_onboarding', true);
                     setState(() {
                       _showSwipeGuide = false;
                     });

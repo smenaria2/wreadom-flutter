@@ -734,55 +734,60 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                       IconButton(
                         icon: const Icon(Icons.replay_10_rounded),
                         iconSize: 28,
+                        tooltip: 'Rewind 10 seconds',
                         color: theme.colorScheme.primary.withValues(alpha: 0.8),
                         onPressed: () => _seekRelative(-10),
                       ),
                       const SizedBox(width: 8),
 
                       // Circular glowing play/pause button
-                      GestureDetector(
-                        onTap: _togglePlay,
-                        child: Container(
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.1,
-                            ),
-                            border: Border.all(
+                      Semantics(
+                        button: true,
+                        label: isPlaying ? l10n.pause : l10n.play,
+                        child: GestureDetector(
+                          onTap: _togglePlay,
+                          child: Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
                               color: theme.colorScheme.primary.withValues(
-                                alpha: 0.35,
+                                alpha: 0.1,
                               ),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
+                              border: Border.all(
                                 color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.15,
+                                  alpha: 0.35,
                                 ),
-                                blurRadius: 10,
-                                spreadRadius: 1,
+                                width: 1.5,
                               ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: (_isLoading || isBuffering) && !isPlaying
-                              ? SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: (_isLoading || isBuffering) && !isPlaying
+                                ? SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  )
+                                : Icon(
+                                    isPlaying
+                                        ? Icons.pause_rounded
+                                        : Icons.play_arrow_rounded,
+                                    size: 32,
                                     color: theme.colorScheme.primary,
                                   ),
-                                )
-                              : Icon(
-                                  isPlaying
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  size: 32,
-                                  color: theme.colorScheme.primary,
-                                ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -791,6 +796,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
                       IconButton(
                         icon: const Icon(Icons.forward_10_rounded),
                         iconSize: 28,
+                        tooltip: 'Fast forward 10 seconds',
                         color: theme.colorScheme.primary.withValues(alpha: 0.8),
                         onPressed: () => _seekRelative(10),
                       ),

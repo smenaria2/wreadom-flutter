@@ -13,6 +13,8 @@ import '../components/create_post_sheet.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
+import '../providers/local_comments_notifier.dart';
+import '../utils/optimistic_mutation.dart';
 import '../routing/app_routes.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
@@ -285,49 +287,85 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
       return;
     }
 
-    setState(() => _submitting = true);
+    final replyingTo = _replyingTo;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final reply = replyingTo == null
+        ? null
+        : CommentReply(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            text: text,
+            timestamp: timestamp,
+          );
+    final comment = replyingTo == null
+        ? Comment(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            text: text,
+            timestamp: timestamp,
+            feedPostId: postId,
+          )
+        : null;
+    final localComments = ref.read(failedCommentsProvider.notifier);
+    final localId = localComments.addPendingComment(
+      targetId: postId,
+      target: FailedCommentTarget.feedPost,
+      parentCommentId: replyingTo?.id,
+      comment: comment,
+      reply: reply,
+    );
+
+    _controller.value.clear();
+    setState(() {
+      _submitting = true;
+      _replyingTo = null;
+    });
+
     try {
-      if (_replyingTo != null) {
-        final reply = CommentReply(
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          userPhotoURL: user.photoURL,
-          text: text,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-        );
-        if (_replyingTo!.feedPostId != null && _replyingTo!.id != null) {
-          await ref
+      if (reply != null) {
+        await runOptimisticMutation(
+          ref
               .read(feedRepositoryProvider)
-              .addCommentReply(postId, _replyingTo!.id!, reply);
-        } else {
-          await ref
-              .read(commentRepositoryProvider)
-              .addReply(_replyingTo!.id!, reply);
-        }
+              .addCommentReply(postId, replyingTo!.id!, reply),
+        );
       } else {
-        await ref.read(feedRepositoryProvider).addComment(postId, {
-          'userId': user.id,
-          'username': user.username,
-          'displayName': user.displayName,
-          'userPhotoURL': user.photoURL,
-          'text': text,
-        });
+        await runOptimisticMutation(
+          ref.read(feedRepositoryProvider).addComment(postId, {
+            'userId': user.id,
+            'username': user.username,
+            'displayName': user.displayName,
+            'penName': user.penName,
+            'userPhotoURL': user.photoURL,
+            'text': text,
+          }),
+        );
       }
+      localComments.removeFailedComment(localId);
       AnalyticsService.logCommentCreate(targetType: 'feed_post');
       await AppHaptics.light();
-      _controller.value.clear();
-      setState(() => _replyingTo = null);
       ref.invalidate(liveFeedPostCommentsProvider(postId));
       ref.invalidate(liveSinglePostProvider(postId));
       ref.invalidate(feedPostsProvider);
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(filteredFeedPostsProvider(FeedFilter.mine));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.following));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.public));
-      ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
+      for (final filter in FeedFilter.values) {
+        ref.invalidate(filteredFeedPostsProvider(filter));
+        ref.invalidate(pagedFeedPostsProvider(filter));
+      }
       ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
+    } catch (error) {
+      localComments.markFailed(localId, error.toString());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorSubmittingComment(error.toString())),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -340,6 +378,12 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
 
     final l10n = AppLocalizations.of(context)!;
     final commentsAsync = ref.watch(liveFeedPostCommentsProvider(postId));
+    final localComments = ref.watch(failedCommentsProvider).where((item) {
+      return item.target == FailedCommentTarget.feedPost &&
+          item.targetId == postId &&
+          item.parentCommentId == null &&
+          item.comment != null;
+    }).toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
@@ -358,7 +402,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           const SizedBox(height: 12),
           commentsAsync.when(
             data: (comments) {
-              if (comments.isEmpty) {
+              if (comments.isEmpty && localComments.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Text(l10n.noCommentsYet),
@@ -373,6 +417,35 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  for (final localItem in localComments)
+                    CommentTile(
+                      key: ValueKey(
+                        'post-detail-local-comment-${localItem.localId}',
+                      ),
+                      comment: localItem.comment!,
+                      isFailed: !localItem.isPending,
+                      onReply: () {},
+                      onRetry: () async {
+                        try {
+                          await ref
+                              .read(failedCommentsProvider.notifier)
+                              .retryComment(localItem.localId);
+                        } catch (error) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.retryFailed(error.toString()),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      onDeleteLocal: () => ref
+                          .read(failedCommentsProvider.notifier)
+                          .removeFailedComment(localItem.localId),
+                    ),
                   if (targetComment != null) ...[
                     _TargetCommentHeader(label: l10n.fromNotifications),
                     CommentTile(
@@ -451,17 +524,11 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
               GlassSurface(
                 strong: true,
                 borderRadius: BorderRadius.circular(24),
-                onTap: _submitting ? null : _submit,
+                onTap: _submit,
                 semanticButton: true,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.send_rounded),
                 ),
               ),
             ],

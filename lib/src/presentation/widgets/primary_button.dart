@@ -7,12 +7,14 @@ class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final bool isLoading;
+  final String? semanticLabel;
 
   const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isLoading = false,
+    this.semanticLabel,
   });
 
   @override
@@ -28,6 +30,7 @@ class PrimaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.r),
         onTap: isLoading ? null : onPressed,
         semanticButton: true,
+        semanticLabel: isLoading ? '$text, loading' : semanticLabel,
         child: Ink(
           decoration: BoxDecoration(
             gradient: LinearGradient(

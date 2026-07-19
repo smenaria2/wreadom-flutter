@@ -3275,4 +3275,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToPost => 'Failed to post';
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get pause => 'Pause';
 }

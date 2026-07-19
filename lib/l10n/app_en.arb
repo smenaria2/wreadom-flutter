@@ -1881,5 +1881,7 @@
   "retryFailed": "Retry failed: {error}",
   "@retryFailed": {"placeholders": {"error": {"type": "String"}}},
   "postingReview": "Posting review...",
-  "failedToPost": "Failed to post"
+  "failedToPost": "Failed to post",
+  "play": "Play",
+  "pause": "Pause"
 }

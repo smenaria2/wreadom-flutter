@@ -22,6 +22,7 @@ import 'src/presentation/providers/homepage_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/providers/tier_progress_provider.dart';
+import 'src/presentation/providers/accessibility_providers.dart';
 import 'src/presentation/components/profile/tier_up_celebration_sheet.dart';
 import 'src/domain/models/user_model.dart';
 import 'src/presentation/routing/app_router.dart';
@@ -612,6 +613,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             restorationScopeId: 'wreadom_app',
             title: 'Wreadom',
             debugShowCheckedModeBanner: false,
+            showSemanticsDebugger: kDebugMode && ref.watch(showSemanticsDebuggerProvider),
             locale: locale,
             localizationsDelegates: const [
               AppLocalizations.delegate,

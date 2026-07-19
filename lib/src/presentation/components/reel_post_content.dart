@@ -344,68 +344,110 @@ class _BookReference extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: .07),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Row(
-          children: [
-            if (post.bookCover?.trim().isNotEmpty == true)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: CachedNetworkImage(
-                  imageUrl: optimizedImageUrl(
-                    post.bookCover!,
-                    width: 100,
-                    height: 140,
-                    fit: 'cover',
-                  ),
-                  width: 50,
-                  height: 70,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, _, _) => const _BookFallback(),
-                ),
-              )
-            else
-              const _BookFallback(),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.bookTitle?.trim().isNotEmpty == true
-                        ? post.bookTitle!.trim()
-                        : 'Book',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (post.bookAuthorName?.trim().isNotEmpty == true) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      post.bookAuthorName!.trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white60),
-                    ),
-                  ],
-                ],
-              ),
+    final l10n = AppLocalizations.of(context)!;
+    const accent = Color(0xFFFFC857);
+    return Semantics(
+      button: onTap != null,
+      label: post.bookTitle,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF30220F), Color(0xFF17120B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            if (onTap != null)
-              const Icon(Icons.chevron_right_rounded, color: Colors.white54),
-          ],
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: accent.withValues(alpha: .78),
+              width: 1.4,
+            ),
+          ),
+          child: Row(
+            children: [
+              Hero(
+                tag: 'reel-book-${post.id ?? post.bookId ?? post.bookTitle}',
+                child: Material(
+                  color: Colors.transparent,
+                  child: post.bookCover?.trim().isNotEmpty == true
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(9),
+                          child: CachedNetworkImage(
+                            imageUrl: optimizedImageUrl(
+                              post.bookCover!,
+                              width: 160,
+                              height: 230,
+                              fit: 'cover',
+                            ),
+                            width: 66,
+                            height: 92,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => const _BookFallback(),
+                          ),
+                        )
+                      : const _BookFallback(),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: .16),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        l10n.openBook,
+                        style: const TextStyle(
+                          color: accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .7,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                      post.bookTitle?.trim().isNotEmpty == true
+                          ? post.bookTitle!.trim()
+                          : l10n.books,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        height: 1.16,
+                      ),
+                    ),
+                    if (post.bookAuthorName?.trim().isNotEmpty == true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        post.bookAuthorName!.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                const Icon(Icons.arrow_forward_rounded, color: accent),
+            ],
+          ),
         ),
       ),
     );
@@ -414,16 +456,22 @@ class _BookReference extends StatelessWidget {
 
 class _BookFallback extends StatelessWidget {
   const _BookFallback();
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 50,
-      height: 70,
+      width: 66,
+      height: 92,
       decoration: BoxDecoration(
         color: Colors.white10,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.white24),
       ),
-      child: const Icon(Icons.menu_book_rounded, color: Colors.white54),
+      child: const Icon(
+        Icons.menu_book_rounded,
+        color: Color(0xFFFFC857),
+        size: 30,
+      ),
     );
   }
 }

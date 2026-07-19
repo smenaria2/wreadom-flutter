@@ -259,7 +259,7 @@ class _ChapterDiscussionSheetState
                         bookCover: widget.bookCover,
                         bookAuthorId: widget.bookAuthorId,
                         showChapterContext: false,
-                        isFailed: true,
+                        isFailed: !failedItem.isPending,
                         onReply: () {},
                         onRetry: () async {
                           try {

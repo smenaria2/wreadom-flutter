@@ -40,6 +40,7 @@ class FollowButton extends ConsumerWidget {
                     : Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
+              tooltip: isFollowing ? l10n.unfollow : l10n.follow,
               onPressed: () => _toggleFollow(context, ref, isFollowing),
             )
           : OutlinedButton(

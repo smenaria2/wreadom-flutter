@@ -9,6 +9,7 @@ import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dar
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
 import '../constants/layout_constants.dart';
 
@@ -39,6 +40,7 @@ class AudioPostMiniPlayer extends ConsumerWidget {
         }
 
         final theme = Theme.of(context);
+        final l10n = AppLocalizations.of(context)!;
 
         return Align(
           alignment: Alignment.bottomCenter,
@@ -61,39 +63,43 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                     child: Row(
                       children: [
                         // Cover Art / Book Image
-                        GestureDetector(
-                          onTap: () {
-                            final postId =
-                                mediaItem.extras?['postId'] as String? ??
-                                mediaItem.id;
-                            if (postId.trim().isEmpty) return;
-                            Navigator.of(context).pushNamed(
-                              AppRoutes.postDetail,
-                              arguments: PostDetailArguments(postId: postId),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: mediaItem.artUri != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: mediaItem.artUri.toString(),
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) =>
-                                          const ColoredBox(color: Colors.grey),
-                                      errorWidget: (context, url, error) =>
-                                          const Icon(Icons.music_note_rounded),
-                                    )
-                                  : Container(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.1),
-                                      child: Icon(
-                                        Icons.music_note_rounded,
-                                        color: theme.colorScheme.primary,
+                        Semantics(
+                          button: true,
+                          label: l10n.viewComments,
+                          child: GestureDetector(
+                            onTap: () {
+                              final postId =
+                                  mediaItem.extras?['postId'] as String? ??
+                                  mediaItem.id;
+                              if (postId.trim().isEmpty) return;
+                              Navigator.of(context).pushNamed(
+                                AppRoutes.postDetail,
+                                arguments: PostDetailArguments(postId: postId),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: mediaItem.artUri != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: mediaItem.artUri.toString(),
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            const ColoredBox(color: Colors.grey),
+                                        errorWidget: (context, url, error) =>
+                                            const Icon(Icons.music_note_rounded),
+                                      )
+                                    : Container(
+                                        color: theme.colorScheme.primary
+                                            .withValues(alpha: 0.1),
+                                        child: Icon(
+                                          Icons.music_note_rounded,
+                                          color: theme.colorScheme.primary,
+                                        ),
                                       ),
-                                    ),
+                              ),
                             ),
                           ),
                         ),
@@ -141,6 +147,7 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                                     : Icons.play_arrow_rounded,
                                 size: 28,
                               ),
+                              tooltip: playing ? l10n.pause : l10n.play,
                               onPressed: () async {
                                 unawaited(AppHaptics.light());
                                 if (playing) {
@@ -155,6 +162,7 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                         // Close / Stop button
                         IconButton(
                           icon: const Icon(Icons.close_rounded, size: 22),
+                          tooltip: l10n.close,
                           onPressed: () async {
                             unawaited(AppHaptics.light());
                             await player.stop();

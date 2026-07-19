@@ -20,6 +20,7 @@ import '../routing/app_routes.dart';
 import '../components/review_share_card.dart';
 import '../components/book/chapter_discussion_sheet.dart';
 import '../utils/error_message_utils.dart';
+import '../utils/optimistic_mutation.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/modal_feedback_scope.dart';
 
@@ -100,18 +101,22 @@ class _CommentTileState extends ConsumerState<CommentTile> {
 
     try {
       if (widget.comment.feedPostId != null) {
-        await ref
-            .read(feedRepositoryProvider)
-            .toggleCommentLike(
-              widget.comment.feedPostId!,
-              widget.comment.id!,
-              user.id,
-            );
+        await runOptimisticMutation(
+          ref
+              .read(feedRepositoryProvider)
+              .toggleCommentLike(
+                widget.comment.feedPostId!,
+                widget.comment.id!,
+                user.id,
+              ),
+        );
         ref.invalidate(feedPostCommentsProvider(widget.comment.feedPostId!));
       } else {
-        await ref
-            .read(commentRepositoryProvider)
-            .toggleCommentLike(widget.comment.id!, user.id);
+        await runOptimisticMutation(
+          ref
+              .read(commentRepositoryProvider)
+              .toggleCommentLike(widget.comment.id!, user.id),
+        );
       }
       await AppHaptics.light();
     } catch (e) {
@@ -120,6 +125,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           _liked = wasLiked;
           _likeCount = previousCount;
         });
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorWithDetails(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _liking = false);
@@ -410,53 +419,57 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                     ),
                                   ),
                                 if (showChapterChip)
-                                  GestureDetector(
-                                    onTap: () {
-                                      showChapterDiscussionSheet(
-                                        context: context,
-                                        bookId: resolvedBookId,
-                                        bookTitle:
-                                            widget.bookTitle ??
-                                            comment.bookTitle ??
-                                            '',
-                                        bookAuthorId: widget.bookAuthorId ?? '',
-                                        bookAuthorName:
-                                            widget.bookAuthorName ?? '',
-                                        bookCover: widget.bookCover,
-                                        chapterId: comment.chapterId,
-                                        chapterIndex: comment.chapterIndex,
-                                        chapterTitle: comment.chapterTitle!,
-                                      );
-                                    },
-                                    child: Container(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 140,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: theme.colorScheme.primary
-                                              .withValues(alpha: 0.2),
-                                          width: 0.5,
+                                  Semantics(
+                                    button: true,
+                                    label: l10n.viewChapterComments,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        showChapterDiscussionSheet(
+                                          context: context,
+                                          bookId: resolvedBookId,
+                                          bookTitle:
+                                              widget.bookTitle ??
+                                              comment.bookTitle ??
+                                              '',
+                                          bookAuthorId: widget.bookAuthorId ?? '',
+                                          bookAuthorName:
+                                              widget.bookAuthorName ?? '',
+                                          bookCover: widget.bookCover,
+                                          chapterId: comment.chapterId,
+                                          chapterIndex: comment.chapterIndex,
+                                          chapterTitle: comment.chapterTitle!,
+                                        );
+                                      },
+                                      child: Container(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 140,
                                         ),
-                                      ),
-                                      child: Text(
-                                        comment.chapterTitle!.trim(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        softWrap: false,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme.colorScheme.primary,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.2),
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          comment.chapterTitle!.trim(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: false,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme.colorScheme.primary,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -670,59 +683,74 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          GestureDetector(
-                            onTap: _toggleLike,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  liked
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  size: 14,
-                                  color: liked
-                                      ? Colors.red
-                                      : widget.metadataColor,
-                                ),
-                                if (displayLikeCount > 0) ...[
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$displayLikeCount',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: widget.metadataColor,
-                                    ),
+                          Semantics(
+                            button: true,
+                            label: liked ? l10n.unlikePost : l10n.likePost,
+                            value: displayLikeCount > 0
+                                ? displayLikeCount.toString()
+                                : null,
+                            child: GestureDetector(
+                              onTap: _toggleLike,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    liked
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    size: 14,
+                                    color: liked
+                                        ? Colors.red
+                                        : widget.metadataColor,
                                   ),
+                                  if (displayLikeCount > 0) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$displayLikeCount',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: widget.metadataColor,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           if (canShareReview) ...[
-                            GestureDetector(
-                              onTap: _shareReview,
-                              child: Tooltip(
-                                message: l10n.sharePost,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(2),
-                                  child: Icon(
-                                    Icons.share_outlined,
-                                    size: 14,
-                                    color: widget.metadataColor,
+                            Semantics(
+                              button: true,
+                              label: l10n.sharePost,
+                              child: GestureDetector(
+                                onTap: _shareReview,
+                                child: Tooltip(
+                                  message: l10n.sharePost,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(2),
+                                    child: Icon(
+                                      Icons.share_outlined,
+                                      size: 14,
+                                      color: widget.metadataColor,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 16),
                           ],
-                          GestureDetector(
-                            onTap: widget.onReply,
-                            child: Text(
-                              l10n.reply,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color:
-                                    widget.actionColor ??
-                                    theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
+                          Semantics(
+                            button: true,
+                            label: l10n.reply,
+                            child: GestureDetector(
+                              onTap: widget.onReply,
+                              child: Text(
+                                l10n.reply,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color:
+                                      widget.actionColor ??
+                                      theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -770,7 +798,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                     textColor: widget.textColor,
                     metadataColor: widget.metadataColor,
                     actionColor: widget.actionColor,
-                    isFailed: true,
+                    isFailed: !failedItem.isPending,
                     onRetry: () async {
                       try {
                         await ref
@@ -902,22 +930,30 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
 
     try {
       if (widget.feedPostId != null) {
-        await ref
-            .read(feedRepositoryProvider)
-            .toggleReplyLike(widget.feedPostId!, commentId, replyId, user.id);
+        await runOptimisticMutation(
+          ref
+              .read(feedRepositoryProvider)
+              .toggleReplyLike(widget.feedPostId!, commentId, replyId, user.id),
+        );
         ref.invalidate(feedPostCommentsProvider(widget.feedPostId!));
       } else {
-        await ref
-            .read(commentRepositoryProvider)
-            .toggleReplyLike(commentId, replyId, user.id);
+        await runOptimisticMutation(
+          ref
+              .read(commentRepositoryProvider)
+              .toggleReplyLike(commentId, replyId, user.id),
+        );
       }
       await AppHaptics.light();
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() {
           _liked = wasLiked;
           _likeCount = previousCount;
         });
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorWithDetails(error.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _liking = false);
@@ -1186,29 +1222,36 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      GestureDetector(
-                        onTap: widget.isFailed ? () {} : _toggleLike,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              liked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              size: 13,
-                              color: liked ? Colors.red : widget.metadataColor,
-                            ),
-                            if (displayLikeCount > 0) ...[
-                              const SizedBox(width: 3),
-                              Text(
-                                '$displayLikeCount',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 11,
-                                  color: widget.metadataColor,
-                                ),
+                      Semantics(
+                        button: true,
+                        label: liked ? l10n.unlikePost : l10n.likePost,
+                        value: displayLikeCount > 0
+                            ? displayLikeCount.toString()
+                            : null,
+                        child: GestureDetector(
+                          onTap: widget.isFailed ? () {} : _toggleLike,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                liked
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                size: 13,
+                                color: liked ? Colors.red : widget.metadataColor,
                               ),
+                              if (displayLikeCount > 0) ...[
+                                const SizedBox(width: 3),
+                                Text(
+                                  '$displayLikeCount',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    color: widget.metadataColor,
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -1490,8 +1533,8 @@ class _SwipeActionShell extends StatefulWidget {
 }
 
 class _SwipeActionShellState extends State<_SwipeActionShell> {
-  static const double _threshold = 72;
-  static const double _maxSlide = 96;
+  static const double _threshold = 84;
+  static const double _maxSlide = 132;
 
   double _dragOffset = 0;
   bool _hapticArmed = false;
@@ -1544,14 +1587,29 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
                     : Alignment.centerRight,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: _SlideActionChip(
-                    label: _showRightAction
-                        ? widget.rightLabel
-                        : widget.leftLabel,
-                    icon: _showRightAction ? widget.rightIcon : widget.leftIcon,
-                    color: Colors.black,
-                    foreground: Colors.white,
-                    armed: _dragOffset.abs() >= _threshold,
+                  child: Builder(
+                    builder: (context) {
+                      final scheme = Theme.of(context).colorScheme;
+                      final icon = _showRightAction
+                          ? widget.rightIcon
+                          : widget.leftIcon;
+                      final destructive =
+                          icon == Icons.report_problem_outlined ||
+                          icon == Icons.delete_outline_rounded;
+                      return _SlideActionChip(
+                        label: _showRightAction
+                            ? widget.rightLabel
+                            : widget.leftLabel,
+                        icon: icon,
+                        color: destructive
+                            ? const Color(0xFF7F1D1D)
+                            : scheme.primaryContainer,
+                        foreground: destructive
+                            ? Colors.white
+                            : scheme.onPrimaryContainer,
+                        armed: _dragOffset.abs() >= _threshold,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1661,19 +1719,24 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _openProfile(context, userId),
-      child: CircleAvatar(
-        radius: radius,
-        backgroundImage: photoUrl != null
-            ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl!)!)
-            : null,
-        child: photoUrl == null && name.isNotEmpty
-            ? Text(
-                name.characters.first.toUpperCase(),
-                style: TextStyle(fontSize: radius * 0.75),
-              )
-            : null,
+    final l10n = AppLocalizations.of(context)!;
+    return Semantics(
+      button: true,
+      label: l10n.profile,
+      child: GestureDetector(
+        onTap: () => _openProfile(context, userId),
+        child: CircleAvatar(
+          radius: radius,
+          backgroundImage: photoUrl != null
+              ? CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl!)!)
+              : null,
+          child: photoUrl == null && name.isNotEmpty
+              ? Text(
+                  name.characters.first.toUpperCase(),
+                  style: TextStyle(fontSize: radius * 0.75),
+                )
+              : null,
+        ),
       ),
     );
   }
@@ -1694,14 +1757,19 @@ class _ProfileName extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _openProfile(context, userId),
-      child: Text(
-        name,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: fontSize,
-          color: color,
+    final l10n = AppLocalizations.of(context)!;
+    return Semantics(
+      button: true,
+      label: l10n.profile,
+      child: GestureDetector(
+        onTap: () => _openProfile(context, userId),
+        child: Text(
+          name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: fontSize,
+            color: color,
+          ),
         ),
       ),
     );

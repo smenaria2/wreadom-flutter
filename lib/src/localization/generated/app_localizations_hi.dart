@@ -3281,4 +3281,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get failedToPost => 'पोस्ट करने में विफल';
+
+  @override
+  String get play => 'चलाएं';
+
+  @override
+  String get pause => 'रोकें';
 }

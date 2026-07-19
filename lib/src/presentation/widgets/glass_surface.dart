@@ -14,6 +14,9 @@ class GlassSurface extends StatelessWidget {
     this.borderRadius,
     this.onTap,
     this.semanticButton = false,
+    this.semanticLabel,
+    this.semanticHint,
+    this.semanticValue,
     this.clipBehavior = Clip.antiAlias,
     this.strong = false,
     this.backgroundDistortion = false,
@@ -25,6 +28,9 @@ class GlassSurface extends StatelessWidget {
   final BorderRadiusGeometry? borderRadius;
   final VoidCallback? onTap;
   final bool semanticButton;
+  final String? semanticLabel;
+  final String? semanticHint;
+  final String? semanticValue;
   final Clip clipBehavior;
   final bool strong;
   final bool backgroundDistortion;
@@ -92,8 +98,19 @@ class GlassSurface extends StatelessWidget {
         ? content
         : Padding(padding: margin!, child: content);
 
-    if (!semanticButton) return wrapped;
-    return Semantics(button: true, child: wrapped);
+    if (!semanticButton &&
+        semanticLabel == null &&
+        semanticHint == null &&
+        semanticValue == null) {
+      return wrapped;
+    }
+    return Semantics(
+      button: semanticButton ? true : null,
+      label: semanticLabel,
+      hint: semanticHint,
+      value: semanticValue,
+      child: wrapped,
+    );
   }
 }
 

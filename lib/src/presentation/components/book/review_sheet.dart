@@ -11,6 +11,7 @@ import '../../providers/feed_providers.dart';
 import '../../providers/local_posts_notifier.dart';
 import '../../utils/book_author_utils.dart';
 import '../../utils/error_message_utils.dart';
+import '../../utils/optimistic_mutation.dart';
 import '../../widgets/glass_surface.dart';
 
 /// Shows a sheet for writing a book review.
@@ -42,7 +43,6 @@ class _ReviewSheet extends ConsumerStatefulWidget {
 class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   final _textController = TextEditingController();
   int _rating = 0;
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -96,28 +96,32 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
 
     final container = ProviderScope.containerOf(context, listen: false);
     final messenger = ScaffoldMessenger.of(context);
-    setState(() => _isSubmitting = true);
+    final localId = container
+        .read(failedReviewsProvider.notifier)
+        .addPendingPost(post);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(l10n.postingReview)));
 
-    unawaited(_submitInBackground(post, container, messenger, l10n));
+    unawaited(_submitInBackground(post, localId, container, messenger, l10n));
   }
 
   Future<void> _submitInBackground(
     FeedPost post,
+    String localId,
     ProviderContainer container,
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
   ) async {
+    final localPosts = container.read(failedReviewsProvider.notifier);
     try {
-      await container.read(feedRepositoryProvider).createFeedPost(post);
+      await runOptimisticMutation(
+        container.read(feedRepositoryProvider).createFeedPost(post),
+      );
+      localPosts.removeFailedPost(localId);
       await AppHaptics.light();
       refreshFeedAfterPostPublishInContainer(container, userId: post.userId);
     } catch (error, stackTrace) {
       logUiError('Review submit failed', error, stackTrace);
-      container
-          .read(failedReviewsProvider.notifier)
-          .addFailedPost(post, error.toString());
+      localPosts.markFailed(localId, error.toString());
       if (messenger.mounted) {
         messenger.showSnackBar(
           SnackBar(content: Text(l10n.errorWithDetails(error.toString()))),
@@ -168,14 +172,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              if (_isSubmitting)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                TextButton(onPressed: _submit, child: Text(l10n.post)),
+              TextButton(onPressed: _submit, child: Text(l10n.post)),
             ],
           ),
           const SizedBox(height: 16),

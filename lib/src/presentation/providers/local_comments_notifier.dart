@@ -8,6 +8,8 @@ import './feed_providers.dart';
 
 enum FailedCommentTarget { book, feedPost }
 
+enum LocalCommentStatus { pending, failed }
+
 /// Represents a comment or reply that failed to publish to the database.
 class FailedComment {
   const FailedComment({
@@ -18,6 +20,7 @@ class FailedComment {
     this.parentCommentId,
     this.reply,
     required this.error,
+    this.status = LocalCommentStatus.failed,
   });
 
   final String localId;
@@ -27,6 +30,22 @@ class FailedComment {
   final String? parentCommentId;
   final CommentReply? reply;
   final String error;
+  final LocalCommentStatus status;
+
+  bool get isPending => status == LocalCommentStatus.pending;
+
+  FailedComment copyWith({String? error, LocalCommentStatus? status}) {
+    return FailedComment(
+      localId: localId,
+      targetId: targetId,
+      target: target,
+      comment: comment,
+      parentCommentId: parentCommentId,
+      reply: reply,
+      error: error ?? this.error,
+      status: status ?? this.status,
+    );
+  }
 }
 
 class FailedCommentsNotifier extends Notifier<List<FailedComment>> {
@@ -36,7 +55,32 @@ class FailedCommentsNotifier extends Notifier<List<FailedComment>> {
   @override
   List<FailedComment> build() => const [];
 
-  void addFailedComment({
+  String addPendingComment({
+    required String targetId,
+    required FailedCommentTarget target,
+    Comment? comment,
+    String? parentCommentId,
+    CommentReply? reply,
+  }) {
+    final localId = addFailedComment(
+      targetId: targetId,
+      target: target,
+      comment: comment,
+      parentCommentId: parentCommentId,
+      reply: reply,
+      error: '',
+    );
+    state = [
+      for (final item in state)
+        if (item.localId == localId)
+          item.copyWith(status: LocalCommentStatus.pending)
+        else
+          item,
+    ];
+    return localId;
+  }
+
+  String addFailedComment({
     required String targetId,
     required FailedCommentTarget target,
     Comment? comment,
@@ -68,6 +112,17 @@ class FailedCommentsNotifier extends Notifier<List<FailedComment>> {
         error: error,
       ),
       ...state,
+    ];
+    return localId;
+  }
+
+  void markFailed(String localId, String error) {
+    state = [
+      for (final item in state)
+        if (item.localId == localId)
+          item.copyWith(error: error, status: LocalCommentStatus.failed)
+        else
+          item,
     ];
   }
 

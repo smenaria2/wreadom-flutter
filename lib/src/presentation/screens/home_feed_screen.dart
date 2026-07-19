@@ -756,6 +756,14 @@ class _FailedPostCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final post = failedItem.post;
 
+    if (failedItem.isPending) {
+      return FeedPostCard(
+        key: ValueKey('pending-post-${failedItem.localId}'),
+        post: post,
+        openOnTap: false,
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(

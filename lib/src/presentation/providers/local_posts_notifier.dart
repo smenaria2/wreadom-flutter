@@ -11,11 +11,20 @@ class FailedPost {
     required this.localId,
     required this.post,
     required this.error,
+    this.isPending = false,
   });
 
   final String localId;
   final FeedPost post;
   final String error;
+  final bool isPending;
+
+  FailedPost copyWith({String? error, bool? isPending}) => FailedPost(
+    localId: localId,
+    post: post,
+    error: error ?? this.error,
+    isPending: isPending ?? this.isPending,
+  );
 }
 
 class FailedPostsNotifier extends Notifier<List<FailedPost>> {
@@ -25,10 +34,31 @@ class FailedPostsNotifier extends Notifier<List<FailedPost>> {
   @override
   List<FailedPost> build() => const [];
 
+  String addPendingPost(FeedPost post) {
+    final localId = _nextLocalId(post);
+    state = [
+      FailedPost(localId: localId, post: post, error: '', isPending: true),
+      ...state,
+    ];
+    return localId;
+  }
+
   void addFailedPost(FeedPost post, String error) {
-    final localId =
-        '${DateTime.now().microsecondsSinceEpoch}_${_sequence++}_${post.userId}';
+    final localId = _nextLocalId(post);
     state = [FailedPost(localId: localId, post: post, error: error), ...state];
+  }
+
+  String _nextLocalId(FeedPost post) =>
+      '${DateTime.now().microsecondsSinceEpoch}_${_sequence++}_${post.userId}';
+
+  void markFailed(String localId, String error) {
+    state = [
+      for (final item in state)
+        if (item.localId == localId)
+          item.copyWith(error: error, isPending: false)
+        else
+          item,
+    ];
   }
 
   void removeFailedPost(String localId) {

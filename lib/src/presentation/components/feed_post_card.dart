@@ -21,6 +21,7 @@ import '../../utils/app_haptics.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../utils/writer_media_utils.dart';
+import '../utils/optimistic_mutation.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -134,9 +135,9 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     });
 
     try {
-      await ref
-          .read(feedRepositoryProvider)
-          .toggleLike(widget.post.id!, user.id);
+      await runOptimisticMutation(
+        ref.read(feedRepositoryProvider).toggleLike(widget.post.id!, user.id),
+      );
       await AppHaptics.light();
       // No need to invalidate, optimistic state handles it
     } catch (e) {
@@ -1289,7 +1290,6 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       ? displayLikesCount.toString()
                       : '',
                   semanticLabel: liked ? l10n.unlikePost : l10n.likePost,
-                  loading: _liking,
                   onTap: _toggleLike,
                 ),
                 const SizedBox(width: 8),
@@ -1525,22 +1525,35 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       _submitting = true;
       _replyingTo = null;
     });
+    final localComments = ref.read(failedCommentsProvider.notifier);
+    final localId = localComments.addPendingComment(
+      targetId: postId,
+      target: FailedCommentTarget.feedPost,
+      parentCommentId: replyingTo?.id,
+      comment: comment,
+      reply: reply,
+    );
 
     try {
       if (reply != null) {
-        await ref
-            .read(feedRepositoryProvider)
-            .addCommentReply(postId, replyingTo!.id!, reply);
+        await runOptimisticMutation(
+          ref
+              .read(feedRepositoryProvider)
+              .addCommentReply(postId, replyingTo!.id!, reply),
+        );
       } else {
-        await ref.read(feedRepositoryProvider).addComment(postId, {
-          'userId': user.id,
-          'username': user.username,
-          'displayName': user.displayName,
-          'penName': user.penName,
-          'userPhotoURL': user.photoURL,
-          'text': text,
-        });
+        await runOptimisticMutation(
+          ref.read(feedRepositoryProvider).addComment(postId, {
+            'userId': user.id,
+            'username': user.username,
+            'displayName': user.displayName,
+            'penName': user.penName,
+            'userPhotoURL': user.photoURL,
+            'text': text,
+          }),
+        );
       }
+      localComments.removeFailedComment(localId);
       AnalyticsService.logCommentCreate(targetType: 'feed_post');
 
       ref.invalidate(liveFeedPostCommentsProvider(postId));
@@ -1555,16 +1568,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
       await AppHaptics.light();
     } catch (error) {
-      ref
-          .read(failedCommentsProvider.notifier)
-          .addFailedComment(
-            targetId: postId,
-            target: FailedCommentTarget.feedPost,
-            parentCommentId: replyingTo?.id,
-            comment: comment,
-            reply: reply,
-            error: error.toString(),
-          );
+      localComments.markFailed(localId, error.toString());
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1687,7 +1691,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                             textColor: foreground,
                             metadataColor: secondary,
                             actionColor: secondary,
-                            isFailed: true,
+                            isFailed: !failedItem.isPending,
                             onReply: () {},
                             onRetry: () async {
                               try {
@@ -1797,15 +1801,11 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send_rounded),
-                      onPressed: _submitting ? null : _submitComment,
-                      color: Theme.of(context).colorScheme.primary,
+                      icon: const Icon(Icons.send_rounded),
+                      onPressed: _submitComment,
+                      color: widget.darkReel
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),

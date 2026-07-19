@@ -5839,6 +5839,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to post'**
   String get failedToPost;
+
+  /// No description provided for @play.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get play;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
 }
 
 class _AppLocalizationsDelegate
