@@ -1,51 +1,73 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/models/comment.dart';
-import './feed_providers.dart';
 import './comment_providers.dart';
+import './feed_providers.dart';
+
+enum FailedCommentTarget { book, feedPost }
 
 /// Represents a comment or reply that failed to publish to the database.
 class FailedComment {
-  final String localId;
-  final String targetId; // postId or bookId
-  final Comment? comment; // if top-level comment
-  final String? parentCommentId; // if reply
-  final CommentReply? reply; // if reply
-  final String error;
-
-  FailedComment({
+  const FailedComment({
     required this.localId,
     required this.targetId,
+    required this.target,
     this.comment,
     this.parentCommentId,
     this.reply,
     required this.error,
   });
+
+  final String localId;
+  final String targetId;
+  final FailedCommentTarget target;
+  final Comment? comment;
+  final String? parentCommentId;
+  final CommentReply? reply;
+  final String error;
 }
 
 class FailedCommentsNotifier extends Notifier<List<FailedComment>> {
+  final Set<String> _retrying = <String>{};
+  int _sequence = 0;
+
   @override
-  List<FailedComment> build() {
-    return const [];
-  }
+  List<FailedComment> build() => const [];
 
   void addFailedComment({
     required String targetId,
+    required FailedCommentTarget target,
     Comment? comment,
     String? parentCommentId,
     CommentReply? reply,
     required String error,
   }) {
-    final localId = '${DateTime.now().millisecondsSinceEpoch}_${comment?.userId ?? reply?.userId ?? "unknown"}';
+    final normalizedTargetId = targetId.trim();
+    if (normalizedTargetId.isEmpty) {
+      throw ArgumentError.value(targetId, 'targetId', 'Must not be empty.');
+    }
+    if ((comment == null) == (reply == null)) {
+      throw ArgumentError('Provide exactly one comment or reply.');
+    }
+    if (reply != null && parentCommentId?.trim().isNotEmpty != true) {
+      throw ArgumentError('A failed reply requires its parent comment ID.');
+    }
+
+    final localId =
+        '${DateTime.now().microsecondsSinceEpoch}_${_sequence++}_${comment?.userId ?? reply!.userId}';
     state = [
-      ...state,
       FailedComment(
         localId: localId,
-        targetId: targetId,
+        targetId: normalizedTargetId,
+        target: target,
         comment: comment,
         parentCommentId: parentCommentId,
         reply: reply,
         error: error,
-      )
+      ),
+      ...state,
     ];
   }
 
@@ -54,43 +76,74 @@ class FailedCommentsNotifier extends Notifier<List<FailedComment>> {
   }
 
   Future<void> retryComment(String localId) async {
-    final item = state.firstWhere((element) => element.localId == localId);
-    
-    if (item.parentCommentId != null && item.reply != null) {
-      // Retry reply comment submission
-      if (item.comment?.feedPostId != null || item.targetId.startsWith('post_') || !item.targetId.contains(RegExp(r'^\d+$'))) {
-        await ref.read(feedRepositoryProvider).addCommentReply(
-          item.targetId,
-          item.parentCommentId!,
-          item.reply!,
-        );
-      } else {
-        await ref.read(commentRepositoryProvider).addReply(
-          item.parentCommentId!,
-          item.reply!,
-        );
+    if (!_retrying.add(localId)) return;
+    try {
+      FailedComment? item;
+      for (final candidate in state) {
+        if (candidate.localId == localId) {
+          item = candidate;
+          break;
+        }
       }
-    } else if (item.comment != null) {
-      // Retry top-level comment submission
-      if (item.comment!.feedPostId != null) {
-        await ref.read(feedRepositoryProvider).addComment(item.targetId, {
-          'userId': item.comment!.userId,
-          'username': item.comment!.username,
-          'displayName': item.comment!.displayName,
-          'userPhotoURL': item.comment!.userPhotoURL,
-          'text': item.comment!.text,
-        });
-      } else {
-        await ref.read(commentRepositoryProvider).addComment(item.comment!);
+      if (item == null) return;
+
+      switch (item.target) {
+        case FailedCommentTarget.feedPost:
+          await _retryFeedComment(item);
+          _refreshFeedComment(item.targetId);
+        case FailedCommentTarget.book:
+          await _retryBookComment(item);
+          ref.invalidate(liveBookCommentsProvider(item.targetId));
+          ref.invalidate(bookCommentsProvider(item.targetId));
       }
+
+      removeFailedComment(localId);
+    } finally {
+      _retrying.remove(localId);
     }
-    
-    // Remove from local failures on success
-    removeFailedComment(localId);
+  }
+
+  Future<void> _retryFeedComment(FailedComment item) async {
+    if (item.reply != null) {
+      await ref
+          .read(feedRepositoryProvider)
+          .addCommentReply(item.targetId, item.parentCommentId!, item.reply!);
+      return;
+    }
+
+    final comment = item.comment!;
+    await ref.read(feedRepositoryProvider).addComment(item.targetId, {
+      'userId': comment.userId,
+      'username': comment.username,
+      'displayName': comment.displayName,
+      'penName': comment.penName,
+      'userPhotoURL': comment.userPhotoURL,
+      'text': comment.text,
+    });
+  }
+
+  Future<void> _retryBookComment(FailedComment item) async {
+    if (item.reply != null) {
+      await ref
+          .read(commentRepositoryProvider)
+          .addReply(item.parentCommentId!, item.reply!);
+      return;
+    }
+    await ref.read(commentRepositoryProvider).addComment(item.comment!);
+  }
+
+  void _refreshFeedComment(String postId) {
+    ref.invalidate(liveFeedPostCommentsProvider(postId));
+    ref.invalidate(liveSinglePostProvider(postId));
+    for (final filter in FeedFilter.values) {
+      unawaited(
+        ref.read(pagedFeedPostsProvider(filter).notifier).refreshInPlace(),
+      );
+    }
   }
 }
 
 final failedCommentsProvider =
     NotifierProvider<FailedCommentsNotifier, List<FailedComment>>(
-  FailedCommentsNotifier.new,
-);
+      FailedCommentsNotifier.new,
+    );

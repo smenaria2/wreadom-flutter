@@ -396,6 +396,29 @@ void refreshFeedAfterPostPublish(WidgetRef ref, {String? userId}) {
   }
 }
 
+void refreshFeedAfterPostPublishInContainer(
+  ProviderContainer container, {
+  String? userId,
+}) {
+  container.invalidate(feedPostsProvider);
+  for (final filter in FeedFilter.values) {
+    container.invalidate(filteredFeedPostsProvider(filter));
+    unawaited(
+      container.read(pagedFeedPostsProvider(filter).notifier).refreshInPlace(),
+    );
+  }
+
+  final trimmedUserId = userId?.trim();
+  if (trimmedUserId != null && trimmedUserId.isNotEmpty) {
+    container.invalidate(userFeedPostsProvider(trimmedUserId));
+    unawaited(
+      container
+          .read(pagedUserFeedPostsProvider(trimmedUserId).notifier)
+          .refreshInPlace(),
+    );
+  }
+}
+
 @riverpod
 Future<FeedPost?> singlePost(Ref ref, String postId) async {
   return ref.watch(feedRepositoryProvider).getFeedPost(postId);

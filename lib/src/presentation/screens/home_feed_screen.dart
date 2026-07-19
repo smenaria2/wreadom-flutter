@@ -14,6 +14,7 @@ import '../routing/app_routes.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
 import '../widgets/audio_post_player.dart';
+import '../widgets/reel_feed_button.dart';
 import '../constants/layout_constants.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
@@ -88,7 +89,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                _FeedReelButton(
+                ReelFeedButton(
                   onPressed: () => Navigator.of(
                     context,
                     rootNavigator: true,
@@ -355,7 +356,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       );
     }
 
-    final failedPostsToShow = ref.watch(failedPostsProvider).where((failedItem) {
+    final failedPostsToShow = ref.watch(failedPostsProvider).where((
+      failedItem,
+    ) {
       if (_selectedType == 'all') return true;
       if (_selectedType == 'review') return failedItem.post.type == 'review';
       return false;
@@ -457,7 +460,8 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ? const NeverScrollableScrollPhysics()
             : const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(bottom: listBottomPadding),
-        itemCount: (items.length + 2 + leadingPromptCount + failedCount).toInt(),
+        itemCount: (items.length + 2 + leadingPromptCount + failedCount)
+            .toInt(),
         itemBuilder: (context, index) {
           if (index == 0) {
             return Column(
@@ -473,12 +477,12 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             );
           }
           final itemIndex = contentIndex - leadingPromptCount;
-          
+
           if (itemIndex >= 0 && itemIndex < failedCount) {
             final failedItem = failedPostsToShow[itemIndex];
             return _FailedPostCard(failedItem: failedItem);
           }
-          
+
           final realItemIndex = (itemIndex - failedCount).toInt();
           if (realItemIndex == items.length) {
             return _LoadMoreFeedButton(
@@ -742,68 +746,6 @@ class _LoadMoreFeedButton extends StatelessWidget {
   }
 }
 
-class _FeedReelButton extends StatefulWidget {
-  const _FeedReelButton({required this.onPressed});
-  final VoidCallback onPressed;
-
-  @override
-  State<_FeedReelButton> createState() => _FeedReelButtonState();
-}
-
-class _FeedReelButtonState extends State<_FeedReelButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final color = Theme.of(context).colorScheme.primary;
-    return Semantics(
-      button: true,
-      label: AppLocalizations.of(context)!.openReelFeed,
-      child: IconButton(
-        tooltip: AppLocalizations.of(context)!.openReelFeed,
-        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-        padding: EdgeInsets.zero,
-        onPressed: widget.onPressed,
-        icon: AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) => Transform.scale(
-            scale: reduceMotion ? 1 : 1 + (_controller.value * .10),
-            child: child,
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .14),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: .35)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.play_arrow_rounded, size: 18, color: color),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _FailedPostCard extends ConsumerWidget {
   const _FailedPostCard({required this.failedItem});
   final FailedPost failedItem;
@@ -819,7 +761,10 @@ class _FailedPostCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,11 +773,15 @@ class _FailedPostCard extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
-                Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: theme.colorScheme.error,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    l10n.localeName == 'hi' ? 'पोस्ट करने में विफल' : 'Failed to post',
+                    l10n.failedToPost,
                     style: TextStyle(
                       color: theme.colorScheme.error,
                       fontWeight: FontWeight.bold,
@@ -844,7 +793,9 @@ class _FailedPostCard extends ConsumerWidget {
                   icon: const Icon(Icons.close_rounded, size: 18),
                   tooltip: l10n.close,
                   onPressed: () {
-                    ref.read(failedPostsProvider.notifier).removeFailedPost(failedItem.localId);
+                    ref
+                        .read(failedPostsProvider.notifier)
+                        .removeFailedPost(failedItem.localId);
                   },
                 ),
               ],
@@ -862,7 +813,8 @@ class _FailedPostCard extends ConsumerWidget {
                       width: 32,
                       height: 48,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.book_rounded, size: 32),
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.book_rounded, size: 32),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -873,13 +825,18 @@ class _FailedPostCard extends ConsumerWidget {
                     children: [
                       Text(
                         post.bookTitle ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         post.bookAuthorName ?? '',
-                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -898,7 +855,9 @@ class _FailedPostCard extends ConsumerWidget {
                   Row(
                     children: List.generate(5, (index) {
                       return Icon(
-                        index < post.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                        index < post.rating!
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         color: Colors.amber,
                         size: 16,
                       );
@@ -914,7 +873,7 @@ class _FailedPostCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${l10n.localeName == 'hi' ? 'त्रुटि' : 'Error'}: ${failedItem.error}',
+                  l10n.errorWithDetails(failedItem.error),
                   style: TextStyle(
                     color: theme.colorScheme.error.withValues(alpha: 0.8),
                     fontSize: 11,
@@ -932,17 +891,16 @@ class _FailedPostCard extends ConsumerWidget {
             children: [
               TextButton.icon(
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: Text(
-                  l10n.localeName == 'hi' ? 'पुनः प्रयास करें' : 'Retry',
-                  style: const TextStyle(fontSize: 12),
-                ),
+                label: Text(l10n.retry, style: const TextStyle(fontSize: 12)),
                 onPressed: () async {
                   try {
-                    await ref.read(failedPostsProvider.notifier).retryPost(failedItem.localId);
+                    await ref
+                        .read(failedPostsProvider.notifier)
+                        .retryPost(failedItem.localId);
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Retry failed: $e')),
+                        SnackBar(content: Text(l10n.retryFailed(e.toString()))),
                       );
                     }
                   }

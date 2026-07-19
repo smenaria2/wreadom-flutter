@@ -14,7 +14,6 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../components/feed_post_card.dart';
 import '../components/reel_post_content.dart';
-import '../components/book_page_turn.dart';
 import '../providers/theme_provider.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
@@ -46,9 +45,9 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _pageController = PageController();
+    _pageController = PageController(viewportFraction: .96);
     AnalyticsService.logEvent('feed_reel_open');
-    
+
     // Read SharedPreferences to determine if onboarding was already dismissed
     final prefs = ref.read(sharedPreferencesProvider);
     _showSwipeGuide = !(prefs.getBool('has_seen_reel_onboarding') ?? false);
@@ -153,7 +152,11 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     await Share.share(AppLinkHelper.post(post.id!));
   }
 
-  Future<void> _showMoreActions(BuildContext context, WidgetRef ref, FeedPost post) async {
+  Future<void> _showMoreActions(
+    BuildContext context,
+    WidgetRef ref,
+    FeedPost post,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final currentUser = ref.read(currentUserProvider).asData?.value;
     final isOwner = currentUser?.id == post.userId;
@@ -276,29 +279,38 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 scrollDirection: Axis.horizontal,
                 onPageChanged: (index) => _onPageChanged(index, posts),
                 itemCount: posts.length,
-                itemBuilder: (context, index) => BookPageTurn(
-                  controller: _pageController,
-                  index: index,
-                  child: _ReelPage(
-                    key: PageStorageKey('reel-${posts[index].id}'),
-                    post: posts[index],
-                    isActive: index == _activeIndex,
-                    liked:
-                        _liked[posts[index].id] ??
-                        (ref.watch(currentUserProvider).asData?.value != null &&
-                            posts[index].likes.contains(
-                              ref.watch(currentUserProvider).asData!.value!.id,
-                            )),
-                    likeCount:
-                        _likeCounts[posts[index].id] ??
-                        posts[index].likesCount ??
-                        posts[index].likes.length,
-                    liking: _liking.contains(posts[index].id),
-                    showHeart: _heartPostId == posts[index].id,
-                    onLike: () => _toggleLike(posts[index]),
-                    onDoubleTap: () =>
-                        _toggleLike(posts[index], showHeart: true),
-                    onShare: () => _share(posts[index]),
+                itemBuilder: (context, index) => AnimatedScale(
+                  scale: index == _activeIndex ? 1 : .97,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: index == _activeIndex ? 1 : .78,
+                    duration: const Duration(milliseconds: 180),
+                    child: _ReelPage(
+                      key: PageStorageKey('reel-${posts[index].id}'),
+                      post: posts[index],
+                      isActive: index == _activeIndex,
+                      liked:
+                          _liked[posts[index].id] ??
+                          (ref.watch(currentUserProvider).asData?.value !=
+                                  null &&
+                              posts[index].likes.contains(
+                                ref
+                                    .watch(currentUserProvider)
+                                    .asData!
+                                    .value!
+                                    .id,
+                              )),
+                      likeCount:
+                          _likeCounts[posts[index].id] ??
+                          posts[index].likesCount ??
+                          posts[index].likes.length,
+                      liking: _liking.contains(posts[index].id),
+                      showHeart: _heartPostId == posts[index].id,
+                      onLike: () => _toggleLike(posts[index]),
+                      onDoubleTap: () =>
+                          _toggleLike(posts[index], showHeart: true),
+                    ),
                   ),
                 ),
               ),
@@ -338,7 +350,8 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                       _TopButton(
                         icon: Icons.more_horiz_rounded,
                         label: l10n.moreActions,
-                        onPressed: () => _showMoreActions(context, ref, posts[_activeIndex]),
+                        onPressed: () =>
+                            _showMoreActions(context, ref, posts[_activeIndex]),
                       ),
                     ],
                   ],
@@ -363,7 +376,6 @@ class _ReelPage extends ConsumerWidget {
     required this.showHeart,
     required this.onLike,
     required this.onDoubleTap,
-    required this.onShare,
   });
 
   final FeedPost post;
@@ -374,7 +386,6 @@ class _ReelPage extends ConsumerWidget {
   final bool showHeart;
   final VoidCallback onLike;
   final VoidCallback onDoubleTap;
-  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -563,7 +574,8 @@ class _ReelOverlay extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Colors.white70, // Explicitly styled for legibility on dark backdrop
+                          color: Colors
+                              .white70, // Explicitly styled for legibility on dark backdrop
                         ),
                       ),
                     ),
@@ -613,7 +625,8 @@ class _ReelOverlay extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white, // Explicitly styled for legibility on dark backdrop
+                                color: Colors
+                                    .white, // Explicitly styled for legibility on dark backdrop
                               ),
                             ),
                           ),
@@ -757,9 +770,7 @@ class _BookBackdrop extends StatelessWidget {
 }
 
 class _SwipeGuide extends StatelessWidget {
-  const _SwipeGuide({
-    required this.onDismiss,
-  });
+  const _SwipeGuide({required this.onDismiss});
 
   final VoidCallback onDismiss;
 
@@ -767,7 +778,6 @@ class _SwipeGuide extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final isHindi = l10n.localeName == 'hi';
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -801,7 +811,11 @@ class _SwipeGuide extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.swipe_left_rounded, color: Colors.white, size: 22),
+                  const Icon(
+                    Icons.swipe_left_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                   const SizedBox(width: 10),
                   Flexible(
                     child: Text(
@@ -820,11 +834,15 @@ class _SwipeGuide extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 20),
+                  const Icon(
+                    Icons.favorite_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
-                      isHindi ? 'पसंद करने के लिए डबल टैप करें' : 'Double tap to like',
+                      l10n.reelDoubleTapHint,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -849,7 +867,7 @@ class _SwipeGuide extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    isHindi ? 'समझ गया' : 'I got it',
+                    l10n.gotIt,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,

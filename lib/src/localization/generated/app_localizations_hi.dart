@@ -3053,7 +3053,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get leaderboardLoadError => 'लीडरबोर्ड लोड नहीं हो सका।';
 
   @override
-  String get retry => 'फिर से कोशिश करें';
+  String get retry => 'पुनः प्रयास करें';
 
   @override
   String get viewLeaderboard => 'लीडरबोर्ड देखें';
@@ -3264,4 +3264,21 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get reelSwipeHint =>
       'अगली पोस्ट के लिए बाएं और पिछली पोस्ट के लिए दाएं स्वाइप करें।';
+
+  @override
+  String get reelDoubleTapHint => 'पसंद करने के लिए डबल टैप करें';
+
+  @override
+  String get failedToSend => 'भेजने में विफल';
+
+  @override
+  String retryFailed(String error) {
+    return 'पुनः प्रयास विफल: $error';
+  }
+
+  @override
+  String get postingReview => 'समीक्षा पोस्ट की जा रही है...';
+
+  @override
+  String get failedToPost => 'पोस्ट करने में विफल';
 }

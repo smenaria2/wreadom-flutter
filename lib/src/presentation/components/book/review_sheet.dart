@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -92,30 +94,33 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       privacy: 'public',
     );
 
-    // Dismiss sheet immediately
+    final container = ProviderScope.containerOf(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isSubmitting = true);
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.localeName == 'hi' ? 'समीक्षा पोस्ट की जा रही है...' : 'Posting review...')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l10n.postingReview)));
 
-    _submitInBackground(post);
+    unawaited(_submitInBackground(post, container, messenger, l10n));
   }
 
-  Future<void> _submitInBackground(FeedPost post) async {
+  Future<void> _submitInBackground(
+    FeedPost post,
+    ProviderContainer container,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
     try {
-      await ref.read(feedRepositoryProvider).createFeedPost(post);
+      await container.read(feedRepositoryProvider).createFeedPost(post);
       await AppHaptics.light();
-      refreshFeedAfterPostPublish(ref, userId: post.userId);
-    } catch (e, stackTrace) {
-      logUiError('Review submit failed', e, stackTrace);
-      
-      // Save failed review to failedPostsProvider
-      ref.read(failedPostsProvider.notifier).addFailedPost(post, e.toString());
-      
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.somethingWentWrong}: ${e.toString()}')),
+      refreshFeedAfterPostPublishInContainer(container, userId: post.userId);
+    } catch (error, stackTrace) {
+      logUiError('Review submit failed', error, stackTrace);
+      container
+          .read(failedReviewsProvider.notifier)
+          .addFailedPost(post, error.toString());
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.errorWithDetails(error.toString()))),
         );
       }
     }

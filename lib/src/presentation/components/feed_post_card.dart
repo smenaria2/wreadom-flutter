@@ -1481,7 +1481,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
   Future<void> _submitComment() async {
     if (_submitting) return;
     final text = _ctrl.value.text.trim();
-    if (text.isEmpty || widget.post.id == null) return;
+    final postId = widget.post.id;
+    if (text.isEmpty || postId == null) return;
+
     final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) {
       final l10n = AppLocalizations.of(context)!;
@@ -1491,41 +1493,58 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       return;
     }
 
-    setState(() => _submitting = true);
+    final replyingTo = _replyingTo;
+    if (replyingTo != null && replyingTo.id == null) return;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final reply = replyingTo == null
+        ? null
+        : CommentReply(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            text: text,
+            timestamp: timestamp,
+          );
+    final comment = replyingTo != null
+        ? null
+        : Comment(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            userPhotoURL: user.photoURL,
+            text: text,
+            timestamp: timestamp,
+            feedPostId: postId,
+          );
+
+    _ctrl.value.clear();
+    setState(() {
+      _submitting = true;
+      _replyingTo = null;
+    });
+
     try {
-      if (_replyingTo != null) {
-        // Submit a reply
-        final reply = CommentReply(
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          userPhotoURL: user.photoURL,
-          text: text,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-        );
-        if (_replyingTo!.feedPostId != null && _replyingTo!.id != null) {
-          await ref
-              .read(feedRepositoryProvider)
-              .addCommentReply(widget.post.id!, _replyingTo!.id!, reply);
-        } else {
-          await ref
-              .read(commentRepositoryProvider)
-              .addReply(_replyingTo!.id!, reply);
-        }
+      if (reply != null) {
+        await ref
+            .read(feedRepositoryProvider)
+            .addCommentReply(postId, replyingTo!.id!, reply);
       } else {
-        // Submit a top-level comment
-        await ref.read(feedRepositoryProvider).addComment(widget.post.id!, {
+        await ref.read(feedRepositoryProvider).addComment(postId, {
           'userId': user.id,
           'username': user.username,
           'displayName': user.displayName,
+          'penName': user.penName,
           'userPhotoURL': user.photoURL,
           'text': text,
         });
       }
       AnalyticsService.logCommentCreate(targetType: 'feed_post');
 
-      ref.invalidate(liveFeedPostCommentsProvider(widget.post.id!));
-      ref.invalidate(liveSinglePostProvider(widget.post.id!));
+      ref.invalidate(liveFeedPostCommentsProvider(postId));
+      ref.invalidate(liveSinglePostProvider(postId));
       ref.invalidate(feedPostsProvider);
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.following));
       ref.invalidate(filteredFeedPostsProvider(FeedFilter.public));
@@ -1535,48 +1554,25 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       ref.invalidate(pagedFeedPostsProvider(FeedFilter.mine));
       ref.invalidate(pagedUserFeedPostsProvider(widget.post.userId));
       await AppHaptics.light();
-      _ctrl.value.clear();
-      setState(() => _replyingTo = null);
-    } catch (e) {
+    } catch (error) {
+      ref
+          .read(failedCommentsProvider.notifier)
+          .addFailedComment(
+            targetId: postId,
+            target: FailedCommentTarget.feedPost,
+            parentCommentId: replyingTo?.id,
+            comment: comment,
+            reply: reply,
+            error: error.toString(),
+          );
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorSubmittingComment(e.toString()))),
+          SnackBar(
+            content: Text(l10n.errorSubmittingComment(error.toString())),
+          ),
         );
       }
-      if (_replyingTo != null) {
-        final reply = CommentReply(
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          userPhotoURL: user.photoURL,
-          text: text,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-        );
-        ref.read(failedCommentsProvider.notifier).addFailedComment(
-          targetId: widget.post.id!,
-          parentCommentId: _replyingTo!.id,
-          reply: reply,
-          error: e.toString(),
-        );
-      } else {
-        final comment = Comment(
-          userId: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          userPhotoURL: user.photoURL,
-          text: text,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-          feedPostId: widget.post.id!,
-        );
-        ref.read(failedCommentsProvider.notifier).addFailedComment(
-          targetId: widget.post.id!,
-          comment: comment,
-          error: e.toString(),
-        );
-      }
-      _ctrl.value.clear();
-      setState(() => _replyingTo = null);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -1646,8 +1642,15 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               Flexible(
                 child: commentsAsync.when(
                   data: (comments) {
-                    final failedItems = ref.watch(failedCommentsProvider)
-                        .where((item) => item.targetId == widget.post.id! && item.parentCommentId == null && item.comment != null)
+                    final failedItems = ref
+                        .watch(failedCommentsProvider)
+                        .where(
+                          (item) =>
+                              item.target == FailedCommentTarget.feedPost &&
+                              item.targetId == widget.post.id! &&
+                              item.parentCommentId == null &&
+                              item.comment != null,
+                        )
                         .toList();
 
                     if (comments.isEmpty && failedItems.isEmpty) {
@@ -1667,7 +1670,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                         ),
                       );
                     }
-                    
+
                     final int failedCount = failedItems.length;
                     final int totalCount = comments.length + failedCount;
                     return ListView.builder(
@@ -1677,7 +1680,9 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                         if (i < failedCount) {
                           final failedItem = failedItems[i];
                           return CommentTile(
-                            key: ValueKey('failed-feed-comment-${failedItem.localId}'),
+                            key: ValueKey(
+                              'failed-feed-comment-${failedItem.localId}',
+                            ),
                             comment: failedItem.comment!,
                             textColor: foreground,
                             metadataColor: secondary,
@@ -1686,16 +1691,24 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                             onReply: () {},
                             onRetry: () async {
                               try {
-                                await ref.read(failedCommentsProvider.notifier).retryComment(failedItem.localId);
+                                await ref
+                                    .read(failedCommentsProvider.notifier)
+                                    .retryComment(failedItem.localId);
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Retry failed: $e')),
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.retryFailed(e.toString()),
+                                      ),
+                                    ),
                                   );
                                 }
                               }
                             },
-                            onDeleteLocal: () => ref.read(failedCommentsProvider.notifier).removeFailedComment(failedItem.localId),
+                            onDeleteLocal: () => ref
+                                .read(failedCommentsProvider.notifier)
+                                .removeFailedComment(failedItem.localId),
                           );
                         }
                         final c = comments[(i - failedCount).toInt()];

@@ -14,7 +14,6 @@ import 'home_feed_screen.dart';
 import 'home_books_screen.dart';
 import 'writer_dashboard_screen.dart';
 import 'profile_screen.dart';
-import '../providers/auth_providers.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;

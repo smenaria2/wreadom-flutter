@@ -1340,7 +1340,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This only removes the content from your read history.';
 
   @override
-  String get gotIt => 'Got it';
+  String get gotIt => 'I got it';
 
   @override
   String get swipeHintBookComments =>
@@ -3258,4 +3258,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reelSwipeHint =>
       'Swipe left for the next post and right for the previous post.';
+
+  @override
+  String get reelDoubleTapHint => 'Double tap to like';
+
+  @override
+  String get failedToSend => 'Failed to send';
+
+  @override
+  String retryFailed(String error) {
+    return 'Retry failed: $error';
+  }
+
+  @override
+  String get postingReview => 'Posting review...';
+
+  @override
+  String get failedToPost => 'Failed to post';
 }

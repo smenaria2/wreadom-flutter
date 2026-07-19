@@ -2495,7 +2495,7 @@ abstract class AppLocalizations {
   /// No description provided for @gotIt.
   ///
   /// In en, this message translates to:
-  /// **'Got it'**
+  /// **'I got it'**
   String get gotIt;
 
   /// No description provided for @swipeHintBookComments.
@@ -5809,6 +5809,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Swipe left for the next post and right for the previous post.'**
   String get reelSwipeHint;
+
+  /// No description provided for @reelDoubleTapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap to like'**
+  String get reelDoubleTapHint;
+
+  /// No description provided for @failedToSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send'**
+  String get failedToSend;
+
+  /// No description provided for @retryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed: {error}'**
+  String retryFailed(String error);
+
+  /// No description provided for @postingReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Posting review...'**
+  String get postingReview;
+
+  /// No description provided for @failedToPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to post'**
+  String get failedToPost;
 }
 
 class _AppLocalizationsDelegate

@@ -1873,4 +1873,13 @@
   "closeReelFeed": "Close reel feed",
   "refreshPublicPosts": "Refresh public posts",
   "beFirstToComment": "Be the first to comment",
-  "reelSwipeHint": "Swipe left for the next post and right for the previous post."}
+  "reelSwipeHint": "Swipe left for the next post and right for the previous post.",
+  "reelDoubleTapHint": "Double tap to like",
+  "gotIt": "I got it",
+  "failedToSend": "Failed to send",
+  "retry": "Retry",
+  "retryFailed": "Retry failed: {error}",
+  "@retryFailed": {"placeholders": {"error": {"type": "String"}}},
+  "postingReview": "Posting review...",
+  "failedToPost": "Failed to post"
+}

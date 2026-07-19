@@ -294,6 +294,21 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         resolvedBookId.isNotEmpty &&
         comment.chapterTitle?.trim().isNotEmpty == true;
     final replies = comment.replies ?? [];
+    final failedTargetId = comment.feedPostId?.trim().isNotEmpty == true
+        ? comment.feedPostId!.trim()
+        : resolvedBookId;
+    final failedTarget = comment.feedPostId?.trim().isNotEmpty == true
+        ? FailedCommentTarget.feedPost
+        : FailedCommentTarget.book;
+    final failedReplies = failedTargetId == null
+        ? const <FailedComment>[]
+        : ref.watch(failedCommentsProvider).where((item) {
+            return item.target == failedTarget &&
+                item.targetId == failedTargetId &&
+                item.parentCommentId == comment.id &&
+                item.reply != null;
+          }).toList();
+
     final name = comment.displayName ?? comment.username;
     final user = ref.watch(currentUserProvider).asData?.value;
     final liked =
@@ -336,7 +351,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           leftLabel: widget.isFailed ? '' : leftLabel,
           leftIcon: widget.isFailed ? Icons.error_outline : leftIcon,
           rightLabel: widget.isFailed ? '' : l10n.reply,
-          rightIcon: widget.isFailed ? Icons.reply_rounded : Icons.reply_rounded,
+          rightIcon: widget.isFailed
+              ? Icons.reply_rounded
+              : Icons.reply_rounded,
           onLeftAction: widget.isFailed ? () {} : _leftSwipeAction,
           onRightAction: widget.isFailed ? () {} : widget.onReply,
           onDoubleTap: widget.isFailed ? () {} : _toggleLike,
@@ -454,13 +471,19 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                           ),
                           if (widget.isFailed) ...[
                             IconButton(
-                              icon: const Icon(Icons.refresh_rounded, color: Colors.redAccent),
-                              tooltip: 'Retry',
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.redAccent,
+                              ),
+                              tooltip: l10n.retry,
                               onPressed: widget.onRetry,
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                              tooltip: 'Delete',
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.redAccent,
+                              ),
+                              tooltip: l10n.delete,
                               onPressed: widget.onDeleteLocal,
                             ),
                           ] else if (user != null)
@@ -554,16 +577,24 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         ),
                         const SizedBox(height: 6),
                       ] else ...[
-                        if (comment.quote != null && comment.quote!.trim().isNotEmpty) ...[
+                        if (comment.quote != null &&
+                            comment.quote!.trim().isNotEmpty) ...[
                           Container(
                             width: double.infinity,
                             margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.05,
+                              ),
                               border: Border(
                                 left: BorderSide(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   width: 3.5,
                                 ),
                               ),
@@ -576,7 +607,11 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                               '“${comment.quote!.trim()}”',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontStyle: FontStyle.italic,
-                                color: widget.textColor?.withValues(alpha: 0.85) ?? theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                                color:
+                                    widget.textColor?.withValues(alpha: 0.85) ??
+                                    theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.85,
+                                    ),
                                 height: 1.4,
                               ),
                             ),
@@ -603,10 +638,14 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       if (widget.isFailed) ...[
                         Row(
                           children: [
-                            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 14),
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: Colors.redAccent,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              l10n.localeName == 'hi' ? 'भेजने में विफल' : 'Failed to send',
+                              l10n.failedToSend,
                               style: const TextStyle(
                                 color: Colors.redAccent,
                                 fontSize: 11,
@@ -696,7 +735,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
             ),
           ),
         ),
-        if (replies.isNotEmpty || ref.watch(failedCommentsProvider).any((item) => item.parentCommentId == comment.id))
+        if (replies.isNotEmpty || failedReplies.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 48),
             child: Column(
@@ -717,45 +756,64 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                     isTargetReply:
                         widget.targetReplyId != null &&
                         (reply.id == widget.targetReplyId ||
-                            reply.timestamp.toString() ==
-                                widget.targetReplyId),
+                            reply.timestamp.toString() == widget.targetReplyId),
                   ),
                 ),
-                ...ref.watch(failedCommentsProvider)
-                    .where((item) => item.parentCommentId == comment.id && item.reply != null)
-                    .map(
-                      (failedItem) => ReplyTile(
-                        key: ValueKey('failed-reply-${failedItem.localId}'),
-                        commentId: comment.id,
-                        feedPostId: comment.feedPostId,
-                        bookId: comment.bookId?.toString(),
-                        onReply: widget.onReply,
-                        reply: failedItem.reply!,
-                        textColor: widget.textColor,
-                        metadataColor: widget.metadataColor,
-                        actionColor: widget.actionColor,
-                        isFailed: true,
-                        onRetry: () async {
-                          try {
-                            await ref.read(failedCommentsProvider.notifier).retryComment(failedItem.localId);
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Retry failed: $e')),
-                              );
-                            }
-                          }
-                        },
-                        onDeleteLocal: () => ref.read(failedCommentsProvider.notifier).removeFailedComment(failedItem.localId),
-                      ),
-                    ),
+                ...failedReplies.map(
+                  (failedItem) => ReplyTile(
+                    key: ValueKey('failed-reply-${failedItem.localId}'),
+                    commentId: comment.id,
+                    feedPostId: comment.feedPostId,
+                    bookId: comment.bookId?.toString(),
+                    onReply: widget.onReply,
+                    reply: failedItem.reply!,
+                    textColor: widget.textColor,
+                    metadataColor: widget.metadataColor,
+                    actionColor: widget.actionColor,
+                    isFailed: true,
+                    onRetry: () async {
+                      try {
+                        await ref
+                            .read(failedCommentsProvider.notifier)
+                            .retryComment(failedItem.localId);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.retryFailed(e.toString())),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onDeleteLocal: () => ref
+                        .read(failedCommentsProvider.notifier)
+                        .removeFailedComment(failedItem.localId),
+                  ),
+                ),
               ],
             ),
           ),
         Divider(color: widget.metadataColor?.withValues(alpha: 0.25)),
       ],
     );
-    if (!widget.isTargetComment) return tile;
+    Widget decoratedTile = tile;
+    if (widget.isFailed) {
+      decoratedTile = Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: theme.colorScheme.error.withValues(alpha: .72),
+            width: 1.4,
+          ),
+        ),
+        child: tile,
+      );
+    }
+    if (!widget.isTargetComment) return decoratedTile;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -766,7 +824,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           color: theme.colorScheme.primary.withValues(alpha: 0.45),
         ),
       ),
-      child: tile,
+      child: decoratedTile,
     );
   }
 }
@@ -992,14 +1050,22 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                       ),
                       if (widget.isFailed) ...[
                         IconButton(
-                          icon: const Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 18),
-                          tooltip: 'Retry',
+                          icon: const Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.redAccent,
+                            size: 18,
+                          ),
+                          tooltip: l10n.retry,
                           visualDensity: VisualDensity.compact,
                           onPressed: widget.onRetry,
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-                          tooltip: 'Delete',
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 18,
+                          ),
+                          tooltip: l10n.delete,
                           visualDensity: VisualDensity.compact,
                           onPressed: widget.onDeleteLocal,
                         ),
@@ -1092,10 +1158,14 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                   if (widget.isFailed) ...[
                     Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 12),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: Colors.redAccent,
+                          size: 12,
+                        ),
                         const SizedBox(width: 4),
                         Text(
-                          l10n.localeName == 'hi' ? 'भेजने में विफल' : 'Failed to send',
+                          l10n.failedToSend,
                           style: const TextStyle(
                             color: Colors.redAccent,
                             fontSize: 10,

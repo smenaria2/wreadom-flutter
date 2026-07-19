@@ -29,6 +29,7 @@ import '../components/generated_book_cover.dart';
 import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/audio_post_player.dart';
+import '../widgets/reel_feed_button.dart';
 import '../constants/layout_constants.dart';
 import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
@@ -154,13 +155,25 @@ class HomeBooksScreen extends ConsumerWidget {
           borderRadius: BorderRadius.zero,
           child: SizedBox.expand(),
         ),
-        title: Text(
-          l10n.appTitle,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 24,
-            letterSpacing: 0,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.appTitle,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(width: 6),
+            ReelFeedButton(
+              onPressed: () => Navigator.of(
+                context,
+                rootNavigator: true,
+              ).pushNamed(AppRoutes.feedReels),
+            ),
+          ],
         ),
         actions: [
           Builder(

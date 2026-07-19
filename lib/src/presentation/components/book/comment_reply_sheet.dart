@@ -207,20 +207,23 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
     } catch (e) {
       final user = ref.read(currentUserProvider).asData?.value;
       if (user != null) {
-        ref.read(failedCommentsProvider.notifier).addFailedComment(
-          targetId: widget.bookId,
-          parentCommentId: widget.comment.id,
-          reply: CommentReply(
-            userId: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            penName: user.penName,
-            text: text,
-            timestamp: DateTime.now().millisecondsSinceEpoch,
-            userPhotoURL: user.photoURL,
-          ),
-          error: e.toString(),
-        );
+        ref
+            .read(failedCommentsProvider.notifier)
+            .addFailedComment(
+              targetId: widget.bookId,
+              target: FailedCommentTarget.book,
+              parentCommentId: widget.comment.id,
+              reply: CommentReply(
+                userId: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                penName: user.penName,
+                text: text,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+                userPhotoURL: user.photoURL,
+              ),
+              error: e.toString(),
+            );
       }
       if (mounted) {
         ModalFeedbackScope.show(
@@ -258,9 +261,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
                     l10n.replyingTo(
                       widget.comment.displayName ?? widget.comment.username,
                     ),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 IconButton(

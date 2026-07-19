@@ -189,13 +189,23 @@ class _ChapterDiscussionSheetState
                   return false;
                 }).toList();
 
-                final failedItems = ref.watch(failedCommentsProvider).where((item) {
-                  if (item.targetId != widget.bookId || item.parentCommentId != null || item.comment == null) return false;
+                final failedItems = ref.watch(failedCommentsProvider).where((
+                  item,
+                ) {
+                  if (item.target != FailedCommentTarget.book ||
+                      item.targetId != widget.bookId ||
+                      item.parentCommentId != null ||
+                      item.comment == null) {
+                    return false;
+                  }
                   final comment = item.comment!;
-                  if (chapterId != null && chapterId.isNotEmpty && comment.chapterId == chapterId) {
+                  if (chapterId != null &&
+                      chapterId.isNotEmpty &&
+                      comment.chapterId == chapterId) {
                     return true;
                   }
-                  if (widget.chapterIndex != null && comment.chapterIndex == widget.chapterIndex) {
+                  if (widget.chapterIndex != null &&
+                      comment.chapterIndex == widget.chapterIndex) {
                     return true;
                   }
                   return false;
@@ -239,7 +249,9 @@ class _ChapterDiscussionSheetState
                     if (index < failedCount) {
                       final failedItem = failedItems[index];
                       return CommentTile(
-                        key: ValueKey('failed-chapter-comment-${failedItem.localId}'),
+                        key: ValueKey(
+                          'failed-chapter-comment-${failedItem.localId}',
+                        ),
                         comment: failedItem.comment!,
                         bookId: widget.bookId,
                         bookTitle: widget.bookTitle,
@@ -251,20 +263,31 @@ class _ChapterDiscussionSheetState
                         onReply: () {},
                         onRetry: () async {
                           try {
-                            await ref.read(failedCommentsProvider.notifier).retryComment(failedItem.localId);
+                            await ref
+                                .read(failedCommentsProvider.notifier)
+                                .retryComment(failedItem.localId);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Retry failed: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.retryFailed(e.toString()),
+                                  ),
+                                ),
                               );
                             }
                           }
                         },
-                        onDeleteLocal: () => ref.read(failedCommentsProvider.notifier).removeFailedComment(failedItem.localId),
+                        onDeleteLocal: () => ref
+                            .read(failedCommentsProvider.notifier)
+                            .removeFailedComment(failedItem.localId),
                       );
                     }
 
-                    final comment = chapterComments[(index - failedCount).toInt()];
+                    final comment =
+                        chapterComments[(index - failedCount).toInt()];
                     return CommentTile(
                       key: ValueKey(
                         'chapter-discussion-comment-${comment.id ?? comment.timestamp}',
@@ -282,8 +305,13 @@ class _ChapterDiscussionSheetState
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) =>
-                  Center(child: Text(AppLocalizations.of(context)!.failedToLoadComments(err.toString()))),
+              error: (err, stack) => Center(
+                child: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.failedToLoadComments(err.toString()),
+                ),
+              ),
             ),
           ),
         ],

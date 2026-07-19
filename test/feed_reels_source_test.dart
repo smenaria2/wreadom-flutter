@@ -11,6 +11,9 @@ void main() {
   final rendererSource = File(
     'lib/src/presentation/components/reel_post_content.dart',
   ).readAsStringSync();
+  final reelButtonSource = File(
+    'lib/src/presentation/widgets/reel_feed_button.dart',
+  ).readAsStringSync();
 
   test('reel route is public and distinct from the standard feed', () {
     expect(AppRoutes.feedReels, '/feed-reels');
@@ -22,15 +25,19 @@ void main() {
     expect(source, contains('scrollDirection: Axis.horizontal'));
   });
 
-  test(
-    'book reel keeps long content scrollable and supports reduced motion',
-    () {
-      expect(rendererSource, contains('SingleChildScrollView'));
-      expect(source, contains('MediaQuery.disableAnimationsOf(context)'));
-      expect(source, contains('_SwipeGuide'));
-      expect(source, contains('rotateY(angle)'));
-    },
-  );
+  test('reel uses simple paging and a reduced-motion-aware entry button', () {
+    expect(rendererSource, contains('SingleChildScrollView'));
+    expect(source, contains('_SwipeGuide'));
+    expect(source, contains('viewportFraction: .96'));
+    expect(source, contains('AnimatedScale'));
+    expect(source, contains('AnimatedOpacity'));
+    expect(source, isNot(contains('BookPageTurn')));
+    expect(source, isNot(contains('rotateY(')));
+    expect(
+      reelButtonSource,
+      contains('MediaQuery.disableAnimationsOf(context)'),
+    );
+  });
 
   test('reel includes social, comment preview, and playback coordination', () {
     expect(source, contains('latestFeedPostCommentProvider'));
