@@ -11,6 +11,7 @@ import '../providers/audio_post_providers.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
+import '../providers/local_comments_notifier.dart';
 import '../widgets/comment_widgets.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../routing/app_router.dart';
@@ -1543,6 +1544,39 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
           SnackBar(content: Text(l10n.errorSubmittingComment(e.toString()))),
         );
       }
+      if (_replyingTo != null) {
+        final reply = CommentReply(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          userPhotoURL: user.photoURL,
+          text: text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+        ref.read(failedCommentsProvider.notifier).addFailedComment(
+          targetId: widget.post.id!,
+          parentCommentId: _replyingTo!.id,
+          reply: reply,
+          error: e.toString(),
+        );
+      } else {
+        final comment = Comment(
+          userId: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          userPhotoURL: user.photoURL,
+          text: text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          feedPostId: widget.post.id!,
+        );
+        ref.read(failedCommentsProvider.notifier).addFailedComment(
+          targetId: widget.post.id!,
+          comment: comment,
+          error: e.toString(),
+        );
+      }
+      _ctrl.value.clear();
+      setState(() => _replyingTo = null);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -1612,7 +1646,11 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
               Flexible(
                 child: commentsAsync.when(
                   data: (comments) {
-                    if (comments.isEmpty) {
+                    final failedItems = ref.watch(failedCommentsProvider)
+                        .where((item) => item.targetId == widget.post.id! && item.parentCommentId == null && item.comment != null)
+                        .toList();
+
+                    if (comments.isEmpty && failedItems.isEmpty) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 32),
                         child: Center(
@@ -1629,14 +1667,44 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                         ),
                       );
                     }
+                    
+                    final int failedCount = failedItems.length;
+                    final int totalCount = comments.length + failedCount;
                     return ListView.builder(
-                      itemCount: comments.length,
+                      itemCount: totalCount,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemBuilder: (context, i) {
-                        final c = comments[i];
+                        if (i < failedCount) {
+                          final failedItem = failedItems[i];
+                          return CommentTile(
+                            key: ValueKey('failed-feed-comment-${failedItem.localId}'),
+                            comment: failedItem.comment!,
+                            textColor: foreground,
+                            metadataColor: secondary,
+                            actionColor: secondary,
+                            isFailed: true,
+                            onReply: () {},
+                            onRetry: () async {
+                              try {
+                                await ref.read(failedCommentsProvider.notifier).retryComment(failedItem.localId);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Retry failed: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            onDeleteLocal: () => ref.read(failedCommentsProvider.notifier).removeFailedComment(failedItem.localId),
+                          );
+                        }
+                        final c = comments[(i - failedCount).toInt()];
                         return CommentTile(
                           key: ValueKey('feed-comment-${c.id ?? c.timestamp}'),
                           comment: c,
+                          textColor: foreground,
+                          metadataColor: secondary,
+                          actionColor: secondary,
                           onReply: () {
                             setState(() => _replyingTo = c);
                           },

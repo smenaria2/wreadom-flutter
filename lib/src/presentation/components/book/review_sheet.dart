@@ -6,6 +6,7 @@ import '../../../domain/models/feed_post.dart';
 import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/feed_providers.dart';
+import '../../providers/local_posts_notifier.dart';
 import '../../utils/book_author_utils.dart';
 import '../../utils/error_message_utils.dart';
 import '../../widgets/glass_surface.dart';
@@ -64,8 +65,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       return;
     }
 
-    final user = await ref.read(currentUserProvider.future);
-    if (!mounted) return;
+    final user = ref.read(currentUserProvider).asData?.value;
     if (user == null) {
       ScaffoldMessenger.of(
         context,
@@ -73,45 +73,50 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    final post = FeedPost(
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      penName: user.penName,
+      userPhotoURL: user.photoURL,
+      type: 'review',
+      text: text,
+      rating: _rating,
+      bookId: widget.book.id.toString(),
+      bookTitle: widget.book.title,
+      bookAuthorName: bookAuthorName(widget.book),
+      bookCover: widget.book.coverUrl,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+      likes: const [],
+      visibility: 'public',
+      privacy: 'public',
+    );
 
+    // Dismiss sheet immediately
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.localeName == 'hi' ? 'समीक्षा पोस्ट की जा रही है...' : 'Posting review...')),
+    );
+
+    _submitInBackground(post);
+  }
+
+  Future<void> _submitInBackground(FeedPost post) async {
     try {
-      final post = FeedPost(
-        userId: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        penName: user.penName,
-        userPhotoURL: user.photoURL,
-        type: 'review',
-        text: text,
-        rating: _rating,
-        bookId: widget.book.id.toString(),
-        bookTitle: widget.book.title,
-        bookAuthorName: bookAuthorName(widget.book),
-        bookCover: widget.book.coverUrl,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-        likes: const [],
-        visibility: 'public',
-        privacy: 'public',
-      );
-
       await ref.read(feedRepositoryProvider).createFeedPost(post);
       await AppHaptics.light();
-      refreshFeedAfterPostPublish(ref, userId: user.id);
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.reviewShared)));
-      }
+      refreshFeedAfterPostPublish(ref, userId: post.userId);
     } catch (e, stackTrace) {
       logUiError('Review submit failed', e, stackTrace);
+      
+      // Save failed review to failedPostsProvider
+      ref.read(failedPostsProvider.notifier).addFailedPost(post, e.toString());
+      
       if (mounted) {
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.somethingWentWrong}: ${e.toString()}')),
+        );
       }
     }
   }

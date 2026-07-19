@@ -7,6 +7,7 @@ import '../../utils/app_haptics.dart';
 import '../providers/audio_post_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/notification_providers.dart';
+import '../providers/local_posts_notifier.dart';
 import '../components/feed_post_card.dart';
 import '../components/create_post_sheet.dart';
 import '../routing/app_routes.dart';
@@ -354,8 +355,15 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       );
     }
 
+    final failedPostsToShow = ref.watch(failedPostsProvider).where((failedItem) {
+      if (_selectedType == 'all') return true;
+      if (_selectedType == 'review') return failedItem.post.type == 'review';
+      return false;
+    }).toList();
+    final hasFailedPosts = failedPostsToShow.isNotEmpty;
+
     Widget body;
-    if (feedState.items.isEmpty) {
+    if (feedState.items.isEmpty && !hasFailedPosts) {
       final emptyState = Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -403,7 +411,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       } else {
         body = centeredScrollable(emptyState);
       }
-    } else if (items.isEmpty) {
+    } else if (items.isEmpty && !hasFailedPosts) {
       body = centeredScrollable(
         Column(
           mainAxisSize: MainAxisSize.min,
@@ -443,12 +451,13 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       );
     } else {
       final leadingPromptCount = questionPrompt == null ? 0 : 1;
+      final int failedCount = failedPostsToShow.length;
       body = ListView.builder(
         physics: lockScroll
             ? const NeverScrollableScrollPhysics()
             : const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(bottom: listBottomPadding),
-        itemCount: items.length + 2 + leadingPromptCount,
+        itemCount: (items.length + 2 + leadingPromptCount + failedCount).toInt(),
         itemBuilder: (context, index) {
           if (index == 0) {
             return Column(
@@ -464,7 +473,14 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             );
           }
           final itemIndex = contentIndex - leadingPromptCount;
-          if (itemIndex == items.length) {
+          
+          if (itemIndex >= 0 && itemIndex < failedCount) {
+            final failedItem = failedPostsToShow[itemIndex];
+            return _FailedPostCard(failedItem: failedItem);
+          }
+          
+          final realItemIndex = (itemIndex - failedCount).toInt();
+          if (realItemIndex == items.length) {
             return _LoadMoreFeedButton(
               isLoading: feedState.isLoadingMore,
               hasMore: feedState.hasMore,
@@ -472,8 +488,8 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             );
           }
           return FeedPostCard(
-            key: ValueKey(items[itemIndex].id ?? ''),
-            post: items[itemIndex],
+            key: ValueKey(items[realItemIndex].id ?? ''),
+            post: items[realItemIndex],
             onReplyToQuestion: (post) {
               showCreatePostSheet(
                 context,
@@ -783,6 +799,159 @@ class _FeedReelButtonState extends State<_FeedReelButton>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FailedPostCard extends ConsumerWidget {
+  const _FailedPostCard({required this.failedItem});
+  final FailedPost failedItem;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final post = failedItem.post;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.5), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.localeName == 'hi' ? 'पोस्ट करने में विफल' : 'Failed to post',
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  tooltip: l10n.close,
+                  onPressed: () {
+                    ref.read(failedPostsProvider.notifier).removeFailedPost(failedItem.localId);
+                  },
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                if (post.bookCover != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.network(
+                      post.bookCover!,
+                      width: 32,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.book_rounded, size: 32),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.bookTitle ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        post.bookAuthorName ?? '',
+                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.rating != null) ...[
+                  Row(
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < post.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: Colors.amber,
+                        size: 16,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Text(
+                  post.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${l10n.localeName == 'hi' ? 'त्रुटि' : 'Error'}: ${failedItem.error}',
+                  style: TextStyle(
+                    color: theme.colorScheme.error.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: Text(
+                  l10n.localeName == 'hi' ? 'पुनः प्रयास करें' : 'Retry',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                onPressed: () async {
+                  try {
+                    await ref.read(failedPostsProvider.notifier).retryPost(failedItem.localId);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Retry failed: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
       ),
     );
   }

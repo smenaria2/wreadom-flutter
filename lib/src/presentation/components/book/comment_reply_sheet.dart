@@ -11,6 +11,7 @@ import '../../../domain/models/comment.dart';
 import '../../../utils/app_haptics.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/comment_providers.dart';
+import '../../providers/local_comments_notifier.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/modal_feedback_scope.dart';
 
@@ -204,6 +205,23 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       ref.invalidate(bookCommentsProvider(widget.bookId));
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      final user = ref.read(currentUserProvider).asData?.value;
+      if (user != null) {
+        ref.read(failedCommentsProvider.notifier).addFailedComment(
+          targetId: widget.bookId,
+          parentCommentId: widget.comment.id,
+          reply: CommentReply(
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            penName: user.penName,
+            text: text,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            userPhotoURL: user.photoURL,
+          ),
+          error: e.toString(),
+        );
+      }
       if (mounted) {
         ModalFeedbackScope.show(
           context,
@@ -213,6 +231,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             ),
           ),
         );
+        Navigator.pop(context);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

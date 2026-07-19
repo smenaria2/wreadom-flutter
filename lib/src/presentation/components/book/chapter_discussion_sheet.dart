@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/models/comment.dart';
 import '../../providers/comment_providers.dart';
+import '../../providers/local_comments_notifier.dart';
 import '../../widgets/comment_widgets.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/modal_feedback_scope.dart';
@@ -188,7 +189,19 @@ class _ChapterDiscussionSheetState
                   return false;
                 }).toList();
 
-                if (chapterComments.isEmpty) {
+                final failedItems = ref.watch(failedCommentsProvider).where((item) {
+                  if (item.targetId != widget.bookId || item.parentCommentId != null || item.comment == null) return false;
+                  final comment = item.comment!;
+                  if (chapterId != null && chapterId.isNotEmpty && comment.chapterId == chapterId) {
+                    return true;
+                  }
+                  if (widget.chapterIndex != null && comment.chapterIndex == widget.chapterIndex) {
+                    return true;
+                  }
+                  return false;
+                }).toList();
+
+                if (chapterComments.isEmpty && failedItems.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
@@ -215,12 +228,43 @@ class _ChapterDiscussionSheetState
                   );
                 }
 
+                final int failedCount = failedItems.length;
+                final int totalCount = chapterComments.length + failedCount;
+
                 return ListView.builder(
                   controller: widget.scrollController,
                   padding: const EdgeInsets.all(20),
-                  itemCount: chapterComments.length,
+                  itemCount: totalCount,
                   itemBuilder: (context, index) {
-                    final comment = chapterComments[index];
+                    if (index < failedCount) {
+                      final failedItem = failedItems[index];
+                      return CommentTile(
+                        key: ValueKey('failed-chapter-comment-${failedItem.localId}'),
+                        comment: failedItem.comment!,
+                        bookId: widget.bookId,
+                        bookTitle: widget.bookTitle,
+                        bookAuthorName: widget.bookAuthorName,
+                        bookCover: widget.bookCover,
+                        bookAuthorId: widget.bookAuthorId,
+                        showChapterContext: false,
+                        isFailed: true,
+                        onReply: () {},
+                        onRetry: () async {
+                          try {
+                            await ref.read(failedCommentsProvider.notifier).retryComment(failedItem.localId);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Retry failed: $e')),
+                              );
+                            }
+                          }
+                        },
+                        onDeleteLocal: () => ref.read(failedCommentsProvider.notifier).removeFailedComment(failedItem.localId),
+                      );
+                    }
+
+                    final comment = chapterComments[(index - failedCount).toInt()];
                     return CommentTile(
                       key: ValueKey(
                         'chapter-discussion-comment-${comment.id ?? comment.timestamp}',

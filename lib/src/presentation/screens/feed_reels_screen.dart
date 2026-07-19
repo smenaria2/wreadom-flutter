@@ -14,6 +14,8 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../components/feed_post_card.dart';
 import '../components/reel_post_content.dart';
+import '../components/book_page_turn.dart';
+import '../providers/theme_provider.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/feed_providers.dart';
@@ -34,9 +36,7 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   late final PageController _pageController;
   int _activeIndex = 0;
 
-  Timer? _swipeGuideTimer;
   bool _showSwipeGuide = true;
-  bool _swipeGuideScheduled = false;
   final Map<String, bool> _liked = <String, bool>{};
   final Map<String, int> _likeCounts = <String, int>{};
   final Set<String> _liking = <String>{};
@@ -48,12 +48,15 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     AnalyticsService.logEvent('feed_reel_open');
+    
+    // Read SharedPreferences to determine if onboarding was already dismissed
+    final prefs = ref.read(sharedPreferencesProvider);
+    _showSwipeGuide = !(prefs.getBool('has_seen_reel_onboarding') ?? false);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _swipeGuideTimer?.cancel();
     _stopPlayback();
     _pageController.dispose();
     super.dispose();
@@ -70,10 +73,8 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
 
   void _onPageChanged(int index, List<FeedPost> posts) {
     _stopPlayback();
-    _swipeGuideTimer?.cancel();
     setState(() {
       _activeIndex = index;
-      _showSwipeGuide = false;
     });
     AppHaptics.selection();
     if (index < posts.length) {
@@ -85,14 +86,6 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     if (index >= posts.length - 3) {
       ref.read(pagedFeedPostsProvider(FeedFilter.public).notifier).loadMore();
     }
-  }
-
-  void _scheduleSwipeGuide() {
-    if (_swipeGuideScheduled) return;
-    _swipeGuideScheduled = true;
-    _swipeGuideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _showSwipeGuide = false);
-    });
   }
 
   Future<void> _toggleLike(FeedPost post, {bool showHeart = false}) async {
@@ -160,6 +153,91 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     await Share.share(AppLinkHelper.post(post.id!));
   }
 
+  Future<void> _showMoreActions(BuildContext context, WidgetRef ref, FeedPost post) async {
+    final l10n = AppLocalizations.of(context)!;
+    final currentUser = ref.read(currentUserProvider).asData?.value;
+    final isOwner = currentUser?.id == post.userId;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF111111),
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isOwner)
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: Text(l10n.editPost),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  if (post.id == null) return;
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.postDetail,
+                    arguments: PostDetailArguments(
+                      postId: post.id!,
+                      post: post,
+                    ),
+                  );
+                },
+              ),
+            if (isOwner)
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(l10n.deletePostTitle),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: Text(l10n.deletePostTitle),
+                      content: Text(l10n.deletePostContent),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: Text(l10n.delete),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true || post.id == null) return;
+                  await ref
+                      .read(feedRepositoryProvider)
+                      .deleteFeedPost(post.id!);
+                  for (final filter in FeedFilter.values) {
+                    ref
+                        .read(pagedFeedPostsProvider(filter).notifier)
+                        .removePost(post.id!);
+                  }
+                },
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.report_problem_outlined),
+                title: Text(l10n.reportPost),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  if (post.id == null) return;
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) =>
+                        ReportDialog(targetId: post.id!, targetType: 'post'),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -168,7 +246,6 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
       pagedFeedPostsProvider(FeedFilter.public).notifier,
     );
     final posts = state.items;
-    if (posts.isNotEmpty) _scheduleSwipeGuide();
 
     return PopScope(
       onPopInvokedWithResult: (_, _) => _stopPlayback(),
@@ -199,7 +276,7 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 scrollDirection: Axis.horizontal,
                 onPageChanged: (index) => _onPageChanged(index, posts),
                 itemCount: posts.length,
-                itemBuilder: (context, index) => _PageTurn(
+                itemBuilder: (context, index) => BookPageTurn(
                   controller: _pageController,
                   index: index,
                   child: _ReelPage(
@@ -230,7 +307,15 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 left: 30,
                 right: 30,
                 bottom: MediaQuery.paddingOf(context).bottom + 205,
-                child: _SwipeGuide(label: l10n.reelSwipeHint),
+                child: _SwipeGuide(
+                  onDismiss: () {
+                    final prefs = ref.read(sharedPreferencesProvider);
+                    prefs.setBool('has_seen_reel_onboarding', true);
+                    setState(() {
+                      _showSwipeGuide = false;
+                    });
+                  },
+                ),
               ),
             SafeArea(
               child: Padding(
@@ -243,6 +328,19 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const Spacer(),
+                    if (posts.isNotEmpty && _activeIndex < posts.length) ...[
+                      _TopButton(
+                        icon: Icons.share_outlined,
+                        label: l10n.share,
+                        onPressed: () => _share(posts[_activeIndex]),
+                      ),
+                      const SizedBox(width: 8),
+                      _TopButton(
+                        icon: Icons.more_horiz_rounded,
+                        label: l10n.moreActions,
+                        onPressed: () => _showMoreActions(context, ref, posts[_activeIndex]),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -250,53 +348,6 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
           ],
         ),
       ),
-    );
-  }
-}
-
-class _PageTurn extends StatelessWidget {
-  const _PageTurn({
-    required this.controller,
-    required this.index,
-    required this.child,
-  });
-  final PageController controller;
-  final int index;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return child;
-    return AnimatedBuilder(
-      animation: controller,
-      child: child,
-      builder: (context, child) {
-        var page = controller.initialPage.toDouble();
-        if (controller.hasClients && controller.position.haveDimensions) {
-          page = controller.page ?? page;
-        }
-        final delta = (index - page).clamp(-1.0, 1.0);
-        final angle = delta * .32;
-        final transform = Matrix4.identity()
-          ..setEntry(3, 2, .0014)
-          ..rotateY(angle);
-        return Transform(
-          alignment: delta >= 0 ? Alignment.centerLeft : Alignment.centerRight,
-          transform: transform,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .22 * delta.abs()),
-                  blurRadius: 24,
-                  offset: Offset(-12 * delta, 2),
-                ),
-              ],
-            ),
-            child: child,
-          ),
-        );
-      },
     );
   }
 }
@@ -400,7 +451,6 @@ class _ReelPage extends ConsumerWidget {
                     commentCount: commentCount,
                     liking: liking,
                     onLike: onLike,
-                    onShare: onShare,
                   ),
                 ),
                 IgnorePointer(
@@ -451,7 +501,6 @@ class _ReelOverlay extends ConsumerWidget {
     required this.commentCount,
     required this.liking,
     required this.onLike,
-    required this.onShare,
   });
   final FeedPost post;
   final AsyncValue<dynamic> latestComment;
@@ -460,7 +509,6 @@ class _ReelOverlay extends ConsumerWidget {
   final int commentCount;
   final bool liking;
   final VoidCallback onLike;
-  final VoidCallback onShare;
 
   void _comments(BuildContext context) {
     AnalyticsService.logEvent(
@@ -468,91 +516,6 @@ class _ReelOverlay extends ConsumerWidget {
       parameters: {'post_id': post.id ?? ''},
     );
     showFeedPostCommentsSheet(context, post, darkReel: true);
-  }
-
-  Future<void> _showMore(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context)!;
-    final currentUser = ref.read(currentUserProvider).asData?.value;
-    final isOwner = currentUser?.id == post.userId;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF111111),
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isOwner)
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(l10n.editPost),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  if (post.id == null) return;
-                  Navigator.of(context).pushNamed(
-                    AppRoutes.postDetail,
-                    arguments: PostDetailArguments(
-                      postId: post.id!,
-                      post: post,
-                    ),
-                  );
-                },
-              ),
-            if (isOwner)
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(l10n.deletePostTitle),
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: Text(l10n.deletePostTitle),
-                      content: Text(l10n.deletePostContent),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext, false),
-                          child: Text(l10n.cancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(dialogContext, true),
-                          child: Text(l10n.delete),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true || post.id == null) return;
-                  await ref
-                      .read(feedRepositoryProvider)
-                      .deleteFeedPost(post.id!);
-                  for (final filter in FeedFilter.values) {
-                    ref
-                        .read(pagedFeedPostsProvider(filter).notifier)
-                        .removePost(post.id!);
-                  }
-                },
-              )
-            else
-              ListTile(
-                leading: const Icon(Icons.report_problem_outlined),
-                title: Text(l10n.reportPost),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  if (post.id == null) return;
-                  showDialog<void>(
-                    context: context,
-                    builder: (_) =>
-                        ReportDialog(targetId: post.id!, targetType: 'post'),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -600,6 +563,7 @@ class _ReelOverlay extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: Colors.white70, // Explicitly styled for legibility on dark backdrop
                         ),
                       ),
                     ),
@@ -649,6 +613,7 @@ class _ReelOverlay extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
+                                color: Colors.white, // Explicitly styled for legibility on dark backdrop
                               ),
                             ),
                           ),
@@ -668,16 +633,6 @@ class _ReelOverlay extends ConsumerWidget {
                   icon: Icons.chat_bubble_outline_rounded,
                   label: '$commentCount',
                   onTap: () => _comments(context),
-                ),
-                _OverlayAction(
-                  icon: Icons.share_outlined,
-                  label: '',
-                  onTap: onShare,
-                ),
-                _OverlayAction(
-                  icon: Icons.more_horiz_rounded,
-                  label: '',
-                  onTap: () => _showMore(context, ref),
                 ),
               ],
             ),
@@ -802,47 +757,107 @@ class _BookBackdrop extends StatelessWidget {
 }
 
 class _SwipeGuide extends StatelessWidget {
-  const _SwipeGuide({required this.label});
-  final String label;
+  const _SwipeGuide({
+    required this.onDismiss,
+  });
+
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 450),
-        builder: (context, value, child) => Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(18 * (1 - value), 0),
-            child: child,
-          ),
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isHindi = l10n.localeName == 'hi';
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 18 * (1 - value)),
+          child: child,
         ),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: .84),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white38),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.swipe_left_rounded, color: Colors.white),
-                const SizedBox(width: 9),
-                Flexible(
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white24),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Swipe Instruction
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.swipe_left_rounded, color: Colors.white, size: 22),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      l10n.reelSwipeHint,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Double Tap Instruction
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 20),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      isHindi ? 'पसंद करने के लिए डबल टैप करें' : 'Double tap to like',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Got it button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onDismiss,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: Text(
-                    label,
-                    textAlign: TextAlign.center,
+                    isHindi ? 'समझ गया' : 'I got it',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
