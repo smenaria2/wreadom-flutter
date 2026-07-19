@@ -268,9 +268,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                       Expanded(
                         child: Text(
                           l10n.editPost,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       IconButton(
@@ -1337,16 +1336,25 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
   }
 
   void _showComments(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CommentsSheet(post: widget.post),
-    );
+    showFeedPostCommentsSheet(context, widget.post);
   }
+}
+
+Future<void> showFeedPostCommentsSheet(
+  BuildContext context,
+  FeedPost post, {
+  bool darkReel = false,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    backgroundColor: darkReel ? const Color(0xFF101010) : null,
+    builder: (_) => _CommentsSheet(post: post, darkReel: darkReel),
+  );
 }
 
 // â”€â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1442,7 +1450,8 @@ class _ActionButton extends StatelessWidget {
 // â”€â”€â”€ Comments sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CommentsSheet extends ConsumerStatefulWidget {
   final FeedPost post;
-  const _CommentsSheet({required this.post});
+  final bool darkReel;
+  const _CommentsSheet({required this.post, this.darkReel = false});
 
   @override
   ConsumerState<_CommentsSheet> createState() => _CommentsSheetState();
@@ -1546,158 +1555,183 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
       liveFeedPostCommentsProvider(widget.post.id!),
     );
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final foreground = widget.darkReel ? Colors.white : null;
+    final secondary = widget.darkReel ? Colors.white70 : null;
+    final inputFill = widget.darkReel
+        ? const Color(0xFF252525)
+        : Theme.of(context).colorScheme.surfaceContainerHighest;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(0, 12, 0, bottomInset),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    commentsAsync.when(
-                      data: (comments) => l10n.commentsCount(comments.length),
-                      loading: () => l10n.commentsLoading,
-                      error: (_, _) => l10n.comments,
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return DefaultTextStyle.merge(
+      style: TextStyle(color: foreground),
+      child: IconTheme.merge(
+        data: IconThemeData(color: foreground),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(0, 12, 0, bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  tooltip: l10n.close,
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Flexible(
-            child: commentsAsync.when(
-              data: (comments) {
-                if (comments.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Center(
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
                       child: Text(
-                        l10n.noCommentsYet,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        commentsAsync.when(
+                          data: (comments) =>
+                              l10n.commentsCount(comments.length),
+                          loading: () => l10n.commentsLoading,
+                          error: (_, _) => l10n.comments,
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: comments.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemBuilder: (context, i) {
-                    final c = comments[i];
-                    return CommentTile(
-                      key: ValueKey('feed-comment-${c.id ?? c.timestamp}'),
-                      comment: c,
-                      onReply: () {
-                        setState(() => _replyingTo = c);
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: l10n.close,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: commentsAsync.when(
+                  data: (comments) {
+                    if (comments.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text(
+                            l10n.noCommentsYet,
+                            style: TextStyle(
+                              color:
+                                  secondary ??
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: comments.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemBuilder: (context, i) {
+                        final c = comments[i];
+                        return CommentTile(
+                          key: ValueKey('feed-comment-${c.id ?? c.timestamp}'),
+                          comment: c,
+                          onReply: () {
+                            setState(() => _replyingTo = c);
+                          },
+                        );
                       },
                     );
                   },
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(l10n.errorLoadingComments(e.toString())),
-                ),
-              ),
-            ),
-          ),
-          if (_replyingTo != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.replyingTo(
-                        _replyingTo!.displayName ?? _replyingTo!.username,
-                      ),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 16),
-                    onPressed: () => setState(() => _replyingTo = null),
-                  ),
-                ],
-              ),
-            ),
-          const Divider(height: 1),
-          // Comment input
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _ctrl.value,
-                    decoration: InputDecoration(
-                      hintText: _replyingTo != null
-                          ? l10n.addAReply
-                          : l10n.addAComment,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Center(
+                      child: Text(l10n.errorLoadingComments(e.toString())),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded),
-                  onPressed: _submitting ? null : _submitComment,
-                  color: Theme.of(context).colorScheme.primary,
+              ),
+              if (_replyingTo != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.replyingTo(
+                            _replyingTo!.displayName ?? _replyingTo!.username,
+                          ),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () => setState(() => _replyingTo = null),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              const Divider(height: 1),
+              // Comment input
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _ctrl.value,
+                        decoration: InputDecoration(
+                          hintText: _replyingTo != null
+                              ? l10n.addAReply
+                              : l10n.addAComment,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: inputFill,
+                          hintStyle: TextStyle(color: secondary),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                        style: TextStyle(color: foreground),
+                        cursorColor: widget.darkReel ? Colors.white : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: _submitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.send_rounded),
+                      onPressed: _submitting ? null : _submitComment,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

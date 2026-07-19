@@ -21,6 +21,7 @@ class AppRoutes {
   static const competition = '/competition';
   static const discovery = '/discovery';
   static const postDetail = '/post-detail';
+  static const feedReels = '/feed-reels';
   static const createPost = '/create-post';
   static const category = '/category';
   static const savedBooks = '/saved-books';

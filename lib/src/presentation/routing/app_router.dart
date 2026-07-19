@@ -15,6 +15,7 @@ import '../screens/collaboration_request_screen.dart';
 import '../screens/daily_topic_screen.dart';
 import '../screens/discovery_screen.dart';
 import '../screens/follow_list_screen.dart';
+import '../screens/feed_reels_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/help_screen.dart';
 import '../screens/home_banner_screen.dart';
@@ -570,6 +571,39 @@ class AppRouter {
             targetUserReaderPoints: targetUserReaderPoints,
             targetUserReaderRank: targetUserReaderRank,
           ),
+        );
+      case AppRoutes.feedReels:
+        return MaterialPageRoute(
+          settings: routeSettings,
+          fullscreenDialog: true,
+          builder: (context) {
+            final base = Theme.of(context);
+            const reelScheme = ColorScheme.dark(
+              primary: Colors.white,
+              onPrimary: Colors.black,
+              secondary: Colors.white,
+              onSecondary: Colors.black,
+              surface: Colors.black,
+              onSurface: Colors.white,
+              surfaceContainerLowest: Colors.black,
+              surfaceContainerLow: Color(0xFF080808),
+              surfaceContainer: Color(0xFF111111),
+              surfaceContainerHigh: Color(0xFF181818),
+              surfaceContainerHighest: Color(0xFF222222),
+              onSurfaceVariant: Color(0xFFD6D6D6),
+              outline: Color(0xFF777777),
+              outlineVariant: Color(0xFF343434),
+            );
+            return Theme(
+              data: base.copyWith(
+                brightness: Brightness.dark,
+                colorScheme: reelScheme,
+                scaffoldBackgroundColor: Colors.black,
+                iconTheme: const IconThemeData(color: Colors.white),
+              ),
+              child: const FeedReelsScreen(),
+            );
+          },
         );
       case AppRoutes.notifications:
         return MaterialPageRoute(

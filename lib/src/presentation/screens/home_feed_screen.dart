@@ -75,13 +75,25 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               borderRadius: BorderRadius.zero,
               child: SizedBox.expand(),
             ),
-            title: Text(
-              l10n.feed,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 24,
-                letterSpacing: 0,
-              ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.feed,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 24,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _FeedReelButton(
+                  onPressed: () => Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pushNamed(AppRoutes.feedReels),
+                ),
+              ],
             ),
             actions: [
               Consumer(
@@ -708,6 +720,68 @@ class _LoadMoreFeedButton extends StatelessWidget {
         child: SeeMoreContentButton(
           onPressed: isLoading ? null : onPressed,
           loading: isLoading,
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedReelButton extends StatefulWidget {
+  const _FeedReelButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  State<_FeedReelButton> createState() => _FeedReelButtonState();
+}
+
+class _FeedReelButtonState extends State<_FeedReelButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final color = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      label: AppLocalizations.of(context)!.openReelFeed,
+      child: IconButton(
+        tooltip: AppLocalizations.of(context)!.openReelFeed,
+        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+        padding: EdgeInsets.zero,
+        onPressed: widget.onPressed,
+        icon: AnimatedBuilder(
+          animation: _controller,
+          builder: (_, child) => Transform.scale(
+            scale: reduceMotion ? 1 : 1 + (_controller.value * .10),
+            child: child,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .14),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: .35)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.play_arrow_rounded, size: 18, color: color),
+            ),
+          ),
         ),
       ),
     );

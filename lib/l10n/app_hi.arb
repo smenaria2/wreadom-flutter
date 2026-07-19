@@ -1428,5 +1428,9 @@
   "createTopicTag": "\"{tag}\" \u092c\u0928\u093e\u090f\u0901",
   "@createTopicTag": {"placeholders": {"tag": {"type": "String"}}},
   "popularTopics": "लोकप्रिय विषय",
-  "topicSuggestions": "सुझाव"
-}
+  "topicSuggestions": "सुझाव",
+  "openReelFeed": "रील फ़ीड खोलें",
+  "closeReelFeed": "रील फ़ीड बंद करें",
+  "refreshPublicPosts": "सार्वजनिक पोस्ट रीफ़्रेश करें",
+  "beFirstToComment": "पहली टिप्पणी करें",
+  "reelSwipeHint": "अगली पोस्ट के लिए बाएं और पिछली पोस्ट के लिए दाएं स्वाइप करें।"}

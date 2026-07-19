@@ -5779,6 +5779,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggestions'**
   String get topicSuggestions;
+
+  /// No description provided for @openReelFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Open reel feed'**
+  String get openReelFeed;
+
+  /// No description provided for @closeReelFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Close reel feed'**
+  String get closeReelFeed;
+
+  /// No description provided for @refreshPublicPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh public posts'**
+  String get refreshPublicPosts;
+
+  /// No description provided for @beFirstToComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to comment'**
+  String get beFirstToComment;
+
+  /// No description provided for @reelSwipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left for the next post and right for the previous post.'**
+  String get reelSwipeHint;
 }
 
 class _AppLocalizationsDelegate

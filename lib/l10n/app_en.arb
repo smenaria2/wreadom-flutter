@@ -1868,5 +1868,9 @@
   "createTopicTag": "Create \"{tag}\"",
   "@createTopicTag": {"placeholders": {"tag": {"type": "String"}}},
   "popularTopics": "Popular topics",
-  "topicSuggestions": "Suggestions"
-}
+  "topicSuggestions": "Suggestions",
+  "openReelFeed": "Open reel feed",
+  "closeReelFeed": "Close reel feed",
+  "refreshPublicPosts": "Refresh public posts",
+  "beFirstToComment": "Be the first to comment",
+  "reelSwipeHint": "Swipe left for the next post and right for the previous post."}

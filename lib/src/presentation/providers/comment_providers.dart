@@ -75,6 +75,23 @@ final liveFeedPostCommentsProvider =
           });
     });
 
+/// Watches only the newest comment for the currently visible reel page.
+final latestFeedPostCommentProvider = StreamProvider.autoDispose
+    .family<Comment?, String>((ref, postId) {
+      final idAsInt = int.tryParse(postId);
+      final ids = [postId, ?idAsInt];
+      return FirebaseFirestore.instance
+          .collection('comments')
+          .where('feedPostId', whereIn: ids)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .snapshots()
+          .map((snapshot) {
+            if (snapshot.docs.isEmpty) return null;
+            final doc = snapshot.docs.first;
+            return Comment.fromJson(mapFirestoreData(doc.data(), doc.id));
+          });
+    });
 int _compareBookComments(Comment a, Comment b) {
   final aHighlightedAt = a.highlightedAt ?? 0;
   final bHighlightedAt = b.highlightedAt ?? 0;

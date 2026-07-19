@@ -3242,4 +3242,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get topicSuggestions => 'Suggestions';
+
+  @override
+  String get openReelFeed => 'Open reel feed';
+
+  @override
+  String get closeReelFeed => 'Close reel feed';
+
+  @override
+  String get refreshPublicPosts => 'Refresh public posts';
+
+  @override
+  String get beFirstToComment => 'Be the first to comment';
+
+  @override
+  String get reelSwipeHint =>
+      'Swipe left for the next post and right for the previous post.';
 }

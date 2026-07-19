@@ -3248,4 +3248,20 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get topicSuggestions => 'सुझाव';
+
+  @override
+  String get openReelFeed => 'रील फ़ीड खोलें';
+
+  @override
+  String get closeReelFeed => 'रील फ़ीड बंद करें';
+
+  @override
+  String get refreshPublicPosts => 'सार्वजनिक पोस्ट रीफ़्रेश करें';
+
+  @override
+  String get beFirstToComment => 'पहली टिप्पणी करें';
+
+  @override
+  String get reelSwipeHint =>
+      'अगली पोस्ट के लिए बाएं और पिछली पोस्ट के लिए दाएं स्वाइप करें।';
 }
