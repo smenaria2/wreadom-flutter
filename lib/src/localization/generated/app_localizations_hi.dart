@@ -3298,4 +3298,19 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get feedFilterTooltip => 'पोस्ट फ़िल्टर करें';
+
+  @override
+  String quoteFromBookSubject(String title) {
+    return '\"$title\" से उद्धरण';
+  }
+
+  @override
+  String shareQuoteMessage(
+    String quote,
+    String title,
+    String authors,
+    String link,
+  ) {
+    return '\"$quote\"\n\nरीडम् पर \"$authors\" द्वारा \"$title\" पढ़ें। रीडम् पर हजारों कहानियां पढ़ें। $link';
+  }
 }

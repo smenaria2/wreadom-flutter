@@ -213,7 +213,7 @@ void main() {
       final source = File('lib/src/data/services/notification_service.dart').readAsStringSync();
 
       expect(source, contains('reader_tts_channel_v2'));
-      expect(source, contains('deleteNotificationChannel(\'reader_tts_channel\')'));
+      expect(source, contains('deleteNotificationChannel(channelId: \'reader_tts_channel\')'));
       expect(source, isNot(contains('\'reader_tts_channel\','))); // No longer registered as new channel
     });
   });
@@ -247,6 +247,59 @@ void main() {
 
       // Gemini must be located above ChatGPT
       expect(geminiY, lessThan(chatGptY));
+    });
+  });
+
+  group('New Feed, Layout, & Sharing Fixes', () {
+    test('Feed story play button is removed', () {
+      final source = File('lib/src/presentation/widgets/reels_preview_carousel.dart').readAsStringSync();
+      expect(source, isNot(contains('Icons.play_arrow_rounded')));
+      expect(source, isNot(contains('Middle Play Badge')));
+    });
+
+    test('Author name resolution falls back correctly', () {
+      final carouselSource = File('lib/src/presentation/widgets/reels_preview_carousel.dart').readAsStringSync();
+      final reelsSource = File('lib/src/presentation/screens/feed_reels_screen.dart').readAsStringSync();
+
+      expect(carouselSource, contains('post.penName != null && post.penName!.trim().isNotEmpty'));
+      expect(carouselSource, contains('post.displayName != null && post.displayName!.trim().isNotEmpty'));
+
+      expect(reelsSource, contains('post.displayName != null && post.displayName!.trim().isNotEmpty'));
+      expect(reelsSource, contains('post.penName != null && post.penName!.trim().isNotEmpty'));
+    });
+
+    test('Question card font size is reduced to 13', () {
+      final source = File('lib/src/presentation/screens/home_feed_screen.dart').readAsStringSync();
+      expect(source, contains('fontSize: 13'));
+      expect(source, contains('theme.textTheme.bodyMedium'));
+    });
+
+    test('Quote sharing localization keys exist and are integrated', () {
+      final enArb = File('lib/l10n/app_en.arb').readAsStringSync();
+      final hiArb = File('lib/l10n/app_hi.arb').readAsStringSync();
+      final readerSource = File('lib/src/presentation/screens/reader_screen.dart').readAsStringSync();
+      final sheetSource = File('lib/src/presentation/components/book/quote_share_preview_sheet.dart').readAsStringSync();
+
+      expect(enArb, contains('"quoteFromBookSubject": "Quote from {title}"'));
+      expect(enArb, contains('"shareQuoteMessage"'));
+      expect(hiArb, contains('"quoteFromBookSubject":'));
+      expect(hiArb, contains('"shareQuoteMessage"'));
+
+      expect(readerSource, contains('l10n.quoteFromBookSubject(widget.book.title)'));
+      expect(readerSource, contains('l10n.shareQuoteMessage('));
+
+      expect(sheetSource, contains('widget.shareText'));
+      expect(sheetSource, contains('l10n.quoteFromBookSubject(widget.book.title)'));
+    });
+
+    test('Adaptive Review Share Card Size works based on comment length', () {
+      final source = File('lib/src/presentation/components/review_share_card.dart').readAsStringSync();
+
+      expect(source, contains('final isLong = post.text.trim().length > 220;'));
+      expect(source, contains('_buildPortraitCard('));
+      expect(source, contains('_buildLandscapeCard('));
+      expect(source, contains('height: 960')); // Landscape height
+      expect(source, contains('height: 2172')); // Portrait A4 height
     });
   });
 }

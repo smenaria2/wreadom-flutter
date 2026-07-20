@@ -39,10 +39,8 @@ class _QuoteSharePreviewSheetState
   bool _isSharingToFeed = false;
 
   Future<void> _shareExternally() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      final authors = bookAuthorName(widget.book);
-      final caption =
-          'Read "${widget.book.title}" by "$authors" on Wreadom. Read thousands of stories on Wreadom. ${widget.chapterLink}';
       await Share.shareXFiles(
         [
           XFile.fromData(
@@ -52,8 +50,8 @@ class _QuoteSharePreviewSheetState
             mimeType: 'image/png',
           ),
         ],
-        text: caption,
-        subject: 'Quote from ${widget.book.title}',
+        text: widget.shareText,
+        subject: l10n.quoteFromBookSubject(widget.book.title),
       );
       if (mounted) {
         Navigator.pop(context);

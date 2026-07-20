@@ -2541,10 +2541,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         chapterIndex + 1,
       );
 
+      final l10n = AppLocalizations.of(context)!;
       if (bytes == null || bytes.isEmpty) {
         await Share.share(
           shareText,
-          subject: 'Quote from ${widget.book.title}',
+          subject: l10n.quoteFromBookSubject(widget.book.title),
         );
       } else {
         if (mounted) {
@@ -2560,7 +2561,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         }
       }
     } catch (_) {
-      await Share.share(shareText, subject: 'Quote from ${widget.book.title}');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        await Share.share(
+          shareText,
+          subject: l10n.quoteFromBookSubject(widget.book.title),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _quoteSharePayload = null);
@@ -2577,7 +2584,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       widget.book.id,
       _chapterIndex + 1,
     );
-    return '"$selected"\n\nRead "${widget.book.title}" by "$authors" on Wreadom. Read thousands of stories on Wreadom. $chapterLink';
+    final l10n = AppLocalizations.of(context)!;
+    return l10n.shareQuoteMessage(selected, widget.book.title, authors, chapterLink);
   }
 
   Future<void> _handleShareChapter(Chapter? chapter) async {

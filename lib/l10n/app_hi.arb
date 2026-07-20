@@ -1456,5 +1456,30 @@
     }
   },
   "feedFilterLabel": "फ़िल्टर",
-  "feedFilterTooltip": "पोस्ट फ़िल्टर करें"
+  "feedFilterTooltip": "पोस्ट फ़िल्टर करें",
+  "quoteFromBookSubject": "\"{title}\" से उद्धरण",
+  "@quoteFromBookSubject": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "shareQuoteMessage": "\"{quote}\"\n\nरीडम् पर \"{authors}\" द्वारा \"{title}\" पढ़ें। रीडम् पर हजारों कहानियां पढ़ें। {link}",
+  "@shareQuoteMessage": {
+    "placeholders": {
+      "quote": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      },
+      "authors": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  }
 }

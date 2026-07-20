@@ -222,6 +222,40 @@ class ReviewShareCard extends StatelessWidget {
       letterSpacing: 7,
     );
 
+    final isLong = post.text.trim().length > 220;
+
+    if (isLong) {
+      return _buildPortraitCard(
+        context,
+        l10n: l10n,
+        reviewer: reviewer,
+        rating: rating,
+        titleStyle: titleStyle,
+        serifBody: serifBody,
+        labelStyle: labelStyle,
+      );
+    } else {
+      return _buildLandscapeCard(
+        context,
+        l10n: l10n,
+        reviewer: reviewer,
+        rating: rating,
+        titleStyle: titleStyle,
+        serifBody: serifBody,
+        labelStyle: labelStyle,
+      );
+    }
+  }
+
+  Widget _buildLandscapeCard(
+    BuildContext context, {
+    required AppLocalizations l10n,
+    required String reviewer,
+    required double rating,
+    required TextStyle titleStyle,
+    required TextStyle serifBody,
+    required TextStyle labelStyle,
+  }) {
     return SizedBox(
       width: 1536,
       height: 960,
@@ -432,6 +466,267 @@ class ReviewShareCard extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.reviewedBy,
+                          style: GoogleFonts.caveat(
+                            color: const Color(0xFFB8862D),
+                            fontSize: 43,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          reviewer,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cormorantGaramond(
+                            color: const Color(0xFF0D2538),
+                            fontSize: 48,
+                            height: 1,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/app_logo.png',
+                              height: 24,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'wreadom.in',
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFB17A27),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortraitCard(
+    BuildContext context, {
+    required AppLocalizations l10n,
+    required String reviewer,
+    required double rating,
+    required TextStyle titleStyle,
+    required TextStyle serifBody,
+    required TextStyle labelStyle,
+  }) {
+    return SizedBox(
+      width: 1536,
+      height: 2172,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFCF6),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 26,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(26),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                      color: const Color(0x66B8862D),
+                      width: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: (1536 - 410) / 2,
+              top: 100,
+              width: 410,
+              height: 585,
+              child: _BookCover(
+                coverUrl: post.bookCover,
+                title: bookTitle,
+                author: bookAuthorName,
+                seed: post.bookId?.toString() ?? bookTitle,
+              ),
+            ),
+            Positioned(
+              left: 100,
+              right: 100,
+              top: 730,
+              child: Column(
+                children: [
+                  const _GoldDivider(width: 190),
+                  const SizedBox(height: 22),
+                  Text(
+                    bookTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: 20),
+                  const _GoldDivider(width: 64),
+                  const SizedBox(height: 18),
+                  Text(
+                    bookAuthorName.isEmpty
+                        ? l10n.unknownAuthor
+                        : bookAuthorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFB17A27),
+                      fontSize: 25,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 7,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 100,
+              right: 100,
+              top: 1040,
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Icon(
+                          index < rating.round()
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: const Color(0xFFB8862D),
+                          size: 66,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: _GoldDivider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Text(
+                          l10n
+                              .ratingOutOfFive(rating.toStringAsFixed(1))
+                              .toUpperCase(),
+                          style: labelStyle,
+                        ),
+                      ),
+                      const Expanded(child: _GoldDivider()),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 100,
+              right: 100,
+              top: 1260,
+              height: 540,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: -30,
+                    child: Text(
+                      '"',
+                      style: GoogleFonts.cormorantGaramond(
+                        color: const Color(0xFFE2D2BD),
+                        fontSize: 112,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 24,
+                    top: 68,
+                    bottom: 8,
+                    child: Container(
+                      width: 1.2,
+                      color: const Color(0xFFB8862D),
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: -22,
+                    child: Text(
+                      '"',
+                      style: GoogleFonts.cormorantGaramond(
+                        color: const Color(0xFFE2D2BD),
+                        fontSize: 112,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(70, 20, 44, 0),
+                    child: Center(
+                      child: Text(
+                        post.text.trim().isEmpty
+                            ? l10n.feedTypeReview
+                            : post.text.trim(),
+                        maxLines: 15,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: serifBody,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 100,
+              right: 100,
+              bottom: 250,
+              child: const _GoldDivider(withDiamond: true),
+            ),
+            Positioned(
+              left: 200,
+              right: 200,
+              bottom: 78,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ReviewerAvatar(post: post, reviewer: reviewer),
+                  const SizedBox(width: 34),
+                  Container(
+                    height: 132,
+                    width: 1.2,
+                    color: const Color(0xFFB8862D),
+                  ),
+                  const SizedBox(width: 36),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           l10n.reviewedBy,

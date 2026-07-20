@@ -758,8 +758,9 @@ class _QuestionPromptCard extends StatelessWidget {
                       question,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w800,
+                        fontSize: 13,
                         height: 1.25,
                       ),
                     ),

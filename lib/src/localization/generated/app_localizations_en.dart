@@ -3292,4 +3292,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get feedFilterTooltip => 'Filter posts';
+
+  @override
+  String quoteFromBookSubject(String title) {
+    return 'Quote from $title';
+  }
+
+  @override
+  String shareQuoteMessage(
+    String quote,
+    String title,
+    String authors,
+    String link,
+  ) {
+    return '\"$quote\"\n\nRead \"$title\" by \"$authors\" on Wreadom. Read thousands of stories on Wreadom. $link';
+  }
 }

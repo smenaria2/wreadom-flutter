@@ -451,9 +451,23 @@ class _ReelPage extends ConsumerWidget {
         : const AsyncValue.data(null);
     final commentCount = post.commentCount ?? post.comments?.length ?? 0;
 
+    String resolveName() {
+      if (post.displayName != null && post.displayName!.trim().isNotEmpty) {
+        return post.displayName!.trim();
+      }
+      if (post.penName != null && post.penName!.trim().isNotEmpty) {
+        return post.penName!.trim();
+      }
+      if (post.username.trim().isNotEmpty) {
+        return post.username.trim();
+      }
+      return 'Anonymous';
+    }
+    final displayName = resolveName();
+
     return Semantics(
       label:
-          '${post.displayName ?? post.penName ?? post.username}. ${l10n.reelSwipeHint}',
+          '$displayName. ${l10n.reelSwipeHint}',
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           8,
@@ -588,6 +602,21 @@ class _ReelOverlay extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final comment = latestComment.asData?.value;
+
+    String resolveName() {
+      if (post.displayName != null && post.displayName!.trim().isNotEmpty) {
+        return post.displayName!.trim();
+      }
+      if (post.penName != null && post.penName!.trim().isNotEmpty) {
+        return post.penName!.trim();
+      }
+      if (post.username.trim().isNotEmpty) {
+        return post.username.trim();
+      }
+      return 'Anonymous';
+    }
+    final displayName = resolveName();
+
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 30, 10, 12),
       decoration: BoxDecoration(
@@ -674,7 +703,7 @@ class _ReelOverlay extends ConsumerWidget {
                           const SizedBox(width: 9),
                           Expanded(
                             child: Text(
-                              post.displayName ?? post.penName ?? post.username,
+                              displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(

@@ -5869,6 +5869,23 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter posts'**
   String get feedFilterTooltip;
+
+  /// No description provided for @quoteFromBookSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote from {title}'**
+  String quoteFromBookSubject(String title);
+
+  /// No description provided for @shareQuoteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{quote}\"\n\nRead \"{title}\" by \"{authors}\" on Wreadom. Read thousands of stories on Wreadom. {link}'**
+  String shareQuoteMessage(
+    String quote,
+    String title,
+    String authors,
+    String link,
+  );
 }
 
 class _AppLocalizationsDelegate

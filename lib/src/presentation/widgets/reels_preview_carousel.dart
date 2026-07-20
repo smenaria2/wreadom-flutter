@@ -87,7 +87,19 @@ class _ReelPreviewCard extends StatelessWidget {
     final gradientIndex = (post.id.hashCode).abs() % ReelsPreviewCarousel._gradientPresets.length;
     final gradient = ReelsPreviewCarousel._gradientPresets[gradientIndex];
 
-    final displayName = post.penName ?? post.displayName ?? post.username;
+    String resolveName() {
+      if (post.penName != null && post.penName!.trim().isNotEmpty) {
+        return post.penName!.trim();
+      }
+      if (post.displayName != null && post.displayName!.trim().isNotEmpty) {
+        return post.displayName!.trim();
+      }
+      if (post.username.trim().isNotEmpty) {
+        return post.username.trim();
+      }
+      return 'Anonymous';
+    }
+    final displayName = resolveName();
     final initialLetter = displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'W';
 
     return Container(
@@ -194,22 +206,7 @@ class _ReelPreviewCard extends StatelessWidget {
               ),
             ),
 
-            // Middle Play Badge
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24, width: 1),
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-            ),
+
 
             // Star Rating (if review) or small overlay
             if (post.type.toLowerCase() == 'review' && post.rating != null)
