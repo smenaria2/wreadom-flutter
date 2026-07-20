@@ -3283,7 +3283,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get failedToPost => 'पोस्ट करने में विफल';
 
   @override
-  String get play => 'चलाएं';
+  String get play => 'चलाएँ';
 
   @override
   String get pause => 'रोकें';
@@ -3292,4 +3292,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String publishNotice(String terms, String privacy) {
     return 'मैं पुष्टि करता हूं कि मेरे पास इस रचना को प्रकाशित करने का अधिकार है और मैं Wreadom के $terms और $privacy से सहमत हूं।';
   }
+
+  @override
+  String get feedFilterLabel => 'फ़िल्टर';
+
+  @override
+  String get feedFilterTooltip => 'पोस्ट फ़िल्टर करें';
 }

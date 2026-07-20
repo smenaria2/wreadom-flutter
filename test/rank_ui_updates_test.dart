@@ -90,6 +90,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  test('leaderboard snapshot reads lifetime points for the selected track', () {
+    final reader = LeaderboardRank.fromMap({
+      'rank': 4,
+      'userId': 'reader',
+      'points': 60,
+      'readerPoints': 600,
+    }, type: 'reader');
+    final author = LeaderboardRank.fromMap({
+      'rank': 7,
+      'userId': 'author',
+      'points': 80,
+      'authorPoints': 1200,
+    });
+
+    expect(reader.points, 60);
+    expect(reader.allTimePoints, 600);
+    expect(author.points, 80);
+    expect(author.allTimePoints, 1200);
+  });
+
   test('leaderboard names skip blank profile fields', () {
     expect(
       resolveLeaderboardDisplayName({

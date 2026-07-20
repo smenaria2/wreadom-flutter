@@ -12,16 +12,16 @@ class AiEditApp {
 
 final aiEditApps = [
   AiEditApp(
-    'ChatGPT',
-    Uri.parse('https://chatgpt.com'),
-    Icons.chat_bubble_outline_rounded,
-    const Color(0xFF10A37F),
-  ),
-  AiEditApp(
     'Gemini',
     Uri.parse('https://gemini.google.com'),
     Icons.auto_awesome_rounded,
     const Color(0xFF1A73E8),
+  ),
+  AiEditApp(
+    'ChatGPT',
+    Uri.parse('https://chatgpt.com'),
+    Icons.chat_bubble_outline_rounded,
+    const Color(0xFF10A37F),
   ),
 ];
 

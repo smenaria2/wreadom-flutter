@@ -3286,4 +3286,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishNotice(String terms, String privacy) {
     return 'I confirm that I have the right to publish this work and agree to Wreadom\'s $terms and $privacy.';
   }
+
+  @override
+  String get feedFilterLabel => 'Filter';
+
+  @override
+  String get feedFilterTooltip => 'Filter posts';
 }

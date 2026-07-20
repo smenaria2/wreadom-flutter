@@ -115,8 +115,18 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       final loader = widget.leaderboardLoader ?? _repository!.fetchLeaderboard;
       final results = await loader(period: _period, type: _category);
       if (!mounted || request != _loadRequest) return;
+      final currentUserAllTimePoints = _category == 'reader'
+          ? widget.currentUser.readerPoints
+          : widget.currentUser.authorPoints;
       setState(() {
-        _rankings = results.take(20).toList();
+        _rankings = results.take(20).map((entry) {
+          if (entry.userId != widget.currentUser.id ||
+              currentUserAllTimePoints == null ||
+              entry.allTimePoints != null) {
+            return entry;
+          }
+          return entry.withAllTimePoints(currentUserAllTimePoints);
+        }).toList();
         _loading = false;
       });
       _scheduleTargetReveal();
@@ -670,6 +680,7 @@ class _PodiumStrip extends StatelessWidget {
 
               const SizedBox(height: 6),
               GestureDetector(
+                key: ValueKey('podium-bar-${entry.rank}'),
                 onTap: () {
                   HapticFeedback.lightImpact();
                   onBarTap(entry.userId);
@@ -679,57 +690,74 @@ class _PodiumStrip extends StatelessWidget {
                   tween: Tween(begin: 0.0, end: heights[i]),
                   duration: const Duration(milliseconds: 900),
                   curve: Curves.easeOutBack,
-                  builder: (ctx, h, child) => GlassSurface(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: double.infinity,
-                      height: h,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            isHighlighted
-                                ? scheme.primary.withValues(alpha: 0.35)
-                                : accentColors[i].withValues(alpha: 0.28),
-                            accentColors[i].withValues(alpha: 0.08),
-                          ],
-                        ),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12),
-                        ),
-                        border: isHighlighted
-                            ? Border(
-                                top: BorderSide(
-                                  color: scheme.primary.withValues(alpha: 0.8),
-                                  width: 2,
-                                ),
-                                left: BorderSide(
-                                  color: scheme.primary.withValues(alpha: 0.6),
-                                  width: 1.5,
-                                ),
-                                right: BorderSide(
-                                  color: scheme.primary.withValues(alpha: 0.6),
-                                  width: 1.5,
-                                ),
-                              )
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${entry.rank}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: i == 1 ? 20 : 15,
-                            color: isHighlighted
-                                ? scheme.primary
-                                : accentColors[i],
+                  builder: (ctx, h, _) => SizedBox(
+                    width: double.infinity,
+                    height: h,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GlassSurface(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  isHighlighted
+                                      ? scheme.primary.withValues(alpha: 0.35)
+                                      : accentColors[i].withValues(alpha: 0.28),
+                                  accentColors[i].withValues(alpha: 0.08),
+                                ],
+                              ),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12),
+                              ),
+                              border: isHighlighted
+                                  ? Border(
+                                      top: BorderSide(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        width: 2,
+                                      ),
+                                      left: BorderSide(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        width: 1.5,
+                                      ),
+                                      right: BorderSide(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        width: 1.5,
+                                      ),
+                                    )
+                                  : null,
+                            ),
                           ),
                         ),
-                      ),
+                        IgnorePointer(
+                          child: Center(
+                            child: Text(
+                              '${entry.rank}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: i == 1 ? 20 : 15,
+                                color: isHighlighted
+                                    ? scheme.brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87
+                                    : accentColors[i],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -926,7 +954,13 @@ class _RankingCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Builder(
                     builder: (_) {
-                      final tier = getTierInfo(entry.points, category);
+                      // Always use all-time points for the tier badge. It
+                      // must reflect the user's permanent tier regardless of
+                      // which leaderboard period (weekly/monthly) is selected.
+                      final tier = getTierInfo(
+                        entry.allTimePoints ?? entry.points,
+                        category,
+                      );
                       return Row(
                         children: [
                           Text(tier.icon, style: const TextStyle(fontSize: 10)),

@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/leaderboard_model.dart';
 
 class LeaderboardRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  LeaderboardRepository({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<List<LeaderboardRank>> fetchLeaderboard({
     required String period, // 'daily' | 'weekly' | 'monthly' | 'total'
@@ -23,12 +26,15 @@ class LeaderboardRepository {
           final idx = entry.key;
           final doc = entry.value;
           final data = doc.data();
+          final pts = (data[pointField] as num).toInt();
           return LeaderboardRank(
             rank: idx + 1,
             userId: doc.id,
             displayName: resolveLeaderboardDisplayName(data),
             photoUrl: data['photoURL'] ?? '',
-            points: (data[pointField] as num).toInt(),
+            points: pts,
+            // For total period, period points == all-time points
+            allTimePoints: pts,
           );
         }).toList();
       }
@@ -40,10 +46,48 @@ class LeaderboardRepository {
       final docSnap = await docRef.get();
       if (!docSnap.exists) return [];
 
-      return LeaderboardDoc.fromMap(docSnap.data()!).rankings;
+      final rankings = LeaderboardDoc.fromMap(
+        docSnap.data()!,
+      ).rankings.take(20).toList();
+      return _withCurrentAllTimePoints(rankings, type);
     } catch (e) {
       debugPrint('LeaderboardRepository: failed to fetch: $e');
       rethrow;
+    }
+  }
+
+  Future<List<LeaderboardRank>> _withCurrentAllTimePoints(
+    List<LeaderboardRank> rankings,
+    String type,
+  ) async {
+    try {
+      final userIds = rankings
+          .map((entry) => entry.userId)
+          .where((userId) => userId.isNotEmpty)
+          .toSet()
+          .toList();
+      if (userIds.isEmpty) return rankings;
+
+      final pointField = type == 'reader' ? 'readerPoints' : 'authorPoints';
+      final users = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: userIds)
+          .get();
+      final pointsByUserId = <String, int>{};
+      for (final user in users.docs) {
+        final value = user.data()[pointField];
+        if (value is num) pointsByUserId[user.id] = value.toInt();
+      }
+
+      return rankings.map((entry) {
+        final allTimePoints = pointsByUserId[entry.userId];
+        return allTimePoints == null
+            ? entry
+            : entry.withAllTimePoints(allTimePoints);
+      }).toList();
+    } catch (e, s) {
+      debugPrint('LeaderboardRepository: failed to enrich rankings: $e\n$s');
+      return rankings;
     }
   }
 }

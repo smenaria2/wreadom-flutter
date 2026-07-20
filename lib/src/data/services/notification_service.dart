@@ -114,8 +114,17 @@ class NotificationService {
         >()
         ?.createNotificationChannel(channel);
 
+    final androidPlugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidPlugin != null) {
+      await androidPlugin.deleteNotificationChannel(channelId: 'reader_tts_channel');
+    }
+
     const AndroidNotificationChannel ttsChannel = AndroidNotificationChannel(
-      'reader_tts_channel',
+      'reader_tts_channel_v2',
       'Read aloud',
       description: 'Controls for active read-aloud playback.',
       importance: Importance.high,
@@ -123,11 +132,9 @@ class NotificationService {
       enableVibration: false,
     );
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(ttsChannel);
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(ttsChannel);
+    }
 
     // 4. Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -214,7 +221,7 @@ class NotificationService {
       body: body,
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          'reader_tts_channel',
+          'reader_tts_channel_v2',
           'Read aloud',
           channelDescription: 'Controls for active read-aloud playback.',
           importance: Importance.high,

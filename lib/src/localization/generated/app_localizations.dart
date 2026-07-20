@@ -5857,6 +5857,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I confirm that I have the right to publish this work and agree to Wreadom\'s {terms} and {privacy}.'**
   String publishNotice(String terms, String privacy);
+
+  /// No description provided for @feedFilterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get feedFilterLabel;
+
+  /// No description provided for @feedFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter posts'**
+  String get feedFilterTooltip;
 }
 
 class _AppLocalizationsDelegate

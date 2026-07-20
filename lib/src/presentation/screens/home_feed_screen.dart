@@ -222,9 +222,9 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         ? _questionPrompt(activeQuestions)
         : null;
 
-    Widget buildFilterDropdown(BuildContext context) {
-      final l10n = AppLocalizations.of(context)!;
+    Widget buildFilterButton(BuildContext context) {
       final theme = Theme.of(context);
+      final isFiltered = _selectedType != 'all';
 
       IconData iconFor(String type) {
         switch (type) {
@@ -237,7 +237,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           case 'question':
             return Icons.help_outline_rounded;
           default:
-            return Icons.filter_alt_outlined;
+            return Icons.filter_list_rounded;
         }
       }
 
@@ -256,55 +256,90 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         }
       }
 
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedType,
-            icon: Icon(
-              Icons.arrow_drop_down_rounded,
-              color: theme.colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() => _selectedType = value);
-              }
-            },
-            items: const [
-              'all',
-              'comment',
-              'quote',
-              'review',
-              'question',
-            ].map((type) {
-              return DropdownMenuItem<String>(
-                value: type,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      iconFor(type),
-                      size: 14,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(labelFor(type)),
-                  ],
+      final activeColor = isFiltered
+          ? theme.colorScheme.primary
+          : theme.colorScheme.onSurfaceVariant;
+
+      return PopupMenuButton<String>(
+        tooltip: l10n.feedFilterTooltip,
+        onSelected: (value) => setState(() => _selectedType = value),
+        offset: const Offset(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        itemBuilder: (_) => [
+          'all',
+          'comment',
+          'quote',
+          'review',
+          'question',
+        ].map((type) {
+          final selected = _selectedType == type;
+          return PopupMenuItem<String>(
+            value: type,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? theme.colorScheme.primaryContainer
+                        : theme.colorScheme.surfaceContainerHighest,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    iconFor(type),
+                    size: 15,
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              );
-            }).toList(),
+                const SizedBox(width: 12),
+                Text(
+                  labelFor(type),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (selected) ...[const Spacer(), Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary)],
+              ],
+            ),
+          );
+        }).toList(),
+        child: GlassSurface(
+          strong: true,
+          borderRadius: BorderRadius.circular(20),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          onTap: null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                iconFor(_selectedType),
+                size: 15,
+                color: activeColor,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                isFiltered ? labelFor(_selectedType) : l10n.feedFilterLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: activeColor,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 16,
+                color: activeColor.withValues(alpha: 0.7),
+              ),
+            ],
           ),
         ),
       );
@@ -334,7 +369,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
             ),
           ),
           const SizedBox(width: 8),
-          buildFilterDropdown(context),
+          buildFilterButton(context),
         ],
       ),
     );
@@ -562,7 +597,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
   }
 }
 
-class _FeedScopeSelector extends StatelessWidget {
+class _FeedScopeSelector extends StatefulWidget {
   const _FeedScopeSelector({
     required this.selectedFilter,
     required this.onFilterSelected,
@@ -572,63 +607,107 @@ class _FeedScopeSelector extends StatelessWidget {
   final ValueChanged<FeedFilter> onFilterSelected;
 
   @override
+  State<_FeedScopeSelector> createState() => _FeedScopeSelectorState();
+}
+
+class _FeedScopeSelectorState extends State<_FeedScopeSelector> {
+  static const _tabs = [
+    (FeedFilter.following, Icons.people_alt_rounded),
+    (FeedFilter.public, Icons.public_rounded),
+    (FeedFilter.mine, Icons.person_rounded),
+  ];
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    Widget item(FeedFilter filter, String label, IconData icon) {
-      final isSelected = selectedFilter == filter;
-      return GestureDetector(
-        onTap: () => onFilterSelected(filter),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 13,
-                color: isSelected
-                    ? theme.colorScheme.onPrimaryContainer
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+    String labelFor(FeedFilter f) {
+      switch (f) {
+        case FeedFilter.following:
+          return l10n.following;
+        case FeedFilter.mine:
+          return l10n.mine;
+        default:
+          return l10n.public;
+      }
     }
 
     return GlassControlSurface(
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              item(FeedFilter.following, l10n.following, Icons.people_outline_rounded),
-              item(FeedFilter.public, l10n.public, Icons.public_rounded),
-              item(FeedFilter.mine, l10n.mine, Icons.person_outline_rounded),
-            ],
-          ),
+      borderRadius: BorderRadius.circular(20),
+      padding: EdgeInsets.zero,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: _tabs.map((tab) {
+            final (filter, icon) = tab;
+            final isSelected = widget.selectedFilter == filter;
+            return Semantics(
+              label: labelFor(filter),
+              selected: isSelected,
+              button: true,
+              onTap: () {
+                AppHaptics.selection();
+                widget.onFilterSelected(filter);
+              },
+              child: GestureDetector(
+                onTap: () {
+                  AppHaptics.selection();
+                  widget.onFilterSelected(filter);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? theme.colorScheme.primary.withValues(alpha: 0.85)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 14,
+                        color: isSelected
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        child: isSelected
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    labelFor(filter),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
