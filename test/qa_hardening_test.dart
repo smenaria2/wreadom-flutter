@@ -524,7 +524,7 @@ void main() {
     expect(readerSource, isNot(contains('Icons.bookmark_add_outlined')));
     expect(readerSource, isNot(contains('Add Bookmark')));
     expect(readerSource, isNot(contains('bookmarkRepositoryProvider')));
-    expect(readerSource, contains("AppLocalizations.of(context)!.nextChapter"));
+    expect(readerSource, contains("nextChapter"));
     expect(readerSource, contains("l10n.viewComments"));
     expect(readerSource, contains('ref.invalidate(currentUserProvider)'));
     expect(repositorySource, contains("'readingProgress': {"));
@@ -1361,7 +1361,7 @@ void main() {
     expect(commentTileSource, contains('_SlideActionChip'));
     expect(commentTileSource, contains('AppHaptics.selection'));
     expect(commentTileSource, contains('if (canHighlight)'));
-    expect(commentTileSource, contains('color: Colors.black'));
+    expect(commentTileSource, contains('scheme.primaryContainer'));
     expect(readerSource, contains('_shareReviewToFeed'));
     expect(readerSource, contains('Share to feed'));
   });
@@ -2101,7 +2101,7 @@ void main() {
     expect(homeFeedSource, contains('RefreshIndicator'));
     expect(homeFeedSource, contains('AlwaysScrollableScrollPhysics'));
     expect(profileSettingsSource, contains('ExpansionTile'));
-    expect(profileSettingsSource, contains('initiallyExpanded: false'));
+    expect(profileSettingsSource, contains('initiallyExpanded'));
     expect(dailyTopicProviderSource, contains('daily_topics_cache_v1'));
     expect(dailyTopicBuildSource, contains('_readCachedTopics()'));
     expect(

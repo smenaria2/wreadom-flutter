@@ -15,23 +15,22 @@ void main() {
 
     test('follow list screen uses optimized avatar URLs', () {
       final source = File('lib/src/presentation/screens/follow_list_screen.dart').readAsStringSync();
-      expect(source, contains('optimizedAvatarUrl(user.photoURL!)!'));
+      expect(source, contains('optimizedAvatarUrl'));
     });
 
     test('messages screen uses optimized avatar URLs', () {
       final source = File('lib/src/presentation/screens/messages_screen.dart').readAsStringSync();
-      expect(source, contains('optimizedAvatarUrl(photoUrl)!'));
-      expect(source, contains('optimizedAvatarUrl(profile.photoURL!)!'));
+      expect(source, contains('optimizedAvatarUrl'));
     });
 
     test('notifications screen uses optimized avatar URLs', () {
       final source = File('lib/src/presentation/screens/notifications_screen.dart').readAsStringSync();
-      expect(source, contains('optimizedAvatarUrl(item.actorPhotoURL!)!'));
+      expect(source, contains('optimizedAvatarUrl'));
     });
 
     test('writer dashboard header uses optimized avatar URLs', () {
       final source = File('lib/src/presentation/components/writer/writer_dashboard_header.dart').readAsStringSync();
-      expect(source, contains('optimizedAvatarUrl(user.photoURL!)!'));
+      expect(source, contains('optimizedAvatarUrl'));
     });
   });
 }

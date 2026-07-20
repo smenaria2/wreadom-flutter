@@ -818,7 +818,7 @@ class _BookDetailBody extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                             child: _SheetRevealButton(
-                              label: l10n.postToFeed,
+                              label: l10n.shareToFeed,
                               icon: Icons.dynamic_feed_outlined,
                               expanded: feedVisible,
                               onTap: () => setModalState(() {
