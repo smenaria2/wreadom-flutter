@@ -67,4 +67,79 @@ void main() {
     expect(find.bySemanticsLabel('Submit Comment, loading'), findsOneWidget);
     semantics.dispose();
   });
+
+  testWidgets('PageView horizontal scroll semantics support', (WidgetTester tester) async {
+    final semantics = tester.ensureSemantics();
+    final controller = PageController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PageView(
+            controller: controller,
+            scrollDirection: Axis.horizontal,
+            children: [
+              Semantics(
+                label: 'Page 1',
+                child: const SizedBox(width: 100, height: 100),
+              ),
+              Semantics(
+                label: 'Page 2',
+                child: const SizedBox(width: 100, height: 100),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Get semantics node for Page 1 and verify its parent (the scrollable viewport) has the scrollLeft action
+    final page1Node = tester.getSemantics(find.bySemanticsLabel('Page 1'));
+    final parentNode = page1Node.parent;
+    expect(parentNode, isNotNull);
+    expect(parentNode!.getSemanticsData().hasAction(SemanticsAction.scrollLeft), true);
+    semantics.dispose();
+  });
+
+  testWidgets('Theme Option wrapper renders with correct semantics properties', (WidgetTester tester) async {
+    final semantics = tester.ensureSemantics();
+    var tapped = false;
+    
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Semantics(
+            container: true,
+            button: true,
+            label: 'Sepia',
+            selected: true,
+            onTap: () {
+              tapped = true;
+            },
+            child: GestureDetector(
+              onTap: () {
+                tapped = true;
+              },
+              child: const Text('Sepia'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify semantics label, selected, and button properties
+    final node = tester.getSemantics(find.bySemanticsLabel('Sepia').first);
+    expect(node.label, 'Sepia');
+    expect(node.hasFlag(SemanticsFlag.isSelected), true);
+    expect(node.hasFlag(SemanticsFlag.isButton), true);
+
+    // Trigger tap through semantics
+    tester.binding.pipelineOwner.semanticsOwner!.performAction(
+      node.id,
+      SemanticsAction.tap,
+    );
+    expect(tapped, true);
+    semantics.dispose();
+  });
 }

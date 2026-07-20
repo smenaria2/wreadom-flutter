@@ -27,6 +27,7 @@ import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
 import '../routing/app_routes.dart';
+import '../routing/app_router.dart';
 import '../components/writer_topic_input.dart';
 import '../providers/topic_tag_providers.dart';
 import '../routing/writer_pad_mode.dart';
@@ -1476,6 +1477,74 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           onPressed: _isSaving ? null : () => _save(status: _statusForSave),
           icon: const Icon(Icons.save_rounded),
           label: Text(_isPublished ? l10n.save : l10n.saveDraft),
+        ),
+        const SizedBox(height: 12),
+        Builder(
+          builder: (context) {
+            final rawNotice = l10n.publishNotice('__TERMS__', '__PRIVACY__');
+            final termsIndex = rawNotice.indexOf('__TERMS__');
+            final privacyIndex = rawNotice.indexOf('__PRIVACY__');
+
+            if (termsIndex == -1 || privacyIndex == -1) {
+              return Text(
+                rawNotice.replaceAll('__TERMS__', l10n.termsOfUse).replaceAll('__PRIVACY__', l10n.privacyPolicy),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+              );
+            }
+
+            final parts = <_WriterTextPart>[];
+            if (termsIndex < privacyIndex) {
+              parts.add(_WriterTextPart(rawNotice.substring(0, termsIndex), false, null));
+              parts.add(_WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms));
+              parts.add(_WriterTextPart(rawNotice.substring(termsIndex + 9, privacyIndex), false, null));
+              parts.add(_WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy));
+              parts.add(_WriterTextPart(rawNotice.substring(privacyIndex + 11), false, null));
+            } else {
+              parts.add(_WriterTextPart(rawNotice.substring(0, privacyIndex), false, null));
+              parts.add(_WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy));
+              parts.add(_WriterTextPart(rawNotice.substring(privacyIndex + 11, termsIndex), false, null));
+              parts.add(_WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms));
+              parts.add(_WriterTextPart(rawNotice.substring(termsIndex + 9), false, null));
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: Text.rich(
+                TextSpan(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                    height: 1.45,
+                  ),
+                  children: parts.map((part) {
+                    if (part.isLink) {
+                      return WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: GestureDetector(
+                          onTap: () => AppRouter.openExternalPolicy(context, part.route!),
+                          child: Text(
+                            part.text,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return TextSpan(text: part.text);
+                  }).toList(),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
         ),
       ],
     );
@@ -4184,4 +4253,11 @@ class _ChapterDraft {
     title.dispose();
     controller.dispose();
   }
+}
+
+class _WriterTextPart {
+  _WriterTextPart(this.text, this.isLink, this.route);
+  final String text;
+  final bool isLink;
+  final String? route;
 }

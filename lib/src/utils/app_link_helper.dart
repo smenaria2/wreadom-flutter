@@ -166,9 +166,19 @@ class AppLinkHelper {
           }
           break;
         case 'daily-topic':
+        case 'daily-topics':
+        case 'agaaz-topic':
+        case 'agaaz-topics':
           id ??= queryTopicId;
           return ResolvedAppLink(
             AppRoutes.dailyTopic,
+            _hasValue(id) ? id : null,
+          );
+        case 'banner':
+        case 'banners':
+          id ??= uri.queryParameters['id'];
+          return ResolvedAppLink(
+            AppRoutes.homeBanner,
             _hasValue(id) ? id : null,
           );
         case 'category':

@@ -14,7 +14,7 @@ void main() {
     expect(source, contains('...feedHeaders'));
   });
 
-  test('reel entry button is available in both feed and home headers', () {
+  test('reel entry components are available in feed and home headers', () {
     final feedSource = File(
       'lib/src/presentation/screens/home_feed_screen.dart',
     ).readAsStringSync();
@@ -22,9 +22,8 @@ void main() {
       'lib/src/presentation/screens/home_books_screen.dart',
     ).readAsStringSync();
 
-    expect(feedSource, contains('ReelFeedButton('));
+    expect(feedSource, contains('ReelsPreviewCarousel('));
     expect(homeSource, contains('ReelFeedButton('));
-    expect(feedSource, contains('AppRoutes.feedReels'));
     expect(homeSource, contains('AppRoutes.feedReels'));
   });
 

@@ -1443,5 +1443,16 @@
   "postingReview": "\u0938\u092e\u0940\u0915\u094d\u0937\u093e \u092a\u094b\u0938\u094d\u091f \u0915\u0940 \u091c\u093e \u0930\u0939\u0940 \u0939\u0948...",
   "failedToPost": "\u092a\u094b\u0938\u094d\u091f \u0915\u0930\u0928\u0947 \u092e\u0947\u0902 \u0935\u093f\u092b\u0932",
   "play": "\u091a\u0932\u093e\u090f\u0902",
-  "pause": "\u0930\u094b\u0915\u0947\u0902"
+  "pause": "\u0930\u094b\u0915\u0947\u0902",
+  "publishNotice": "मैं पुष्टि करता हूं कि मेरे पास इस रचना को प्रकाशित करने का अधिकार है और मैं Wreadom के {terms} और {privacy} से सहमत हूं।",
+  "@publishNotice": {
+    "placeholders": {
+      "terms": {
+        "type": "String"
+      },
+      "privacy": {
+        "type": "String"
+      }
+    }
+  }
 }

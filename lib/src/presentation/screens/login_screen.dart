@@ -191,6 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           SizedBox(height: 52.h),
                           Image.asset(
                             'assets/images/app_logo.png',
+                            semanticLabel: l10n.appTitle,
                             width: 86.r,
                             height: 86.r,
                             fit: BoxFit.contain,

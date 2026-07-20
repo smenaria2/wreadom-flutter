@@ -408,6 +408,9 @@ class AppRouter {
         title: '',
       );
     }
+    if (resolved.route == AppRoutes.homeBanner && resolved.payload != null) {
+      return HomeBannerArguments(bannerId: resolved.payload!);
+    }
     if (resolved.route == AppRoutes.collaborationRequest &&
         resolved.payload != null) {
       return CollaborationRequestArguments(bookId: resolved.payload!);
@@ -573,6 +576,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.feedReels:
+        final initialPostId = resolvedArguments as String?;
         return MaterialPageRoute(
           settings: routeSettings,
           fullscreenDialog: true,
@@ -601,7 +605,7 @@ class AppRouter {
                 scaffoldBackgroundColor: Colors.black,
                 iconTheme: const IconThemeData(color: Colors.white),
               ),
-              child: const FeedReelsScreen(),
+              child: FeedReelsScreen(initialPostId: initialPostId),
             );
           },
         );
@@ -819,13 +823,21 @@ class AppRouter {
         );
       case AppRoutes.homeBanner:
         final args = resolvedArguments;
-        if (args is! HomeBannerArguments) {
-          return _notFound('Banner details are missing.');
+        if (args is HomeBannerArguments) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => HomeBannerScreen(
+              banner: args.banner,
+              bannerId: args.bannerId,
+            ),
+          );
+        } else if (args != null && args.toString() != 'null') {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => HomeBannerScreen(bannerId: args.toString()),
+          );
         }
-        return MaterialPageRoute(
-          settings: routeSettings,
-          builder: (_) => HomeBannerScreen(banner: args.banner),
-        );
+        return _notFound('Banner details are missing.');
       case AppRoutes.competition:
         return MaterialPageRoute(
           settings: routeSettings,

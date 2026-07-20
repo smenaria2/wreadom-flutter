@@ -14,7 +14,7 @@ import '../routing/app_routes.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/see_more_content_button.dart';
 import '../widgets/audio_post_player.dart';
-import '../widgets/reel_feed_button.dart';
+import '../widgets/reels_preview_carousel.dart';
 import '../constants/layout_constants.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
@@ -77,25 +77,13 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
               borderRadius: BorderRadius.zero,
               child: SizedBox.expand(),
             ),
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.feed,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 24,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                ReelFeedButton(
-                  onPressed: () => Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(AppRoutes.feedReels),
-                ),
-              ],
+            title: Text(
+              l10n.feed,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                letterSpacing: 0,
+              ),
             ),
             actions: [
               Consumer(
@@ -294,6 +282,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         selectedFilter: widget.filter,
         onFilterSelected: widget.onFilterSelected,
       ),
+      const ReelsPreviewCarousel(),
       filterChips,
     ];
 

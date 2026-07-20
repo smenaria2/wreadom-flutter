@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
@@ -7,29 +8,124 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/home_banner.dart';
 import '../../utils/app_link_helper.dart';
+import '../providers/home_banner_by_id_provider.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 
 class HomeBannerArguments {
-  const HomeBannerArguments({required this.banner});
+  const HomeBannerArguments({this.banner, this.bannerId});
 
-  final HomeBanner banner;
+  final HomeBanner? banner;
+  final String? bannerId;
 }
 
-class HomeBannerScreen extends StatelessWidget {
-  const HomeBannerScreen({super.key, required this.banner});
+class HomeBannerScreen extends ConsumerStatefulWidget {
+  const HomeBannerScreen({
+    super.key,
+    this.banner,
+    this.bannerId,
+  });
 
-  final HomeBanner banner;
+  final HomeBanner? banner;
+  final String? bannerId;
+
+  @override
+  ConsumerState<HomeBannerScreen> createState() => _HomeBannerScreenState();
+}
+
+class _HomeBannerScreenState extends ConsumerState<HomeBannerScreen> {
+  HomeBanner? _banner;
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _banner = widget.banner;
+    if (_banner == null && widget.bannerId != null) {
+      _loadBanner();
+    }
+  }
+
+  Future<void> _loadBanner() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final banner = await ref.read(homeBannerByIdProvider(widget.bannerId!).future);
+      if (mounted) {
+        setState(() {
+          _banner = banner;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load banner details.';
+          _loading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_loading) {
+      return const GlassScaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null || _banner == null) {
+      return GlassScaffold(
+        appBar: glassAppBar(
+          title: const Text('Banner Details'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _error ?? 'Banner not found',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium,
+                ),
+                if (widget.bannerId != null) ...[
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _loadBanner,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final banner = _banner!;
     final contentHtml = _renderableBannerHtml(banner.bodyHtml);
     final plainContent = banner.body.trim().isEmpty
         ? banner.subtitle
         : banner.body;
+
     return GlassScaffold(
       body: CustomScrollView(
         slivers: [

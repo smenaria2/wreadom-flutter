@@ -3287,4 +3287,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pause => 'रोकें';
+
+  @override
+  String publishNotice(String terms, String privacy) {
+    return 'मैं पुष्टि करता हूं कि मेरे पास इस रचना को प्रकाशित करने का अधिकार है और मैं Wreadom के $terms और $privacy से सहमत हूं।';
+  }
 }

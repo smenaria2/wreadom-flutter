@@ -3281,4 +3281,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pause => 'Pause';
+
+  @override
+  String publishNotice(String terms, String privacy) {
+    return 'I confirm that I have the right to publish this work and agree to Wreadom\'s $terms and $privacy.';
+  }
 }

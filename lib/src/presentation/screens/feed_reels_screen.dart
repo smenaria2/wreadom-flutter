@@ -14,7 +14,6 @@ import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../components/feed_post_card.dart';
 import '../components/reel_post_content.dart';
-import '../providers/theme_provider.dart';
 import '../utils/optimistic_mutation.dart';
 import '../providers/auth_providers.dart';
 import '../providers/comment_providers.dart';
@@ -27,7 +26,9 @@ import '../widgets/report_dialog.dart';
 final Set<String> _reelGuideShownForSession = <String>{};
 
 class FeedReelsScreen extends ConsumerStatefulWidget {
-  const FeedReelsScreen({super.key});
+  const FeedReelsScreen({super.key, this.initialPostId});
+
+  final String? initialPostId;
 
   @override
   ConsumerState<FeedReelsScreen> createState() => _FeedReelsScreenState();
@@ -35,7 +36,8 @@ class FeedReelsScreen extends ConsumerStatefulWidget {
 
 class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     with WidgetsBindingObserver {
-  late final PageController _pageController;
+  late PageController _pageController;
+  bool _pageControllerInitialized = false;
   int _activeIndex = 0;
 
   bool _showSwipeGuide = false;
@@ -44,20 +46,32 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   final Map<String, int> _likeCounts = <String, int>{};
   final Set<String> _liking = <String>{};
   String? _heartPostId;
+  late final ActiveAudioPostUrl _audioNotifier;
 
   @override
   void initState() {
     super.initState();
+    _audioNotifier = ref.read(activeAudioPostUrlProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
-    _pageController = PageController(viewportFraction: .96);
     AnalyticsService.logEvent('feed_reel_open');
+  }
+
+  void _initPageController(int initialPage) {
+    _pageController = PageController(
+      initialPage: initialPage,
+      viewportFraction: .96,
+    );
+    _activeIndex = initialPage;
+    _pageControllerInitialized = true;
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopPlayback();
-    _pageController.dispose();
+    if (_pageControllerInitialized) {
+      _pageController.dispose();
+    }
     super.dispose();
   }
 
@@ -67,7 +81,7 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   }
 
   void _stopPlayback() {
-    ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+    _audioNotifier.setActiveUrl(null);
   }
 
   void _syncSwipeGuideFor(String sessionKey) {
@@ -273,6 +287,17 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
     final posts = state.items;
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     _syncSwipeGuideFor(currentUser?.id ?? 'guest');
+
+    if (!_pageControllerInitialized) {
+      int initialPage = 0;
+      if (widget.initialPostId != null && posts.isNotEmpty) {
+        final index = posts.indexWhere((p) => p.id == widget.initialPostId);
+        if (index != -1) {
+          initialPage = index;
+        }
+      }
+      _initPageController(initialPage);
+    }
 
     return PopScope(
       onPopInvokedWithResult: (_, _) => _stopPlayback(),

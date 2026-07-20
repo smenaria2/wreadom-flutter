@@ -46,6 +46,7 @@ import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
 import '../widgets/in_app_media_web_view.dart';
 import '../widgets/modal_feedback_scope.dart';
+import '../widgets/reader_tts_bottom_bar.dart';
 import '../../domain/repositories/book_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/app_link_helper.dart';
@@ -271,6 +272,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isTtsPaused = false;
   bool _isSelectionTtsPlaying = false;
   late final FlutterTts _tts;
+  double _ttsSpeechRate = 0.45;
+  Map<String, String>? _selectedTtsVoice;
+  List<Map<String, String>> _availableTtsVoices = [];
   final AudioRecorder _audioRecorder = AudioRecorder();
   StreamSubscription<String>? _ttsActionSubscription;
   Timer? _audioRecordingTimer;
@@ -330,6 +334,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _tts = FlutterTts();
     unawaited(_tts.awaitSpeakCompletion(false));
     _configureTts();
+    unawaited(_loadTtsSettings());
     _ttsActionSubscription = NotificationService.instance.ttsActionEvents
         .listen(_handleTtsNotificationAction);
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
@@ -1420,26 +1425,59 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: _ReaderBottomBar(
-                  progress: _scrollProgress,
-                  visible: _showReaderChrome,
-                  onSwipeUp: () => _showDiscussion(chapter),
-                  onTap: () => _showDiscussion(chapter),
-                  chromeTheme: chromeTheme,
-                  theme: _getEffectiveTheme(),
-                  hasPrevious: _chapterIndex > 0,
-                  hasNext: _chapterIndex < chapters.length - 1,
-                  onPrevious: () {
-                    unawaited(AppHaptics.selection());
-                    _goToChapter(_chapterIndex - 1);
-                  },
-                  onNext: () {
-                    unawaited(AppHaptics.selection());
-                    unawaited(_showNextChapterAdAndGoTo(_chapterIndex + 1));
-                  },
-                  onClose: () =>
-                      unawaited(_handleReaderExit(_popReaderAfterPrompt)),
-                ),
+                child: ((_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
+                        !_isSelectionTtsPlaying)
+                    ? ReaderTtsBottomBar(
+                        visible: _showReaderChrome,
+                        isPreparing: _isTtsPreparing,
+                        isPlaying: _isTtsPlaying,
+                        isPaused: _isTtsPaused,
+                        currentBlockIndex: _ttsChunkIndex,
+                        totalBlocks: _ttsChunkList.length,
+                        currentSpeed: _ttsSpeechRate,
+                        selectedVoice: _selectedTtsVoice,
+                        availableVoices: _availableTtsVoices,
+                        onPlayPause: () {
+                          if (_isTtsPlaying) {
+                            unawaited(_pauseTtsSpeech());
+                          } else {
+                            unawaited(_resumeTtsSpeech());
+                          }
+                        },
+                        onStop: _stopTts,
+                        onPreviousBlock: _ttsChunkIndex > 0
+                            ? () => _speakTtsChunk(_ttsChunkIndex - 1)
+                            : null,
+                        onNextBlock: _ttsChunkIndex < _ttsChunkList.length - 1
+                            ? () => _speakTtsChunk(_ttsChunkIndex + 1)
+                            : null,
+                        onSpeedChanged: _saveTtsSpeechRate,
+                        onVoiceChanged: _saveTtsVoice,
+                        chromeTheme: chromeTheme,
+                        bookLanguage: widget.book.languages.firstOrNull ?? 'en',
+                      )
+                    : _ReaderBottomBar(
+                        progress: _scrollProgress,
+                        visible: _showReaderChrome,
+                        onSwipeUp: () => _showDiscussion(chapter),
+                        onTap: () => _showDiscussion(chapter),
+                        chromeTheme: chromeTheme,
+                        theme: _getEffectiveTheme(),
+                        hasPrevious: _chapterIndex > 0,
+                        hasNext: _chapterIndex < chapters.length - 1,
+                        onPrevious: () {
+                          unawaited(AppHaptics.selection());
+                          _goToChapter(_chapterIndex - 1);
+                        },
+                        onNext: () {
+                          unawaited(AppHaptics.selection());
+                          unawaited(
+                            _showNextChapterAdAndGoTo(_chapterIndex + 1),
+                          );
+                        },
+                        onClose: () =>
+                            unawaited(_handleReaderExit(_popReaderAfterPrompt)),
+                      ),
               ),
             ],
           ),
@@ -1735,9 +1773,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       });
     }
     await _tts.stop();
-    await _tts.setSpeechRate(0.45);
+    await _tts.setSpeechRate(_ttsSpeechRate);
     await _tts.setPitch(1.0);
-    await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
+    var voiceSet = false;
+    if (_selectedTtsVoice != null) {
+      try {
+        await _tts.setVoice(_selectedTtsVoice!);
+        voiceSet = true;
+      } catch (e) {
+        debugPrint('Failed to set TTS voice: $e');
+      }
+    }
+    if (!voiceSet) {
+      await _tts.setLanguage(_ttsLanguageForText(_ttsChunkList[index]));
+    }
     if (!mounted || generation != _ttsGeneration) return;
     await _tts.speak(_ttsChunkList[index]);
     unawaited(_syncTtsMiniPlayer());
@@ -1913,6 +1962,66 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       case NotificationService.ttsActionStop:
         unawaited(_stopTts());
         return;
+    }
+  }
+
+  Future<void> _loadTtsSettings() async {
+    try {
+      final rate = _sharedPreferences.getDouble('reader_tts_speech_rate');
+      if (rate != null) {
+        setState(() {
+          _ttsSpeechRate = rate;
+        });
+      }
+      final voiceName = _sharedPreferences.getString('reader_tts_voice_name');
+      final voiceLocale = _sharedPreferences.getString('reader_tts_voice_locale');
+      if (voiceName != null && voiceLocale != null) {
+        setState(() {
+          _selectedTtsVoice = {
+            'name': voiceName,
+            'locale': voiceLocale,
+          };
+        });
+      }
+
+      final dynamic voices = await _tts.getVoices;
+      if (voices is List) {
+        final List<Map<String, String>> parsedVoices = [];
+        for (final v in voices) {
+          if (v is Map) {
+            final name = v['name']?.toString() ?? '';
+            final locale = v['locale']?.toString() ?? '';
+            if (name.isNotEmpty && locale.isNotEmpty) {
+              parsedVoices.add({'name': name, 'locale': locale});
+            }
+          }
+        }
+        setState(() {
+          _availableTtsVoices = parsedVoices;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load TTS settings or voices: $e');
+    }
+  }
+
+  Future<void> _saveTtsSpeechRate(double rate) async {
+    setState(() {
+      _ttsSpeechRate = rate;
+    });
+    await _sharedPreferences.setDouble('reader_tts_speech_rate', rate);
+  }
+
+  Future<void> _saveTtsVoice(Map<String, String>? voice) async {
+    setState(() {
+      _selectedTtsVoice = voice;
+    });
+    if (voice != null) {
+      await _sharedPreferences.setString('reader_tts_voice_name', voice['name'] ?? '');
+      await _sharedPreferences.setString('reader_tts_voice_locale', voice['locale'] ?? '');
+    } else {
+      await _sharedPreferences.remove('reader_tts_voice_name');
+      await _sharedPreferences.remove('reader_tts_voice_locale');
     }
   }
 
@@ -5024,10 +5133,15 @@ class _ThemeOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: label,
+      selected: selected,
       onTap: onTap,
-      child: Column(
-        children: [
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
           Container(
             width: 48,
             height: 48,
@@ -5063,8 +5177,9 @@ class _ThemeOption extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 enum _ChapterReviewPromptResult { submitted, dismissed }
