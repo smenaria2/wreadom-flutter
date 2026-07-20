@@ -222,6 +222,94 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         ? _questionPrompt(activeQuestions)
         : null;
 
+    Widget buildFilterDropdown(BuildContext context) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+
+      IconData iconFor(String type) {
+        switch (type) {
+          case 'comment':
+            return Icons.chat_bubble_outline_rounded;
+          case 'quote':
+            return Icons.format_quote_rounded;
+          case 'review':
+            return Icons.star_outline_rounded;
+          case 'question':
+            return Icons.help_outline_rounded;
+          default:
+            return Icons.filter_alt_outlined;
+        }
+      }
+
+      String labelFor(String type) {
+        switch (type) {
+          case 'comment':
+            return l10n.feedTypeComment;
+          case 'quote':
+            return l10n.feedTypeQuote;
+          case 'review':
+            return l10n.feedTypeReview;
+          case 'question':
+            return l10n.feedTypeQuestion;
+          default:
+            return l10n.feedTypeAll;
+        }
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedType,
+            icon: Icon(
+              Icons.arrow_drop_down_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+            onChanged: (String? value) {
+              if (value != null) {
+                setState(() => _selectedType = value);
+              }
+            },
+            items: const [
+              'all',
+              'comment',
+              'quote',
+              'review',
+              'question',
+            ].map((type) {
+              return DropdownMenuItem<String>(
+                value: type,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      iconFor(type),
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(labelFor(type)),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      );
+    }
+
     Widget refreshable(Widget child) {
       return RefreshIndicator(onRefresh: feedController.refresh, child: child);
     }
@@ -234,56 +322,26 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       return post.type.toLowerCase() == _selectedType;
     }).toList();
 
-    final filterChips = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    final headerRow = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _TypeChip(
-            label: l10n.feedTypeAll,
-            icon: Icons.public_rounded,
-            selected: _selectedType == 'all',
-            onSelected: () => setState(() => _selectedType = 'all'),
+          Flexible(
+            child: _FeedScopeSelector(
+              selectedFilter: widget.filter,
+              onFilterSelected: widget.onFilterSelected,
+            ),
           ),
           const SizedBox(width: 8),
-          _TypeChip(
-            label: l10n.feedTypeComment,
-            icon: Icons.chat_bubble_outline_rounded,
-            selected: _selectedType == 'comment',
-            onSelected: () => setState(() => _selectedType = 'comment'),
-          ),
-          const SizedBox(width: 8),
-          _TypeChip(
-            label: l10n.feedTypeQuote,
-            icon: Icons.format_quote_rounded,
-            selected: _selectedType == 'quote',
-            onSelected: () => setState(() => _selectedType = 'quote'),
-          ),
-          const SizedBox(width: 8),
-          _TypeChip(
-            label: l10n.feedTypeReview,
-            icon: Icons.star_outline_rounded,
-            selected: _selectedType == 'review',
-            onSelected: () => setState(() => _selectedType = 'review'),
-          ),
-          const SizedBox(width: 8),
-          _TypeChip(
-            label: l10n.feedTypeQuestion,
-            icon: Icons.help_outline_rounded,
-            selected: _selectedType == 'question',
-            onSelected: () => setState(() => _selectedType = 'question'),
-          ),
+          buildFilterDropdown(context),
         ],
       ),
     );
 
     final feedHeaders = <Widget>[
-      _FeedScopeSelector(
-        selectedFilter: widget.filter,
-        onFilterSelected: widget.onFilterSelected,
-      ),
+      headerRow,
       const ReelsPreviewCarousel(),
-      filterChips,
     ];
 
     Widget centeredScrollable(Widget child) {
@@ -516,34 +574,60 @@ class _FeedScopeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      child: GlassControlSurface(
-        borderRadius: BorderRadius.circular(26),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SegmentedButton<FeedFilter>(
-            segments: [
-              ButtonSegment(
-                value: FeedFilter.following,
-                label: Text(l10n.following),
-                icon: const Icon(Icons.people_outline_rounded),
+    final theme = Theme.of(context);
+
+    Widget item(FeedFilter filter, String label, IconData icon) {
+      final isSelected = selectedFilter == filter;
+      return GestureDetector(
+        onTap: () => onFilterSelected(filter),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 13,
+                color: isSelected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
               ),
-              ButtonSegment(
-                value: FeedFilter.public,
-                label: Text(l10n.public),
-                icon: const Icon(Icons.public_rounded),
-              ),
-              ButtonSegment(
-                value: FeedFilter.mine,
-                label: Text(l10n.mine),
-                icon: const Icon(Icons.person_outline_rounded),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
-            selected: {selectedFilter},
-            onSelectionChanged: (selection) {
-              onFilterSelected(selection.first);
-            },
+          ),
+        ),
+      );
+    }
+
+    return GlassControlSurface(
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(2.0),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              item(FeedFilter.following, l10n.following, Icons.people_outline_rounded),
+              item(FeedFilter.public, l10n.public, Icons.public_rounded),
+              item(FeedFilter.mine, l10n.mine, Icons.person_outline_rounded),
+            ],
           ),
         ),
       ),
@@ -650,64 +734,7 @@ class _QuestionPromptCard extends StatelessWidget {
   }
 }
 
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onSelected;
 
-  const _TypeChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return GlassSurface(
-      strong: selected,
-      borderRadius: BorderRadius.circular(24),
-      onTap: onSelected,
-      semanticButton: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? scheme.primaryContainer.withValues(alpha: 0.82)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 17,
-              color: selected
-                  ? scheme.onPrimaryContainer
-                  : scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: selected
-                    ? scheme.onPrimaryContainer
-                    : scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _LoadMoreFeedButton extends StatelessWidget {
   const _LoadMoreFeedButton({

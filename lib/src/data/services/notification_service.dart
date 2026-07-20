@@ -114,6 +114,21 @@ class NotificationService {
         >()
         ?.createNotificationChannel(channel);
 
+    const AndroidNotificationChannel ttsChannel = AndroidNotificationChannel(
+      'reader_tts_channel',
+      'Read aloud',
+      description: 'Controls for active read-aloud playback.',
+      importance: Importance.high,
+      playSound: false,
+      enableVibration: false,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(ttsChannel);
+
     // 4. Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (kDebugMode) {
@@ -202,27 +217,29 @@ class NotificationService {
           'reader_tts_channel',
           'Read aloud',
           channelDescription: 'Controls for active read-aloud playback.',
-          importance: Importance.low,
-          priority: Priority.low,
-          category: AndroidNotificationCategory.status,
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.transport,
           ongoing: true,
           autoCancel: false,
           onlyAlertOnce: true,
           showWhen: false,
-          actions: const <AndroidNotificationAction>[
-            AndroidNotificationAction(
-              ttsActionResume,
-              'Play',
-              cancelNotification: false,
-              showsUserInterface: false,
-            ),
-            AndroidNotificationAction(
-              ttsActionPause,
-              'Pause',
-              cancelNotification: false,
-              showsUserInterface: false,
-            ),
-            AndroidNotificationAction(
+          actions: <AndroidNotificationAction>[
+            if (isPaused)
+              const AndroidNotificationAction(
+                ttsActionResume,
+                'Play',
+                cancelNotification: false,
+                showsUserInterface: false,
+              )
+            else
+              const AndroidNotificationAction(
+                ttsActionPause,
+                'Pause',
+                cancelNotification: false,
+                showsUserInterface: false,
+              ),
+            const AndroidNotificationAction(
               ttsActionStop,
               'Stop',
               cancelNotification: false,

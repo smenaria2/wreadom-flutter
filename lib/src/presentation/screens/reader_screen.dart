@@ -2577,7 +2577,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       widget.book.id,
       _chapterIndex + 1,
     );
-    return '"$selected"\n\nRead :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. $chapterLink ::';
+    return '"$selected"\n\nRead "${widget.book.title}" by "$authors" on Wreadom. Read thousands of stories on Wreadom. $chapterLink';
   }
 
   Future<void> _handleShareChapter(Chapter? chapter) async {

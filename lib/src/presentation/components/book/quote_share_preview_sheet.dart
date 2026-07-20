@@ -42,7 +42,7 @@ class _QuoteSharePreviewSheetState
     try {
       final authors = bookAuthorName(widget.book);
       final caption =
-          'Read :: "${widget.book.title}" and "$authors" on Wreadom. Read hundreds of Stories on Wreadom. ${widget.chapterLink} ::';
+          'Read "${widget.book.title}" by "$authors" on Wreadom. Read thousands of stories on Wreadom. ${widget.chapterLink}';
       await Share.shareXFiles(
         [
           XFile.fromData(

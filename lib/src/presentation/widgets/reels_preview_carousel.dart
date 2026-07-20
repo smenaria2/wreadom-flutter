@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
-import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
@@ -41,7 +40,6 @@ class ReelsPreviewCarousel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(pagedFeedPostsProvider(FeedFilter.public));
     final posts = state.items;
 
@@ -57,63 +55,20 @@ class ReelsPreviewCarousel extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.openReelFeed,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.1,
-                    ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed(
-                    AppRoutes.feedReels,
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.play,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.play_arrow_rounded,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: SizedBox(
+        height: 180,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          itemCount: posts.length.clamp(0, 15),
+          itemBuilder: (context, index) {
+            final post = posts[index];
+            return _ReelPreviewCard(post: post);
+          },
         ),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: posts.length.clamp(0, 15),
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return _ReelPreviewCard(post: post);
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
