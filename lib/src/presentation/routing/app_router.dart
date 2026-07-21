@@ -326,9 +326,14 @@ class AppRouter {
     BuildContext context,
     String routeName,
   ) async {
+    final locale = Localizations.localeOf(context).languageCode;
     final url = switch (routeName) {
-      AppRoutes.privacy => AppLinkHelper.privacyPolicyUrl,
-      AppRoutes.terms => AppLinkHelper.termsUrl,
+      AppRoutes.privacy => locale == 'hi'
+          ? '${AppLinkHelper.privacyPolicyUrl}-hi'
+          : AppLinkHelper.privacyPolicyUrl,
+      AppRoutes.terms => locale == 'hi'
+          ? '${AppLinkHelper.termsUrl}-hi'
+          : AppLinkHelper.termsUrl,
       _ => null,
     };
     if (url == null) {
@@ -780,18 +785,28 @@ class AppRouter {
       case AppRoutes.privacy:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const LegalDocumentScreen(
-            title: 'Privacy Policy',
-            url: AppLinkHelper.privacyPolicyUrl,
-          ),
+          builder: (context) {
+            final locale = Localizations.localeOf(context).languageCode;
+            return LegalDocumentScreen(
+              title: 'Privacy Policy',
+              url: locale == 'hi'
+                  ? '${AppLinkHelper.privacyPolicyUrl}-hi'
+                  : AppLinkHelper.privacyPolicyUrl,
+            );
+          },
         );
       case AppRoutes.terms:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (_) => const LegalDocumentScreen(
-            title: 'Terms of Use',
-            url: AppLinkHelper.termsUrl,
-          ),
+          builder: (context) {
+            final locale = Localizations.localeOf(context).languageCode;
+            return LegalDocumentScreen(
+              title: 'Terms of Use',
+              url: locale == 'hi'
+                  ? '${AppLinkHelper.termsUrl}-hi'
+                  : AppLinkHelper.termsUrl,
+            );
+          },
         );
       case AppRoutes.certificate:
         return MaterialPageRoute(
