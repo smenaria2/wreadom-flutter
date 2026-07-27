@@ -13,6 +13,7 @@ import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/compiled_homepage.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
+import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
 import 'book_providers.dart';
 import 'feed_providers.dart';
@@ -840,45 +841,64 @@ class RankedHomeAuthor {
   final HomeAuthorMetrics metrics;
 }
 
+HomeAuthorMetrics homeAuthorMetricsFor(String authorId, Iterable<Book> books) {
+  final normalizedAuthorId = authorId.trim();
+  final byId = <String, Book>{};
+  for (final book in books) {
+    if (!_isPublishedOriginal(book)) continue;
+    if (!acceptedAuthorIdsFor(book).contains(normalizedAuthorId)) continue;
+    byId[book.id] = book;
+  }
+
+  final stats = _AuthorStats();
+  for (final book in byId.values) {
+    stats.works += 1;
+    stats.reads += book.viewCount ?? 0;
+    final rating = book.averageRating ?? 0;
+    final ratingsCount = book.ratingsCount ?? 0;
+    if (rating > 0 && ratingsCount > 0) {
+      stats.ratingWeight += ratingsCount;
+      stats.ratingTotal += rating * ratingsCount;
+    }
+  }
+  return stats.toMetrics();
+}
+
 final homepageRankedAuthorsProvider =
     FutureProvider.family<List<RankedHomeAuthor>, HomeAuthorRanking>((
       ref,
       ranking,
     ) async {
       final metadata = await ref.watch(homepageMetadataProvider.future);
-      final books = await ref.watch(homepageAuthorWorksProvider.future);
-      final stats = <String, _AuthorStats>{};
-
-      for (final book in books.where(_isPublishedOriginal)) {
-        final authorId = book.authorId?.trim();
-        if (authorId == null || authorId.isEmpty) continue;
-        final authorStats = stats.putIfAbsent(authorId, _AuthorStats.new);
-        authorStats.works += 1;
-        authorStats.reads += book.viewCount ?? 0;
-        final rating = book.averageRating ?? 0;
-        final ratingsCount = book.ratingsCount ?? 0;
-        if (rating > 0 && ratingsCount > 0) {
-          authorStats.ratingWeight += ratingsCount;
-          authorStats.ratingTotal += rating * ratingsCount;
-        }
-      }
+      final metricsEntries = await Future.wait(
+        metadata.authors.map((author) async {
+          try {
+            final books = await ref.watch(userBooksProvider(author.id).future);
+            return MapEntry(author.id, homeAuthorMetricsFor(author.id, books));
+          } catch (error, stack) {
+            debugPrint(
+              '[homepageRankedAuthorsProvider:${author.id}] Error: '
+              '$error\n$stack',
+            );
+            return MapEntry(author.id, _emptyHomeAuthorMetrics);
+          }
+        }),
+      );
+      final metricsByAuthorId = Map<String, HomeAuthorMetrics>.fromEntries(
+        metricsEntries,
+      );
 
       final authors = metadata.authors.where((author) {
-        final authorStats = stats[author.id];
-        if (authorStats == null) return false;
-        if (ranking == HomeAuthorRanking.newAuthors) {
-          return authorStats.works >= 1;
-        }
-        return true;
+        return (metricsByAuthorId[author.id]?.works ?? 0) >= 1;
       }).toList();
 
       double score(UserModel author) {
-        final authorStats = stats[author.id] ?? _AuthorStats();
+        final metrics = metricsByAuthorId[author.id] ?? _emptyHomeAuthorMetrics;
         return switch (ranking) {
           HomeAuthorRanking.newAuthors =>
             (_normalizedEpochMillis(author.createdAt) ?? 0).toDouble(),
-          HomeAuthorRanking.mostRead => authorStats.reads.toDouble(),
-          HomeAuthorRanking.mostPublished => authorStats.works.toDouble(),
+          HomeAuthorRanking.mostRead => metrics.reads.toDouble(),
+          HomeAuthorRanking.mostPublished => metrics.works.toDouble(),
         };
       }
 
@@ -888,8 +908,8 @@ final homepageRankedAuthorsProvider =
         if (ranking == HomeAuthorRanking.newAuthors) {
           final createdCompare = createdB.compareTo(createdA);
           if (createdCompare != 0) return createdCompare;
-          final worksA = stats[a.id]?.works ?? 0;
-          final worksB = stats[b.id]?.works ?? 0;
+          final worksA = metricsByAuthorId[a.id]?.works ?? 0;
+          final worksB = metricsByAuthorId[b.id]?.works ?? 0;
           return worksA.compareTo(worksB);
         }
 
@@ -903,11 +923,18 @@ final homepageRankedAuthorsProvider =
           .map(
             (author) => RankedHomeAuthor(
               author: author,
-              metrics: (stats[author.id] ?? _AuthorStats()).toMetrics(),
+              metrics: metricsByAuthorId[author.id] ?? _emptyHomeAuthorMetrics,
             ),
           )
           .toList();
     });
+
+const _emptyHomeAuthorMetrics = HomeAuthorMetrics(
+  works: 0,
+  reads: 0,
+  averageRating: 0,
+  ratingWeight: 0,
+);
 
 final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
   final compiled = await ref.watch(compiledHomepageProvider.future);

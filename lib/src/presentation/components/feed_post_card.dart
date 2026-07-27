@@ -76,14 +76,24 @@ String _typeLabel(String type, AppLocalizations l10n) {
   }
 }
 
+String? normalizeFeedBookId(dynamic value) {
+  final normalized = value?.toString().trim();
+  if (normalized == null || normalized.isEmpty) return null;
+  final lower = normalized.toLowerCase();
+  if (lower == 'null' || lower == 'undefined') return null;
+  return normalized;
+}
+
 class FeedPostCard extends ConsumerStatefulWidget {
   final FeedPost post;
   final bool openOnTap;
+  final bool autoPlayAudio;
   final ValueChanged<FeedPost>? onReplyToQuestion;
   const FeedPostCard({
     super.key,
     required this.post,
     this.openOnTap = true,
+    this.autoPlayAudio = false,
     this.onReplyToQuestion,
   });
 
@@ -755,17 +765,17 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final displayLikesCount = likesCount < 0 ? 0 : likesCount;
     final navigationPost = _postWithOptimisticLike(post, currentUser?.id);
     final commentsCount = post.commentCount ?? post.comments?.length ?? 0;
-    final bookIdText = post.bookId?.toString();
+    final bookIdText = normalizeFeedBookId(post.bookId);
+    final hasLinkedBook = bookIdText != null;
     final isPremiumCard =
         post.type.toLowerCase() == 'quote' ||
-        (post.type.toLowerCase() == 'post' && post.bookId != null) ||
+        (post.type.toLowerCase() == 'post' && hasLinkedBook) ||
         (post.type.toLowerCase() == 'review' && post.rating != null);
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';
     final fallbackBookAsync =
         (storedBookAuthorName.isEmpty || storedBookTitle.isEmpty) &&
-            bookIdText != null &&
-            bookIdText.trim().isNotEmpty
+            hasLinkedBook
         ? ref.watch(bookDetailProvider(bookIdText))
         : null;
     final resolvedBookAuthorName = storedBookAuthorName.isNotEmpty
@@ -982,7 +992,8 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
 
             // â”€â”€â”€ Book reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (!isPremiumCard &&
-                (post.bookTitle != null || bookIdText != null)) ...[
+                (post.bookTitle?.trim().isNotEmpty == true ||
+                    hasLinkedBook)) ...[
               const SizedBox(height: 10),
               InkWell(
                 onTap: () {
@@ -1099,7 +1110,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                             const SizedBox(height: 6),
                             GestureDetector(
                               onTap: () {
-                                final bId = post.bookId?.toString() ?? '';
+                                final bId = bookIdText ?? '';
                                 final leafId = post.questionLeafId ?? '';
                                 Navigator.of(context).pushNamed(
                                   AppRoutes.questionAnswers,
@@ -1171,7 +1182,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 },
               ),
             ] else if (post.type.toLowerCase() == 'post' &&
-                post.bookId != null &&
+                hasLinkedBook &&
                 post.audioUrl == null) ...[
               if (post.text.isNotEmpty) ...[
                 _PostTextWithLinkPreview(
@@ -1185,12 +1196,10 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 bookCover: post.bookCover,
                 bookAuthorName: resolvedBookAuthorName,
                 onBookTap: () {
-                  if (bookIdText != null) {
-                    Navigator.of(context).pushNamed(
-                      AppRoutes.bookDetail,
-                      arguments: BookDetailArguments(bookId: bookIdText),
-                    );
-                  }
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.bookDetail,
+                    arguments: BookDetailArguments(bookId: bookIdText),
+                  );
                 },
               ),
             ] else if (post.type.toLowerCase() == 'review' &&
@@ -1236,7 +1245,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
             ],
 
             if (post.audioUrl != null) ...[
-              AudioPostPlayer(post: post),
+              AudioPostPlayer(post: post, autoPlay: widget.autoPlayAudio),
               const SizedBox(height: 10),
             ],
 

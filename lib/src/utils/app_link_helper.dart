@@ -43,24 +43,75 @@ class AppLinkHelper {
   static String languageSettings() => '$origin/settings/language';
   static String leaderboard() => '$origin/leaderboard';
 
-  static String book(String bookId) {
-    return 'https://wreadom.in/?book=$bookId';
+  static String _entityLink(
+    List<String> pathSegments, [
+    Map<String, String>? query,
+  ]) {
+    final normalizedSegments = pathSegments
+        .map((value) => value.trim())
+        .toList();
+    if (normalizedSegments.any((value) => !_hasValue(value))) {
+      throw ArgumentError.value(
+        pathSegments,
+        'pathSegments',
+        'Entity IDs cannot be empty',
+      );
+    }
+    final normalizedQuery = query == null
+        ? null
+        : Map<String, String>.fromEntries(
+            query.entries.where((entry) => _hasValue(entry.value)),
+          );
+    return Uri(
+      scheme: 'https',
+      host: host,
+      pathSegments: normalizedSegments,
+      queryParameters: normalizedQuery == null || normalizedQuery.isEmpty
+          ? null
+          : normalizedQuery,
+    ).toString();
   }
 
-  static String chapter(String bookId, int chapterNumber) {
-    return 'https://wreadom.in/?book=$bookId&mode=read&chapter=$chapterNumber';
-  }
+  static String book(
+    String bookId, {
+    String? mode,
+    int? chapter,
+    String? leaf,
+    String? comment,
+    String? reply,
+  }) => _entityLink(
+    ['book', bookId],
+    {
+      if (_hasValue(mode)) 'mode': mode!.trim(),
+      if (chapter != null) 'chapter': chapter.toString(),
+      if (_hasValue(leaf)) 'leaf': leaf!.trim(),
+      if (_hasValue(comment)) 'comment': comment!.trim(),
+      if (_hasValue(reply)) 'reply': reply!.trim(),
+    },
+  );
 
-  static String post(String postId) =>
-      '$origin/?page=feed&post=${Uri.encodeComponent(postId)}';
-  static String user(String userId) => '$origin/user/$userId';
-  static String collection(String collectionId) => Uri.parse(
-    origin,
-  ).replace(pathSegments: ['collection', collectionId]).toString();
-  static String category(String name) =>
-      '$origin/category/${Uri.encodeComponent(name)}';
+  static String chapter(String bookId, int chapterNumber) =>
+      book(bookId, mode: 'read', chapter: chapterNumber);
+
+  static String post(
+    String postId, {
+    String? story,
+    String? comment,
+    String? reply,
+  }) => _entityLink(
+    ['post', postId],
+    {
+      if (_hasValue(story)) 'story': story!.trim(),
+      if (_hasValue(comment)) 'comment': comment!.trim(),
+      if (_hasValue(reply)) 'reply': reply!.trim(),
+    },
+  );
+  static String user(String userId) => _entityLink(['profile', userId]);
+  static String collection(String collectionId) =>
+      _entityLink(['collection', collectionId]);
+  static String category(String name) => _entityLink(['category', name]);
   static String dailyTopic(String topicId) =>
-      '$origin/daily-topic?id=${Uri.encodeComponent(topicId)}';
+      _entityLink(['daily-topic', topicId]);
 
   static String? _safeDecode(String? value) {
     if (value == null) return null;
@@ -84,9 +135,15 @@ class AppLinkHelper {
       final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
       final queryBookId = uri.queryParameters['book'];
       final queryPostId = uri.queryParameters['post'];
+      final queryUserId = uri.queryParameters['user'];
       final queryTopicId = uri.queryParameters['id'];
       final queryLeafId = uri.queryParameters['leaf'];
       final queryQuestion = uri.queryParameters['question'];
+      final queryStoryId = uri.queryParameters['story'];
+      final queryCommentId =
+          uri.queryParameters['comment'] ?? uri.queryParameters['commentId'];
+      final queryReplyId =
+          uri.queryParameters['reply'] ?? uri.queryParameters['replyId'];
       final queryPage = uri.queryParameters['page']?.trim().toLowerCase();
       final queryMode = uri.queryParameters['mode']?.trim().toLowerCase();
       if (segments.isEmpty) {
@@ -105,10 +162,24 @@ class AppLinkHelper {
             queryBookId,
             chapterIndex: _chapterIndexFromQuery(uri),
             leafId: _hasValue(queryLeafId) ? queryLeafId : null,
+            commentId: _hasValue(queryCommentId) ? queryCommentId : null,
+            replyId: _hasValue(queryReplyId) ? queryReplyId : null,
           );
         }
         if (_hasValue(queryPostId)) {
-          return ResolvedAppLink(AppRoutes.postDetail, queryPostId);
+          return ResolvedAppLink(
+            AppRoutes.postDetail,
+            queryPostId,
+            storyId: _hasValue(queryStoryId) ? queryStoryId : null,
+            commentId: _hasValue(queryCommentId) ? queryCommentId : null,
+            replyId: _hasValue(queryReplyId) ? queryReplyId : null,
+          );
+        }
+        if (_hasValue(queryUserId)) {
+          return ResolvedAppLink(AppRoutes.publicProfile, queryUserId!);
+        }
+        if (_hasValue(queryTopicId) && queryPage == 'collection-detail') {
+          return ResolvedAppLink(AppRoutes.collectionDetail, queryTopicId!);
         }
         if (_hasValue(queryTopicId) && queryPage == 'daily-topic') {
           return ResolvedAppLink(AppRoutes.dailyTopic, queryTopicId);
@@ -130,7 +201,10 @@ class AppLinkHelper {
             return ResolvedAppLink(
               AppRoutes.bookDetail,
               id!,
+              chapterIndex: _chapterIndexFromQuery(uri),
               leafId: _hasValue(queryLeafId) ? queryLeafId : null,
+              commentId: _hasValue(queryCommentId) ? queryCommentId : null,
+              replyId: _hasValue(queryReplyId) ? queryReplyId : null,
             );
           }
           break;
@@ -140,7 +214,13 @@ class AppLinkHelper {
         case 'p':
           id ??= queryPostId;
           if (_hasValue(id)) {
-            return ResolvedAppLink(AppRoutes.postDetail, id!);
+            return ResolvedAppLink(
+              AppRoutes.postDetail,
+              id!,
+              storyId: _hasValue(queryStoryId) ? queryStoryId : null,
+              commentId: _hasValue(queryCommentId) ? queryCommentId : null,
+              replyId: _hasValue(queryReplyId) ? queryReplyId : null,
+            );
           }
           break;
         case 'collection':
@@ -267,8 +347,8 @@ class AppLinkHelper {
   static bool _hasValue(String? value) {
     return value != null &&
         value.trim().isNotEmpty &&
-        value != 'null' &&
-        value != 'undefined';
+        value.trim().toLowerCase() != 'undefined' &&
+        value.trim().toLowerCase() != 'null';
   }
 
   static int? _chapterIndexFromQuery(Uri uri) {
@@ -288,6 +368,9 @@ class ResolvedAppLink {
     this.chapterIndex,
     this.leafId,
     this.question,
+    this.storyId,
+    this.commentId,
+    this.replyId,
   });
 
   final String route;
@@ -295,4 +378,7 @@ class ResolvedAppLink {
   final int? chapterIndex;
   final String? leafId;
   final String? question;
+  final String? storyId;
+  final String? commentId;
+  final String? replyId;
 }

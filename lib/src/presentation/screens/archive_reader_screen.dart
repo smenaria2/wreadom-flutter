@@ -9,6 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../data/services/reader_ad_service.dart';
 import '../../domain/models/book.dart';
 import '../../utils/app_haptics.dart';
+import '../../utils/app_link_helper.dart';
 import '../providers/book_providers.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/share_text_helper.dart';
@@ -203,7 +204,9 @@ class _ArchiveReaderContentState extends State<_ArchiveReaderContent> {
               unawaited(AppHaptics.selection());
               final text = generateBookShareText(
                 book: widget.book,
-                link: 'https://wreadom.in/?book=${widget.book.id}&mode=pdf',
+                link: Uri.parse(
+                  AppLinkHelper.book(widget.book.id),
+                ).replace(queryParameters: const {'mode': 'pdf'}).toString(),
               );
               await shareBookLinkWithCover(
                 text: text,

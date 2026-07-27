@@ -66,7 +66,7 @@ class ReelPostContent extends StatelessWidget {
                   const SizedBox(height: 18),
                   KeyedSubtree(
                     key: ValueKey('reel-audio-${post.id}-$isActive'),
-                    child: AudioPostPlayer(post: post),
+                    child: AudioPostPlayer(post: post, autoPlay: isActive),
                   ),
                 ],
                 if (preview != null) ...[

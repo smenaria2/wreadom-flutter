@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:librebook_flutter/src/domain/models/feed_post.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/services/legal_document_service.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_router.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
+import 'package:librebook_flutter/src/presentation/screens/post_detail_screen.dart';
 import 'package:librebook_flutter/src/presentation/screens/daily_topic_screen.dart';
 import 'package:librebook_flutter/src/presentation/routing/writer_pad_mode.dart';
 
@@ -48,6 +50,52 @@ void main() {
       expect(args.initialReaderChapterIndex, 2);
     });
 
+    test('passes book and post comment qualifiers into typed arguments', () {
+      final bookSettings = AppRouter.routeSettingsForAppLink(
+        'https://wreadom.in/book/book-1?comment=comment-2&reply=reply-3',
+      );
+      final postSettings = AppRouter.routeSettingsForAppLink(
+        'https://wreadom.in/post/post-1?story=story-2&comment=comment-3&reply=reply-4',
+      );
+
+      final bookArgs = bookSettings?.arguments as BookDetailArguments;
+      expect(bookArgs.targetCommentId, 'comment-2');
+      expect(bookArgs.targetReplyId, 'reply-3');
+      final postArgs = postSettings?.arguments as PostDetailArguments;
+      expect(postArgs.targetStoryId, 'story-2');
+      expect(postArgs.targetCommentId, 'comment-3');
+      expect(postArgs.targetReplyId, 'reply-4');
+    });
+
+    test(
+      'post detail selects a valid story and ignores an invalid story id',
+      () {
+        const post = FeedPost(
+          id: 'post-1',
+          userId: 'user-1',
+          username: 'Writer',
+          type: 'post',
+          text: 'Story post',
+          timestamp: 1,
+          likes: <String>[],
+          visibility: 'public',
+          images: <StoryImage>[
+            StoryImage(
+              id: 'story-2',
+              url: 'https://example.com/story.jpg',
+              likes: <String>[],
+            ),
+          ],
+        );
+        expect(selectTargetStoryImage(post, 'story-2')?.id, 'story-2');
+        expect(selectTargetStoryImage(post, 'missing'), isNull);
+        const screen = PostDetailScreen(
+          postId: 'post-1',
+          targetStoryId: 'story-2',
+        );
+        expect(screen.targetStoryId, 'story-2');
+      },
+    );
     test('converts prefilled create-post links to typed arguments', () {
       final settings = AppRouter.routeSettingsForAppLink(
         'https://wreadom.in/create-post?text=%E0%A4%95%E0%A4%B9%E0%A4%BE%E0%A4%A8%E0%A5%80',

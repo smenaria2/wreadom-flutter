@@ -26,6 +26,8 @@ class ActiveAudioPostUrl extends Notifier<String?> {
   void setActiveUrl(String? url) {
     state = url;
   }
+
+  bool isActive(String url) => state == url;
 }
 
 final activeAudioPostUrlProvider =
@@ -84,46 +86,128 @@ MediaItem audioPostMediaItemFor(FeedPost post, String audioIdentity) {
   );
 }
 
+enum AudioPostPlaybackAction { none, resume, restart, load }
+
+AudioPostPlaybackAction audioPostPlaybackActionFor({
+  required String? activeIdentity,
+  required String? loadedIdentity,
+  required String requestedIdentity,
+  required bool isPlaying,
+  required bool isCompleted,
+}) {
+  if (activeIdentity == requestedIdentity && isPlaying && !isCompleted) {
+    return AudioPostPlaybackAction.none;
+  }
+  if (loadedIdentity != requestedIdentity) {
+    return AudioPostPlaybackAction.load;
+  }
+  if (isCompleted) return AudioPostPlaybackAction.restart;
+  return AudioPostPlaybackAction.resume;
+}
+
 Future<void> playAudioPost(WidgetRef ref, FeedPost post) async {
   final audioIdentity = audioPostIdentityFor(post);
   if (audioIdentity == null || audioIdentity.isEmpty) return;
 
   final player = ref.read(audioPostPlayerProvider);
-  final activeIdentity = ref.read(activeAudioPostUrlProvider);
-  final isCurrent = activeIdentity == audioIdentity;
-
-  if (isCurrent && player.playing) {
+  final activeAudio = ref.read(activeAudioPostUrlProvider.notifier);
+  if (activeAudio.isActive(audioIdentity) && player.playing) {
+    _audioPostRequestGeneration += 1;
     await player.pause();
     return;
   }
 
-  ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(audioIdentity);
+  await ensureAudioPostPlaying(ref, post);
+}
 
-  if (_loadedAudioPostIdentity != audioIdentity) {
+Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
+  final audioIdentity = audioPostIdentityFor(post);
+  if (audioIdentity == null || audioIdentity.isEmpty) return;
+
+  final player = ref.read(audioPostPlayerProvider);
+  final activeAudio = ref.read(activeAudioPostUrlProvider.notifier);
+  final action = audioPostPlaybackActionFor(
+    activeIdentity: ref.read(activeAudioPostUrlProvider),
+    loadedIdentity: _loadedAudioPostIdentity,
+    requestedIdentity: audioIdentity,
+    isPlaying: player.playing,
+    isCompleted: player.processingState == ProcessingState.completed,
+  );
+  if (action == AudioPostPlaybackAction.none) return;
+
+  final requestGeneration = ++_audioPostRequestGeneration;
+  activeAudio.setActiveUrl(audioIdentity);
+
+  if (action == AudioPostPlaybackAction.load) {
     final resolvedUrl = await resolveAudioPostUrl(post);
     if (resolvedUrl.isEmpty) {
       throw StateError('Audio URL was empty.');
     }
-    await player.setAudioSource(
-      AudioSource.uri(
-        Uri.parse(resolvedUrl),
-        tag: audioPostMediaItemFor(post, audioIdentity),
-      ),
-    );
-    _loadedAudioPostIdentity = audioIdentity;
-  } else if (player.processingState == ProcessingState.completed) {
+    if (!_isLatestAudioPostRequest(
+      activeAudio,
+      audioIdentity,
+      requestGeneration,
+    )) {
+      return;
+    }
+
+    final previousLoad = _audioPostLoadQueue;
+    final load = previousLoad.catchError((_) {}).then((_) async {
+      if (!_isLatestAudioPostRequest(
+        activeAudio,
+        audioIdentity,
+        requestGeneration,
+      )) {
+        return;
+      }
+      await player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(resolvedUrl),
+          tag: audioPostMediaItemFor(post, audioIdentity),
+        ),
+      );
+      if (_isLatestAudioPostRequest(
+        activeAudio,
+        audioIdentity,
+        requestGeneration,
+      )) {
+        _loadedAudioPostIdentity = audioIdentity;
+      }
+    });
+    _audioPostLoadQueue = load;
+    await load;
+  } else if (action == AudioPostPlaybackAction.restart) {
     await player.seek(Duration.zero);
   }
 
+  if (!_isLatestAudioPostRequest(
+    activeAudio,
+    audioIdentity,
+    requestGeneration,
+  )) {
+    return;
+  }
   await player.play();
 }
 
+bool _isLatestAudioPostRequest(
+  ActiveAudioPostUrl activeAudio,
+  String audioIdentity,
+  int requestGeneration,
+) {
+  return requestGeneration == _audioPostRequestGeneration &&
+      activeAudio.isActive(audioIdentity);
+}
+
 String? _loadedAudioPostIdentity;
+int _audioPostRequestGeneration = 0;
+Future<void> _audioPostLoadQueue = Future<void>.value();
 
 class AudioPostPlayer extends ConsumerStatefulWidget {
-  const AudioPostPlayer({super.key, required this.post});
+  const AudioPostPlayer({super.key, required this.post, this.autoPlay = false});
 
   final FeedPost post;
+  final bool autoPlay;
 
   @override
   ConsumerState<AudioPostPlayer> createState() => _AudioPostPlayerState();
@@ -137,6 +221,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
   bool _isLoading = false;
   String? _error;
+  bool _autoPlayAttempted = false;
 
   double _playbackSpeed = 1.0;
   bool _wasPlayingBeforeDrag = false;
@@ -176,9 +261,57 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
         }
       }
     });
+    _scheduleAutoPlay();
   }
 
   String? get _audioIdentity => audioPostIdentityFor(widget.post);
+
+  @override
+  void didUpdateWidget(covariant AudioPostPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final identityChanged =
+        audioPostIdentityFor(oldWidget.post) !=
+        audioPostIdentityFor(widget.post);
+    if (identityChanged || (!oldWidget.autoPlay && widget.autoPlay)) {
+      _autoPlayAttempted = false;
+    }
+    _scheduleAutoPlay();
+  }
+
+  void _scheduleAutoPlay() {
+    if (!widget.autoPlay || _autoPlayAttempted) return;
+    _autoPlayAttempted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.autoPlay) return;
+      unawaited(_autoPlay());
+    });
+  }
+
+  Future<void> _autoPlay() async {
+    if (_audioIdentity == null) return;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
+    try {
+      await ensureAudioPostPlaying(ref, widget.post);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = 'Could not load audio';
+        });
+      }
+      debugPrint('Error autoplaying feed post audio: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -195,6 +328,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     final isCurrent = activeIdentity == audioIdentity;
 
     if (isCurrent && _player.playing) {
+      _audioPostRequestGeneration += 1;
       await _player.pause();
       return;
     }

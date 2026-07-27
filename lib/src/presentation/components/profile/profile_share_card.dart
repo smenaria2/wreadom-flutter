@@ -159,15 +159,12 @@ class ProfileShareCard extends StatelessWidget {
               width: 240,
               child: Column(
                 children: [
-                  Text(
-                    l10n.wreadomCreator.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF8E6425),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.8,
-                    ),
+                  Image.asset(
+                    'assets/images/app_logo.png',
+                    key: const ValueKey('profile-share-wreadom-logo'),
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 12),
                   Container(

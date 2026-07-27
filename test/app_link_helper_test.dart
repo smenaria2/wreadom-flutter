@@ -12,10 +12,71 @@ void main() {
     test('builds canonical web-compatible post share URL', () {
       expect(
         AppLinkHelper.post('post 123'),
-        'https://wreadom.in/?page=feed&post=post%20123',
+        'https://wreadom.in/post/post%20123',
       );
     });
 
+    test('builds canonical entity share URLs', () {
+      expect(
+        AppLinkHelper.book('book 123'),
+        'https://wreadom.in/book/book%20123',
+      );
+      expect(
+        AppLinkHelper.user('user 123'),
+        'https://wreadom.in/profile/user%20123',
+      );
+      expect(
+        AppLinkHelper.dailyTopic('topic 123'),
+        'https://wreadom.in/daily-topic/topic%20123',
+      );
+      expect(
+        AppLinkHelper.chapter('book 123', 3),
+        'https://wreadom.in/book/book%20123?mode=read&chapter=3',
+      );
+    });
+
+    test('builds canonical qualified links and rejects missing IDs', () {
+      expect(
+        AppLinkHelper.book(
+          'book 1',
+          mode: 'read',
+          chapter: 4,
+          leaf: 'leaf/2',
+          comment: 'comment 3',
+          reply: 'reply 4',
+        ),
+        'https://wreadom.in/book/book%201?mode=read&chapter=4&leaf=leaf%2F2&comment=comment+3&reply=reply+4',
+      );
+      expect(
+        AppLinkHelper.post(
+          'post 1',
+          story: 'story/2',
+          comment: 'comment 3',
+          reply: 'reply 4',
+        ),
+        'https://wreadom.in/post/post%201?story=story%2F2&comment=comment+3&reply=reply+4',
+      );
+      expect(() => AppLinkHelper.book('  '), throwsArgumentError);
+      expect(() => AppLinkHelper.post('undefined'), throwsArgumentError);
+      expect(() => AppLinkHelper.user('null'), throwsArgumentError);
+    });
+
+    test('retains canonical book and post navigation qualifiers', () {
+      final book = AppLinkHelper.resolve(
+        '/book/book-1?mode=read&chapter=3&leaf=leaf-2&comment=comment-3&reply=reply-4',
+      );
+      final post = AppLinkHelper.resolve(
+        '/post/post-1?story=story-2&comment=comment-3&reply=reply-4',
+      );
+
+      expect(book?.chapterIndex, 2);
+      expect(book?.leafId, 'leaf-2');
+      expect(book?.commentId, 'comment-3');
+      expect(book?.replyId, 'reply-4');
+      expect(post?.storyId, 'story-2');
+      expect(post?.commentId, 'comment-3');
+      expect(post?.replyId, 'reply-4');
+    });
     test('resolves canonical feed post query URL', () {
       final resolved = AppLinkHelper.resolve(
         'https://wreadom.in/?page=feed&post=abc123',

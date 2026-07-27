@@ -40,6 +40,7 @@ import '../utils/dictionary_lookup_utils.dart';
 import '../utils/error_message_utils.dart';
 import '../utils/optimistic_mutation.dart';
 import '../utils/writer_media_utils.dart';
+import '../utils/writer_html_codec.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/section_error.dart';
@@ -67,7 +68,7 @@ import '../utils/share_text_helper.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import 'static_info_screen.dart';
 
-const double _readerBottomBarHeight = 54;
+const double _readerBottomBarHeight = 76;
 const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
 
 String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
@@ -463,8 +464,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       AnalyticsService.logBookView(widget.book);
       if (!mounted) return;
       ref.invalidate(liveBookDetailProvider(widget.book.id));
-      final authorId = widget.book.authorId?.trim();
-      if (authorId != null && authorId.isNotEmpty) {
+      for (final authorId in acceptedAuthorIdsFor(widget.book)) {
         ref.invalidate(userBooksProvider(authorId));
       }
       ref.invalidate(myBooksProvider);
@@ -1425,7 +1425,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: ((_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
+                child:
+                    ((_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
                         !_isSelectionTtsPlaying)
                     ? ReaderTtsBottomBar(
                         visible: _showReaderChrome,
@@ -1458,6 +1459,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       )
                     : _ReaderBottomBar(
                         progress: _scrollProgress,
+                        currentChapterNumber: chapters.isEmpty
+                            ? 0
+                            : _chapterIndex + 1,
+                        totalChapters: chapters.length,
                         visible: _showReaderChrome,
                         onSwipeUp: () => _showDiscussion(chapter),
                         onTap: () => _showDiscussion(chapter),
@@ -1974,13 +1979,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         });
       }
       final voiceName = _sharedPreferences.getString('reader_tts_voice_name');
-      final voiceLocale = _sharedPreferences.getString('reader_tts_voice_locale');
+      final voiceLocale = _sharedPreferences.getString(
+        'reader_tts_voice_locale',
+      );
       if (voiceName != null && voiceLocale != null) {
         setState(() {
-          _selectedTtsVoice = {
-            'name': voiceName,
-            'locale': voiceLocale,
-          };
+          _selectedTtsVoice = {'name': voiceName, 'locale': voiceLocale};
         });
       }
 
@@ -2017,8 +2021,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _selectedTtsVoice = voice;
     });
     if (voice != null) {
-      await _sharedPreferences.setString('reader_tts_voice_name', voice['name'] ?? '');
-      await _sharedPreferences.setString('reader_tts_voice_locale', voice['locale'] ?? '');
+      await _sharedPreferences.setString(
+        'reader_tts_voice_name',
+        voice['name'] ?? '',
+      );
+      await _sharedPreferences.setString(
+        'reader_tts_voice_locale',
+        voice['locale'] ?? '',
+      );
     } else {
       await _sharedPreferences.remove('reader_tts_voice_name');
       await _sharedPreferences.remove('reader_tts_voice_locale');
@@ -2585,7 +2595,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _chapterIndex + 1,
     );
     final l10n = AppLocalizations.of(context)!;
-    return l10n.shareQuoteMessage(selected, widget.book.title, authors, chapterLink);
+    return l10n.shareQuoteMessage(
+      selected,
+      widget.book.title,
+      authors,
+      chapterLink,
+    );
   }
 
   Future<void> _handleShareChapter(Chapter? chapter) async {
@@ -4572,6 +4587,10 @@ class _ChapterDrawer extends StatelessWidget {
                                 : FontWeight.normal,
                           ),
                         ),
+                        subtitle: ReaderChapterWordCount(
+                          content: chapters[index].content,
+                          color: secondaryTextColor,
+                        ),
                         trailing: commentCount > 0
                             ? IconButton(
                                 tooltip: _viewChapterCommentsLabel(context),
@@ -5150,44 +5169,44 @@ class _ThemeOption extends StatelessWidget {
         onTap: onTap,
         child: Column(
           children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: selected ? accent : Colors.grey.withValues(alpha: 0.5),
-                width: selected ? 3 : 1,
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? accent : Colors.grey.withValues(alpha: 0.5),
+                  width: selected ? 3 : 1,
+                ),
+                boxShadow: [
+                  if (selected)
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                ],
               ),
-              boxShadow: [
-                if (selected)
-                  BoxShadow(
-                    color: accent.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    spreadRadius: 2,
-                  ),
-              ],
+              child: selected
+                  ? Icon(Icons.check, color: accent)
+                  : (icon != null
+                        ? Icon(icon, color: textColor ?? Colors.grey)
+                        : null),
             ),
-            child: selected
-                ? Icon(Icons.check, color: accent)
-                : (icon != null
-                      ? Icon(icon, color: textColor ?? Colors.grey)
-                      : null),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 enum _ChapterReviewPromptResult { submitted, dismissed }
@@ -5484,9 +5503,84 @@ class _ReaderTopBar extends StatelessWidget {
   }
 }
 
+int readerProgressPercent(double progress) {
+  if (!progress.isFinite) return 0;
+  return (progress.clamp(0.0, 1.0) * 100).round();
+}
+
+class ReaderChapterProgressDetails extends StatelessWidget {
+  const ReaderChapterProgressDetails({
+    super.key,
+    required this.currentChapterNumber,
+    required this.totalChapters,
+    required this.progress,
+    required this.color,
+  });
+
+  final int currentChapterNumber;
+  final int totalChapters;
+  final double progress;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeTotal = totalChapters < 0 ? 0 : totalChapters;
+    final safeCurrent = safeTotal == 0
+        ? 0
+        : currentChapterNumber.clamp(1, safeTotal);
+    final textStyle = TextStyle(
+      color: color,
+      fontSize: 10,
+      fontWeight: FontWeight.w500,
+      height: 1.2,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 2),
+      child: Row(
+        children: [
+          Text(
+            '$safeCurrent/$safeTotal',
+            key: const ValueKey('reader-chapter-position'),
+            style: textStyle,
+          ),
+          const Spacer(),
+          Text(
+            '${readerProgressPercent(progress)}%',
+            key: const ValueKey('reader-chapter-percent'),
+            style: textStyle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReaderChapterWordCount extends StatelessWidget {
+  const ReaderChapterWordCount({
+    super.key,
+    required this.content,
+    required this.color,
+  });
+
+  final String content;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      AppLocalizations.of(context)!.wordCountLabel(wordCountFromHtml(content)),
+      key: const ValueKey('reader-chapter-word-count'),
+      style: TextStyle(color: color, fontSize: 11),
+    );
+  }
+}
+
 class _ReaderBottomBar extends StatelessWidget {
   const _ReaderBottomBar({
     required this.progress,
+    required this.currentChapterNumber,
+    required this.totalChapters,
     required this.visible,
     required this.onSwipeUp,
     required this.onTap,
@@ -5500,6 +5594,8 @@ class _ReaderBottomBar extends StatelessWidget {
   });
 
   final double progress;
+  final int currentChapterNumber;
+  final int totalChapters;
   final bool visible;
   final VoidCallback onSwipeUp;
   final VoidCallback onTap;
@@ -5518,6 +5614,9 @@ class _ReaderBottomBar extends StatelessWidget {
     final progressColor = appColorScheme.primary;
     final progressBackground = appColorScheme.onSurface.withValues(alpha: 0.1);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final safeProgress = progress.isFinite
+        ? progress.clamp(0.0, 1.0).toDouble()
+        : 0.0;
 
     return Theme(
       data: chromeTheme,
@@ -5540,10 +5639,16 @@ class _ReaderBottomBar extends StatelessWidget {
               child: Column(
                 children: [
                   LinearProgressIndicator(
-                    value: progress,
+                    value: safeProgress,
                     backgroundColor: progressBackground,
                     valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     minHeight: 2,
+                  ),
+                  ReaderChapterProgressDetails(
+                    currentChapterNumber: currentChapterNumber,
+                    totalChapters: totalChapters,
+                    progress: safeProgress,
+                    color: textColor.withValues(alpha: 0.55),
                   ),
                   Expanded(
                     child: Padding(

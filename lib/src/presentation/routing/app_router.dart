@@ -128,12 +128,14 @@ class PostDetailArguments {
   const PostDetailArguments({
     required this.postId,
     this.post,
+    this.targetStoryId,
     this.targetCommentId,
     this.targetReplyId,
   });
 
   final String postId;
   final FeedPost? post;
+  final String? targetStoryId;
   final String? targetCommentId;
   final String? targetReplyId;
 }
@@ -328,12 +330,14 @@ class AppRouter {
   ) async {
     final locale = Localizations.localeOf(context).languageCode;
     final url = switch (routeName) {
-      AppRoutes.privacy => locale == 'hi'
-          ? '${AppLinkHelper.privacyPolicyUrl}-hi'
-          : AppLinkHelper.privacyPolicyUrl,
-      AppRoutes.terms => locale == 'hi'
-          ? '${AppLinkHelper.termsUrl}-hi'
-          : AppLinkHelper.termsUrl,
+      AppRoutes.privacy =>
+        locale == 'hi'
+            ? '${AppLinkHelper.privacyPolicyUrl}-hi'
+            : AppLinkHelper.privacyPolicyUrl,
+      AppRoutes.terms =>
+        locale == 'hi'
+            ? '${AppLinkHelper.termsUrl}-hi'
+            : AppLinkHelper.termsUrl,
       _ => null,
     };
     if (url == null) {
@@ -376,6 +380,8 @@ class AppRouter {
         bookId: resolved.payload!,
         initialReaderChapterIndex: resolved.chapterIndex,
         targetLeafId: resolved.leafId,
+        targetCommentId: resolved.commentId,
+        targetReplyId: resolved.replyId,
       );
     }
     if (resolved.route == AppRoutes.collectionDetail &&
@@ -383,7 +389,12 @@ class AppRouter {
       return CollectionDetailArguments(collectionId: resolved.payload!);
     }
     if (resolved.route == AppRoutes.postDetail && resolved.payload != null) {
-      return PostDetailArguments(postId: resolved.payload!);
+      return PostDetailArguments(
+        postId: resolved.payload!,
+        targetStoryId: resolved.storyId,
+        targetCommentId: resolved.commentId,
+        targetReplyId: resolved.replyId,
+      );
     }
     if (resolved.route == AppRoutes.createPost) {
       return CreatePostArguments(initialText: resolved.payload);
@@ -723,6 +734,9 @@ class AppRouter {
           builder: (_) => PostDetailScreen(
             postId: postId,
             preloadedPost: post,
+            targetStoryId: args is PostDetailArguments
+                ? args.targetStoryId
+                : null,
             targetCommentId: args is PostDetailArguments
                 ? args.targetCommentId
                 : null,
@@ -841,10 +855,8 @@ class AppRouter {
         if (args is HomeBannerArguments) {
           return MaterialPageRoute(
             settings: routeSettings,
-            builder: (_) => HomeBannerScreen(
-              banner: args.banner,
-              bannerId: args.bannerId,
-            ),
+            builder: (_) =>
+                HomeBannerScreen(banner: args.banner, bannerId: args.bannerId),
           );
         } else if (args != null && args.toString() != 'null') {
           return MaterialPageRoute(

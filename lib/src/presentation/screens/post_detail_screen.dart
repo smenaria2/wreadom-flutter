@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -29,12 +30,14 @@ class PostDetailScreen extends ConsumerWidget {
     super.key,
     required this.postId,
     this.preloadedPost,
+    this.targetStoryId,
     this.targetCommentId,
     this.targetReplyId,
   });
 
   final String postId;
   final FeedPost? preloadedPost;
+  final String? targetStoryId;
   final String? targetCommentId;
   final String? targetReplyId;
 
@@ -79,10 +82,15 @@ class PostDetailScreen extends ConsumerWidget {
             },
             child: ListView(
               children: [
+                _TargetStoryCard(
+                  post: effectivePost,
+                  targetStoryId: targetStoryId,
+                ),
                 FeedPostCard(
                   key: ValueKey(effectivePost.id ?? ''),
                   post: effectivePost,
                   openOnTap: false,
+                  autoPlayAudio: true,
                   onReplyToQuestion: (post) {
                     showCreatePostSheet(
                       context,
@@ -120,10 +128,15 @@ class PostDetailScreen extends ConsumerWidget {
         loading: () => preloadedPost != null
             ? ListView(
                 children: [
+                  _TargetStoryCard(
+                    post: preloadedPost!,
+                    targetStoryId: targetStoryId,
+                  ),
                   FeedPostCard(
                     key: ValueKey(preloadedPost!.id ?? ''),
                     post: preloadedPost!,
                     openOnTap: false,
+                    autoPlayAudio: true,
                     onReplyToQuestion: (post) {
                       showCreatePostSheet(
                         context,
@@ -159,6 +172,94 @@ class PostDetailScreen extends ConsumerWidget {
             : const _PostDetailSkeleton(),
         error: (err, _) =>
             Center(child: Text(l10n.failedToLoadPost(err.toString()))),
+      ),
+    );
+  }
+}
+
+StoryImage? selectTargetStoryImage(FeedPost post, String? targetStoryId) {
+  final normalizedTarget = targetStoryId?.trim();
+  if (normalizedTarget == null || normalizedTarget.isEmpty) return null;
+  for (final story in post.images ?? const <StoryImage>[]) {
+    if (story.id == normalizedTarget) return story;
+  }
+  return null;
+}
+
+class _TargetStoryCard extends StatelessWidget {
+  const _TargetStoryCard({required this.post, required this.targetStoryId});
+
+  final FeedPost post;
+  final String? targetStoryId;
+
+  @override
+  Widget build(BuildContext context) {
+    final story = selectTargetStoryImage(post, targetStoryId);
+    if (story == null) return const SizedBox.shrink();
+    return Padding(
+      key: ValueKey('target-story-${story.id}'),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (dialogContext) => Dialog.fullscreen(
+              backgroundColor: Colors.black,
+              child: Stack(
+                children: [
+                  Center(
+                    child: InteractiveViewer(
+                      child: CachedNetworkImage(
+                        imageUrl: story.url,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, _, _) => const Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: SafeArea(
+                      child: IconButton.filled(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: CachedNetworkImage(
+                  imageUrl: story.url,
+                  height: 360,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => const SizedBox(
+                    height: 180,
+                    child: Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              ),
+              if (story.caption?.trim().isNotEmpty == true)
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Text(story.caption!.trim()),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

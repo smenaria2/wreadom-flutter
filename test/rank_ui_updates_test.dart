@@ -84,6 +84,13 @@ void main() {
     expect(find.text(longName), findsOneWidget);
     expect(find.byType(FittedBox), findsOneWidget);
     expect(
+      find.byKey(const ValueKey('profile-share-wreadom-logo')),
+      findsOneWidget,
+    );
+    expect(find.text('WREADOM CREATOR'), findsOneWidget);
+    expect(find.text('wreadom.in'), findsOneWidget);
+
+    expect(
       tester.getTopLeft(find.text('FOLLOWERS')).dy,
       lessThan(tester.getTopLeft(find.text('Author rank')).dy),
     );
