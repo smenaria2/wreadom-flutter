@@ -38,6 +38,7 @@ import '../widgets/auth_required_view.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/writer_custom_toolbar.dart';
+import '../widgets/writer_live_word_count_chip.dart';
 import '../widgets/writer_media_embed.dart';
 import '../components/ai_edit_dialog.dart';
 import '../../data/services/cover_image_service.dart';
@@ -1070,6 +1071,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         child: TextField(
                           controller: _currentChapter.title,
                           enabled: !lockedByOther,
+                          maxLength: 100,
+                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                          buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
                           style: TextStyle(
                             color: _onWriterSurfaceColor(context),
                             fontSize: 20,
@@ -1153,8 +1157,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         Expanded(
           child: Container(
             width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             decoration: BoxDecoration(
               color: paperColor,
               borderRadius: BorderRadius.circular(16),
@@ -1164,74 +1168,88 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 ).colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
             ),
-            child: QuillEditor(
-              controller: _currentChapter.controller,
-              focusNode: _editorFocusNode,
-              scrollController: _editorScrollController,
-              config: QuillEditorConfig(
-                // QA Hardening Compatibility:
-                // showLink: false
-                embedBuilders: const [
-                  WriterImageEmbedBuilder(),
-                  WriterMediaEmbedBuilder(),
-                ],
-                placeholder: l10n.writerStartWriting,
-                padding: EdgeInsets.zero,
-                expands: true,
-                autoFocus: false,
-                customStyles: DefaultStyles(
-                  paragraph: DefaultTextBlockStyle(
-                    TextStyle(
-                      fontSize: 17,
-                      height: 1.55,
-                      color: paperTextColor,
-                    ),
-                    HorizontalSpacing.zero,
-                    const VerticalSpacing(8, 0),
-                    const VerticalSpacing(0, 0),
-                    null,
-                  ),
-                  h1: DefaultTextBlockStyle(
-                    theme.textTheme.headlineMedium!.copyWith(
-                      color: paperTextColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    HorizontalSpacing.zero,
-                    const VerticalSpacing(14, 6),
-                    const VerticalSpacing(0, 0),
-                    null,
-                  ),
-                  h2: DefaultTextBlockStyle(
-                    theme.textTheme.headlineSmall!.copyWith(
-                      color: paperTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    HorizontalSpacing.zero,
-                    const VerticalSpacing(12, 4),
-                    const VerticalSpacing(0, 0),
-                    null,
-                  ),
-                  quote: DefaultTextBlockStyle(
-                    TextStyle(
-                      color: paperMutedColor,
-                      fontSize: 17,
-                      height: 1.55,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    const HorizontalSpacing(12, 0),
-                    const VerticalSpacing(8, 8),
-                    const VerticalSpacing(0, 0),
-                    BoxDecoration(
-                      border: Border(
-                        left: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 4,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: QuillEditor(
+                    controller: _currentChapter.controller,
+                    focusNode: _editorFocusNode,
+                    scrollController: _editorScrollController,
+                    config: QuillEditorConfig(
+                      // QA Hardening Compatibility:
+                      // showLink: false
+                      embedBuilders: const [
+                        WriterImageEmbedBuilder(),
+                        WriterMediaEmbedBuilder(),
+                      ],
+                      placeholder: l10n.writerStartWriting,
+                      padding: const EdgeInsets.only(bottom: 24),
+                      expands: true,
+                      autoFocus: false,
+                      customStyles: DefaultStyles(
+                        paragraph: DefaultTextBlockStyle(
+                          TextStyle(
+                            fontSize: 15,
+                            height: 1.45,
+                            color: paperTextColor,
+                          ),
+                          HorizontalSpacing.zero,
+                          const VerticalSpacing(8, 0),
+                          const VerticalSpacing(0, 0),
+                          null,
+                        ),
+                        h1: DefaultTextBlockStyle(
+                          theme.textTheme.headlineMedium!.copyWith(
+                            color: paperTextColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          HorizontalSpacing.zero,
+                          const VerticalSpacing(14, 6),
+                          const VerticalSpacing(0, 0),
+                          null,
+                        ),
+                        h2: DefaultTextBlockStyle(
+                          theme.textTheme.headlineSmall!.copyWith(
+                            color: paperTextColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          HorizontalSpacing.zero,
+                          const VerticalSpacing(12, 4),
+                          const VerticalSpacing(0, 0),
+                          null,
+                        ),
+                        quote: DefaultTextBlockStyle(
+                          TextStyle(
+                            color: paperMutedColor,
+                            fontSize: 15,
+                            height: 1.45,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          const HorizontalSpacing(12, 0),
+                          const VerticalSpacing(8, 8),
+                          const VerticalSpacing(0, 0),
+                          BoxDecoration(
+                            border: Border(
+                              left: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 4,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+                Positioned(
+                  right: 4,
+                  bottom: 4,
+                  child: WriterLiveWordCountChip(
+                    wordCount: _currentChapter.wordCount,
+                    isVisible: MediaQuery.viewInsetsOf(context).bottom == 0,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1261,6 +1279,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 controller: _titleController.value,
                 label: l10n.title,
                 hint: l10n.writerTitleHint,
+                maxLength: 100,
               ),
               const SizedBox(height: 14),
               _darkField(
@@ -1557,9 +1576,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
+        top: false,
         child: GlassSurface(
           strong: true,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           borderRadius: BorderRadius.circular(24),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: WriterCustomToolbar(
@@ -1634,6 +1654,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     required String label,
     required String hint,
     int maxLines = 1,
+    int? maxLength,
   }) {
     final onSurfaceColor = _onWriterSurfaceColor(context);
     final fieldColor = _writerFieldColor(context);
@@ -1641,6 +1662,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      maxLength: maxLength,
+      maxLengthEnforcement: maxLength != null ? MaxLengthEnforcement.enforced : null,
       style: TextStyle(color: onSurfaceColor),
       decoration: InputDecoration(
         labelText: label,

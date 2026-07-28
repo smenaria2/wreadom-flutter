@@ -3023,13 +3023,13 @@ abstract class AppLocalizations {
   /// No description provided for @insertImage.
   ///
   /// In en, this message translates to:
-  /// **'Insert image'**
+  /// **'Image'**
   String get insertImage;
 
   /// No description provided for @insertMedia.
   ///
   /// In en, this message translates to:
-  /// **'Insert media'**
+  /// **'Media'**
   String get insertMedia;
 
   /// No description provided for @aiEdit.

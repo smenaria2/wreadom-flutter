@@ -1647,10 +1647,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveDraft => 'Save Draft';
 
   @override
-  String get insertImage => 'Insert image';
+  String get insertImage => 'Image';
 
   @override
-  String get insertMedia => 'Insert media';
+  String get insertMedia => 'Media';
 
   @override
   String get aiEdit => 'Edit with AI';
