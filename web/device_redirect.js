@@ -14,15 +14,25 @@
     return;
   }
 
-  // Detect Apple mobile & tablet devices (iPhone, iPad, iPod, iPadOS)
   const userAgent = navigator.userAgent || '';
+
+  // 1. Apple devices (iPhone, iPad, iPod, iPadOS) -> Allow access to mobile web app
   const isIOS = /iPhone|iPad|iPod/.test(userAgent);
   const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   const isAppleDevice = isIOS || isIPadOS;
 
-  // Redirect non-Apple devices to main site wreadom.in
-  if (!isAppleDevice) {
-    const targetUrl = 'https://wreadom.in' + window.location.pathname + window.location.search + window.location.hash;
-    window.location.replace(targetUrl);
+  if (isAppleDevice) {
+    return;
   }
+
+  // 2. Android devices -> Redirect to Play Store app page
+  const isAndroid = /Android/i.test(userAgent);
+  if (isAndroid) {
+    window.location.replace('https://play.google.com/store/apps/details?id=in.wreadom.app');
+    return;
+  }
+
+  // 3. Desktop / non-mobile devices -> Redirect to main site wreadom.in
+  const targetUrl = 'https://wreadom.in' + window.location.pathname + window.location.search + window.location.hash;
+  window.location.replace(targetUrl);
 })();
