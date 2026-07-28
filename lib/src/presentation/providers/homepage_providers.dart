@@ -16,6 +16,7 @@ import '../../data/utils/firestore_utils.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
 import 'book_providers.dart';
+import 'featured_author_provider.dart';
 import 'feed_providers.dart';
 import 'theme_provider.dart';
 
@@ -63,6 +64,8 @@ Future<void> refreshHomepage(WidgetRef ref) async {
     prefs.remove(_homepageAuthorWorksCacheKey),
     prefs.remove(_homepageIABooksCacheKey),
     prefs.remove(_homepageBannersCacheKey),
+    prefs.remove(homepageFeaturedAuthorCacheKey),
+    prefs.remove(homepageFeaturedAuthorCacheUpdatedAtKey),
     ...genreCacheKeys.map(prefs.remove),
   ]);
   ref.read(homepageRefreshCounterProvider.notifier).bump();
@@ -71,6 +74,7 @@ Future<void> refreshHomepage(WidgetRef ref) async {
   ref.invalidate(homepageRecommendedBooksProvider);
   ref.invalidate(homepageBooksProvider);
   ref.invalidate(homepageAuthorWorksProvider);
+  ref.invalidate(homepageFeaturedAuthorProvider);
   ref.invalidate(homepageIABooksProvider);
   ref.invalidate(homepageAuthorsProvider);
   ref.invalidate(homepageTrendingWorksProvider);
@@ -809,14 +813,40 @@ final homepageAuthorBooksProvider = FutureProvider.family<List<Book>, String>((
   ref,
   authorId,
 ) async {
+  final normalizedAuthorId = authorId.trim();
+  if (normalizedAuthorId.isEmpty) return const <Book>[];
+
   final works = await ref.watch(homepageAuthorWorksProvider.future);
-  final books =
-      works.where((book) => book.authorId?.trim() == authorId).toList()
-        ..sort((a, b) {
-          final aTime = a.updatedAt ?? a.createdAt ?? 0;
-          final bTime = b.updatedAt ?? b.createdAt ?? 0;
-          return bTime.compareTo(aTime);
-        });
+  var books = works.where((book) {
+    if (!_isPublishedOriginal(book)) return false;
+    return acceptedAuthorIdsFor(book).contains(normalizedAuthorId);
+  }).toList();
+
+  if (books.isEmpty) {
+    final allHomeBooks = await ref.watch(homepageBooksProvider.future);
+    books = allHomeBooks.where((book) {
+      if (!_isPublishedOriginal(book)) return false;
+      return acceptedAuthorIdsFor(book).contains(normalizedAuthorId);
+    }).toList();
+  }
+
+  if (books.isEmpty) {
+    try {
+      final userBooks = await ref.watch(userBooksProvider(normalizedAuthorId).future);
+      books = userBooks.where(_isPublishedOriginal).toList();
+    } catch (e, stack) {
+      debugPrint(
+        '[homepageAuthorBooksProvider:$normalizedAuthorId] Error: $e\n$stack',
+      );
+    }
+  }
+
+  books.sort((a, b) {
+    final aTime = a.updatedAt ?? a.createdAt ?? 0;
+    final bTime = b.updatedAt ?? b.createdAt ?? 0;
+    return bTime.compareTo(aTime);
+  });
+
   return books;
 });
 

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +11,7 @@ import '../../utils/app_haptics.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../providers/notification_providers.dart';
 import '../providers/homepage_providers.dart';
+import '../providers/featured_author_provider.dart';
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
 import 'book_detail_screen.dart';
@@ -1918,15 +1918,8 @@ class _FogBlock extends StatelessWidget {
 }
 
 // Author Spotlight
-class _AuthorSpotlight extends ConsumerStatefulWidget {
+class _AuthorSpotlight extends ConsumerWidget {
   const _AuthorSpotlight();
-
-  @override
-  ConsumerState<_AuthorSpotlight> createState() => _AuthorSpotlightState();
-}
-
-class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
-  int? _randomIndex;
 
   String _authorName(UserModel author) {
     final displayName = author.displayName;
@@ -1950,24 +1943,14 @@ class _AuthorSpotlightState extends ConsumerState<_AuthorSpotlight> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final authorsAsync = ref.watch(
-      homepageRankedAuthorsProvider(HomeAuthorRanking.newAuthors),
-    );
+    final authorAsync = ref.watch(homepageFeaturedAuthorProvider);
 
-    return authorsAsync.when(
-      data: (rankedAuthors) {
-        final eligibleAuthors = rankedAuthors
-            .where((ranked) => ranked.metrics.works > 0)
-            .map((ranked) => ranked.author)
-            .toList();
+    return authorAsync.when(
+      data: (author) {
+        if (author == null) return const SizedBox.shrink();
 
-        if (eligibleAuthors.isEmpty) return const SizedBox.shrink();
-
-        _randomIndex ??= math.Random().nextInt(eligibleAuthors.length);
-        if (_randomIndex! >= eligibleAuthors.length) _randomIndex = 0;
-        final author = eligibleAuthors[_randomIndex!];
         final authorBooksAsync = ref.watch(
           homepageAuthorBooksProvider(author.id),
         );
