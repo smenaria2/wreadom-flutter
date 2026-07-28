@@ -68,6 +68,8 @@ Future<void> refreshHomepage(WidgetRef ref) async {
     prefs.remove(homepageFeaturedAuthorCacheUpdatedAtKey),
     ...genreCacheKeys.map(prefs.remove),
   ]);
+  // Clear the in-memory session author so the next run picks a fresh one.
+  ref.read(sessionFeaturedAuthorProvider.notifier).set(null);
   ref.read(homepageRefreshCounterProvider.notifier).bump();
   ref.invalidate(compiledHomepageProvider);
   ref.invalidate(homepageMetadataProvider);

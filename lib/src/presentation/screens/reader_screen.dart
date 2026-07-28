@@ -68,7 +68,7 @@ import '../utils/share_text_helper.dart';
 import '../widgets/adaptive_banner_ad.dart';
 import 'static_info_screen.dart';
 
-const double _readerBottomBarHeight = 76;
+const double _readerBottomBarHeight = 60;
 const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
 
 String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
@@ -5536,7 +5536,7 @@ class ReaderChapterProgressDetails extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 2),
+      padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
       child: Row(
         children: [
           Text(
@@ -5644,7 +5644,7 @@ class _ReaderBottomBar extends StatelessWidget {
                     valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     minHeight: 2,
                   ),
-                  ReaderChapterProgressDetails(
+                   ReaderChapterProgressDetails(
                     currentChapterNumber: currentChapterNumber,
                     totalChapters: totalChapters,
                     progress: safeProgress,
