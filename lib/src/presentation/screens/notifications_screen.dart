@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_providers.dart';
 import '../providers/notification_providers.dart';
 import '../providers/navigation_providers.dart';
+import '../providers/feed_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../utils/error_message_utils.dart';
@@ -472,6 +473,33 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                             bookId:
                                                                 target.payload,
                                                           ),
+                                                        AppRoutes
+                                                            .questionAnswers =>
+                                                          (target.payload.isNotEmpty &&
+                                                                  target.leafId !=
+                                                                      null &&
+                                                                  target.leafId!
+                                                                      .isNotEmpty)
+                                                              ? QuestionAnswersLinkArguments(
+                                                                  bookId:
+                                                                      target.payload,
+                                                                  leafId:
+                                                                      target.leafId!,
+                                                                )
+                                                              : (target.question !=
+                                                                          null &&
+                                                                      target.question!
+                                                                          .isNotEmpty)
+                                                                  ? QuestionLeafAnswersQuery(
+                                                                      bookId:
+                                                                          target.payload,
+                                                                      leafId:
+                                                                          target.leafId ??
+                                                                              '',
+                                                                      question:
+                                                                          target.question!,
+                                                                    )
+                                                                  : target.payload,
                                                         _ => target.payload,
                                                       };
                                                       Navigator.of(

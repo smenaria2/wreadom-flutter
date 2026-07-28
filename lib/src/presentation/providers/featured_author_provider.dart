@@ -18,11 +18,6 @@ final homepageFeaturedAuthorProvider = FutureProvider<UserModel?>((ref) async {
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
 
   final raw = prefs.getString(homepageFeaturedAuthorCacheKey);
-  final updatedAt = prefs.getInt(homepageFeaturedAuthorCacheUpdatedAtKey);
-  final now = DateTime.now().millisecondsSinceEpoch;
-  final isStale =
-      updatedAt == null ||
-      (now - updatedAt > const Duration(hours: 6).inMilliseconds);
 
   UserModel? cachedAuthor;
   if (raw != null && raw.isNotEmpty) {
@@ -33,7 +28,8 @@ final homepageFeaturedAuthorProvider = FutureProvider<UserModel?>((ref) async {
     }
   }
 
-  if (cachedAuthor != null && !isStale && refreshTick == 0) {
+  // If cached author exists and homepage was NOT explicitly refreshed, return cached author
+  if (cachedAuthor != null && refreshTick == 0) {
     return cachedAuthor;
   }
 
@@ -58,7 +54,10 @@ final homepageFeaturedAuthorProvider = FutureProvider<UserModel?>((ref) async {
         homepageFeaturedAuthorCacheKey,
         jsonEncode(selectedAuthor.toJson()),
       );
-      await prefs.setInt(homepageFeaturedAuthorCacheUpdatedAtKey, now);
+      await prefs.setInt(
+        homepageFeaturedAuthorCacheUpdatedAtKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
     } catch (e) {
       debugPrint('[homepageFeaturedAuthorProvider] Error saving cache: $e');
     }

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/app_notification.dart';
+import '../../presentation/providers/feed_providers.dart';
 import '../../presentation/routing/app_routes.dart';
 import '../../presentation/routing/app_router.dart';
 import '../../utils/app_link_helper.dart';
@@ -405,6 +406,30 @@ class NotificationService {
         return;
       case AppRoutes.dailyTopic:
         navigator.pushNamed(target.route, arguments: target.payload);
+        return;
+      case AppRoutes.questionAnswers:
+        if (target.payload.isNotEmpty &&
+            target.leafId != null &&
+            target.leafId!.isNotEmpty) {
+          navigator.pushNamed(
+            target.route,
+            arguments: QuestionAnswersLinkArguments(
+              bookId: target.payload,
+              leafId: target.leafId!,
+            ),
+          );
+        } else if (target.question != null && target.question!.isNotEmpty) {
+          navigator.pushNamed(
+            target.route,
+            arguments: QuestionLeafAnswersQuery(
+              bookId: target.payload,
+              leafId: target.leafId ?? '',
+              question: target.question!,
+            ),
+          );
+        } else {
+          navigator.pushNamed(target.route, arguments: target.payload);
+        }
         return;
       default:
         navigator.pushNamed(target.route, arguments: target.payload);

@@ -10,6 +10,7 @@ class NotificationTarget {
     this.replyId,
     this.chapterIndex,
     this.leafId,
+    this.question,
   });
 
   final String route;
@@ -18,6 +19,7 @@ class NotificationTarget {
   final String? replyId;
   final int? chapterIndex;
   final String? leafId;
+  final String? question;
 }
 
 class NotificationTargetResolver {
@@ -131,6 +133,37 @@ class NotificationTargetResolver {
     if (linkTarget?.route == AppRoutes.conversation &&
         linkTarget?.payload != null) {
       return NotificationTarget(AppRoutes.conversation, linkTarget!.payload!);
+    }
+    if (linkTarget?.route == AppRoutes.questionAnswers) {
+      return NotificationTarget(
+        AppRoutes.questionAnswers,
+        linkTarget?.payload ?? bookId ?? '',
+        leafId: leafId ?? linkTarget?.leafId,
+        question: linkTarget?.question ??
+            _firstValid([
+              metadata['question'],
+              metadata['questionText'],
+              _queryValue(notification.link, 'question'),
+            ]),
+      );
+    }
+    if (targetType == 'question' ||
+        targetType == 'questions' ||
+        type == 'question' ||
+        type == 'questions') {
+      final questionText = _firstValid([
+        metadata['question'],
+        metadata['questionText'],
+        metadata['query'],
+        _queryValue(notification.link, 'question'),
+        linkTarget?.question,
+      ]);
+      return NotificationTarget(
+        AppRoutes.questionAnswers,
+        bookId ?? linkTarget?.payload ?? '',
+        leafId: leafId ?? linkTarget?.leafId,
+        question: questionText,
+      );
     }
     if (linkTarget?.route == AppRoutes.publicProfile &&
         linkTarget?.payload != null) {

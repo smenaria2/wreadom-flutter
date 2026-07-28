@@ -282,22 +282,37 @@ class AppLinkHelper {
         case 'help':
         case 'guide':
           return const ResolvedAppLink(AppRoutes.help, null);
+        case 'question':
         case 'questions':
+        case 'answer':
         case 'answers':
-          final bookId = queryBookId;
-          final leafId = queryLeafId;
+        case 'question-answers':
+          final bookId = queryBookId ?? uri.queryParameters['bookId'];
+          final leafId = queryLeafId ?? uri.queryParameters['leafId'];
+          final question = queryQuestion ??
+              uri.queryParameters['questionId'] ??
+              uri.queryParameters['q'];
           if (_hasValue(bookId) && _hasValue(leafId)) {
             return ResolvedAppLink(
               AppRoutes.questionAnswers,
               bookId!.trim(),
               leafId: leafId!.trim(),
+              question: _hasValue(question) ? question!.trim() : null,
             );
           }
-          if (_hasValue(queryQuestion)) {
+          if (_hasValue(question)) {
             return ResolvedAppLink(
               AppRoutes.questionAnswers,
-              null,
-              question: queryQuestion!.trim(),
+              _hasValue(bookId) ? bookId!.trim() : null,
+              leafId: _hasValue(leafId) ? leafId!.trim() : null,
+              question: question!.trim(),
+            );
+          }
+          if (_hasValue(id)) {
+            return ResolvedAppLink(
+              AppRoutes.questionAnswers,
+              id!.trim(),
+              leafId: _hasValue(leafId) ? leafId!.trim() : null,
             );
           }
           break;

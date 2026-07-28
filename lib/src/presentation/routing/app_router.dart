@@ -644,6 +644,18 @@ class AppRouter {
             builder: (_) => QuestionAnswersScreen(query: args),
           );
         }
+        if (args is String && args.trim().isNotEmpty) {
+          return MaterialPageRoute(
+            settings: routeSettings,
+            builder: (_) => QuestionAnswersScreen(
+              query: QuestionLeafAnswersQuery(
+                bookId: '',
+                leafId: '',
+                question: args.trim(),
+              ),
+            ),
+          );
+        }
         return _notFound('Question query details are missing.');
       case AppRoutes.conversation:
         final argsValue = resolvedArguments;
