@@ -355,5 +355,32 @@ void main() {
 
       expect(quillController.document.toPlainText(), equals('हैं,\n'));
     });
+
+    test('Space typing delta immediately after Roman token auto-commits suggestion', () {
+      controller.isEnabled = true;
+      quillController.document.insert(0, 'hain');
+      quillController.updateSelection(
+        const TextSelection.collapsed(offset: 4),
+        ChangeSource.local,
+      );
+      controller.updateForSelection(quillController);
+      expect(controller.hasSuggestion, isTrue);
+
+      // User types space ' ' (as an IME delta text insertion)
+      quillController.document.insert(4, ' ');
+      quillController.updateSelection(
+        const TextSelection.collapsed(offset: 5),
+        ChangeSource.local,
+      );
+      controller.updateForSelection(quillController);
+
+      expect(quillController.document.toPlainText(), equals('हैं \n'));
+      expect(controller.canRestoreCommit, isTrue);
+
+      // Backspace restores 'hain'
+      final handled = controller.handleBackspace(quillController);
+      expect(handled, isTrue);
+      expect(quillController.document.toPlainText(), equals('hain\n'));
+    });
   });
 }

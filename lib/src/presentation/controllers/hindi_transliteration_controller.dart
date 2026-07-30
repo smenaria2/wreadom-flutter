@@ -104,7 +104,7 @@ class HindiTransliterationController extends ChangeNotifier {
       final end = _tokenEndOffset!;
       if (caretOffset == end + 1 && caretOffset <= plainText.length) {
         final lastChar = plainText[caretOffset - 1];
-        if (lastChar == '.' || lastChar == ',' || lastChar == ':') {
+        if (lastChar == ' ' || lastChar == '.' || lastChar == ',' || lastChar == ':') {
           final prefixText = plainText.substring(start, end);
           if (prefixText == _activeRomanToken) {
             final topSuggestion = hindiSuggestion;
