@@ -15,6 +15,8 @@ class WriterCustomToolbar extends StatefulWidget {
     required this.onVersionHistory,
     required this.onAiEdit,
     this.isReadOnly = false,
+    this.isHindiModeEnabled = false,
+    this.onToggleHindi,
   });
 
   final QuillController controller;
@@ -25,13 +27,15 @@ class WriterCustomToolbar extends StatefulWidget {
   final VoidCallback? onVersionHistory;
   final VoidCallback? onAiEdit;
   final bool isReadOnly;
+  final bool isHindiModeEnabled;
+  final VoidCallback? onToggleHindi;
 
   @override
   State<WriterCustomToolbar> createState() => _WriterCustomToolbarState();
 }
 
 class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
-  bool _showSecondRow = false;
+  final ScrollController _scrollController = ScrollController();
   bool? _wasKeyboardOpen;
 
   @override
@@ -52,18 +56,16 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   @override
   void dispose() {
     widget.controller.removeListener(_updateState);
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _updateState() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
-  bool _isHindi(BuildContext context) {
-    return Localizations.localeOf(context).languageCode == 'hi';
-  }
+  bool _isHindi(BuildContext context) =>
+      Localizations.localeOf(context).languageCode == 'hi';
 
   String _getUndoLabel(BuildContext context) =>
       _isHindi(context) ? 'पूर्ववत' : 'Undo';
@@ -86,13 +88,6 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 
-  void _hideKeyboardAfterToolbarTap() {
-    _hideTextInput();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _hideTextInput();
-    });
-  }
-
   void _runToolbarAction(
     VoidCallback? action, {
     bool requireEditorFocus = true,
@@ -100,11 +95,18 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   }) {
     if (widget.isReadOnly || action == null) return;
     if (requireEditorFocus && !widget.focusNode.hasFocus) return;
-    if (hideAfterAction) {
-      _hideTextInput();
-    }
+    if (hideAfterAction) _hideTextInput();
     action();
-    if (hideAfterAction) _hideKeyboardAfterToolbarTap();
+    if (hideAfterAction) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _hideTextInput());
+    } else {
+      // Restore focus so the soft keyboard stays visible
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (widget.focusNode.canRequestFocus) {
+          widget.focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _toggleFormat(Attribute attribute) {
@@ -120,229 +122,220 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     );
   }
 
+  /// Scrolls to the end (formatting buttons) when keyboard opens,
+  /// or scrolls to the beginning (image/media) when keyboard closes.
+  void _autoScrollForKeyboard(bool keyboardOpen) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      if (keyboardOpen) {
+        // Scroll to end: formatting tools (Undo, Redo, Bold, etc.) are at right
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      } else {
+        // Scroll to start: Image, Media, AI, Version, 'अ'
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final onSurfaceColor = theme.colorScheme.onSurface;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+
+    // Trigger auto-scroll when keyboard state changes
+    if (_wasKeyboardOpen != keyboardOpen) {
+      _wasKeyboardOpen = keyboardOpen;
+      _autoScrollForKeyboard(keyboardOpen);
+    }
 
     final selectionStyle = widget.controller.getSelectionStyle();
     final isBold = selectionStyle.containsKey(Attribute.bold.key);
     final isItalic = selectionStyle.containsKey(Attribute.italic.key);
     final isUnderline = selectionStyle.containsKey(Attribute.underline.key);
 
-    final undoItem = Expanded(
-      child: _buildItem(
-        icon: const Icon(Icons.undo_rounded),
-        label: _getUndoLabel(context),
-        onTap: () => _runToolbarAction(
-          widget.controller.undo,
-          hideAfterAction: false,
+    // ─── Toolbar Items ───
+    final imageItem = _buildItem(
+      icon: widget.isUploadingInlineImage
+          ? const SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.image_outlined),
+      label: l10n.insertImage,
+      onTap: widget.isUploadingInlineImage
+          ? null
+          : () => _runToolbarAction(widget.onInsertImage),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final videoItem = _buildItem(
+      icon: const Icon(Icons.play_circle_outline_rounded),
+      label: l10n.insertMedia,
+      onTap: () => _runToolbarAction(
+        widget.onInsertVideo,
+        hideAfterAction: false,
+      ),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final aiItem = _buildItem(
+      icon: const Icon(Icons.auto_awesome_rounded),
+      label: l10n.aiEdit,
+      onTap: widget.onAiEdit == null || !_hasEditableText
+          ? null
+          : () => _runToolbarAction(
+              widget.onAiEdit,
+              requireEditorFocus: false,
+              hideAfterAction: false,
+            ),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final versionItem = _buildItem(
+      icon: const Icon(Icons.access_time_rounded),
+      label: _getVersionLabel(context),
+      onTap: widget.onVersionHistory == null
+          ? null
+          : () => _runToolbarAction(
+              widget.onVersionHistory,
+              requireEditorFocus: false,
+            ),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final hindiItem = _buildItem(
+      icon: Text(
+        'अ',
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.bold,
+          color: widget.isHindiModeEnabled
+              ? theme.colorScheme.primary
+              : onSurfaceColor,
         ),
       ),
+      label: l10n.hindiInputMode,
+      onTap: widget.isReadOnly || widget.onToggleHindi == null
+          ? null
+          : () {
+              widget.onToggleHindi!();
+              // Restore focus so the keyboard stays open
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (widget.focusNode.canRequestFocus) {
+                  widget.focusNode.requestFocus();
+                }
+              });
+            },
+      isActive: widget.isHindiModeEnabled,
+      keyboardOpen: keyboardOpen,
     );
 
-    final redoItem = Expanded(
-      child: _buildItem(
-        icon: const Icon(Icons.redo_rounded),
-        label: _getRedoLabel(context),
-        onTap: () => _runToolbarAction(
-          widget.controller.redo,
-          hideAfterAction: false,
+    final undoItem = _buildItem(
+      icon: const Icon(Icons.undo_rounded),
+      label: _getUndoLabel(context),
+      onTap: () => _runToolbarAction(
+        widget.controller.undo,
+        hideAfterAction: false,
+      ),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final redoItem = _buildItem(
+      icon: const Icon(Icons.redo_rounded),
+      label: _getRedoLabel(context),
+      onTap: () => _runToolbarAction(
+        widget.controller.redo,
+        hideAfterAction: false,
+      ),
+      keyboardOpen: keyboardOpen,
+    );
+
+    final boldItem = _buildItem(
+      icon: Text(
+        'B',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 17,
+          color: isBold ? theme.colorScheme.primary : onSurfaceColor,
         ),
       ),
+      label: _getBoldLabel(context),
+      onTap: () => _toggleFormat(Attribute.bold),
+      isActive: isBold,
+      keyboardOpen: keyboardOpen,
     );
 
-    final boldItem = Expanded(
-      child: _buildItem(
-        icon: Text(
-          'B',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-            color: isBold ? theme.colorScheme.primary : onSurfaceColor,
-          ),
-        ),
-        label: _getBoldLabel(context),
-        onTap: () => _toggleFormat(Attribute.bold),
-        isActive: isBold,
-      ),
-    );
-
-    final italicItem = Expanded(
-      child: _buildItem(
-        icon: Text(
-          'I',
-          style: TextStyle(
-            fontStyle: FontStyle.italic,
-            fontSize: 17,
-            color: isItalic
-                ? theme.colorScheme.primary
-                : onSurfaceColor,
-          ),
-        ),
-        label: _getItalicLabel(context),
-        onTap: () => _toggleFormat(Attribute.italic),
-        isActive: isItalic,
-      ),
-    );
-
-    final underlineItem = Expanded(
-      child: _buildItem(
-        icon: Text(
-          'U',
-          style: TextStyle(
-            decoration: TextDecoration.underline,
-            fontSize: 17,
-            color: isUnderline
-                ? theme.colorScheme.primary
-                : onSurfaceColor,
-          ),
-        ),
-        label: _getUnderlineLabel(context),
-        onTap: () => _toggleFormat(Attribute.underline),
-        isActive: isUnderline,
-      ),
-    );
-
-    final showMoreItem = Expanded(
-      child: _buildItem(
-        icon: Icon(
-          _showSecondRow
-              ? Icons.keyboard_double_arrow_up_rounded
-              : Icons.keyboard_double_arrow_down_rounded,
-        ),
-        label: l10n.showMore,
-        onTap: () {
-          setState(() {
-            _showSecondRow = !_showSecondRow;
-          });
-        },
-        showLabel: false,
-      ),
-    );
-
-    final imageItem = Expanded(
-      child: _buildItem(
-        icon: widget.isUploadingInlineImage
-            ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.image_outlined),
-        label: l10n.insertImage,
-        onTap: widget.isUploadingInlineImage
-            ? null
-            : () => _runToolbarAction(widget.onInsertImage),
-      ),
-    );
-
-    final videoItem = Expanded(
-      child: _buildItem(
-        icon: const Icon(Icons.play_circle_outline_rounded),
-        label: l10n.insertMedia,
-        onTap: () => _runToolbarAction(
-          widget.onInsertVideo,
-          hideAfterAction: false,
+    final italicItem = _buildItem(
+      icon: Text(
+        'I',
+        style: TextStyle(
+          fontStyle: FontStyle.italic,
+          fontSize: 17,
+          color: isItalic ? theme.colorScheme.primary : onSurfaceColor,
         ),
       ),
+      label: _getItalicLabel(context),
+      onTap: () => _toggleFormat(Attribute.italic),
+      isActive: isItalic,
+      keyboardOpen: keyboardOpen,
     );
 
-    final aiItem = Expanded(
-      child: _buildItem(
-        icon: const Icon(Icons.auto_awesome_rounded),
-        label: l10n.aiEdit,
-        onTap: widget.onAiEdit == null || !_hasEditableText
-            ? null
-            : () => _runToolbarAction(
-                widget.onAiEdit,
-                requireEditorFocus: false,
-                hideAfterAction: false,
-              ),
-        showLabel: false,
-      ),
-    );
-
-    final versionItem = Expanded(
-      child: _buildItem(
-        icon: const Icon(Icons.access_time_rounded),
-        label: _getVersionLabel(context),
-        onTap: widget.onVersionHistory == null
-            ? null
-            : () => _runToolbarAction(
-                widget.onVersionHistory,
-                requireEditorFocus: false,
-              ),
-      ),
-    );
-
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    if (_wasKeyboardOpen != null && _wasKeyboardOpen != keyboardOpen) {
-      _showSecondRow = false;
-    }
-    _wasKeyboardOpen = keyboardOpen;
-
-    final List<Widget> topRowChildren;
-    final List<Widget> bottomRowChildren;
-
-    if (keyboardOpen) {
-      topRowChildren = [
-        undoItem,
-        redoItem,
-        _buildDivider(),
-        boldItem,
-        italicItem,
-        underlineItem,
-        _buildDivider(),
-        showMoreItem,
-      ];
-      bottomRowChildren = [
-        imageItem,
-        videoItem,
-        aiItem,
-        _buildDivider(),
-        versionItem,
-      ];
-    } else {
-      topRowChildren = [
-        imageItem,
-        videoItem,
-        aiItem,
-        _buildDivider(),
-        versionItem,
-        _buildDivider(),
-        showMoreItem,
-      ];
-      bottomRowChildren = [
-        undoItem,
-        redoItem,
-        _buildDivider(),
-        boldItem,
-        italicItem,
-        underlineItem,
-      ];
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: topRowChildren,
+    final underlineItem = _buildItem(
+      icon: Text(
+        'U',
+        style: TextStyle(
+          decoration: TextDecoration.underline,
+          fontSize: 17,
+          color: isUnderline ? theme.colorScheme.primary : onSurfaceColor,
         ),
-        if (_showSecondRow) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: bottomRowChildren,
-          ),
+      ),
+      label: _getUnderlineLabel(context),
+      onTap: () => _toggleFormat(Attribute.underline),
+      isActive: isUnderline,
+      keyboardOpen: keyboardOpen,
+    );
+
+    // ─── Order: Image | Media | AI | Version | अ | Undo | Redo | Bold | Italic | Underline ───
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          imageItem,
+          videoItem,
+          aiItem,
+          _buildDivider(),
+          versionItem,
+          _buildDivider(),
+          hindiItem,
+          _buildDivider(),
+          undoItem,
+          redoItem,
+          _buildDivider(),
+          boldItem,
+          italicItem,
+          underlineItem,
         ],
-      ],
+      ),
     );
   }
 
   Widget _buildDivider() {
     final theme = Theme.of(context);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       width: 1,
       height: 24,
       color: theme.colorScheme.outlineVariant.withValues(alpha: 0.36),
@@ -353,8 +346,8 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     required Widget icon,
     required String label,
     required VoidCallback? onTap,
+    required bool keyboardOpen,
     bool isActive = false,
-    bool showLabel = true,
   }) {
     final theme = Theme.of(context);
     final isEnabled = !widget.isReadOnly && onTap != null;
@@ -364,8 +357,8 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final shouldShowLabel = showLabel && !keyboardOpen;
+    // Show labels only when keyboard is closed
+    final shouldShowLabel = !keyboardOpen;
 
     return Tooltip(
       message: label,
@@ -378,37 +371,27 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
           canRequestFocus: false,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: keyboardOpen ? 8 : 10,
+              vertical: 6,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconTheme(
-                  data: IconThemeData(color: baseColor, size: 23),
+                  data: IconThemeData(
+                    color: baseColor,
+                    size: keyboardOpen ? 21 : 23,
+                  ),
                   child: icon,
                 ),
                 if (shouldShowLabel) ...[
                   const SizedBox(height: 4),
-                  SizedBox(
-                    height: 14,
-                    width: double.infinity,
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          softWrap: false,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            height: 1,
-                            fontWeight: isActive
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: baseColor,
-                          ),
-                        ),
-                      ),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: baseColor,
+                      fontSize: 10,
                     ),
                   ),
                 ],

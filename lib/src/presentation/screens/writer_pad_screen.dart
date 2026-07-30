@@ -41,6 +41,8 @@ import '../widgets/writer_custom_toolbar.dart';
 import '../widgets/writer_live_word_count_chip.dart';
 import '../widgets/writer_media_embed.dart';
 import '../components/ai_edit_dialog.dart';
+import '../controllers/hindi_transliteration_controller.dart';
+import '../widgets/writer_hindi_suggestion_bar.dart';
 import '../../data/services/cover_image_service.dart';
 import '../../data/services/image_upload_service.dart';
 
@@ -162,6 +164,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Map<String, ChapterEditLock> _chapterLocks =
       const <String, ChapterEditLock>{};
   String? _heldChapterLockId;
+  final HindiTransliterationController _hindiController =
+      HindiTransliterationController();
+
+  void _onEditorSelectionOrTextChanged() {
+    if (mounted && _chapters.isNotEmpty) {
+      _hindiController.updateForSelection(_currentChapter.controller);
+    }
+  }
 
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
@@ -240,6 +250,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         : _chapters[_currentChapterIndex.clamp(0, _chapters.length - 1)].id;
     _currentChapterIndex = value.clamp(0, _chapters.length - 1);
     _restorableCurrentChapterIndex.value = _currentChapterIndex;
+    _hindiController.clearForChapterSwitch();
     final nextChapterId = _chapters.isEmpty ? null : _currentChapter.id;
     if (previousChapterId != nextChapterId) {
       unawaited(_switchChapterLock(previousChapterId));
@@ -290,7 +301,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _handleEditorFocusChanged() {
-    if (_editorFocusNode.hasFocus) unawaited(_syncCurrentChapterLock());
+    if (_editorFocusNode.hasFocus) {
+      unawaited(_syncCurrentChapterLock());
+    } else {
+      _hindiController.dismissSuggestion();
+    }
     if (mounted) setState(() {});
   }
 
@@ -705,6 +720,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _restorableLanguage.dispose();
     _editorFocusNode.dispose();
     _editorScrollController.dispose();
+    _hindiController.dispose();
     for (final chapter in _chapters) {
       chapter.dispose();
     }
@@ -1176,6 +1192,62 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     focusNode: _editorFocusNode,
                     scrollController: _editorScrollController,
                     config: QuillEditorConfig(
+                      // ignore: experimental_member_use
+                      onKeyPressed: (event, node) {
+                        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                          // ── Backspace: restore Roman token if just committed
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.backspace) {
+                            if (_hindiController.handleBackspace(
+                              _currentChapter.controller,
+                            )) {
+                              return KeyEventResult.handled;
+                            }
+                          }
+
+                          // ── Escape: dismiss suggestion bar ──────────────
+                          if (event.logicalKey == LogicalKeyboardKey.escape) {
+                            if (_hindiController.hasSuggestion) {
+                              _hindiController.dismissSuggestion();
+                              return KeyEventResult.handled;
+                            }
+                          }
+
+                          if (_hindiController.hasSuggestion) {
+                            // ── Tab / ArrowRight: next suggestion ─────────
+                            if (event.logicalKey == LogicalKeyboardKey.tab ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowRight) {
+                              _hindiController.selectNextSuggestion();
+                              return KeyEventResult.handled;
+                            }
+                            // ── ArrowLeft: previous suggestion ────────────
+                            if (event.logicalKey ==
+                                LogicalKeyboardKey.arrowLeft) {
+                              _hindiController.selectPreviousSuggestion();
+                              return KeyEventResult.handled;
+                            }
+                            // ── Enter: commit keyboard-selected suggestion ─
+                            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.numpadEnter) {
+                              _hindiController.commitSelected(
+                                _currentChapter.controller,
+                              );
+                              return KeyEventResult.handled;
+                            }
+                            // ── Space: commit first suggestion + space ─────
+                            if (event.logicalKey == LogicalKeyboardKey.space) {
+                              _hindiController.commitSuggestion(
+                                _currentChapter.controller,
+                                appendText: ' ',
+                              );
+                              return KeyEventResult.handled;
+                            }
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
                       // QA Hardening Compatibility:
                       // showLink: false
                       embedBuilders: const [
@@ -1577,26 +1649,42 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
         top: false,
-        child: GlassSurface(
-          strong: true,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          borderRadius: BorderRadius.circular(24),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: WriterCustomToolbar(
-            controller: controller,
-            focusNode: _editorFocusNode,
-            onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
-            isUploadingInlineImage: _isUploadingInlineImage,
-            onInsertVideo: _showMediaInsertDialog,
-            onVersionHistory: _currentChapter.versions.isEmpty
-                ? null
-                : () => _showVersionHistory(_currentChapterIndex),
-            onAiEdit: _openChatGptEditor,
-            isReadOnly: _isChapterLockedByOther(
-              _currentChapter,
-              ref.watch(currentUserProvider).asData?.value,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            WriterHindiSuggestionBar(
+              transliterationController: _hindiController,
+              quillController: controller,
+              editorFocusNode: _editorFocusNode,
             ),
-          ),
+            GlassSurface(
+              strong: true,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              borderRadius: BorderRadius.circular(24),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: WriterCustomToolbar(
+                controller: controller,
+                focusNode: _editorFocusNode,
+                onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
+                isUploadingInlineImage: _isUploadingInlineImage,
+                onInsertVideo: _showMediaInsertDialog,
+                onVersionHistory: _currentChapter.versions.isEmpty
+                    ? null
+                    : () => _showVersionHistory(_currentChapterIndex),
+                onAiEdit: _openChatGptEditor,
+                isReadOnly: _isChapterLockedByOther(
+                  _currentChapter,
+                  ref.watch(currentUserProvider).asData?.value,
+                ),
+                isHindiModeEnabled: _hindiController.isEnabled,
+                onToggleHindi: () {
+                  setState(() {
+                    _hindiController.toggleEnabled();
+                  });
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -3579,6 +3667,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   void _markDirty() {
     if (!mounted || _isRestoringLocalDraft) return;
+    _onEditorSelectionOrTextChanged();
     _syncBookTitleFromFirstChapter();
     if (!_isDirty) {
       setState(() {
