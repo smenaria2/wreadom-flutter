@@ -21,6 +21,7 @@ import '../widgets/adaptive_banner_ad.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/hindi_input_wrapper.dart';
 import 'static_info_screen.dart';
 
 const _postCommentsBannerAdUnitId = 'ca-app-pub-7031076798250177/8829012161';
@@ -356,6 +357,7 @@ class _InlineComments extends ConsumerStatefulWidget {
 class _InlineCommentsState extends ConsumerState<_InlineComments>
     with RestorationMixin {
   final _controller = RestorableTextEditingController();
+  final _commentFocusNode = FocusNode();
   Comment? _replyingTo;
   bool _submitting = false;
 
@@ -371,6 +373,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
   @override
   void dispose() {
     _controller.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -605,18 +608,24 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: HindiInputWrapper(
                   controller: _controller.value,
-                  decoration: InputDecoration(
-                    hintText: _replyingTo == null
-                        ? l10n.addAComment
-                        : l10n.addAReply,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                  focusNode: _commentFocusNode,
+                  inlineButton: true,
+                  child: TextField(
+                    controller: _controller.value,
+                    focusNode: _commentFocusNode,
+                    decoration: InputDecoration(
+                      hintText: _replyingTo == null
+                          ? l10n.addAComment
+                          : l10n.addAReply,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                     ),
                   ),
                 ),

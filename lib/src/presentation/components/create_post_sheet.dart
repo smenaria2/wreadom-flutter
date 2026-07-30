@@ -519,10 +519,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             .toDouble();
 
     // Main post creation UI
-    return HindiInputWrapper(
-      controller: _textController,
-      focusNode: _postFocusNode,
-      child: Padding(
+    return Padding(
         padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: maxSheetHeight),
@@ -688,26 +685,30 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     ],
 
                     // Text input (made taller height-wise)
-                    TextField(
+                    HindiInputWrapper(
                       controller: _textController,
                       focusNode: _postFocusNode,
-                      maxLines: 10,
-                      minLines: 6,
-                      autofocus: true,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: _audioPath != null
-                            ? l10n.postAudioHint
-                            : _isAnsweringQuestion
-                            ? l10n.answerQuestionHint
-                            : l10n.postHint,
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 13,
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _postFocusNode,
+                        maxLines: 10,
+                        minLines: 6,
+                        autofocus: true,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: _audioPath != null
+                              ? l10n.postAudioHint
+                              : _isAnsweringQuestion
+                              ? l10n.answerQuestionHint
+                              : l10n.postHint,
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 4),
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
                       ),
                     ),
 
@@ -922,7 +923,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
           ),
         ),
       ),
-    ),
     );
   }
 }

@@ -14,6 +14,7 @@ import '../../providers/comment_providers.dart';
 import '../../providers/local_comments_notifier.dart';
 import '../../utils/optimistic_mutation.dart';
 import '../../widgets/glass_surface.dart';
+import '../../widgets/hindi_input_wrapper.dart';
 import '../../widgets/modal_feedback_scope.dart';
 
 class CommentReplySheet extends ConsumerStatefulWidget {
@@ -33,6 +34,7 @@ class CommentReplySheet extends ConsumerStatefulWidget {
 class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
     with RestorationMixin {
   final _controller = RestorableTextEditingController();
+  final _replyFocusNode = FocusNode();
   final AudioRecorder _audioRecorder = AudioRecorder();
   Timer? _audioRecordingTimer;
   bool _submitting = false;
@@ -54,6 +56,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
     _audioRecordingTimer?.cancel();
     unawaited(_audioRecorder.dispose());
     _controller.dispose();
+    _replyFocusNode.dispose();
     super.dispose();
   }
 
@@ -270,12 +273,17 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
             const SizedBox(height: 12),
             GlassSurface(
               borderRadius: BorderRadius.circular(18),
-              child: TextField(
+              child: HindiInputWrapper(
                 controller: _controller.value,
-                autofocus: true,
-                minLines: 2,
-                maxLines: 4,
-                decoration: InputDecoration(
+                focusNode: _replyFocusNode,
+                inlineButton: true,
+                child: TextField(
+                  controller: _controller.value,
+                  focusNode: _replyFocusNode,
+                  autofocus: true,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
                   hintText: l10n.addAReply,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
@@ -299,6 +307,7 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
                   ),
                 ),
                 onChanged: (_) => _refreshComposer(),
+              ),
               ),
             ),
             if (_isRecording || _pendingAudioPath != null) ...[

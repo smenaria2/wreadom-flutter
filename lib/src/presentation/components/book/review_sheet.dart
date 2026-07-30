@@ -139,10 +139,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
 
-    return HindiInputWrapper(
-      controller: _textController,
-      focusNode: _reviewFocusNode,
-      child: Padding(
+    return Padding(
         padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -204,18 +201,21 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
             ),
 
             const SizedBox(height: 16),
-            TextField(
+            HindiInputWrapper(
               controller: _textController,
               focusNode: _reviewFocusNode,
-              maxLines: 5,
-              minLines: 3,
-              autofocus: true,
-              decoration: InputDecoration(hintText: l10n.reviewHint),
+              child: TextField(
+                controller: _textController,
+                focusNode: _reviewFocusNode,
+                maxLines: 5,
+                minLines: 3,
+                autofocus: true,
+                decoration: InputDecoration(hintText: l10n.reviewHint),
+              ),
             ),
             const SizedBox(height: 12),
           ],
         ),
-      ),
-    );
+      );
   }
 }

@@ -23,6 +23,7 @@ import '../../utils/image_proxy_utils.dart';
 import '../utils/writer_media_utils.dart';
 import '../utils/optimistic_mutation.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/hindi_input_wrapper.dart';
 import '../widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'book/gradient_quote_card.dart';
@@ -1470,6 +1471,7 @@ class _CommentsSheet extends ConsumerStatefulWidget {
 class _CommentsSheetState extends ConsumerState<_CommentsSheet>
     with RestorationMixin {
   final _ctrl = RestorableTextEditingController();
+  final _commentFocusNode = FocusNode();
   bool _submitting = false;
   Comment? _replyingTo;
 
@@ -1484,6 +1486,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
   @override
   void dispose() {
     _ctrl.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -1786,26 +1789,32 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                 child: Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: HindiInputWrapper(
                         controller: _ctrl.value,
-                        decoration: InputDecoration(
-                          hintText: _replyingTo != null
-                              ? l10n.addAReply
-                              : l10n.addAComment,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
+                        focusNode: _commentFocusNode,
+                        inlineButton: true,
+                        child: TextField(
+                          controller: _ctrl.value,
+                          focusNode: _commentFocusNode,
+                          decoration: InputDecoration(
+                            hintText: _replyingTo != null
+                                ? l10n.addAReply
+                                : l10n.addAComment,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: inputFill,
+                            hintStyle: TextStyle(color: secondary),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                           ),
-                          filled: true,
-                          fillColor: inputFill,
-                          hintStyle: TextStyle(color: secondary),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                          style: TextStyle(color: foreground),
+                          cursorColor: widget.darkReel ? Colors.white : null,
                         ),
-                        style: TextStyle(color: foreground),
-                        cursorColor: widget.darkReel ? Colors.white : null,
                       ),
                     ),
                     const SizedBox(width: 8),

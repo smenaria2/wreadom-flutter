@@ -39,17 +39,17 @@ void main() {
       );
     }
 
-    testWidgets('Toggle button appears only when focused and keyboard is open', (tester) async {
+    testWidgets('Toggle button appears on focus regardless of keyboard state', (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
 
       // 1. Initially closed & unfocused: no toggle button
       await tester.pumpWidget(buildTestWidget(bottomInset: 0.0));
       expect(find.text('अ'), findsNothing);
 
-      // 2. Focused but keyboard closed: no toggle button
+      // 2. Focused and keyboard closed: toggle button is visible
       focusNode.requestFocus();
       await tester.pumpAndSettle();
-      expect(find.text('अ'), findsNothing);
+      expect(find.text('अ'), findsOneWidget);
 
       // 3. Focused and keyboard open (bottomInset > 0): toggle button is visible
       await tester.pumpWidget(buildTestWidget(bottomInset: 300.0));

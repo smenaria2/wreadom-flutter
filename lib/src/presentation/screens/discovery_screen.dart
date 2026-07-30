@@ -97,10 +97,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final defaultAsync = ref.watch(discoveryDefaultBooksProvider);
 
     return GlassScaffold(
-      body: HindiInputWrapper(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        child: CustomScrollView(
+      body: CustomScrollView(
           slivers: [
             glassSliverAppBar(
               floating: true,
@@ -116,9 +113,13 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 preferredSize: const Size.fromHeight(60),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: TextField(
+                  child: HindiInputWrapper(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
+                    inlineButton: true,
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
                   textInputAction: TextInputAction.search,
                   onChanged: (value) {
                     _debounce?.cancel();
@@ -156,6 +157,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
+                ),
                 ),
               ),
             ),
@@ -309,7 +311,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
         ],
       ),
-    ),
     );
   }
 }
