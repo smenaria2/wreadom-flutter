@@ -100,8 +100,8 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
   }
 
   bool _isDelimiter(String char) {
-    const delimiters = r'.,;:!?()[]{}<>"''«»‘’“”/\-*+=&%|@#';
-    return delimiters.contains(char);
+    const delimiters = r'.,;:!?()[]{}<>"«»‘’“”/\-*+=&%|@#';
+    return delimiters.contains(char) || char == "'" || char == '"';
   }
 
   void _onControllerChanged() {
@@ -140,7 +140,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
           isEllipsis = true;
         }
         if (!isEllipsis) {
-          final newText = plainText.substring(0, caretOffset - 2) + '।' + plainText.substring(caretOffset - 1);
+          final newText = '${plainText.substring(0, caretOffset - 2)}।${plainText.substring(caretOffset - 1)}';
           widget.controller.removeListener(_onControllerChanged);
           widget.controller.value = TextEditingValue(
             text: newText,
@@ -164,12 +164,12 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
             final topSuggestion = _suggestions.firstOrNull;
             if (topSuggestion != null && topSuggestion.isNotEmpty) {
               final replacementPunc = (lastChar == '.') ? '।' : lastChar;
-              final replacement = topSuggestion + replacementPunc;
+              final replacement = '$topSuggestion$replacementPunc';
               final romanToken = _activeRomanToken!;
 
               _clearSuggestionState();
 
-              final newText = plainText.substring(0, start) + replacement + plainText.substring(end + 1);
+              final newText = '${plainText.substring(0, start)}$replacement${plainText.substring(end + 1)}';
               final newCaret = start + replacement.length;
 
               widget.controller.removeListener(_onControllerChanged);
@@ -254,7 +254,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     final romanToken = _activeRomanToken!;
     final plainText = widget.controller.text;
 
-    final newText = plainText.substring(0, start) + suggestion + plainText.substring(end);
+    final newText = '${plainText.substring(0, start)}$suggestion${plainText.substring(end)}';
     final newCaret = start + suggestion.length;
 
     _clearSuggestionState();
@@ -296,7 +296,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     bool matchWithoutAppended = caretOffset == expectedEndWithoutAppended;
 
     if (matchWithAppended || matchWithoutAppended) {
-      final newText = plainText.substring(0, committedStart) + committedRoman + plainText.substring(caretOffset);
+      final newText = '${plainText.substring(0, committedStart)}$committedRoman${plainText.substring(caretOffset)}';
       final newCaret = committedStart + committedRoman.length;
 
       _clearLastCommitted();
