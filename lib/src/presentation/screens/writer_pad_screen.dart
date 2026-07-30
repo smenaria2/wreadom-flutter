@@ -1687,7 +1687,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               ),
             ),
             Positioned(
-              bottom: 54,
+              bottom: 64,
               left: 0,
               right: 0,
               child: WriterHindiSuggestionBar(

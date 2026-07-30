@@ -16,6 +16,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/hindi_input_wrapper.dart';
 import 'book_detail_screen.dart';
 import '../../utils/map_utils.dart';
 import '../../utils/image_proxy_utils.dart';
@@ -29,6 +30,7 @@ class DiscoveryScreen extends ConsumerStatefulWidget {
 
 class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   Timer? _debounce;
   String _query = '';
   String? _activeGenre;
@@ -76,6 +78,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -94,24 +97,28 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final defaultAsync = ref.watch(discoveryDefaultBooksProvider);
 
     return GlassScaffold(
-      body: CustomScrollView(
-        slivers: [
-          glassSliverAppBar(
-            floating: true,
-            snap: true,
-            title: Text(
-              AppLocalizations.of(context)!.discover,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0,
+      body: HindiInputWrapper(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        child: CustomScrollView(
+          slivers: [
+            glassSliverAppBar(
+              floating: true,
+              snap: true,
+              title: Text(
+                AppLocalizations.of(context)!.discover,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
               ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: TextField(
-                  controller: _searchController,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(60),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
                   textInputAction: TextInputAction.search,
                   onChanged: (value) {
                     _debounce?.cancel();
@@ -302,6 +309,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
         ],
       ),
+    ),
     );
   }
 }

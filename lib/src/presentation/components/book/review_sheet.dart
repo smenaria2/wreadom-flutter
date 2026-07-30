@@ -13,6 +13,7 @@ import '../../utils/book_author_utils.dart';
 import '../../utils/error_message_utils.dart';
 import '../../utils/optimistic_mutation.dart';
 import '../../widgets/glass_surface.dart';
+import '../../widgets/hindi_input_wrapper.dart';
 
 /// Shows a sheet for writing a book review.
 void showReviewSheet(BuildContext context, Book book) {
@@ -42,11 +43,13 @@ class _ReviewSheet extends ConsumerStatefulWidget {
 
 class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   final _textController = TextEditingController();
+  final _reviewFocusNode = FocusNode();
   int _rating = 0;
 
   @override
   void dispose() {
     _textController.dispose();
+    _reviewFocusNode.dispose();
     super.dispose();
   }
 
@@ -136,77 +139,82 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20),
-                tooltip: l10n.close,
-                visualDensity: VisualDensity.compact,
-                onPressed: () => Navigator.pop(context),
+    return HindiInputWrapper(
+      controller: _textController,
+      focusNode: _reviewFocusNode,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.star_rounded, color: Colors.amber),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  l10n.reviewTitle(widget.book.title),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.star_rounded, color: Colors.amber),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    l10n.reviewTitle(widget.book.title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(onPressed: _submit, child: Text(l10n.post)),
-            ],
-          ),
-          const SizedBox(height: 16),
+                const SizedBox(width: 8),
+                TextButton(onPressed: _submit, child: Text(l10n.post)),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          // Rating Selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final active = index < _rating;
-              return IconButton(
-                iconSize: 32,
-                icon: Icon(
-                  active ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: active
-                      ? Colors.amber
-                      : theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.56,
-                        ),
-                ),
-                onPressed: () => setState(() => _rating = index + 1),
-              );
-            }),
-          ),
+            // Rating Selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                final active = index < _rating;
+                return IconButton(
+                  iconSize: 32,
+                  icon: Icon(
+                    active ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: active
+                        ? Colors.amber
+                        : theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.56,
+                          ),
+                  ),
+                  onPressed: () => setState(() => _rating = index + 1),
+                );
+              }),
+            ),
 
-          const SizedBox(height: 16),
-          TextField(
-            controller: _textController,
-            maxLines: 5,
-            minLines: 3,
-            autofocus: true,
-            decoration: InputDecoration(hintText: l10n.reviewHint),
-          ),
-          const SizedBox(height: 12),
-        ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: _textController,
+              focusNode: _reviewFocusNode,
+              maxLines: 5,
+              minLines: 3,
+              autofocus: true,
+              decoration: InputDecoration(hintText: l10n.reviewHint),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

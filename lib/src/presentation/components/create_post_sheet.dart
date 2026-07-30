@@ -20,6 +20,7 @@ import '../providers/auth_providers.dart';
 import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/hindi_input_wrapper.dart';
 
 Future<void> showCreatePostSheet(
   BuildContext context, {
@@ -112,6 +113,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   bool _isPosted = false;
   bool _isDisposed = false;
   final _textController = TextEditingController();
+  final _postFocusNode = FocusNode();
   final _picker = ImagePicker();
   bool _isSubmitting = false;
   String _visibility = 'public';
@@ -174,6 +176,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
   void dispose() {
     _isDisposed = true;
     _textController.dispose();
+    _postFocusNode.dispose();
     if (_uploadedAudioObjectKey != null && !_isPosted) {
       _audioUploadService.deleteAudioPostObject(_uploadedAudioObjectKey!);
     }
@@ -516,10 +519,13 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
             .toDouble();
 
     // Main post creation UI
-    return Padding(
-      padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxSheetHeight),
+    return HindiInputWrapper(
+      controller: _textController,
+      focusNode: _postFocusNode,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxSheetHeight),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -684,6 +690,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     // Text input (made taller height-wise)
                     TextField(
                       controller: _textController,
+                      focusNode: _postFocusNode,
                       maxLines: 10,
                       minLines: 6,
                       autofocus: true,
@@ -915,6 +922,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
           ),
         ),
       ),
+    ),
     );
   }
 }
