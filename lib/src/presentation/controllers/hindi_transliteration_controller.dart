@@ -95,6 +95,47 @@ class HindiTransliterationController extends ChangeNotifier {
     }
 
     final selection = controller.selection;
+    final caretOffset = selection.extentOffset;
+    final plainText = controller.document.toPlainText();
+
+    // Check if the user typed punctuation immediately after the active Roman token
+    if (hasSuggestion && _tokenStartOffset != null && _tokenEndOffset != null) {
+      final start = _tokenStartOffset!;
+      final end = _tokenEndOffset!;
+      if (caretOffset == end + 1 && caretOffset <= plainText.length) {
+        final lastChar = plainText[caretOffset - 1];
+        if (lastChar == '.' || lastChar == ',' || lastChar == ':') {
+          final prefixText = plainText.substring(start, end);
+          if (prefixText == _activeRomanToken) {
+            final topSuggestion = hindiSuggestion;
+            if (topSuggestion != null && topSuggestion.isNotEmpty) {
+              final replacementPunc = (lastChar == '.') ? '।' : lastChar;
+              final replacement = topSuggestion + replacementPunc;
+              final romanToken = _activeRomanToken!;
+
+              _clearSuggestionState();
+
+              controller.replaceText(
+                start,
+                end - start + 1,
+                replacement,
+                TextSelection.collapsed(offset: start + replacement.length),
+              );
+
+              // Set up backspace restoration state
+              _lastCommittedRoman = romanToken;
+              _lastCommittedHindi = topSuggestion;
+              _lastCommittedAppended = replacementPunc;
+              _lastCommittedStart = start;
+
+              notifyListeners();
+              return;
+            }
+          }
+        }
+      }
+    }
+
     if (!selection.isCollapsed || selection.extentOffset <= 0) {
       if (_hasActiveState()) {
         _clearSuggestionState();
@@ -102,9 +143,6 @@ class HindiTransliterationController extends ChangeNotifier {
       }
       return;
     }
-
-    final caretOffset = selection.extentOffset;
-    final plainText = controller.document.toPlainText();
 
     if (caretOffset > plainText.length) {
       if (_hasActiveState()) {
