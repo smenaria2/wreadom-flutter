@@ -5886,6 +5886,36 @@ abstract class AppLocalizations {
     String authors,
     String link,
   );
+
+  /// No description provided for @hindiInputMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi Input'**
+  String get hindiInputMode;
+
+  /// No description provided for @hindiInputModeEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi input mode enabled'**
+  String get hindiInputModeEnabled;
+
+  /// No description provided for @hindiInputModeDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi input mode disabled'**
+  String get hindiInputModeDisabled;
+
+  /// No description provided for @keepOriginalText.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep English'**
+  String get keepOriginalText;
+
+  /// No description provided for @hindiTransliterationSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi Suggestion'**
+  String get hindiTransliterationSuggestion;
 }
 
 class _AppLocalizationsDelegate

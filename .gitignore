@@ -71,3 +71,8 @@ android/build/
 .gplay/
 play_store_key.json
 
+# Dakshina dataset generator cache
+.dakshina_cache/
+tmp_dakshina.tar
+
+

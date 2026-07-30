@@ -1921,5 +1921,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "hindiInputMode": "Hindi Input",
+  "hindiInputModeEnabled": "Hindi input mode enabled",
+  "hindiInputModeDisabled": "Hindi input mode disabled",
+  "keepOriginalText": "Keep English",
+  "hindiTransliterationSuggestion": "Hindi Suggestion"
 }

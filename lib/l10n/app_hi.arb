@@ -1481,5 +1481,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "hindiInputMode": "हिंदी इनपुट",
+  "hindiInputModeEnabled": "हिंदी इनपुट मोड सक्षम",
+  "hindiInputModeDisabled": "हिंदी इनपुट मोड निष्क्रिय",
+  "keepOriginalText": "अंग्रेजी रखें",
+  "hindiTransliterationSuggestion": "हिंदी सुझाव"
 }

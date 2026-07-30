@@ -354,7 +354,7 @@ packages:
     source: hosted
     version: "0.3.5+2"
   crypto:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
@@ -401,6 +401,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.12"
+  devlipi:
+    dependency: "direct main"
+    description:
+      name: devlipi
+      sha256: "05a4026647758d03b6b86ade84c5f537769c82b851c47fc3c4cec03a670e7007"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.5"
   diff_match_patch:
     dependency: transitive
     description:

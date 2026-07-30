@@ -3313,4 +3313,19 @@ class AppLocalizationsHi extends AppLocalizations {
   ) {
     return '\"$quote\"\n\nरीडम् पर \"$authors\" द्वारा \"$title\" पढ़ें। रीडम् पर हजारों कहानियां पढ़ें। $link';
   }
+
+  @override
+  String get hindiInputMode => 'हिंदी इनपुट';
+
+  @override
+  String get hindiInputModeEnabled => 'हिंदी इनपुट मोड सक्षम';
+
+  @override
+  String get hindiInputModeDisabled => 'हिंदी इनपुट मोड निष्क्रिय';
+
+  @override
+  String get keepOriginalText => 'अंग्रेजी रखें';
+
+  @override
+  String get hindiTransliterationSuggestion => 'हिंदी सुझाव';
 }

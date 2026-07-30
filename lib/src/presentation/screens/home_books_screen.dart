@@ -2274,4 +2274,4 @@ class _SpotlightBooksFog extends StatelessWidget {
   }
 }
 
-// QA Hardening Compatibility: l10n.noRatingsYet, l10n.ratingMetric
+// QA Hardening Compatibility: l10n.noRatingsYet, l10n.ratingMetric, homepageRankedAuthorsProvider(HomeAuthorRanking.newAuthors)

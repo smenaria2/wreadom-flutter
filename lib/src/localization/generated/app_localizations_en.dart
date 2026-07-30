@@ -3307,4 +3307,19 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return '\"$quote\"\n\nRead \"$title\" by \"$authors\" on Wreadom. Read thousands of stories on Wreadom. $link';
   }
+
+  @override
+  String get hindiInputMode => 'Hindi Input';
+
+  @override
+  String get hindiInputModeEnabled => 'Hindi input mode enabled';
+
+  @override
+  String get hindiInputModeDisabled => 'Hindi input mode disabled';
+
+  @override
+  String get keepOriginalText => 'Keep English';
+
+  @override
+  String get hindiTransliterationSuggestion => 'Hindi Suggestion';
 }
