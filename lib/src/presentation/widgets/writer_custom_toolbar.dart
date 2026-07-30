@@ -306,28 +306,30 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
     );
 
     // ─── Order: Image | Media | AI | Version | अ | Undo | Redo | Bold | Italic | Underline ───
-    return SingleChildScrollView(
-      controller: _scrollController,
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          imageItem,
-          videoItem,
-          aiItem,
-          _buildDivider(),
-          versionItem,
-          _buildDivider(),
-          hindiItem,
-          _buildDivider(),
-          undoItem,
-          redoItem,
-          _buildDivider(),
-          boldItem,
-          italicItem,
-          underlineItem,
-        ],
+    return TextFieldTapRegion(
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            imageItem,
+            videoItem,
+            aiItem,
+            _buildDivider(),
+            versionItem,
+            _buildDivider(),
+            hindiItem,
+            _buildDivider(),
+            undoItem,
+            redoItem,
+            _buildDivider(),
+            boldItem,
+            italicItem,
+            underlineItem,
+          ],
+        ),
       ),
     );
   }
