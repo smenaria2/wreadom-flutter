@@ -114,6 +114,27 @@ class HindiTransliterationController extends ChangeNotifier {
       return;
     }
 
+    // Replace single period followed by space with । followed by space
+    if (caretOffset >= 2) {
+      final lastChar = plainText[caretOffset - 1];
+      final prevChar = plainText[caretOffset - 2];
+      if (lastChar == ' ' && prevChar == '.') {
+        bool isEllipsis = false;
+        if (caretOffset >= 3 && plainText[caretOffset - 3] == '.') {
+          isEllipsis = true;
+        }
+        if (!isEllipsis) {
+          controller.replaceText(
+            caretOffset - 2,
+            1,
+            '।',
+            TextSelection.collapsed(offset: caretOffset),
+          );
+          return;
+        }
+      }
+    }
+
     // If caret has moved away from the last committed position, discard restoration buffer.
     if (_lastCommittedStart != null && _lastCommittedHindi != null) {
       final appendedLen = _lastCommittedAppended?.length ?? 0;
