@@ -130,75 +130,72 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
           height: hasSuggestion ? null : 0,
           alignment: Alignment.center,
           child: hasSuggestion
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: GlassSurface(
-                    strong: true,
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    borderRadius: BorderRadius.circular(16),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: SingleChildScrollView(
-                      controller: _rowScrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.translate_rounded,
-                            size: 16,
-                            color: theme.colorScheme.primary,
+              ? GlassSurface(
+                  strong: true,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  borderRadius: BorderRadius.circular(16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: SingleChildScrollView(
+                    controller: _rowScrollController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.translate_rounded,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        // ── Suggestion chips ────────────────────────────────
+                        for (int i = 0; i < suggestions.length; i++) ...[
+                          _SuggestionChip(
+                            text: suggestions[i],
+                            isSelected: i == selectedIndex,
+                            isPrimary: i == 0,
+                            isDark: isDark,
+                            theme: theme,
+                            onTap: () => _commitAndKeepFocus(suggestions[i]),
                           ),
-                          const SizedBox(width: 8),
-                          // ── Suggestion chips ────────────────────────────────
-                          for (int i = 0; i < suggestions.length; i++) ...[
-                            _SuggestionChip(
-                              text: suggestions[i],
-                              isSelected: i == selectedIndex,
-                              isPrimary: i == 0,
-                              isDark: isDark,
-                              theme: theme,
-                              onTap: () => _commitAndKeepFocus(suggestions[i]),
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          // ── Raw English word chip ───────────────────────────
-                          if (romanToken.isNotEmpty) ...[
-                            InkWell(
-                              canRequestFocus: false,
-                              onTap: () {
-                                tc.dismissSuggestion();
-                                _restoreFocus();
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
+                          const SizedBox(width: 6),
+                        ],
+                        // ── Raw English word chip ───────────────────────────
+                        if (romanToken.isNotEmpty) ...[
+                          InkWell(
+                            canRequestFocus: false,
+                            onTap: () {
+                              tc.dismissSuggestion();
+                              _restoreFocus();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.4),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.06)
-                                      : Colors.black.withValues(alpha: 0.04),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: theme.colorScheme.outlineVariant
-                                        .withValues(alpha: 0.4),
-                                  ),
-                                ),
-                                child: Text(
-                                  romanToken,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                              ),
+                              child: Text(
+                                romanToken,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
                 )

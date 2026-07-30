@@ -38,7 +38,7 @@ void main() {
     test('Ambiguous keys are consistently ranked and deduplicated', () {
       final results = engine.transliterateToken('khushi');
       expect(results.length, greaterThanOrEqualTo(1));
-      expect(results.length, lessThanOrEqualTo(4));
+      expect(results.length, lessThanOrEqualTo(10));
       // Verify deduplication
       expect(results.toSet().length, equals(results.length));
     });
@@ -72,7 +72,7 @@ void main() {
       // Input without nukta in standard spelling should not generate artificial nukta variations like "फ़" unless dictionary or devlipi provides it
       final testInput = engine.transliterateToken('fool');
       // Verify no broad nukta / matra-flipping pollution
-      expect(testInput.length, lessThanOrEqualTo(4));
+      expect(testInput.length, lessThanOrEqualTo(10));
       expect(testInput.toSet().length, equals(testInput.length));
     });
   });

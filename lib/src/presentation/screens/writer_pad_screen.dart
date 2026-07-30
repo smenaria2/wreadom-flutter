@@ -1653,14 +1653,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
           children: [
-            WriterHindiSuggestionBar(
-              transliterationController: _hindiController,
-              quillController: controller,
-              editorFocusNode: _editorFocusNode,
-            ),
             GlassSurface(
               strong: true,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1688,6 +1684,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         .updateForSelection(_currentChapter.controller);
                   });
                 },
+              ),
+            ),
+            Positioned(
+              bottom: 54,
+              left: 0,
+              right: 0,
+              child: WriterHindiSuggestionBar(
+                transliterationController: _hindiController,
+                quillController: controller,
+                editorFocusNode: _editorFocusNode,
               ),
             ),
           ],

@@ -41,8 +41,8 @@ class DevlipiHindiEngine implements HindiTransliterationEngine {
       }
     }
 
-    // ── 2. Fall back to devlipi when < 4 dictionary candidates exist ─────────
-    if (suggestions.length < 4) {
+    // ── 2. Fall back to devlipi when < 10 dictionary candidates exist ─────────
+    if (suggestions.length < 10) {
       try {
         final primary = Devlipi.transliterate(trimmed).trim();
         addIfNew(primary);
@@ -71,7 +71,7 @@ class DevlipiHindiEngine implements HindiTransliterationEngine {
       } catch (_) {}
     }
 
-    return suggestions.take(4).toList();
+    return suggestions.take(10).toList();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
