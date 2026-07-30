@@ -304,7 +304,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (_editorFocusNode.hasFocus) {
       unawaited(_syncCurrentChapterLock());
     } else {
-      _hindiController.dismissSuggestion();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_editorFocusNode.hasFocus) {
+          _hindiController.dismissSuggestion();
+        }
+      });
     }
     if (mounted) setState(() {});
   }
@@ -1680,6 +1684,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 onToggleHindi: () {
                   setState(() {
                     _hindiController.toggleEnabled();
+                    _hindiController
+                        .updateForSelection(_currentChapter.controller);
                   });
                 },
               ),

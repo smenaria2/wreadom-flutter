@@ -38,6 +38,7 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
   void initState() {
     super.initState();
     widget.transliterationController.addListener(_onTransliterationChanged);
+    widget.quillController.addListener(_onQuillControllerChanged);
   }
 
   @override
@@ -49,12 +50,17 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
           .removeListener(_onTransliterationChanged);
       widget.transliterationController.addListener(_onTransliterationChanged);
     }
+    if (oldWidget.quillController != widget.quillController) {
+      oldWidget.quillController.removeListener(_onQuillControllerChanged);
+      widget.quillController.addListener(_onQuillControllerChanged);
+    }
   }
 
   @override
   void dispose() {
     widget.transliterationController
         .removeListener(_onTransliterationChanged);
+    widget.quillController.removeListener(_onQuillControllerChanged);
     _rowScrollController.dispose();
     super.dispose();
   }
@@ -63,6 +69,12 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
     if (mounted) setState(() {});
     // Scroll selected chip into view when navigating via keyboard
     _scrollSelectedIntoView();
+  }
+
+  void _onQuillControllerChanged() {
+    if (mounted) {
+      widget.transliterationController.updateForSelection(widget.quillController);
+    }
   }
 
   void _scrollSelectedIntoView() {
@@ -110,85 +122,88 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      child: Container(
-        height: hasSuggestion ? null : 0,
-        alignment: Alignment.center,
-        child: hasSuggestion
-            ? Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: GlassSurface(
-                  strong: true,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  borderRadius: BorderRadius.circular(16),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: SingleChildScrollView(
-                    controller: _rowScrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.translate_rounded,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        // ── Suggestion chips ────────────────────────────────
-                        for (int i = 0; i < suggestions.length; i++) ...[
-                          _SuggestionChip(
-                            text: suggestions[i],
-                            isSelected: i == selectedIndex,
-                            isPrimary: i == 0,
-                            isDark: isDark,
-                            theme: theme,
-                            onTap: () => _commitAndKeepFocus(suggestions[i]),
+    return TextFieldTapRegion(
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          height: hasSuggestion ? null : 0,
+          alignment: Alignment.center,
+          child: hasSuggestion
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: GlassSurface(
+                    strong: true,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    borderRadius: BorderRadius.circular(16),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: SingleChildScrollView(
+                      controller: _rowScrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.translate_rounded,
+                            size: 16,
+                            color: theme.colorScheme.primary,
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        // ── Raw English word chip ───────────────────────────
-                        if (romanToken.isNotEmpty) ...[
-                          InkWell(
-                            onTap: () {
-                              tc.dismissSuggestion();
-                              _restoreFocus();
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.06)
-                                    : Colors.black.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: theme.colorScheme.outlineVariant
-                                      .withValues(alpha: 0.4),
+                          const SizedBox(width: 8),
+                          // ── Suggestion chips ────────────────────────────────
+                          for (int i = 0; i < suggestions.length; i++) ...[
+                            _SuggestionChip(
+                              text: suggestions[i],
+                              isSelected: i == selectedIndex,
+                              isPrimary: i == 0,
+                              isDark: isDark,
+                              theme: theme,
+                              onTap: () => _commitAndKeepFocus(suggestions[i]),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          // ── Raw English word chip ───────────────────────────
+                          if (romanToken.isNotEmpty) ...[
+                            InkWell(
+                              canRequestFocus: false,
+                              onTap: () {
+                                tc.dismissSuggestion();
+                                _restoreFocus();
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
                                 ),
-                              ),
-                              child: Text(
-                                romanToken,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontStyle: FontStyle.italic,
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : Colors.black.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outlineVariant
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  romanToken,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              )
-            : const SizedBox.shrink(),
+                )
+              : const SizedBox.shrink(),
+        ),
       ),
     );
   }
@@ -243,6 +258,7 @@ class _SuggestionChip extends StatelessWidget {
             : null,
       ),
       child: InkWell(
+        canRequestFocus: false,
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(

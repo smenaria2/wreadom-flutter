@@ -204,6 +204,36 @@ void main() {
       expect(handled, isTrue);
       expect(quillController.document.toPlainText(), equals('Raam\n'));
     });
+
+    test('Pressing backspace after Space commit restores Roman token', () {
+      controller.isEnabled = true;
+      quillController.document.insert(0, 'Raam');
+      quillController.updateSelection(
+        const TextSelection.collapsed(offset: 4),
+        ChangeSource.local,
+      );
+
+      controller.updateForSelection(quillController);
+      expect(controller.hasSuggestion, isTrue);
+
+      final topSuggestion = controller.hindiSuggestion!;
+      // Space commit appends ' '
+      controller.commitSuggestion(
+        quillController,
+        appendText: ' ',
+      );
+      expect(
+        quillController.document.toPlainText(),
+        equals('$topSuggestion \n'),
+      );
+      expect(controller.canRestoreCommit, isTrue);
+
+      // Backspace immediately after space commit restores original Roman token
+      final handled = controller.handleBackspace(quillController);
+      expect(handled, isTrue);
+      expect(quillController.document.toPlainText(), equals('Raam\n'));
+      expect(controller.hasSuggestion, isTrue);
+    });
   });
 }
 

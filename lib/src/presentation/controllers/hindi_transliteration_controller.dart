@@ -20,10 +20,9 @@ class HindiTransliterationController extends ChangeNotifier {
   int _selectedIndex = 0;
 
   // ── Backspace-restoration state ───────────────────────────────────────────
-  // Stored after a successful commitSuggestion so that pressing Backspace
-  // immediately after can undo the commit and re-show the suggestion bar.
   String? _lastCommittedRoman;
   String? _lastCommittedHindi;
+  String? _lastCommittedAppended;
   int? _lastCommittedStart;
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -115,10 +114,12 @@ class HindiTransliterationController extends ChangeNotifier {
       return;
     }
 
-    // If caret has moved away from the last committed position, discard it.
+    // If caret has moved away from the last committed position, discard restoration buffer.
     if (_lastCommittedStart != null && _lastCommittedHindi != null) {
-      final expectedEnd = _lastCommittedStart! + _lastCommittedHindi!.length;
-      if (caretOffset != expectedEnd) {
+      final appendedLen = _lastCommittedAppended?.length ?? 0;
+      final expectedEndWithAppended = _lastCommittedStart! + _lastCommittedHindi!.length + appendedLen;
+      final expectedEndWithoutAppended = _lastCommittedStart! + _lastCommittedHindi!.length;
+      if (caretOffset != expectedEndWithAppended && caretOffset != expectedEndWithoutAppended) {
         _clearLastCommitted();
       }
     }
@@ -191,9 +192,10 @@ class HindiTransliterationController extends ChangeNotifier {
       TextSelection.collapsed(offset: newCaretOffset),
     );
 
-    // Store for backspace restoration (only store the Hindi word, not appendText)
+    // Store for backspace restoration
     _lastCommittedRoman = romanToken;
     _lastCommittedHindi = replacementText;
+    _lastCommittedAppended = appendText;
     _lastCommittedStart = start;
 
     _clearSuggestionState();
@@ -211,8 +213,9 @@ class HindiTransliterationController extends ChangeNotifier {
 
   /// Handles a Backspace key press.
   ///
-  /// If caret is immediately after a just-committed Hindi word, this restores
-  /// the original Roman token and re-shows the suggestion bar.
+  /// If caret is immediately after a just-committed Hindi word (or after the space
+  /// inserted by Space commit), this restores the original Roman token and re-shows
+  /// the suggestion bar.
   /// Returns true if handled (caller should suppress normal backspace).
   bool handleBackspace(QuillController controller) {
     if (!canRestoreCommit) return false;
@@ -221,48 +224,58 @@ class HindiTransliterationController extends ChangeNotifier {
     if (!selection.isCollapsed) return false;
 
     final caretOffset = selection.extentOffset;
-    final expectedEnd = _lastCommittedStart! + _lastCommittedHindi!.length;
+    final start = _lastCommittedStart!;
+    final hindiText = _lastCommittedHindi!;
+    final appendedText = _lastCommittedAppended ?? '';
 
-    if (caretOffset != expectedEnd) {
+    final expectedEndWithAppended = start + hindiText.length + appendedText.length;
+    final expectedEndWithoutAppended = start + hindiText.length;
+
+    int currentReplacementLen = 0;
+
+    if (caretOffset == expectedEndWithAppended && appendedText.isNotEmpty) {
+      currentReplacementLen = hindiText.length + appendedText.length;
+    } else if (caretOffset == expectedEndWithoutAppended) {
+      currentReplacementLen = hindiText.length;
+    } else {
       _clearLastCommitted();
       return false;
     }
 
-    // Verify the committed Hindi text is still there
     final plainText = controller.document.toPlainText();
-    if (expectedEnd > plainText.length) {
+    if (start + currentReplacementLen > plainText.length) {
       _clearLastCommitted();
       return false;
     }
 
-    final textAtPos = plainText.substring(_lastCommittedStart!, expectedEnd);
-    if (textAtPos != _lastCommittedHindi!) {
+    final textAtPos = plainText.substring(start, start + currentReplacementLen);
+    final expectedText = currentReplacementLen == (hindiText.length + appendedText.length)
+        ? (hindiText + appendedText)
+        : hindiText;
+
+    if (textAtPos != expectedText) {
       _clearLastCommitted();
       return false;
     }
 
     // Restore the Roman token
     final romanToken = _lastCommittedRoman!;
-    final start = _lastCommittedStart!;
-    final hindiLen = _lastCommittedHindi!.length;
-
     _clearLastCommitted();
 
     controller.replaceText(
       start,
-      hindiLen,
+      currentReplacementLen,
       romanToken,
       TextSelection.collapsed(offset: start + romanToken.length),
     );
 
-    // Re-run suggestion detection on the next frame
+    // Re-run suggestion detection immediately and on post-frame
+    updateForSelection(controller);
     try {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         updateForSelection(controller);
       });
-    } catch (_) {
-      updateForSelection(controller);
-    }
+    } catch (_) {}
 
     return true;
   }
@@ -301,6 +314,7 @@ class HindiTransliterationController extends ChangeNotifier {
   void _clearLastCommitted() {
     _lastCommittedRoman = null;
     _lastCommittedHindi = null;
+    _lastCommittedAppended = null;
     _lastCommittedStart = null;
   }
 

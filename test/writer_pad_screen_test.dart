@@ -159,7 +159,6 @@ void main() {
   }
 
   Future<void> expandWriterToolbar(WidgetTester tester) async {
-    await tester.tap(find.byIcon(Icons.keyboard_double_arrow_down_rounded));
     await tester.pumpAndSettle();
   }
 
@@ -761,37 +760,43 @@ void main() {
     await tester.pump();
   });
 
-  test('writer toolbar shows editing basics before more controls', () {
+  test('writer toolbar shows controls in scrollable order', () {
     final source = File(
       'lib/src/presentation/widgets/writer_custom_toolbar.dart',
     ).readAsStringSync();
 
+    final image = source.indexOf('Icons.image_outlined');
+    final video = source.indexOf('Icons.play_circle_outline_rounded');
+    final ai = source.indexOf('Icons.auto_awesome_rounded');
+    final version = source.indexOf('_getVersionLabel(context)');
+    final hindi = source.indexOf("label: l10n.hindiInputMode");
     final undo = source.indexOf('Icons.undo_rounded');
     final redo = source.indexOf('Icons.redo_rounded');
     final bold = source.indexOf("_toggleFormat(Attribute.bold)");
     final italic = source.indexOf("_toggleFormat(Attribute.italic)");
     final underline = source.indexOf("_toggleFormat(Attribute.underline)");
-    final showMore = source.indexOf('Icons.keyboard_double_arrow_down_rounded');
-    final image = source.indexOf('Icons.image_outlined');
-    final ai = source.indexOf('Icons.auto_awesome_rounded');
 
     expect([
+      image,
+      video,
+      ai,
+      version,
+      hindi,
       undo,
       redo,
       bold,
       italic,
       underline,
-      showMore,
-      image,
-      ai,
     ], everyElement(isNonNegative));
+    expect(image < video, isTrue);
+    expect(video < ai, isTrue);
+    expect(ai < version, isTrue);
+    expect(version < hindi, isTrue);
+    expect(hindi < undo, isTrue);
     expect(undo < redo, isTrue);
     expect(redo < bold, isTrue);
     expect(bold < italic, isTrue);
     expect(italic < underline, isTrue);
-    expect(underline < showMore, isTrue);
-    expect(showMore < image, isTrue);
-    expect(image < ai, isTrue);
   });
 
   testWidgets('WriterPad copies prompt and opens selected AI app', (
