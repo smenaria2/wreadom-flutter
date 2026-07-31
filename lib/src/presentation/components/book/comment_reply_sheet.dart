@@ -276,7 +276,8 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
               child: HindiInputWrapper(
                 controller: _controller.value,
                 focusNode: _replyFocusNode,
-                inlineButton: true,
+                centerVertically: true,
+                rightOffset: 44.0,
                 child: TextField(
                   controller: _controller.value,
                   focusNode: _replyFocusNode,

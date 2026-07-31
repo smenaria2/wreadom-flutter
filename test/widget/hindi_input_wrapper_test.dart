@@ -17,7 +17,7 @@ void main() {
       focusNode.dispose();
     });
 
-    Widget buildTestWidget({double bottomInset = 0.0}) {
+    Widget buildTestWidget({double bottomInset = 0.0, bool enabled = true, bool readOnly = false}) {
       return MaterialApp(
         home: Scaffold(
           body: MediaQuery(
@@ -28,6 +28,8 @@ void main() {
               child: HindiInputWrapper(
                 controller: controller,
                 focusNode: focusNode,
+                enabled: enabled,
+                readOnly: readOnly,
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
@@ -39,12 +41,12 @@ void main() {
       );
     }
 
-    testWidgets('Toggle button appears on focus regardless of keyboard state', (tester) async {
+    testWidgets('Toggle button is always visible inside active input field', (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
 
-      // 1. Initially closed & unfocused: no toggle button
+      // 1. Initially unfocused: toggle button is visible inside input field
       await tester.pumpWidget(buildTestWidget(bottomInset: 0.0));
-      expect(find.text('अ'), findsNothing);
+      expect(find.text('अ'), findsOneWidget);
 
       // 2. Focused and keyboard closed: toggle button is visible
       focusNode.requestFocus();
@@ -56,6 +58,14 @@ void main() {
       focusNode.requestFocus();
       await tester.pumpAndSettle();
       expect(find.text('अ'), findsOneWidget);
+    });
+
+    testWidgets('Toggle button hides when enabled is false or readOnly is true', (tester) async {
+      await tester.pumpWidget(buildTestWidget(enabled: false));
+      expect(find.text('अ'), findsNothing);
+
+      await tester.pumpWidget(buildTestWidget(readOnly: true));
+      expect(find.text('अ'), findsNothing);
     });
 
     testWidgets('Toggling Hindi mode enables suggestion bar on typing', (tester) async {
@@ -76,6 +86,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify that suggestions are visible (namaste should show Devanagari "नमस्ते")
+      expect(find.text('नमस्ते'), findsOneWidget);
+    });
+
+    testWidgets('Suggestion bar renders via CompositedTransformFollower when bottomInset is 0', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpWidget(buildTestWidget(bottomInset: 0.0));
+      focusNode.requestFocus();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('अ'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'namaste');
+      await tester.pumpAndSettle();
+
+      expect(find.ancestor(of: find.text('नमस्ते'), matching: find.byType(CompositedTransformFollower)), findsOneWidget);
       expect(find.text('नमस्ते'), findsOneWidget);
     });
 

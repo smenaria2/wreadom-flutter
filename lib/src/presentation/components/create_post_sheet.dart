@@ -688,6 +688,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     HindiInputWrapper(
                       controller: _textController,
                       focusNode: _postFocusNode,
+                      enabled: !_isSubmitting,
                       child: TextField(
                         controller: _textController,
                         focusNode: _postFocusNode,
@@ -696,6 +697,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         autofocus: true,
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.fromLTRB(16, 16, 44, 40),
                           hintText: _audioPath != null
                               ? l10n.postAudioHint
                               : _isAnsweringQuestion
@@ -707,7 +709,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           ),
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 4),
                         ),
                       ),
                     ),

@@ -1218,17 +1218,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           }
 
                           if (_hindiController.hasSuggestion) {
-                            // ── Tab / ArrowRight: next suggestion ─────────
-                            if (event.logicalKey == LogicalKeyboardKey.tab ||
-                                event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                              _hindiController.selectNextSuggestion();
+                            final isShift = HardwareKeyboard.instance.isShiftPressed;
+                            // ── Shift+Tab / ArrowLeft: previous suggestion ─
+                            if ((event.logicalKey == LogicalKeyboardKey.tab && isShift) ||
+                                event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                              _hindiController.selectPreviousSuggestion();
                               return KeyEventResult.handled;
                             }
-                            // ── ArrowLeft: previous suggestion ────────────
-                            if (event.logicalKey ==
-                                LogicalKeyboardKey.arrowLeft) {
-                              _hindiController.selectPreviousSuggestion();
+                            // ── Tab / ArrowRight: next suggestion ─────────
+                            if ((event.logicalKey == LogicalKeyboardKey.tab && !isShift) ||
+                                event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                              _hindiController.selectNextSuggestion();
                               return KeyEventResult.handled;
                             }
                             // ── Enter: commit keyboard-selected suggestion ─

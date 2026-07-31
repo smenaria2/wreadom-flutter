@@ -116,7 +116,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   child: HindiInputWrapper(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
-                    inlineButton: true,
+                    centerVertically: true,
+                    rightOffset: _searchController.text.isNotEmpty ? 48.0 : 12.0,
                     child: TextField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,

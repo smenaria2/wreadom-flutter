@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/services/devlipi_hindi_engine.dart';
+import '../../localization/generated/app_localizations.dart';
 import 'glass_surface.dart';
 
 /// A reusable wrapper widget that equips any standard text input field (like TextField
 /// or TextFormField) with offline Hindi transliteration.
 ///
 /// Displays:
-/// - A small floating toggle button ('अ') locally next to or inside the text field when focused.
+/// - A small toggle button ('अ') positioned INSIDE the text field container at all times.
 /// - A horizontal scrollable suggestion bar directly above the keyboard via a global overlay.
 class HindiInputWrapper extends StatefulWidget {
   const HindiInputWrapper({
@@ -15,13 +16,23 @@ class HindiInputWrapper extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.child,
-    this.inlineButton = false,
+    this.centerVertically = false,
+    this.rightOffset,
+    this.leftOffset,
+    this.bottomOffset = 8.0,
+    this.enabled = true,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final Widget child;
-  final bool inlineButton;
+  final bool centerVertically;
+  final double? rightOffset;
+  final double? leftOffset;
+  final double bottomOffset;
+  final bool enabled;
+  final bool readOnly;
 
   @override
   State<HindiInputWrapper> createState() => _HindiInputWrapperState();
@@ -45,8 +56,11 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
   int? _lastCommittedStart;
 
   final ScrollController _rowScrollController = ScrollController();
+  final LayerLink _layerLink = LayerLink();
   OverlayEntry? _suggestionOverlayEntry;
   bool _pointerDownOnOverlay = false;
+
+  bool get _isInputActive => widget.enabled && !widget.readOnly;
 
   @override
   void initState() {
@@ -66,6 +80,11 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
       oldWidget.controller.removeListener(_onControllerChanged);
       widget.controller.addListener(_onControllerChanged);
     }
+    if (!widget.enabled || widget.readOnly) {
+      if (_suggestions.isNotEmpty) {
+        _clearSuggestionState();
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateOverlay());
   }
 
@@ -83,7 +102,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     if (!mounted) return;
     if (!widget.focusNode.hasFocus) {
       // Delay hiding the overlay so that taps on chips/toggle have time to fire
-      // before the overlay is torn down (fixes: tapping suggestion does nothing).
+      // before the overlay is torn down.
       Future.delayed(const Duration(milliseconds: 250), () {
         if (!mounted) return;
         if (!widget.focusNode.hasFocus && !_pointerDownOnOverlay) {
@@ -125,7 +144,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
   }
 
   void _onControllerChanged() {
-    if (!_isEnabled) {
+    if (!_isEnabled || !_isInputActive) {
       if (_suggestions.isNotEmpty) {
         setState(_clearSuggestionState);
       }
@@ -346,8 +365,6 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     return false;
   }
 
-
-
   void _scrollSelectedIntoView() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_rowScrollController.hasClients) return;
@@ -369,19 +386,21 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     final key = event.logicalKey;
 
     if (_suggestions.isNotEmpty) {
-      if (key == LogicalKeyboardKey.tab || key == LogicalKeyboardKey.arrowRight) {
+      final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+      // 1. Shift+Tab or Left Arrow: previous suggestion
+      if ((key == LogicalKeyboardKey.tab && isShiftPressed) || key == LogicalKeyboardKey.arrowLeft) {
         setState(() {
-          _selectedIndex = (_selectedIndex + 1) % _suggestions.length;
+          _selectedIndex = (_selectedIndex - 1 + _suggestions.length) % _suggestions.length;
         });
         _scrollSelectedIntoView();
         return KeyEventResult.handled;
       }
 
-      final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
-      if ((key == LogicalKeyboardKey.tab && isShiftPressed) ||
-          key == LogicalKeyboardKey.arrowLeft) {
+      // 2. Tab or Right Arrow: next suggestion
+      if ((key == LogicalKeyboardKey.tab && !isShiftPressed) || key == LogicalKeyboardKey.arrowRight) {
         setState(() {
-          _selectedIndex = (_selectedIndex - 1 + _suggestions.length) % _suggestions.length;
+          _selectedIndex = (_selectedIndex + 1) % _suggestions.length;
         });
         _scrollSelectedIntoView();
         return KeyEventResult.handled;
@@ -407,11 +426,112 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
     return KeyEventResult.ignored;
   }
 
+  Widget _buildSuggestionContent(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: TextFieldTapRegion(
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: GlassSurface(
+            strong: true,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            borderRadius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: SingleChildScrollView(
+              controller: _rowScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.translate_rounded,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  for (int i = 0; i < _suggestions.length; i++) ...[
+                    Listener(
+                      onPointerDown: (_) {
+                        // Immediately restore focus on pointer-down so
+                        // the overlay isn't torn down before onTap fires.
+                        _pointerDownOnOverlay = true;
+                        if (widget.focusNode.canRequestFocus) {
+                          widget.focusNode.requestFocus();
+                        }
+                      },
+                      onPointerUp: (_) => _pointerDownOnOverlay = false,
+                      onPointerCancel: (_) => _pointerDownOnOverlay = false,
+                      child: _HindiSuggestionChip(
+                        text: _suggestions[i],
+                        isSelected: i == _selectedIndex,
+                        isPrimary: i == 0,
+                        theme: Theme.of(context),
+                        onTap: () => _commitSuggestion(_suggestions[i]),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  if (_activeRomanToken != null) ...[
+                    Listener(
+                      onPointerDown: (_) {
+                        _pointerDownOnOverlay = true;
+                        if (widget.focusNode.canRequestFocus) {
+                          widget.focusNode.requestFocus();
+                        }
+                      },
+                      onPointerUp: (_) => _pointerDownOnOverlay = false,
+                      onPointerCancel: (_) => _pointerDownOnOverlay = false,
+                      child: InkWell(
+                        canRequestFocus: false,
+                        onTap: () {
+                          setState(_clearSuggestionState);
+                          if (widget.focusNode.canRequestFocus) {
+                            widget.focusNode.requestFocus();
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : Colors.black.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outlineVariant
+                                  .withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Text(
+                            _activeRomanToken!,
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _updateOverlay() {
     if (!mounted) return;
 
     final hasFocus = widget.focusNode.hasFocus;
-    final showSuggestions = _isEnabled && _suggestions.isNotEmpty && hasFocus;
+    final showSuggestions = _isEnabled && _isInputActive && _suggestions.isNotEmpty && hasFocus;
     final overlayState = Overlay.maybeOf(context);
 
     if (overlayState == null) {
@@ -425,109 +545,28 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
         _suggestionOverlayEntry = OverlayEntry(
           builder: (context) {
             final globalBottomInset = MediaQuery.viewInsetsOf(context).bottom;
-            return Positioned(
-              bottom: globalBottomInset > 0 ? globalBottomInset + 12 : 12,
-              left: 0,
-              right: 0,
-              child: Material(
-                type: MaterialType.transparency,
-                child: TextFieldTapRegion(
-                  child: AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    child: GlassSurface(
-                      strong: true,
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      borderRadius: BorderRadius.circular(16),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      child: SingleChildScrollView(
-                        controller: _rowScrollController,
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.translate_rounded,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            for (int i = 0; i < _suggestions.length; i++) ...[
-                              Listener(
-                                onPointerDown: (_) {
-                                  // Immediately restore focus on pointer-down so
-                                  // the overlay isn't torn down before onTap fires.
-                                  _pointerDownOnOverlay = true;
-                                  if (widget.focusNode.canRequestFocus) {
-                                    widget.focusNode.requestFocus();
-                                  }
-                                },
-                                onPointerUp: (_) => _pointerDownOnOverlay = false,
-                                onPointerCancel: (_) => _pointerDownOnOverlay = false,
-                                child: _HindiSuggestionChip(
-                                  text: _suggestions[i],
-                                  isSelected: i == _selectedIndex,
-                                  isPrimary: i == 0,
-                                  theme: Theme.of(context),
-                                  onTap: () => _commitSuggestion(_suggestions[i]),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            if (_activeRomanToken != null) ...[
-                              Listener(
-                                onPointerDown: (_) {
-                                  _pointerDownOnOverlay = true;
-                                  if (widget.focusNode.canRequestFocus) {
-                                    widget.focusNode.requestFocus();
-                                  }
-                                },
-                                onPointerUp: (_) => _pointerDownOnOverlay = false,
-                                onPointerCancel: (_) => _pointerDownOnOverlay = false,
-                                child: InkWell(
-                                  canRequestFocus: false,
-                                  onTap: () {
-                                    setState(_clearSuggestionState);
-                                    if (widget.focusNode.canRequestFocus) {
-                                      widget.focusNode.requestFocus();
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white.withValues(alpha: 0.06)
-                                          : Colors.black.withValues(alpha: 0.04),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Theme.of(context).colorScheme.outlineVariant
-                                            .withValues(alpha: 0.4),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _activeRomanToken!,
-                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+            if (globalBottomInset > 0) {
+              return Positioned(
+                bottom: globalBottomInset + 12,
+                left: 0,
+                right: 0,
+                child: _buildSuggestionContent(context),
+              );
+            } else {
+              // When no virtual keyboard is open (web/desktop/hardware keyboard),
+              // float 4px above the bottom of the focused input box.
+              return CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(0, -4),
+                targetAnchor: Alignment.bottomCenter,
+                followerAnchor: Alignment.bottomCenter,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _buildSuggestionContent(context),
                 ),
-              ),
-            );
+              );
+            }
           },
         );
         overlayState.insert(_suggestionOverlayEntry!);
@@ -542,6 +581,7 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
 
   Widget _buildHindiToggleButton() {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final Color bg;
     final Color fg;
 
@@ -553,13 +593,18 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
       fg = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     }
 
+    final semanticLabel = l10n != null
+        ? (_isEnabled ? l10n.hindiInputModeEnabled : l10n.hindiInputModeDisabled)
+        : (_isEnabled ? 'Hindi input mode enabled' : 'Hindi input mode disabled');
+
     return Semantics(
       button: true,
-      label: 'Toggle Hindi Transliteration',
+      enabled: _isInputActive,
+      toggled: _isEnabled,
+      label: semanticLabel,
       child: Listener(
-        // Grab focus synchronously on pointer-down, BEFORE Flutter routes the
-        // tap through the focus system and removes focus from the TextField.
         onPointerDown: (_) {
+          if (!_isInputActive) return;
           _pointerDownOnOverlay = true;
           if (widget.focusNode.canRequestFocus) {
             widget.focusNode.requestFocus();
@@ -568,9 +613,9 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
         onPointerUp: (_) => _pointerDownOnOverlay = false,
         onPointerCancel: (_) => _pointerDownOnOverlay = false,
         child: Container(
-          margin: const EdgeInsets.only(left: 6, right: 2),
-          width: 32,
-          height: 32,
+          margin: const EdgeInsets.only(left: 4, right: 2),
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: bg,
             shape: BoxShape.circle,
@@ -589,28 +634,28 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
             child: InkWell(
               customBorder: const CircleBorder(),
               canRequestFocus: false,
-              onTap: () {
-                // Focus should already be restored from onPointerDown above
-                setState(() {
-                  _isEnabled = !_isEnabled;
-                  if (!_isEnabled) {
-                    _clearSuggestionState();
-                  } else {
-                    _onControllerChanged();
-                  }
-                });
-                // Belt-and-suspenders: ensure focus in onTap too
-                if (widget.focusNode.canRequestFocus) {
-                  widget.focusNode.requestFocus();
-                }
-                WidgetsBinding.instance.addPostFrameCallback((_) => _updateOverlay());
-              },
+              onTap: !_isInputActive
+                  ? null
+                  : () {
+                      setState(() {
+                        _isEnabled = !_isEnabled;
+                        if (!_isEnabled) {
+                          _clearSuggestionState();
+                        } else {
+                          _onControllerChanged();
+                        }
+                      });
+                      if (widget.focusNode.canRequestFocus) {
+                        widget.focusNode.requestFocus();
+                      }
+                      WidgetsBinding.instance.addPostFrameCallback((_) => _updateOverlay());
+                    },
               child: Center(
                 child: Text(
                   'अ',
                   style: TextStyle(
                     color: fg,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -626,30 +671,41 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateOverlay());
 
-    final hasFocus = widget.focusNode.hasFocus;
+    final double? right = (widget.leftOffset == null && widget.rightOffset == null)
+        ? 8.0
+        : widget.rightOffset;
+    final double? left = widget.leftOffset;
 
     return Focus(
       onKeyEvent: (node, event) => _handleKeyEvent(node, event),
-      child: widget.inlineButton
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(child: widget.child),
-                if (hasFocus) _buildHindiToggleButton(),
-              ],
-            )
-          : Stack(
-              clipBehavior: Clip.none,
-              children: [
-                widget.child,
-                if (hasFocus)
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            widget.child,
+            if (_isInputActive)
+              if (widget.centerVertically)
+                Positioned(
+                  left: left,
+                  right: right,
+                  top: 0,
+                  bottom: 0,
+                  child: Align(
+                    alignment: left != null ? Alignment.centerLeft : Alignment.centerRight,
                     child: _buildHindiToggleButton(),
                   ),
-              ],
-            ),
+                )
+              else
+                Positioned(
+                  left: left,
+                  right: right,
+                  bottom: widget.bottomOffset,
+                  child: _buildHindiToggleButton(),
+                ),
+          ],
+        ),
+      ),
     );
   }
 }

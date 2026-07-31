@@ -210,7 +210,10 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                 maxLines: 5,
                 minLines: 3,
                 autofocus: true,
-                decoration: InputDecoration(hintText: l10n.reviewHint),
+                decoration: InputDecoration(
+                  hintText: l10n.reviewHint,
+                  contentPadding: const EdgeInsets.fromLTRB(16, 16, 44, 40),
+                ),
               ),
             ),
             const SizedBox(height: 12),

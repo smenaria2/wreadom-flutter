@@ -43,6 +43,7 @@ import '../utils/writer_media_utils.dart';
 import '../utils/writer_html_codec.dart';
 import '../widgets/comment_widgets.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/hindi_input_wrapper.dart';
 import '../widgets/section_error.dart';
 import '../widgets/writer_media_embed.dart';
 import '../widgets/in_app_media_web_view.dart';
@@ -2889,15 +2890,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           }),
                         ),
                         const SizedBox(height: 8),
-                        TextField(
+                        HindiInputWrapper(
                           controller: _commentController.value,
-                          minLines: 2,
-                          maxLines: 4,
+                          focusNode: _commentFocusNode,
                           enabled: !_isSubmittingComment,
-                          decoration: InputDecoration(
-                            hintText: l10n.chapterReviewPromptHint,
+                          centerVertically: false,
+                          rightOffset: 8.0,
+                          bottomOffset: 8.0,
+                          child: TextField(
+                            controller: _commentController.value,
+                            focusNode: _commentFocusNode,
+                            minLines: 2,
+                            maxLines: 4,
+                            enabled: !_isSubmittingComment,
+                            decoration: InputDecoration(
+                              hintText: l10n.chapterReviewPromptHint,
+                              contentPadding: const EdgeInsets.fromLTRB(16, 16, 44, 40),
+                            ),
+                            onChanged: (_) => setModalState(() {}),
                           ),
-                          onChanged: (_) => setModalState(() {}),
                         ),
                         const SizedBox(height: 10),
                         Text(
@@ -3798,26 +3809,34 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     ),
                                     const SizedBox(height: 12),
                                   ],
-                                  TextField(
-                                    controller: _commentController.value,
-                                    focusNode: _commentFocusNode,
-                                    readOnly:
-                                        _replyingTo == null &&
-                                        _existingUserReview != null &&
-                                        !_isReviewEditMode,
-                                    minLines: 2,
-                                    maxLines: 4,
-                                    decoration: InputDecoration(
-                                      hintText: _replyingTo != null
-                                          ? l10n.addAReply
-                                          : l10n.chapterReviewPromptHint,
-                                      hintStyle: TextStyle(
-                                        color: _getSecondaryTextColor(),
-                                      ),
-                                      suffixIcon: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
+                                  GlassSurface(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: HindiInputWrapper(
+                                      controller: _commentController.value,
+                                      focusNode: _commentFocusNode,
+                                      enabled: !_isSubmittingComment && !(_replyingTo == null && _existingUserReview != null && !_isReviewEditMode),
+                                      readOnly: _replyingTo == null && _existingUserReview != null && !_isReviewEditMode,
+                                      centerVertically: true,
+                                      rightOffset: 44.0,
+                                      child: TextField(
+                                        controller: _commentController.value,
+                                        focusNode: _commentFocusNode,
+                                        readOnly:
+                                            _replyingTo == null &&
+                                            _existingUserReview != null &&
+                                            !_isReviewEditMode,
+                                        minLines: 2,
+                                        maxLines: 4,
+                                        decoration: InputDecoration(
+                                          hintText: _replyingTo != null
+                                              ? l10n.addAReply
+                                              : l10n.chapterReviewPromptHint,
+                                          hintStyle: TextStyle(
+                                            color: _getSecondaryTextColor(),
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+                                          suffixIcon: IconButton(
                                             tooltip: _isRecordingAudioReview
                                                 ? l10n.stopRecording
                                                 : l10n.recordAudio,
@@ -3854,14 +3873,65 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                     }
                                                   },
                                           ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 8.0,
+                                        ),
+                                        onChanged: (_) => setModalState(() {}),
+                                        style: TextStyle(color: _getTextColor()),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GlassSurface(
+                                      strong: true,
+                                      borderRadius: BorderRadius.circular(18),
+                                      onTap: _isSubmittingComment ||
+                                              (_replyingTo == null &&
+                                                  ((_existingUserReview != null &&
+                                                          !_isReviewEditMode) ||
+                                                      !_canSubmitReview)) ||
+                                              (_replyingTo != null && !_canSubmitReply)
+                                          ? null
+                                          : () async {
+                                              await _submitComment(
+                                                chapter,
+                                                chapterIndex: chapterIndex,
+                                                feedbackContext: context,
+                                              );
+                                              setModalState(() {});
+                                            },
+                                      semanticButton: true,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.send_rounded,
+                                              size: 16,
+                                              color: _getReaderActionColor().withValues(
+                                                alpha:
+                                                    (_replyingTo == null &&
+                                                            ((_existingUserReview !=
+                                                                        null &&
+                                                                    !_isReviewEditMode) ||
+                                                                !_canSubmitReview)) ||
+                                                        (_replyingTo != null &&
+                                                            !_canSubmitReply)
+                                                        ? 0.35
+                                                        : 1,
+                                              ),
                                             ),
-                                            child: IconButton(
-                                              tooltip: l10n.send,
-                                              icon: Icon(
-                                                Icons.send_rounded,
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              _replyingTo != null
+                                                  ? l10n.reply
+                                                  : l10n.post,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
                                                 color: _getReaderActionColor().withValues(
                                                   alpha:
                                                       (_replyingTo == null &&
@@ -3869,40 +3939,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                                           null &&
                                                                       !_isReviewEditMode) ||
                                                                   !_canSubmitReview)) ||
-                                                          (_replyingTo !=
-                                                                  null &&
+                                                          (_replyingTo != null &&
                                                               !_canSubmitReply)
-                                                      ? 0.35
-                                                      : 1,
+                                                          ? 0.35
+                                                          : 1,
                                                 ),
                                               ),
-                                              onPressed:
-                                                  _isSubmittingComment ||
-                                                      (_replyingTo == null &&
-                                                          ((_existingUserReview !=
-                                                                      null &&
-                                                                  !_isReviewEditMode) ||
-                                                              !_canSubmitReview)) ||
-                                                      (_replyingTo != null &&
-                                                          !_canSubmitReply)
-                                                  ? null
-                                                  : () async {
-                                                      await _submitComment(
-                                                        chapter,
-                                                        chapterIndex:
-                                                            chapterIndex,
-                                                        feedbackContext:
-                                                            context,
-                                                      );
-                                                      setModalState(() {});
-                                                    },
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    onChanged: (_) => setModalState(() {}),
-                                    style: TextStyle(color: _getTextColor()),
                                   ),
                                   if (_isRecordingAudioReview ||
                                       (_replyingTo == null

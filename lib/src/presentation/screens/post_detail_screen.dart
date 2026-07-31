@@ -611,7 +611,8 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                 child: HindiInputWrapper(
                   controller: _controller.value,
                   focusNode: _commentFocusNode,
-                  inlineButton: true,
+                  centerVertically: true,
+                  rightOffset: 12.0,
                   child: TextField(
                     controller: _controller.value,
                     focusNode: _commentFocusNode,
