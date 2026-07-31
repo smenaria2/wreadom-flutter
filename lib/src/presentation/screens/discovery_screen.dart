@@ -59,6 +59,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final query = args['query']?.toString();
     _searchLanguage = args['language']?.toString();
     if (query == null || query == 'archive:') return;
+    if (query.startsWith('book_') || query.startsWith('post_') || query.startsWith('doc_')) return;
     if (query.startsWith('subject:')) {
       _activeGenre = query.split(':').last;
     } else {

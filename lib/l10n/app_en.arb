@@ -30,6 +30,7 @@
   "following": "Following",
   "works": "Works",
   "about": "About",
+  "shareAndReview": "Share & Review App",
   "posts": "Posts",
   "history": "Read Content",
   "saved": "Saved",
@@ -1926,5 +1927,15 @@
   "hindiInputModeEnabled": "Hindi input mode enabled",
   "hindiInputModeDisabled": "Hindi input mode disabled",
   "keepOriginalText": "Keep English",
-  "hindiTransliterationSuggestion": "Hindi Suggestion"
+  "hindiTransliterationSuggestion": "Hindi Suggestion",
+  "aboutWreadomTitle": "About Wreadom",
+  "aboutDescription": "Read classic books and original stories, discover independent writers, and publish your own work.",
+  "aboutCreatedBy": "Proudly created by Sumit Menaria",
+  "attributionsTitle": "Attributions",
+  "openSourceSoftwareLicenses": "Open-source software licenses",
+  "dictionaryAttributionCategory": "Dictionary Data",
+  "hindiTransliterationCategory": "Hindi Transliteration",
+  "typographyCategory": "Typography & Fonts",
+  "mediaSourcesCategory": "Media & Content Discovery",
+  "softwarePackagesCategory": "Software Packages"
 }

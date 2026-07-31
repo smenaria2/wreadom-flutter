@@ -73,7 +73,7 @@ class PostDetailScreen extends ConsumerWidget {
               actionLabel: l10n.searchBooks,
               onAction: () => Navigator.of(
                 context,
-              ).pushNamed(AppRoutes.discovery, arguments: {'query': postId}),
+              ).pushNamed(AppRoutes.discovery),
             );
           }
           return RefreshIndicator(

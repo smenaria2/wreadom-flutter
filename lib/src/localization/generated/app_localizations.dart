@@ -266,6 +266,12 @@ abstract class AppLocalizations {
   /// **'About'**
   String get about;
 
+  /// No description provided for @shareAndReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Share & Review App'**
+  String get shareAndReview;
+
   /// No description provided for @posts.
   ///
   /// In en, this message translates to:
@@ -5916,6 +5922,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hindi Suggestion'**
   String get hindiTransliterationSuggestion;
+
+  /// No description provided for @aboutWreadomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About Wreadom'**
+  String get aboutWreadomTitle;
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Read classic books and original stories, discover independent writers, and publish your own work.'**
+  String get aboutDescription;
+
+  /// No description provided for @aboutCreatedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Proudly created by Sumit Menaria'**
+  String get aboutCreatedBy;
+
+  /// No description provided for @attributionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attributions'**
+  String get attributionsTitle;
+
+  /// No description provided for @openSourceSoftwareLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source software licenses'**
+  String get openSourceSoftwareLicenses;
+
+  /// No description provided for @dictionaryAttributionCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Dictionary Data'**
+  String get dictionaryAttributionCategory;
+
+  /// No description provided for @hindiTransliterationCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi Transliteration'**
+  String get hindiTransliterationCategory;
+
+  /// No description provided for @typographyCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Typography & Fonts'**
+  String get typographyCategory;
+
+  /// No description provided for @mediaSourcesCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Media & Content Discovery'**
+  String get mediaSourcesCategory;
+
+  /// No description provided for @softwarePackagesCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Software Packages'**
+  String get softwarePackagesCategory;
 }
 
 class _AppLocalizationsDelegate

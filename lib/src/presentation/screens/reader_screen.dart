@@ -898,32 +898,56 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       }
       if (latestBook == null || !canViewBook(latestBook, currentUserId)) {
+        final l10n = AppLocalizations.of(context)!;
         return Scaffold(
           appBar: AppBar(),
-          body: const StaticInfoScreen(
+          body: StaticInfoScreen(
             title: 'Content Not Found',
             body:
                 'This book may have been unpublished, deleted, or is unavailable.',
+            actionLabel: l10n.searchBooks,
+            onAction: () => Navigator.of(context).pushNamed(
+              AppRoutes.discovery,
+              arguments: widget.book.title.trim().isNotEmpty
+                  ? {'query': widget.book.title.trim()}
+                  : null,
+            ),
           ),
         );
       }
     } else if (latestBookAsync.hasError && widget.book.source != 'archive') {
+      final l10n = AppLocalizations.of(context)!;
       return Scaffold(
         appBar: AppBar(),
-        body: const StaticInfoScreen(
+        body: StaticInfoScreen(
           title: 'Content Not Found',
           body:
               'This book may have been unpublished, deleted, or is unavailable.',
+          actionLabel: l10n.searchBooks,
+          onAction: () => Navigator.of(context).pushNamed(
+            AppRoutes.discovery,
+            arguments: widget.book.title.trim().isNotEmpty
+                ? {'query': widget.book.title.trim()}
+                : null,
+          ),
         ),
       );
     } else if (!userAsync.isLoading &&
         !canViewBook(widget.book, currentUserId)) {
+      final l10n = AppLocalizations.of(context)!;
       return Scaffold(
         appBar: AppBar(),
-        body: const StaticInfoScreen(
+        body: StaticInfoScreen(
           title: 'Content Not Found',
           body:
               'This book may have been unpublished, deleted, or is unavailable.',
+          actionLabel: l10n.searchBooks,
+          onAction: () => Navigator.of(context).pushNamed(
+            AppRoutes.discovery,
+            arguments: widget.book.title.trim().isNotEmpty
+                ? {'query': widget.book.title.trim()}
+                : null,
+          ),
         ),
       );
     }

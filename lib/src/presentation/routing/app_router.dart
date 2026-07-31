@@ -18,6 +18,7 @@ import '../screens/follow_list_screen.dart';
 import '../screens/feed_reels_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/help_screen.dart';
+import '../screens/about_hub_screen.dart';
 import '../screens/home_banner_screen.dart';
 import '../screens/language_settings_screen.dart';
 import '../screens/legal_document_screen.dart';
@@ -807,6 +808,11 @@ class AppRouter {
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (_) => const LanguageSettingsScreen(),
+        );
+      case AppRoutes.about:
+        return MaterialPageRoute(
+          settings: routeSettings,
+          builder: (_) => const AboutHubScreen(),
         );
       case AppRoutes.privacy:
         return MaterialPageRoute(

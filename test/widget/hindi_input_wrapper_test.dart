@@ -17,22 +17,30 @@ void main() {
       focusNode.dispose();
     });
 
-    Widget buildTestWidget({double bottomInset = 0.0, bool enabled = true, bool readOnly = false}) {
+    Widget buildTestWidget({
+      double bottomInset = 0.0,
+      bool enabled = true,
+      bool readOnly = false,
+      double topPadding = 100.0,
+    }) {
       return MaterialApp(
         home: Scaffold(
           body: MediaQuery(
             data: MediaQueryData(viewInsets: EdgeInsets.only(bottom: bottomInset)),
-            child: SizedBox(
-              width: 800,
-              height: 600,
-              child: HindiInputWrapper(
-                controller: controller,
-                focusNode: focusNode,
-                enabled: enabled,
-                readOnly: readOnly,
-                child: TextField(
+            child: Padding(
+              padding: EdgeInsets.only(top: topPadding),
+              child: SizedBox(
+                width: 800,
+                height: 50,
+                child: HindiInputWrapper(
                   controller: controller,
                   focusNode: focusNode,
+                  enabled: enabled,
+                  readOnly: readOnly,
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                  ),
                 ),
               ),
             ),
@@ -89,9 +97,25 @@ void main() {
       expect(find.text('नमस्ते'), findsOneWidget);
     });
 
-    testWidgets('Suggestion bar renders via CompositedTransformFollower when bottomInset is 0', (tester) async {
+    testWidgets('Suggestion bar renders via CompositedTransformFollower above input container', (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
-      await tester.pumpWidget(buildTestWidget(bottomInset: 0.0));
+      await tester.pumpWidget(buildTestWidget(bottomInset: 0.0, topPadding: 100.0));
+      focusNode.requestFocus();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('अ'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'namaste');
+      await tester.pumpAndSettle();
+
+      expect(find.ancestor(of: find.text('नमस्ते'), matching: find.byType(CompositedTransformFollower)), findsOneWidget);
+      expect(find.text('नमस्ते'), findsOneWidget);
+    });
+
+    testWidgets('Suggestion bar renders below search bar when near top of screen', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpWidget(buildTestWidget(bottomInset: 0.0, topPadding: 0.0));
       focusNode.requestFocus();
       await tester.pumpAndSettle();
 
@@ -107,7 +131,7 @@ void main() {
 
     testWidgets('Tapping suggestion chip commits Devanagari replacement', (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
-      await tester.pumpWidget(buildTestWidget(bottomInset: 300.0));
+      await tester.pumpWidget(buildTestWidget(bottomInset: 300.0, topPadding: 100.0));
       focusNode.requestFocus();
       await tester.pumpAndSettle();
 

@@ -90,7 +90,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get works => 'रचनाएं';
 
   @override
-  String get about => 'परिचय';
+  String get about => 'बारे में';
+
+  @override
+  String get shareAndReview => 'ऐप साझा करें और समीक्षा दें';
 
   @override
   String get posts => 'पोस्ट';
@@ -3328,4 +3331,35 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get hindiTransliterationSuggestion => 'हिंदी सुझाव';
+
+  @override
+  String get aboutWreadomTitle => 'रीडम के बारे में';
+
+  @override
+  String get aboutDescription =>
+      'क्लासिक पुस्तकें और मौलिक कहानियाँ पढ़ें, स्वतंत्र लेखकों की खोज करें, और अपनी रचनाएँ प्रकाशित करें।';
+
+  @override
+  String get aboutCreatedBy => 'सुमित मेनारिया द्वारा सृजित';
+
+  @override
+  String get attributionsTitle => 'आभार एवं श्रेय';
+
+  @override
+  String get openSourceSoftwareLicenses => 'ओपन-सोर्स सॉफ़्टवेयर लाइसेंस';
+
+  @override
+  String get dictionaryAttributionCategory => 'शब्दकोश डेटा';
+
+  @override
+  String get hindiTransliterationCategory => 'हिंदी लिप्यंतरण';
+
+  @override
+  String get typographyCategory => 'टाइपोग्राफी एवं फ़ॉन्ट्स';
+
+  @override
+  String get mediaSourcesCategory => 'मीडिया और सामग्री स्रोत';
+
+  @override
+  String get softwarePackagesCategory => 'सॉफ़्टवेयर पैकेज';
 }

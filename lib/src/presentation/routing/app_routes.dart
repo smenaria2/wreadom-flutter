@@ -31,5 +31,6 @@ class AppRoutes {
   static const adminDailyTopics = '/admin-daily-topics';
   static const questionAnswers = '/question-answers';
   static const leaderboard = '/leaderboard';
+  static const about = '/about';
   static const notFound = '/not-found';
 }

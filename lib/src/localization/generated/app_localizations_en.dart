@@ -93,6 +93,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
+  String get shareAndReview => 'Share & Review App';
+
+  @override
   String get posts => 'Posts';
 
   @override
@@ -3322,4 +3325,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hindiTransliterationSuggestion => 'Hindi Suggestion';
+
+  @override
+  String get aboutWreadomTitle => 'About Wreadom';
+
+  @override
+  String get aboutDescription =>
+      'Read classic books and original stories, discover independent writers, and publish your own work.';
+
+  @override
+  String get aboutCreatedBy => 'Proudly created by Sumit Menaria';
+
+  @override
+  String get attributionsTitle => 'Attributions';
+
+  @override
+  String get openSourceSoftwareLicenses => 'Open-source software licenses';
+
+  @override
+  String get dictionaryAttributionCategory => 'Dictionary Data';
+
+  @override
+  String get hindiTransliterationCategory => 'Hindi Transliteration';
+
+  @override
+  String get typographyCategory => 'Typography & Fonts';
+
+  @override
+  String get mediaSourcesCategory => 'Media & Content Discovery';
+
+  @override
+  String get softwarePackagesCategory => 'Software Packages';
 }

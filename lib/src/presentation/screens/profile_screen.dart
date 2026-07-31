@@ -573,8 +573,8 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
   }
 }
 
-class _ProfileSideMenu extends ConsumerWidget {
-  const _ProfileSideMenu();
+class ProfileSideMenu extends ConsumerWidget {
+  const ProfileSideMenu({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -666,20 +666,13 @@ class _ProfileSideMenu extends ConsumerWidget {
                     ),
                     _MenuTile(
                       icon: Icons.share_rounded,
-                      title: 'Share & Review App',
+                      title: l10n.shareAndReview,
                       onTap: () => ShareAppDialog.show(context),
                     ),
-                    const Divider(),
-                    _MenuSectionLabel(label: l10n.legal),
                     _MenuTile(
-                      icon: Icons.privacy_tip_outlined,
-                      title: l10n.privacyPolicy,
-                      onTap: () => _openPolicy(context, AppRoutes.privacy),
-                    ),
-                    _MenuTile(
-                      icon: Icons.description_outlined,
-                      title: l10n.termsOfUse,
-                      onTap: () => _openPolicy(context, AppRoutes.terms),
+                      icon: Icons.info_outline_rounded,
+                      title: l10n.about,
+                      onTap: () => _go(context, AppRoutes.about),
                     ),
                     const Divider(),
                     const _MenuSectionLabel(label: 'Social'),
@@ -1172,7 +1165,7 @@ void _showProfileSideMenu(BuildContext context) {
     pageBuilder: (context, animation, secondaryAnimation) {
       return const Align(
         alignment: Alignment.centerRight,
-        child: SizedBox(width: 304, child: _ProfileSideMenu()),
+        child: SizedBox(width: 304, child: ProfileSideMenu()),
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {

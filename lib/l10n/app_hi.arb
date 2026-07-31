@@ -26,7 +26,8 @@
   "followers": "फ़ॉलोअर",
   "following": "फ़ॉलो कर रहे",
   "works": "रचनाएं",
-  "about": "परिचय",
+  "about": "बारे में",
+  "shareAndReview": "ऐप साझा करें और समीक्षा दें",
   "posts": "पोस्ट",
   "history": "पढ़ी गई रचनाएँ",
   "saved": "सेव किए गए",
@@ -1486,5 +1487,15 @@
   "hindiInputModeEnabled": "हिंदी इनपुट मोड सक्षम",
   "hindiInputModeDisabled": "हिंदी इनपुट मोड निष्क्रिय",
   "keepOriginalText": "अंग्रेजी रखें",
-  "hindiTransliterationSuggestion": "हिंदी सुझाव"
+  "hindiTransliterationSuggestion": "हिंदी सुझाव",
+  "aboutWreadomTitle": "रीडम के बारे में",
+  "aboutDescription": "क्लासिक पुस्तकें और मौलिक कहानियाँ पढ़ें, स्वतंत्र लेखकों की खोज करें, और अपनी रचनाएँ प्रकाशित करें।",
+  "aboutCreatedBy": "सुमित मेनारिया द्वारा सृजित",
+  "attributionsTitle": "आभार एवं श्रेय",
+  "openSourceSoftwareLicenses": "ओपन-सोर्स सॉफ़्टवेयर लाइसेंस",
+  "dictionaryAttributionCategory": "शब्दकोश डेटा",
+  "hindiTransliterationCategory": "हिंदी लिप्यंतरण",
+  "typographyCategory": "टाइपोग्राफी एवं फ़ॉन्ट्स",
+  "mediaSourcesCategory": "मीडिया और सामग्री स्रोत",
+  "softwarePackagesCategory": "सॉफ़्टवेयर पैकेज"
 }

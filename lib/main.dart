@@ -44,6 +44,7 @@ import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
+import 'src/utils/custom_license_registry.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'src/config/env_config.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -55,6 +56,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    registerCustomLicenses();
     try {
       if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||

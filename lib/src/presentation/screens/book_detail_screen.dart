@@ -100,13 +100,21 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
         data: (liveBook) {
           final book = liveBook;
           if (book == null) {
-            return _UnavailableBookView(bookId: widget.bookId);
+            return _UnavailableBookView(
+              bookId: widget.bookId,
+              bookTitle: widget.preloadedBook?.title,
+              authorName: widget.preloadedBook?.authors.firstOrNull?.name,
+            );
           }
           if (!canViewBook(book, null) && userAsync.isLoading) {
             return const _BookDetailSkeleton();
           }
           if (!canViewBook(book, currentUserId)) {
-            return _UnavailableBookView(bookId: widget.bookId);
+            return _UnavailableBookView(
+              bookId: widget.bookId,
+              bookTitle: book.title,
+              authorName: book.authors.firstOrNull?.name,
+            );
           }
           _precacheCover(book.coverUrl);
           if (widget.initialReaderChapterIndex != null) {
@@ -114,9 +122,6 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
               book: book,
               initialChapterIndex: widget.initialReaderChapterIndex!,
             );
-          }
-          if (!_isArchiveBook(book)) {
-            _preloadChapters(book.id);
           }
           return _BookDetailBody(
             book: book,
@@ -169,19 +174,32 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
 }
 
 class _UnavailableBookView extends StatelessWidget {
-  const _UnavailableBookView({required this.bookId});
+  const _UnavailableBookView({
+    required this.bookId,
+    this.bookTitle,
+    this.authorName,
+  });
 
   final String bookId;
+  final String? bookTitle;
+  final String? authorName;
 
   @override
   Widget build(BuildContext context) {
+    final String? searchTarget = (bookTitle != null && bookTitle!.trim().isNotEmpty)
+        ? bookTitle!.trim()
+        : ((authorName != null && authorName!.trim().isNotEmpty)
+            ? authorName!.trim()
+            : null);
+
     return StaticInfoScreen(
       title: 'Content Not Found',
       body: 'This book may have been unpublished, deleted, or is unavailable.',
       actionLabel: AppLocalizations.of(context)!.searchBooks,
-      onAction: () => Navigator.of(
-        context,
-      ).pushNamed(AppRoutes.discovery, arguments: {'query': bookId}),
+      onAction: () => Navigator.of(context).pushNamed(
+        AppRoutes.discovery,
+        arguments: searchTarget != null ? {'query': searchTarget} : null,
+      ),
     );
   }
 }

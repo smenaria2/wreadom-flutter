@@ -544,22 +544,36 @@ class _HindiInputWrapperState extends State<HindiInputWrapper> {
       if (_suggestionOverlayEntry == null) {
         _suggestionOverlayEntry = OverlayEntry(
           builder: (context) {
-            final globalBottomInset = MediaQuery.viewInsetsOf(context).bottom;
-            if (globalBottomInset > 0) {
-              return Positioned(
-                bottom: globalBottomInset + 12,
-                left: 0,
-                right: 0,
-                child: _buildSuggestionContent(context),
-              );
-            } else {
-              // When no virtual keyboard is open (web/desktop/hardware keyboard),
-              // float 4px above the bottom of the focused input box.
+            double targetGlobalTop = 500.0;
+            final renderBox = this.context.findRenderObject() as RenderBox?;
+            if (renderBox != null && renderBox.hasSize) {
+              targetGlobalTop = renderBox.localToGlobal(Offset.zero).dy;
+            }
+
+            final bool isNearScreenTop = targetGlobalTop < 70;
+
+            if (isNearScreenTop) {
+              // For search bars at top of screen (e.g. Discovery search),
+              // float 6px directly BELOW the input container.
               return CompositedTransformFollower(
                 link: _layerLink,
                 showWhenUnlinked: false,
-                offset: const Offset(0, -4),
+                offset: const Offset(0, 6),
                 targetAnchor: Alignment.bottomCenter,
+                followerAnchor: Alignment.topCenter,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: _buildSuggestionContent(context),
+                ),
+              );
+            } else {
+              // For all standard input fields (reviews, comments, replies, post composer),
+              // float 6px directly ABOVE the top of the input box container.
+              return CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(0, -6),
+                targetAnchor: Alignment.topCenter,
                 followerAnchor: Alignment.bottomCenter,
                 child: Align(
                   alignment: Alignment.bottomCenter,
