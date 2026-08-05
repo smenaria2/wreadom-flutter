@@ -4,11 +4,20 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get light => _build(brightness: Brightness.light);
+  static ThemeData get light => lightTheme();
 
-  static ThemeData get dark => _build(brightness: Brightness.dark);
+  static ThemeData get dark => darkTheme();
 
-  static ThemeData _build({required Brightness brightness}) {
+  static ThemeData lightTheme({bool disableAnimations = false}) =>
+      _build(brightness: Brightness.light, disableAnimations: disableAnimations);
+
+  static ThemeData darkTheme({bool disableAnimations = false}) =>
+      _build(brightness: Brightness.dark, disableAnimations: disableAnimations);
+
+  static ThemeData _build({
+    required Brightness brightness,
+    bool disableAnimations = false,
+  }) {
     final isDark = brightness == Brightness.dark;
     final scheme = isDark ? _darkScheme : _lightScheme;
     final glass = isDark ? GlassTokens.dark : GlassTokens.light;
@@ -33,7 +42,15 @@ class AppTheme {
       canvasColor: scheme.surface,
       primaryColor: scheme.primary,
       textTheme: textTheme,
-      pageTransitionsTheme: _reducedPageTransitions,
+      pageTransitionsTheme: disableAnimations
+          ? _reducedPageTransitions
+          : const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+              },
+            ),
       extensions: <ThemeExtension<dynamic>>[glass],
       appBarTheme: AppBarThemeData(
         centerTitle: false,

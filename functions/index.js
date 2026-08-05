@@ -284,8 +284,8 @@ function validateAudioReviewRequest(data = {}) {
 }
 
 function userDisplayName(data = {}) {
-  return normalizeString(data.displayName) ||
-    normalizeString(data.penName) ||
+  return normalizeString(data.penName) ||
+    normalizeString(data.displayName) ||
     normalizeString(data.username) ||
     "Reader";
 }
@@ -1975,10 +1975,15 @@ exports.onUserProfileUpdated = functionsV1.firestore.document("users/{userId}").
   const conversationSnapshot = await db.collection("conversations")
       .where("participants", "array-contains", userId)
       .get();
+  const bookSnapshot = await db.collection("books").where("authorId", "==", userId).get();
 
   const details = participantDetailsFromUser(afterData);
   const display = userDisplayName(afterData);
   const photoURL = normalizeString(afterData.photoURL) || null;
+
+  await commitInChunks(bookSnapshot.docs.map((doc) => doc.ref), () => ({
+    authors: [{ name: display }],
+  }));
 
   await commitInChunks(feedSnapshot.docs.map((doc) => doc.ref), () => ({
     username: normalizeString(afterData.username),

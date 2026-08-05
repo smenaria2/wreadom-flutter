@@ -21,27 +21,27 @@ class DisableAnimationsNotifier extends Notifier<bool> {
     }
   }
 
-  @override
-  bool build() {
-    final prefs = _prefs;
+  static bool isAnimationsDisabled(SharedPreferences? prefs) {
     if (prefs != null && prefs.containsKey(_keyDisableAnimationsUserPref)) {
       return prefs.getBool(_keyDisableAnimationsUserPref) ?? false;
     }
     return _detectLowPowerDefault();
   }
 
-  bool _detectLowPowerDefault() {
+  static bool _detectLowPowerDefault() {
     try {
       final accessibilityDisabled =
           WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
       if (accessibilityDisabled) return true;
     } catch (_) {}
 
-    // On Web or desktop, default to normal unless low power.
     if (kIsWeb) return false;
-
-    // Check low-memory heuristics or legacy android API indicators if available
     return false;
+  }
+
+  @override
+  bool build() {
+    return isAnimationsDisabled(_prefs);
   }
 
   Future<void> setDisabled(bool value) async {

@@ -42,38 +42,58 @@ class GlassSurface extends StatelessWidget {
     final tokens = theme.extension<GlassTokens>() ?? GlassTokens.light;
     final radius = borderRadius ?? BorderRadius.circular(tokens.radius);
     final resolvedRadius = radius.resolve(Directionality.of(context));
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+
     final content = ClipRRect(
       borderRadius: radius,
       clipBehavior: clipBehavior,
       child: Stack(
         children: [
           Positioned.fill(
-            child: GlassMorphismMaterial(
-              blurIntensity: tokens.blurSigma,
-              opacity: strong ? tokens.strongOpacity : tokens.surfaceOpacity,
-              glassThickness: strong ? 1.4 : 1.0,
-              tintColor: strong
-                  ? tokens.strongSurfaceColor
-                  : tokens.surfaceColor,
-              borderRadius: resolvedRadius,
-              adaptToBackground: false,
-              enableBackgroundDistortion: backgroundDistortion,
-              enableGlassBorder: true,
-              shadows: [
-                BoxShadow(
-                  color: tokens.shadowColor,
-                  blurRadius: strong ? 30 : 22,
-                  offset: Offset(0, strong ? 14 : 9),
-                ),
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: strong ? 0.12 : 0.06),
-                  blurRadius: strong ? 24 : 16,
-                  spreadRadius: -4,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-              child: const SizedBox.expand(),
-            ),
+            child: disableAnimations
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: (strong ? tokens.strongSurfaceColor : tokens.surfaceColor)
+                          .withValues(alpha: strong ? 0.94 : 0.88),
+                      borderRadius: resolvedRadius,
+                      border: Border.all(
+                        color: tokens.borderColor.withValues(alpha: 0.6),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tokens.shadowColor.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                  )
+                : GlassMorphismMaterial(
+                    blurIntensity: tokens.blurSigma,
+                    opacity: strong ? tokens.strongOpacity : tokens.surfaceOpacity,
+                    glassThickness: strong ? 1.4 : 1.0,
+                    tintColor: strong
+                        ? tokens.strongSurfaceColor
+                        : tokens.surfaceColor,
+                    borderRadius: resolvedRadius,
+                    adaptToBackground: false,
+                    enableBackgroundDistortion: backgroundDistortion,
+                    enableGlassBorder: true,
+                    shadows: [
+                      BoxShadow(
+                        color: tokens.shadowColor,
+                        blurRadius: strong ? 30 : 22,
+                        offset: Offset(0, strong ? 14 : 9),
+                      ),
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: strong ? 0.12 : 0.06),
+                        blurRadius: strong ? 24 : 16,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    child: const SizedBox.expand(),
+                  ),
           ),
           Material(
             color: Colors.transparent,

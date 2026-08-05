@@ -175,13 +175,15 @@ class NotificationTargetResolver {
     }
     if (targetType == 'archive' ||
         targetType == 'archive_book' ||
-        targetType == 'internet_archive') {
+        targetType == 'internet_archive' ||
+        notification.link.contains('archive.org/')) {
       final archiveId = _firstValid([
         metadata['archiveId'],
         metadata['bookId'],
         metadata['id'],
         linkTarget?.payload,
         _queryValue(notification.link, 'id'),
+        _idFromLink(notification.link, ['details', 'embed']),
         notification.targetId,
       ]);
       if (archiveId != null) {

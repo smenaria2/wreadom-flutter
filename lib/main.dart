@@ -21,6 +21,7 @@ import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/providers/homepage_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
+import 'src/presentation/providers/animation_settings_provider.dart';
 import 'src/presentation/providers/tier_progress_provider.dart';
 import 'src/presentation/providers/accessibility_providers.dart';
 import 'src/presentation/components/profile/tier_up_celebration_sheet.dart';
@@ -101,7 +102,7 @@ Future<void> main() async {
             initialAppLink: startupEntry.initialAppLink,
             hasInitialShare: startupEntry.hasInitialShare,
             hasSeenSplash: SplashPreferencesService.hasSeenSplash(sharedPreferences),
-            disableAnimations: sharedPreferences.getBool('disable_animations_user_preference') ?? false,
+            disableAnimations: DisableAnimationsNotifier.isAnimationsDisabled(sharedPreferences),
           ),
         ),
       ),
@@ -588,6 +589,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final themeMode = ref.watch(appThemeControllerProvider);
     final locale = ref.watch(localeControllerProvider);
+    final disableAnimations = ref.watch(disableAnimationsProvider);
 
     return ScreenUtilInit(
       designSize: const Size(390, 844),
@@ -630,11 +632,22 @@ class _MyAppState extends ConsumerState<MyApp> {
               FlutterQuillLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
+            theme: AppTheme.lightTheme(disableAnimations: disableAnimations),
+            darkTheme: AppTheme.darkTheme(disableAnimations: disableAnimations),
             themeMode: themeMode,
             navigatorObservers: [if (_firebaseReady) AnalyticsService.observer],
             onGenerateRoute: AppRouter.onGenerateRoute,
+            builder: (context, materialAppChild) {
+              final mediaQuery = MediaQuery.of(context);
+              final effectiveDisableAnimations =
+                  disableAnimations || mediaQuery.disableAnimations;
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  disableAnimations: effectiveDisableAnimations,
+                ),
+                child: materialAppChild ?? const SizedBox.shrink(),
+              );
+            },
             home: _showStartupSplash
                 ? StartupSplashScreen(onFinished: _completeStartupSplash)
                 : ShakeToReportListener(

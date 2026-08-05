@@ -1,21 +1,32 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/book.dart';
 import '../../utils/book_collaboration_utils.dart';
+import '../providers/homepage_providers.dart';
 import '../utils/book_author_utils.dart';
 import 'book/book_card_meta_tags.dart';
 import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
 import '../widgets/glass_surface.dart';
 
-class BookCard extends StatelessWidget {
+class BookCard extends ConsumerWidget {
   final Book book;
   final double width;
 
   const BookCard({super.key, required this.book, this.width = 120});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homepageAuthors = ref.watch(homepageAuthorsProvider).asData?.value;
+    final primaryAuthor = homepageAuthors
+        ?.where((user) => user.id == book.authorId)
+        .firstOrNull;
+    final resolvedAuthorName = bookAuthorName(
+      book,
+      primaryAuthor: primaryAuthor,
+    );
+
     return SizedBox(
       width: width,
       child: GlassSurface(
@@ -81,8 +92,8 @@ class BookCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      bookAuthorName(book).isNotEmpty
-                          ? bookAuthorName(book)
+                      resolvedAuthorName.isNotEmpty
+                          ? resolvedAuthorName
                           : 'Unknown',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
