@@ -138,11 +138,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   void _selectFilter(_NotificationFilter filter) {
     setState(() => _filter = filter);
-    _pageController.animateToPage(
-      _NotificationFilter.values.indexOf(filter),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-    );
+    final index = _NotificationFilter.values.indexOf(filter);
+    if (MediaQuery.of(context).disableAnimations) {
+      _pageController.jumpToPage(index);
+    } else {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    }
     AppHaptics.selection();
   }
 

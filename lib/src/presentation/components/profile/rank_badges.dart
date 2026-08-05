@@ -174,6 +174,18 @@ class _RankBadgePressableState extends State<_RankBadgePressable>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      if (_pulseController.isAnimating) _pulseController.stop();
+      if (_shimmerController.isAnimating) _shimmerController.stop();
+    } else {
+      if (!_pulseController.isAnimating) _pulseController.repeat(reverse: true);
+      if (!_shimmerController.isAnimating) _shimmerController.repeat();
+    }
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     _shimmerController.dispose();

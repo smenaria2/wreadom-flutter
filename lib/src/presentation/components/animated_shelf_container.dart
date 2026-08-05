@@ -41,7 +41,9 @@ class _AnimatedShelfContainerState extends State<AnimatedShelfContainer>
   void didUpdateWidget(covariant AnimatedShelfContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.visible != oldWidget.visible) {
-      if (widget.visible) {
+      if (MediaQuery.of(context).disableAnimations) {
+        _controller.value = widget.visible ? 1.0 : 0.0;
+      } else if (widget.visible) {
         _controller.forward();
       } else {
         _controller.reverse();

@@ -40,11 +40,16 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
   }
 
   void _selectFilter(FeedFilter filter) {
-    _pageController.animateToPage(
-      FeedFilter.values.indexOf(filter),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-    );
+    final index = FeedFilter.values.indexOf(filter);
+    if (MediaQuery.of(context).disableAnimations) {
+      _pageController.jumpToPage(index);
+    } else {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    }
     AppHaptics.selection();
   }
 

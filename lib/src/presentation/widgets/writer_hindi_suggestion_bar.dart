@@ -87,11 +87,15 @@ class _WriterHindiSuggestionBarState extends State<WriterHindiSuggestionBar> {
         0.0,
         _rowScrollController.position.maxScrollExtent,
       );
-      _rowScrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-      );
+      if (MediaQuery.of(context).disableAnimations) {
+        _rowScrollController.jumpTo(targetOffset);
+      } else {
+        _rowScrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 

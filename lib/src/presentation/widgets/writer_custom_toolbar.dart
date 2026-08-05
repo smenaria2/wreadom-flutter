@@ -127,17 +127,12 @@ class _WriterCustomToolbarState extends State<WriterCustomToolbar> {
   void _autoScrollForKeyboard(bool keyboardOpen) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
-      if (keyboardOpen) {
-        // Scroll to end: formatting tools (Undo, Redo, Bold, etc.) are at right
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
+      final target = keyboardOpen ? _scrollController.position.maxScrollExtent : 0.0;
+      if (MediaQuery.of(context).disableAnimations) {
+        _scrollController.jumpTo(target);
       } else {
-        // Scroll to start: Image, Media, AI, Version, 'अ'
         _scrollController.animateTo(
-          0,
+          target,
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
