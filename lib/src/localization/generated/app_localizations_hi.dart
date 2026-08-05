@@ -2475,6 +2475,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get hapticFeedbackSubtitle => 'लाइक, शेयर और कार्रवाइयों पर कंपन करें';
 
   @override
+  String get disableAnimations => 'एनिमेशन बंद करें';
+
+  @override
+  String get disableAnimationsSubtitle =>
+      'कम पावर वाले उपकरणों के लिए ट्रांज़िशन और प्रभाव कम करें';
+
+  @override
   String get resendSuccess => 'सत्यापन ईमेल सफलतापूर्वक फिर से भेज दिया गया।';
 
   @override

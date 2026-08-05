@@ -35,6 +35,7 @@ class NotificationService {
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
 
   bool _isInitialized = false;
+  bool _isNavigationReady = false;
   GlobalKey<NavigatorState>? _navigatorKey;
   Map<String, dynamic>? _pendingNavigationData;
   String? _pendingNavigationKey;
@@ -67,10 +68,10 @@ class NotificationService {
 
   void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
-    _drainPendingNavigation();
   }
 
   void drainPendingNavigation() {
+    _isNavigationReady = true;
     _drainPendingNavigation();
   }
 
@@ -345,17 +346,12 @@ class NotificationService {
     final navigator = _navigatorKey?.currentState;
     if (target == null) return;
     final navigationKey = _navigationKey(target, data);
-    if (navigator == null) {
+    if (navigator == null ||
+        !_isNavigationReady ||
+        fb_auth.FirebaseAuth.instance.currentUser == null) {
       if (_pendingNavigationKey == navigationKey) return;
       _pendingNavigationData = Map<String, dynamic>.from(data);
       _pendingNavigationKey = navigationKey;
-      return;
-    }
-    if (fb_auth.FirebaseAuth.instance.currentUser == null) {
-      if (_pendingNavigationKey == navigationKey) return;
-      _pendingNavigationData = Map<String, dynamic>.from(data);
-      _pendingNavigationKey = navigationKey;
-      navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
       return;
     }
     if (_isDuplicateNavigationKey(navigationKey)) return;
@@ -506,6 +502,7 @@ class NotificationService {
     _pendingNavigationKey = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_navigatorKey?.currentState == null ||
+          !_isNavigationReady ||
           fb_auth.FirebaseAuth.instance.currentUser == null) {
         _pendingNavigationData = data;
         final notification = AppNotification(

@@ -2470,6 +2470,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hapticFeedbackSubtitle => 'Vibrate on likes, shares, and actions';
 
   @override
+  String get disableAnimations => 'Disable animations';
+
+  @override
+  String get disableAnimationsSubtitle =>
+      'Reduces transitions and visual effects for low-power devices';
+
+  @override
   String get resendSuccess => 'Verification email resent successfully.';
 
   @override

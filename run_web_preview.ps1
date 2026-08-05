@@ -46,7 +46,7 @@ if (Get-Command doppler -ErrorAction SilentlyContinue) {
     }
 }
 
-$runCmd = "flutter run -d web-server --web-hostname=0.0.0.0 --web-port=3000"
+$runCmd = "flutter run -d web-server --web-hostname=localhost --web-port=3000"
 
 
 if (Test-Path $dartDefinesFile) {

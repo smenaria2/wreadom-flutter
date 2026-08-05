@@ -4382,6 +4382,18 @@ abstract class AppLocalizations {
   /// **'Vibrate on likes, shares, and actions'**
   String get hapticFeedbackSubtitle;
 
+  /// No description provided for @disableAnimations.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable animations'**
+  String get disableAnimations;
+
+  /// No description provided for @disableAnimationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduces transitions and visual effects for low-power devices'**
+  String get disableAnimationsSubtitle;
+
   /// No description provided for @resendSuccess.
   ///
   /// In en, this message translates to:

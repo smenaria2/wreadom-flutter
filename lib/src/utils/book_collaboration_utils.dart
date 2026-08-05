@@ -1,5 +1,6 @@
 import '../domain/models/book.dart';
 import '../domain/models/user_model.dart';
+import 'user_name_formatter.dart';
 
 const collaborationStatusPending = 'pending';
 const collaborationStatusAccepted = 'accepted';
@@ -82,11 +83,6 @@ List<String> acceptedAuthorIdsFor(Book book) {
 }
 
 String? _displayName(UserModel? user) {
-  final displayName = user?.displayName?.trim();
-  if (displayName != null && displayName.isNotEmpty) return displayName;
-  final penName = user?.penName?.trim();
-  if (penName != null && penName.isNotEmpty) return penName;
-  final username = user?.username.trim();
-  if (username != null && username.isNotEmpty) return username;
-  return null;
+  if (user == null) return null;
+  return UserNameFormatter.formatUserDisplayName(user);
 }

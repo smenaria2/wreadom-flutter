@@ -37,7 +37,7 @@ class _StartupSplashScreenState extends State<StartupSplashScreen>
     _controller.duration = composition.duration;
     if (MediaQuery.disableAnimationsOf(context)) {
       _controller.value = 1;
-      _scheduleFinish();
+      _finish();
       return;
     }
     _controller.forward();

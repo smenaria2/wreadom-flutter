@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:librebook_flutter/src/presentation/widgets/app_background.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../routing/app_routes.dart';
+import '../routing/app_router.dart';
 
 class AboutWreadomScreen extends StatelessWidget {
   const AboutWreadomScreen({super.key});

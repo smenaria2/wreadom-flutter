@@ -42,6 +42,7 @@ import 'src/data/services/google_sign_in_initializer.dart';
 import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
+import 'src/data/services/splash_preferences_service.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
 import 'src/utils/custom_license_registry.dart';
@@ -99,6 +100,8 @@ Future<void> main() async {
           skipStartupSplash: !shouldShowStartupSplash(
             initialAppLink: startupEntry.initialAppLink,
             hasInitialShare: startupEntry.hasInitialShare,
+            hasSeenSplash: SplashPreferencesService.hasSeenSplash(sharedPreferences),
+            disableAnimations: sharedPreferences.getBool('disable_animations_user_preference') ?? false,
           ),
         ),
       ),
@@ -337,11 +340,13 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _completeStartupSplash() {
     if (!mounted || !_showStartupSplash) return;
     setState(() => _showStartupSplash = false);
+    SplashPreferencesService.markSplashSeen(ref.read(sharedPreferencesProvider));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _pendingNavigation.updateReadiness(
         navigatorReady: _navigatorKey.currentState != null,
       );
+      NotificationService.instance.drainPendingNavigation();
       _drainPendingDeepLinkTarget();
     });
   }

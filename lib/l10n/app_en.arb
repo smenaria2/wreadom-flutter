@@ -1335,6 +1335,8 @@
   "sepia": "Sepia",
   "hapticFeedback": "Haptic feedback",
   "hapticFeedbackSubtitle": "Vibrate on likes, shares, and actions",
+  "disableAnimations": "Disable animations",
+  "disableAnimationsSubtitle": "Reduces transitions and visual effects for low-power devices",
   "resendSuccess": "Verification email resent successfully.",
   "verificationFailed": "Verification failed. Please check your email and try again.",
   "emailVerificationTitle": "Verify your email",

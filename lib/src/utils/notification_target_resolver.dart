@@ -58,12 +58,16 @@ class NotificationTargetResolver {
       return NotificationTarget(AppRoutes.dailyTopic, topicId ?? '');
     }
 
+    final isBookLink =
+        linkTarget?.route == AppRoutes.bookDetail ||
+        _idFromLink(notification.link, ['book', 'b']) != null;
+
     final bookId = _firstValid([
       metadata['bookId'],
       metadata['book'],
       metadata['contentId'],
       _queryValue(notification.link, 'book'),
-      _queryValue(notification.link, 'id'),
+      if (isBookLink) _queryValue(notification.link, 'id'),
       _idFromLink(notification.link, ['book', 'b']),
       linkTarget?.route == AppRoutes.bookDetail ? linkTarget?.payload : null,
     ]);
@@ -105,9 +109,9 @@ class NotificationTargetResolver {
       metadata['userId'],
       metadata['authorId'],
       metadata['profileId'],
-      notification.actorId,
       _idFromLink(notification.link, ['user', 'u', 'profile']),
       linkTarget?.route == AppRoutes.publicProfile ? linkTarget?.payload : null,
+      notification.actorId,
     ]);
 
     if (linkTarget?.route == AppRoutes.bookDetail &&
@@ -165,9 +169,24 @@ class NotificationTargetResolver {
         question: questionText,
       );
     }
-    if (linkTarget?.route == AppRoutes.publicProfile &&
+    if (linkTarget?.route == AppRoutes.archiveReader &&
         linkTarget?.payload != null) {
-      return NotificationTarget(AppRoutes.publicProfile, linkTarget!.payload!);
+      return NotificationTarget(AppRoutes.archiveReader, linkTarget!.payload!);
+    }
+    if (targetType == 'archive' ||
+        targetType == 'archive_book' ||
+        targetType == 'internet_archive') {
+      final archiveId = _firstValid([
+        metadata['archiveId'],
+        metadata['bookId'],
+        metadata['id'],
+        linkTarget?.payload,
+        _queryValue(notification.link, 'id'),
+        notification.targetId,
+      ]);
+      if (archiveId != null) {
+        return NotificationTarget(AppRoutes.archiveReader, archiveId);
+      }
     }
 
     if (type == 'collaboration_request' && bookId != null) {
@@ -182,15 +201,45 @@ class NotificationTargetResolver {
         type == 'follower' ||
         type == 'following' ||
         type.contains('follow');
-    final isProfileType = type == 'testimonial' || isFollowType;
+    final isProfileType =
+        targetType == 'profile' ||
+        targetType == 'user' ||
+        type == 'testimonial' ||
+        isFollowType;
     final hasAmbiguousContentType =
         type == 'comment' ||
         type == 'reply' ||
         type == 'like' ||
         type == 'mention';
 
-    if ((isBookType || (hasAmbiguousContentType && bookId != null)) &&
-        bookId != null) {
+    if (hasAmbiguousContentType) {
+      if (postId != null &&
+          (metadata['postId'] != null ||
+              isPostType ||
+              linkTarget?.route == AppRoutes.postDetail ||
+              metadata['bookId'] == null)) {
+        return NotificationTarget(
+          AppRoutes.postDetail,
+          postId,
+          commentId: commentId,
+          replyId: replyId,
+        );
+      }
+      if (bookId != null) {
+        return NotificationTarget(
+          AppRoutes.bookDetail,
+          bookId,
+          commentId: commentId,
+          replyId: replyId,
+          chapterIndex: linkTarget?.route == AppRoutes.bookDetail
+              ? linkTarget?.chapterIndex
+              : null,
+          leafId: leafId,
+        );
+      }
+    }
+
+    if (isBookType && bookId != null) {
       return NotificationTarget(
         AppRoutes.bookDetail,
         bookId,
@@ -203,8 +252,7 @@ class NotificationTargetResolver {
       );
     }
 
-    if ((isPostType || (hasAmbiguousContentType && postId != null)) &&
-        postId != null) {
+    if (isPostType && postId != null) {
       return NotificationTarget(
         AppRoutes.postDetail,
         postId,

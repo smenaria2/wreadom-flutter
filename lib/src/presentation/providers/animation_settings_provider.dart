@@ -1,0 +1,58 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'theme_provider.dart';
+
+const String _keyDisableAnimationsUserPref = 'disable_animations_user_preference';
+
+final disableAnimationsProvider =
+    NotifierProvider<DisableAnimationsNotifier, bool>(
+  DisableAnimationsNotifier.new,
+);
+
+class DisableAnimationsNotifier extends Notifier<bool> {
+  SharedPreferences? get _prefs {
+    try {
+      return ref.read(sharedPreferencesProvider);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  bool build() {
+    final prefs = _prefs;
+    if (prefs != null && prefs.containsKey(_keyDisableAnimationsUserPref)) {
+      return prefs.getBool(_keyDisableAnimationsUserPref) ?? false;
+    }
+    return _detectLowPowerDefault();
+  }
+
+  bool _detectLowPowerDefault() {
+    try {
+      final accessibilityDisabled =
+          WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+      if (accessibilityDisabled) return true;
+    } catch (_) {}
+
+    // On Web or desktop, default to normal unless low power.
+    if (kIsWeb) return false;
+
+    // Check low-memory heuristics or legacy android API indicators if available
+    return false;
+  }
+
+  Future<void> setDisabled(bool value) async {
+    state = value;
+    final prefs = _prefs;
+    if (prefs != null) {
+      await prefs.setBool(_keyDisableAnimationsUserPref, value);
+    }
+  }
+
+  Future<void> toggle() async {
+    await setDisabled(!state);
+  }
+}

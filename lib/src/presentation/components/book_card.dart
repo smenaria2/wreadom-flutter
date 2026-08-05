@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/book.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../utils/book_author_utils.dart';
+import 'book/book_card_meta_tags.dart';
 import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
 import '../widgets/glass_surface.dart';
@@ -35,41 +36,46 @@ class BookCard extends StatelessWidget {
                 aspectRatio: 2 / 3,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: book.coverUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: book.coverUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.3),
-                            child: const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                  child: BookCoverBadgesOverlay(
+                    book: book,
+                    child: book.coverUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: book.coverUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.3),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              _GeneratedCover(book: book, borderRadius: 12),
-                        )
-                      : _GeneratedCover(book: book, borderRadius: 12),
+                            errorWidget: (context, url, error) =>
+                                _GeneratedCover(book: book, borderRadius: 12),
+                          )
+                        : _GeneratedCover(book: book, borderRadius: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 book.title,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),
               ),
+              const SizedBox(height: 2),
+              BookContentTypeLabel(book: book),
               const SizedBox(height: 2),
               Row(
                 children: [

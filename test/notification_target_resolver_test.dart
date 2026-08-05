@@ -418,4 +418,31 @@ void main() {
     expect(service.isDuplicateNavigationForTest(target, data), isTrue);
     service.resetNavigationDedupeForTest();
   });
+
+  test('ambiguous comment notification with postId in metadata routes to postDetail', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'comment',
+        link: 'https://wreadom.in/post?id=post99',
+        metadata: {'postId': 'post99'},
+      ),
+    );
+
+    expect(target?.route, AppRoutes.postDetail);
+    expect(target?.payload, 'post99');
+  });
+
+  test('query id param on non-book link is not misinterpreted as bookId', () {
+    final target = NotificationTargetResolver.resolve(
+      notification(
+        type: 'comment',
+        link: 'https://wreadom.in/post?id=post88',
+        metadata: {'postId': 'post88', 'commentId': 'comment1'},
+      ),
+    );
+
+    expect(target?.route, AppRoutes.postDetail);
+    expect(target?.payload, 'post88');
+    expect(target?.commentId, 'comment1');
+  });
 }

@@ -15,6 +15,7 @@ import '../providers/auth_controller.dart';
 import '../providers/app_update_provider.dart';
 import '../providers/book_providers.dart';
 import '../providers/haptics_provider.dart';
+import '../providers/animation_settings_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/notification_providers.dart';
 import '../providers/profile_providers.dart';
@@ -650,6 +651,15 @@ class ProfileSideMenu extends ConsumerWidget {
                       onChanged: (enabled) => ref
                           .read(hapticsEnabledProvider.notifier)
                           .setEnabled(enabled),
+                    ),
+                    _GlassSwitchTile(
+                      icon: Icons.speed_outlined,
+                      title: l10n.disableAnimations,
+                      subtitle: l10n.disableAnimationsSubtitle,
+                      value: ref.watch(disableAnimationsProvider),
+                      onChanged: (disabled) => ref
+                          .read(disableAnimationsProvider.notifier)
+                          .setDisabled(disabled),
                     ),
                     const Divider(),
                     _MenuSectionLabel(label: l10n.support),

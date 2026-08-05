@@ -8,6 +8,7 @@ import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../components/settings/animation_settings_card.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({
@@ -132,6 +133,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              const AnimationSettingsCard(),
+              const SizedBox(height: 20),
               if (notificationSettings != null) ...[
                 _NotificationPreferencesSection(
                   key: _notificationPreferencesKey,
@@ -206,6 +209,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         await repository.updateNotificationSettings(user.id, nextSettings);
       }
       ref.invalidate(currentUserProvider);
+      ref.invalidate(publicProfileProvider(user.id));
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
