@@ -689,7 +689,9 @@ class _MessageSwipeShellState extends State<_MessageSwipeShell> {
           Positioned.fill(
             child: AnimatedOpacity(
               opacity: _dragOffset.abs() > 8 ? 1 : 0,
-              duration: const Duration(milliseconds: 90),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 90),
               child: const Align(
                 alignment: Alignment.centerRight,
                 child: Padding(

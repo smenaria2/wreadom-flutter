@@ -46,7 +46,9 @@ class PrimaryButton extends StatelessWidget {
           ),
           child: Center(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 160),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 160),
               child: isLoading
                   ? SizedBox(
                       key: const ValueKey('loading'),

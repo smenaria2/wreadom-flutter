@@ -17,6 +17,7 @@ import 'profile_screen.dart';
 
 import '../providers/auth_providers.dart';
 import '../../data/services/notification_service.dart';
+import '../../data/services/low_power_notice_service.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -36,11 +37,10 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   @override
   void initState() {
     super.initState();
-    // Use future to ensure provider is updated after initial build if needed,
-    // but better yet, set it directly if it's the first time.
     Future.microtask(() {
       ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
       _setupNotifications();
+      _checkLowPowerNotice();
     });
   }
 
@@ -77,6 +77,49 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         debugPrint('Failed to update refreshed FCM token: $e');
       }
     });
+  }
+
+  Future<void> _checkLowPowerNotice() async {
+    // Show message after 4 seconds post-boot as requested
+    await Future.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      if (LowPowerNoticeService.shouldShowNotice(prefs)) {
+        await LowPowerNoticeService.markNoticeShown(prefs);
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 7),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: Colors.amber,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.lowPowerAutoDisabledNotice,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: l10n.openSettings,
+              onPressed: () {
+                ref.read(selectedTabProvider.notifier).setTab(4);
+                showProfileSideMenu(context);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   @override
@@ -179,6 +222,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   }) {
     final theme = Theme.of(context);
     final isSelected = selectedIndex == index;
+    final animDuration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 220);
 
     return Expanded(
       child: GestureDetector(
@@ -190,7 +236,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
           }
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: animDuration,
           curve: Curves.easeInOut,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -210,7 +256,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedScale(
-                duration: const Duration(milliseconds: 200),
+                duration: animDuration,
                 scale: isSelected ? 1.1 : 1.0,
                 child: _UpdateBadgeIcon(
                   icon: isSelected ? selectedIcon : icon,
@@ -222,7 +268,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
               ),
               const SizedBox(height: 4),
               AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+                duration: animDuration,
                 style: theme.textTheme.labelMedium!.copyWith(
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                   fontSize: 11,

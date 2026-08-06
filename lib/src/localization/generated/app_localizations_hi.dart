@@ -2482,6 +2482,21 @@ class AppLocalizationsHi extends AppLocalizations {
       'कम पावर वाले उपकरणों के लिए ट्रांज़िशन और प्रभाव कम करें';
 
   @override
+  String get disableAnimationsSubtitleDisabled =>
+      'परफ़ॉरमेंस सुधारने के लिए एनीमेशन कम किए गए हैं। बेहतर विज़ुअल इफ़ेक्ट्स के लिए इसे बंद (OFF) करें।';
+
+  @override
+  String get disableAnimationsSubtitleEnabled =>
+      'कम पावर वाले डिवाइस पर तेज़ परफ़ॉरमेंस और बेहतर अनुभव के लिए इसे चालू (ON) करें।';
+
+  @override
+  String get lowPowerAutoDisabledNotice =>
+      'सुचारू गति के लिए एनीमेशन स्वचालित रूप से कम कर दिए गए हैं। आप इन्हें प्रोफ़ाइल सेटिंग्स में कभी भी चालू कर सकते हैं।';
+
+  @override
+  String get openSettings => 'सेटिंग्स';
+
+  @override
   String get resendSuccess => 'सत्यापन ईमेल सफलतापूर्वक फिर से भेज दिया गया।';
 
   @override

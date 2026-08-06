@@ -8,7 +8,6 @@ import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
-import '../components/settings/animation_settings_card.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({
@@ -132,8 +131,6 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const AnimationSettingsCard(),
               const SizedBox(height: 20),
               if (notificationSettings != null) ...[
                 _NotificationPreferencesSection(

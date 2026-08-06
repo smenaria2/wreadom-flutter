@@ -328,20 +328,28 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                 scrollDirection: Axis.horizontal,
                 onPageChanged: (index) => _onPageChanged(index, posts),
                 itemCount: posts.length,
-                itemBuilder: (context, index) => AnimatedSlide(
-                  offset: index == _activeIndex
-                      ? Offset.zero
-                      : const Offset(0, .045),
-                  duration: const Duration(milliseconds: 520),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedScale(
-                    scale: index == _activeIndex ? 1 : .935,
-                    duration: const Duration(milliseconds: 560),
-                    curve: Curves.easeOutBack,
-                    child: AnimatedOpacity(
-                      opacity: index == _activeIndex ? 1 : .68,
-                      duration: const Duration(milliseconds: 360),
-                      child: _ReelPage(
+                itemBuilder: (context, index) {
+                  final disableAnim = MediaQuery.of(context).disableAnimations;
+                  return AnimatedSlide(
+                    offset: index == _activeIndex
+                        ? Offset.zero
+                        : const Offset(0, .045),
+                    duration: disableAnim
+                        ? Duration.zero
+                        : const Duration(milliseconds: 520),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedScale(
+                      scale: index == _activeIndex ? 1 : .935,
+                      duration: disableAnim
+                          ? Duration.zero
+                          : const Duration(milliseconds: 560),
+                      curve: Curves.easeOutBack,
+                      child: AnimatedOpacity(
+                        opacity: index == _activeIndex ? 1 : .68,
+                        duration: disableAnim
+                            ? Duration.zero
+                            : const Duration(milliseconds: 360),
+                        child: _ReelPage(
                         key: PageStorageKey('reel-${posts[index].id}'),
                         post: posts[index],
                         isActive: index == _activeIndex,
@@ -368,8 +376,9 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
+            ),
             if (_showSwipeGuide && _activeIndex == 0 && posts.isNotEmpty)
               Positioned(
                 left: 30,
@@ -536,11 +545,15 @@ class _ReelPage extends ConsumerWidget {
                   child: Center(
                     child: AnimatedScale(
                       scale: showHeart ? 1 : .4,
-                      duration: const Duration(milliseconds: 220),
+                      duration: MediaQuery.of(context).disableAnimations
+                          ? Duration.zero
+                          : const Duration(milliseconds: 220),
                       curve: Curves.easeOutBack,
                       child: AnimatedOpacity(
                         opacity: showHeart ? 1 : 0,
-                        duration: const Duration(milliseconds: 180),
+                        duration: MediaQuery.of(context).disableAnimations
+                            ? Duration.zero
+                            : const Duration(milliseconds: 180),
                         child: const Icon(
                           Icons.favorite_rounded,
                           color: Colors.redAccent,

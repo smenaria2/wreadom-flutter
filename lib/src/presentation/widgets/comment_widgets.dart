@@ -1580,7 +1580,9 @@ class _SwipeActionShellState extends State<_SwipeActionShell> {
           Positioned.fill(
             child: AnimatedOpacity(
               opacity: _dragOffset.abs() > 8 ? 1 : 0,
-              duration: const Duration(milliseconds: 90),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 90),
               child: Align(
                 alignment: _showRightAction
                     ? Alignment.centerLeft
@@ -1661,7 +1663,9 @@ class _SlideActionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedScale(
       scale: armed ? 1.04 : 1,
-      duration: const Duration(milliseconds: 120),
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 120),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: color,

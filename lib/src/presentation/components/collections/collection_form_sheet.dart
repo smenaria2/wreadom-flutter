@@ -90,7 +90,9 @@ class _CollectionFormSheetState extends ConsumerState<CollectionFormSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 180),
       padding: EdgeInsets.fromLTRB(
         24,
         20,

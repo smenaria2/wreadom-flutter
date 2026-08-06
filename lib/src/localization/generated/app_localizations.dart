@@ -4394,6 +4394,30 @@ abstract class AppLocalizations {
   /// **'Reduces transitions and visual effects for low-power devices'**
   String get disableAnimationsSubtitle;
 
+  /// No description provided for @disableAnimationsSubtitleDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Animations reduced for performance. Turn OFF to enable rich visual effects.'**
+  String get disableAnimationsSubtitleDisabled;
+
+  /// No description provided for @disableAnimationsSubtitleEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn ON to speed up performance and fast experience on low power devices.'**
+  String get disableAnimationsSubtitleEnabled;
+
+  /// No description provided for @lowPowerAutoDisabledNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Animations were automatically reduced for smoother speed. You can turn them back on in Profile settings anytime.'**
+  String get lowPowerAutoDisabledNotice;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get openSettings;
+
   /// No description provided for @resendSuccess.
   ///
   /// In en, this message translates to:

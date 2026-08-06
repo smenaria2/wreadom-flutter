@@ -245,9 +245,11 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
     // Coordinate rotation with playing state
     _playerStateSubscription = _player.playerStateStream.listen((state) {
       final isCurrent = ref.read(activeAudioPostUrlProvider) == _audioIdentity;
+      final disableAnimations = MediaQuery.of(context).disableAnimations;
       if (isCurrent &&
           state.playing &&
-          state.processingState != ProcessingState.completed) {
+          state.processingState != ProcessingState.completed &&
+          !disableAnimations) {
         if (!_rotationController.isAnimating) {
           _rotationController.repeat();
         }

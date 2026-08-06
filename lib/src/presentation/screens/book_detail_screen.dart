@@ -1747,21 +1747,34 @@ class _HeaderIconButton extends StatelessWidget {
             ],
           ),
           child: ClipOval(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: IconButton(
-                tooltip: tooltip,
-                icon: Icon(icon),
-                iconSize: 22,
-                color: colorScheme.onSurface.withValues(alpha: 0.96),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: 44,
-                  height: 44,
-                ),
-                onPressed: onPressed,
-              ),
-            ),
+            child: MediaQuery.of(context).disableAnimations
+                ? IconButton(
+                    tooltip: tooltip,
+                    icon: Icon(icon),
+                    iconSize: 22,
+                    color: colorScheme.onSurface.withValues(alpha: 0.96),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 44,
+                      height: 44,
+                    ),
+                    onPressed: onPressed,
+                  )
+                : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: IconButton(
+                      tooltip: tooltip,
+                      icon: Icon(icon),
+                      iconSize: 22,
+                      color: colorScheme.onSurface.withValues(alpha: 0.96),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 44,
+                        height: 44,
+                      ),
+                      onPressed: onPressed,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -1843,7 +1856,7 @@ class _BookDetailHeader extends StatelessWidget {
                 scale: 1 - (progress * 0.10),
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
-                  child: heroTag == null
+                  child: heroTag == null || MediaQuery.of(context).disableAnimations
                       ? _DetailCover(book: book)
                       : Hero(
                           tag: heroTag!,

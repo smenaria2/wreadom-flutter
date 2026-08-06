@@ -84,7 +84,9 @@ class _ModalFeedbackScopeState extends State<ModalFeedbackScope> {
               child: SafeArea(
                 top: false,
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
+                  duration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : const Duration(milliseconds: 180),
                   child: KeyedSubtree(
                     key: ValueKey(_snackBar),
                     child: _snackBar!,

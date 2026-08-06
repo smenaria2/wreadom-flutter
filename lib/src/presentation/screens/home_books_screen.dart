@@ -601,7 +601,9 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
     final strength = 1.0 - distance;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 140),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       height: 6,
       width: 6 + (14 * strength),

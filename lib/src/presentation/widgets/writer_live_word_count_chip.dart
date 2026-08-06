@@ -37,11 +37,15 @@ class WriterLiveWordCountChip extends StatelessWidget {
       child: Padding(
         padding: padding,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
+          duration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           opacity: isVisible ? 1.0 : 0.0,
           child: AnimatedSlide(
-            duration: const Duration(milliseconds: 200),
+            duration: MediaQuery.of(context).disableAnimations
+                ? Duration.zero
+                : const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
             offset: isVisible ? Offset.zero : const Offset(0, 0.4),
             child: IgnorePointer(

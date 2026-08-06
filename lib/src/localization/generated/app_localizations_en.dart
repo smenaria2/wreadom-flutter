@@ -2477,6 +2477,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reduces transitions and visual effects for low-power devices';
 
   @override
+  String get disableAnimationsSubtitleDisabled =>
+      'Animations reduced for performance. Turn OFF to enable rich visual effects.';
+
+  @override
+  String get disableAnimationsSubtitleEnabled =>
+      'Turn ON to speed up performance and fast experience on low power devices.';
+
+  @override
+  String get lowPowerAutoDisabledNotice =>
+      'Animations were automatically reduced for smoother speed. You can turn them back on in Profile settings anytime.';
+
+  @override
+  String get openSettings => 'Settings';
+
+  @override
   String get resendSuccess => 'Verification email resent successfully.';
 
   @override

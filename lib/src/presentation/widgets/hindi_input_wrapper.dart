@@ -759,7 +759,9 @@ class _HindiSuggestionChip extends StatelessWidget {
     }
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 150),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: bg,

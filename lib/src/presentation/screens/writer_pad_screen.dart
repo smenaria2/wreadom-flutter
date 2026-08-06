@@ -806,7 +806,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         ),
         body: SafeArea(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
+            duration: MediaQuery.of(context).disableAnimations
+                ? Duration.zero
+                : const Duration(milliseconds: 220),
             child: _step == 0 ? _buildEditorStep() : _buildDetailsStep(),
           ),
         ),
@@ -1648,7 +1650,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   Widget _buildToolbar(QuillController controller) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(

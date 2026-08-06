@@ -31,11 +31,15 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
     _autoPlayTimer = Timer.periodic(const Duration(seconds: 9), (_) {
       if (!mounted) return;
       final next = (_currentPage + 1) % 18;
-      _pageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOutCubic,
-      );
+      if (MediaQuery.of(context).disableAnimations) {
+        _pageController.jumpToPage(next);
+      } else {
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
     });
   }
 

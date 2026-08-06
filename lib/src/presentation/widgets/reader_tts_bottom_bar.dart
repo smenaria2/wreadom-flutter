@@ -65,7 +65,9 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
     return Theme(
       data: widget.chromeTheme,
       child: AnimatedContainer(
-        duration: _animationDuration,
+        duration: MediaQuery.of(context).disableAnimations
+            ? Duration.zero
+            : _animationDuration,
         curve: Curves.easeOut,
         height: widget.visible ? (_barHeight + bottomPadding) : 0,
         child: ClipRect(

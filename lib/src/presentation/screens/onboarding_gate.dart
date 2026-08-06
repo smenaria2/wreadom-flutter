@@ -173,7 +173,9 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
                         children: [
                           for (var i = 0; i < slides.length; i++)
                             AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
+                              duration: MediaQuery.of(context).disableAnimations
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 180),
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               width: i == _index ? 22 : 8,
                               height: 8,
@@ -194,12 +196,18 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
                             child: OutlinedButton.icon(
                               onPressed: _index == 0 || _closing
                                   ? null
-                                  : () => _controller.previousPage(
-                                      duration: const Duration(
-                                        milliseconds: 240,
-                                      ),
-                                      curve: Curves.easeOut,
-                                    ),
+                                  : () {
+                                      if (MediaQuery.of(context).disableAnimations) {
+                                        _controller.jumpToPage(_index - 1);
+                                      } else {
+                                        _controller.previousPage(
+                                          duration: const Duration(
+                                            milliseconds: 240,
+                                          ),
+                                          curve: Curves.easeOut,
+                                        );
+                                      }
+                                    },
                               icon: const Icon(Icons.arrow_back_rounded),
                               label: Text(l10n.back),
                               style: OutlinedButton.styleFrom(
@@ -214,12 +222,18 @@ class _OnboardingGuideState extends State<_OnboardingGuide> {
                                   ? null
                                   : isLast
                                   ? _finish
-                                  : () => _controller.nextPage(
-                                      duration: const Duration(
-                                        milliseconds: 240,
-                                      ),
-                                      curve: Curves.easeOut,
-                                    ),
+                                  : () {
+                                      if (MediaQuery.of(context).disableAnimations) {
+                                        _controller.jumpToPage(_index + 1);
+                                      } else {
+                                        _controller.nextPage(
+                                          duration: const Duration(
+                                            milliseconds: 240,
+                                          ),
+                                          curve: Curves.easeOut,
+                                        );
+                                      }
+                                    },
                               icon: Icon(
                                 isLast
                                     ? Icons.check_rounded

@@ -93,7 +93,9 @@ class ProfileScreen extends ConsumerWidget {
                       collapseMode: CollapseMode.pin,
                       title: AnimatedOpacity(
                         opacity: innerBoxIsScrolled ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 200),
+                        duration: MediaQuery.of(context).disableAnimations
+                            ? Duration.zero
+                            : const Duration(milliseconds: 200),
                         child: Text(
                           _safeProfileDisplayName(user),
                           style: TextStyle(
@@ -116,7 +118,7 @@ class ProfileScreen extends ConsumerWidget {
                       IconButton(
                         tooltip: l10n.menu,
                         icon: const Icon(Icons.menu_rounded),
-                        onPressed: () => _showProfileSideMenu(context),
+                        onPressed: () => showProfileSideMenu(context),
                       ),
                     ],
                   ),
@@ -655,7 +657,9 @@ class ProfileSideMenu extends ConsumerWidget {
                     _GlassSwitchTile(
                       icon: Icons.speed_outlined,
                       title: l10n.disableAnimations,
-                      subtitle: l10n.disableAnimationsSubtitle,
+                      subtitle: ref.watch(disableAnimationsProvider)
+                          ? l10n.disableAnimationsSubtitleDisabled
+                          : l10n.disableAnimationsSubtitleEnabled,
                       value: ref.watch(disableAnimationsProvider),
                       onChanged: (disabled) => ref
                           .read(disableAnimationsProvider.notifier)
@@ -1165,7 +1169,7 @@ double _profileCollapseProgress(FlexibleSpaceBarSettings? settings) {
   );
 }
 
-void _showProfileSideMenu(BuildContext context) {
+void showProfileSideMenu(BuildContext context) {
   showGeneralDialog(
     context: context,
     barrierDismissible: true,
@@ -1179,6 +1183,9 @@ void _showProfileSideMenu(BuildContext context) {
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.of(context).disableAnimations) {
+        return child;
+      }
       return SlideTransition(
         position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
             .animate(

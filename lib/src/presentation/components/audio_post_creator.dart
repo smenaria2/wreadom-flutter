@@ -656,7 +656,17 @@ class _BouncingDotState extends State<_BouncingDot>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      if (_controller.isAnimating) _controller.stop();
+    } else {
+      if (!_controller.isAnimating) _controller.repeat(reverse: true);
+    }
   }
 
   @override

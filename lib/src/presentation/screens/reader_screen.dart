@@ -5438,16 +5438,20 @@ class _ReaderTopBar extends StatelessWidget {
               : l10n.stopReadingAloud)
         : l10n.readAloud;
 
+    final animDuration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : _readerChromeAnimationDuration;
+
     return Theme(
       data: chromeTheme,
       child: IgnorePointer(
         ignoring: !visible,
         child: AnimatedSlide(
-          duration: _readerChromeAnimationDuration,
+          duration: animDuration,
           curve: Curves.easeOut,
           offset: visible ? Offset.zero : const Offset(0, -1),
           child: AnimatedOpacity(
-            duration: _readerChromeAnimationDuration,
+            duration: animDuration,
             curve: Curves.easeOut,
             opacity: visible ? 1 : 0,
             child: GlassSurface(
@@ -5689,10 +5693,14 @@ class _ReaderBottomBar extends StatelessWidget {
         ? progress.clamp(0.0, 1.0).toDouble()
         : 0.0;
 
+    final animDuration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : _readerChromeAnimationDuration;
+
     return Theme(
       data: chromeTheme,
       child: AnimatedContainer(
-        duration: _readerChromeAnimationDuration,
+        duration: animDuration,
         curve: Curves.easeOut,
         height: visible ? (_readerBottomBarHeight + bottomPadding) : 0,
         child: ClipRect(
