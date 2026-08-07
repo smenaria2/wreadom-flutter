@@ -56,9 +56,6 @@ class GlassSurface extends StatelessWidget {
                       color: (strong ? tokens.strongSurfaceColor : tokens.surfaceColor)
                           .withValues(alpha: strong ? 0.94 : 0.88),
                       borderRadius: resolvedRadius,
-                      border: Border.all(
-                        color: tokens.borderColor.withValues(alpha: 0.6),
-                      ),
                       boxShadow: [
                         BoxShadow(
                           color: tokens.shadowColor.withValues(alpha: 0.1),
