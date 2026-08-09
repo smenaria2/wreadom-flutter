@@ -3255,9 +3255,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dictionary data from Wiktionary via FreeDictionaryAPI.com (CC BY-SA 4.0).';
 
   @override
-  String get dictionaryTranslationLanguage => 'Dictionary translation language';
-
-  @override
   String createTopicTag(String tag) {
     return 'Create \"$tag\"';
   }
@@ -3378,4 +3375,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get softwarePackagesCategory => 'Software Packages';
+
+  @override
+  String get readerFont => 'Font';
+
+  @override
+  String get readerFontNotoSansDevanagari => 'Noto Sans Devanagari';
+
+  @override
+  String get readerFontTiroDevanagariHindi => 'Tiro Devanagari Hindi';
+
+  @override
+  String get readerFontNotoSerifDevanagari => 'Noto Serif Devanagari';
+
+  @override
+  String get readerFontEczar => 'Eczar';
+
+  @override
+  String get readerFontMartel => 'Martel';
+
+  @override
+  String get readerFontLaila => 'Laila';
 }

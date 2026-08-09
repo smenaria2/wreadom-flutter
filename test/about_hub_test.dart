@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,8 +14,23 @@ import 'package:librebook_flutter/src/presentation/screens/about_hub_screen.dart
 import 'package:librebook_flutter/src/presentation/screens/attributions_screen.dart';
 import 'package:librebook_flutter/src/presentation/screens/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher_platform_interface/method_channel_url_launcher.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 late SharedPreferences _mockPrefs;
+
+class _FakeUrlLauncher extends MethodChannelUrlLauncher {
+  bool launchResult = true;
+  String? launchedUrl;
+  LaunchOptions? launchOptions;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrl = url;
+    launchOptions = options;
+    return launchResult;
+  }
+}
 
 Widget _buildTestApp({
   required Widget child,
@@ -42,9 +59,19 @@ Widget _buildTestApp({
 }
 
 void main() {
+  late UrlLauncherPlatform originalUrlLauncher;
+  late _FakeUrlLauncher fakeUrlLauncher;
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     _mockPrefs = await SharedPreferences.getInstance();
+    originalUrlLauncher = UrlLauncherPlatform.instance;
+    fakeUrlLauncher = _FakeUrlLauncher();
+    UrlLauncherPlatform.instance = fakeUrlLauncher;
+  });
+
+  tearDown(() {
+    UrlLauncherPlatform.instance = originalUrlLauncher;
   });
 
   final testUser = UserModel(
@@ -146,6 +173,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AttributionsScreen), findsOneWidget);
+    });
+
+    testWidgets('creator link opens the creator website externally', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_buildTestApp(child: const AboutHubScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('about_creator_profile_link')));
+      await tester.pump();
+
+      expect(fakeUrlLauncher.launchedUrl, 'https://creator.wreadom.in');
+      expect(
+        fakeUrlLauncher.launchOptions?.mode,
+        PreferredLaunchMode.externalApplication,
+      );
+    });
+
+    testWidgets('creator link shows a localized error when launching fails', (
+      tester,
+    ) async {
+      fakeUrlLauncher.launchResult = false;
+      await tester.pumpWidget(_buildTestApp(child: const AboutHubScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('about_creator_profile_link')));
+      await tester.pump();
+
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.byType(AboutHubScreen), findsOneWidget);
     });
   });
 

@@ -34,6 +34,9 @@ void main() {
       expect(availability, isNotNull);
       expect(availability!.installedBuildNumber, 10);
       expect(availability.config.androidBuildNumber, 12);
+      expect(availability.updatePriority, 0);
+      expect(availability.immediateUpdateAllowed, isFalse);
+      expect(availability.isCompulsory, isFalse);
       expect(
         availability.config.androidDownloadUrl,
         'https://play.google.com/store/apps/details?id=in.wreadom.app',
@@ -64,6 +67,39 @@ void main() {
 
     expect(await container.read(appUpdateAvailabilityProvider.future), isNull);
   });
+
+  test('immediate update is unavailable outside Android', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    expect(
+      await const PlayStoreUpdateService().performImmediateUpdate(),
+      isFalse,
+    );
+  });
+
+  test(
+    'priority five update is compulsory and exposes immediate support',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final container = _containerWith(
+        const _FakeUpdateService(
+          versionCode: 12,
+          updatePriority: 5,
+          immediateUpdateAllowed: true,
+        ),
+      );
+      addTearDown(container.dispose);
+
+      final availability = await container.read(
+        appUpdateAvailabilityProvider.future,
+      );
+
+      expect(availability, isNotNull);
+      expect(availability!.updatePriority, 5);
+      expect(availability.immediateUpdateAllowed, isTrue);
+      expect(availability.isCompulsory, isTrue);
+    },
+  );
 }
 
 ProviderContainer _containerWith(PlayStoreUpdateService service) {
@@ -73,15 +109,23 @@ ProviderContainer _containerWith(PlayStoreUpdateService service) {
 }
 
 class _FakeUpdateService extends PlayStoreUpdateService {
-  const _FakeUpdateService({required this.versionCode});
+  const _FakeUpdateService({
+    required this.versionCode,
+    this.updatePriority = 0,
+    this.immediateUpdateAllowed = false,
+  });
 
   final int versionCode;
+  final int updatePriority;
+  final bool immediateUpdateAllowed;
 
   @override
   Future<PlayStoreUpdateResult?> checkForUpdate() async {
     return PlayStoreUpdateResult(
       updateAvailable: true,
       availableVersionCode: versionCode,
+      updatePriority: updatePriority,
+      immediateUpdateAllowed: immediateUpdateAllowed,
     );
   }
 }

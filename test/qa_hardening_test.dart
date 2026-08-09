@@ -1139,8 +1139,9 @@ void main() {
     expect(readerSettingsSource, contains('reader_font_size'));
     expect(readerSettingsSource, contains('reader_theme_index'));
     expect(readerSettingsSource, isNot(contains('reader_font_index')));
-    expect(readerSource, isNot(contains('Serif Font')));
-    expect(readerSettingsSource, isNot(contains('serif')));
+    expect(readerSettingsSource, contains('reader_font_family'));
+    expect(readerSettingsSource, contains('ReaderFont.tiroDevanagariHindi'));
+    expect(readerSource, contains('_ReaderFontOption'));
     expect(writerTaxonomySource, contains('WriterTaxonomy'));
     expect(writerTaxonomySource, isNot(contains('Arabic')));
 

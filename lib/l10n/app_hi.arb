@@ -1431,7 +1431,6 @@
   "dictionaryTimeout": "\u0936\u092c\u094d\u0926\u0915\u094b\u0936 \u0928\u0947 \u091c\u0935\u093e\u092c \u0926\u0947\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0938\u092e\u092f \u0932\u093f\u092f\u093e\u0964",
   "dictionaryUnavailable": "\u0936\u092c\u094d\u0926\u0915\u094b\u0936 \u0905\u092d\u0940 \u0909\u092a\u0932\u092c\u094d\u0927 \u0928\u0939\u0940\u0902 \u0939\u0948\u0964",
   "dictionaryAttribution": "Wiktionary \u0936\u092c\u094d\u0926\u0915\u094b\u0936 \u0921\u0947\u091f\u093e, FreeDictionaryAPI.com (CC BY-SA 4.0) \u0915\u0947 \u092e\u093e\u0927\u094d\u092f\u092e \u0938\u0947\u0964",
-  "dictionaryTranslationLanguage": "\u0936\u092c\u094d\u0926\u0915\u094b\u0936 \u0905\u0928\u0941\u0935\u093e\u0926 \u092d\u093e\u0937\u093e",
   "createTopicTag": "\"{tag}\" \u092c\u0928\u093e\u090f\u0901",
   "@createTopicTag": {"placeholders": {"tag": {"type": "String"}}},
   "popularTopics": "लोकप्रिय विषय",
@@ -1503,5 +1502,12 @@
   "hindiTransliterationCategory": "हिंदी लिप्यंतरण",
   "typographyCategory": "टाइपोग्राफी एवं फ़ॉन्ट्स",
   "mediaSourcesCategory": "मीडिया और सामग्री स्रोत",
-  "softwarePackagesCategory": "सॉफ़्टवेयर पैकेज"
+  "softwarePackagesCategory": "सॉफ़्टवेयर पैकेज",
+  "readerFont": "फ़ॉन्ट",
+  "readerFontNotoSansDevanagari": "नोटो सैन्स देवनागरी",
+  "readerFontTiroDevanagariHindi": "टाइरो देवनागरी हिंदी",
+  "readerFontNotoSerifDevanagari": "नोटो सेरिफ़ देवनागरी",
+  "readerFontEczar": "एक्ज़ार",
+  "readerFontMartel": "मार्टेल",
+  "readerFontLaila": "लैला"
 }

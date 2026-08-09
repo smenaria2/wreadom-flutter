@@ -29,7 +29,6 @@ import '../../data/services/reader_ad_service.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
-import '../providers/dictionary_providers.dart';
 import '../providers/feed_providers.dart';
 import '../providers/local_comments_notifier.dart';
 import '../providers/reader_settings_provider.dart';
@@ -235,6 +234,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late int _chapterIndex;
   double _fontSize = 18;
   ReaderTheme _readerTheme = ReaderTheme.system;
+  ReaderFont _readerFont = ReaderFont.tiroDevanagariHindi;
   final RestorableTextEditingController _commentController =
       RestorableTextEditingController();
   final RestorableInt _restorableChapterIndex = RestorableInt(0);
@@ -506,11 +506,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (!mounted) {
       _fontSize = settings.fontSize;
       _readerTheme = settings.theme;
+      _readerFont = settings.font;
       return;
     }
     setState(() {
       _fontSize = settings.fontSize;
       _readerTheme = settings.theme;
+      _readerFont = settings.font;
     });
   }
 
@@ -1560,9 +1562,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           Text(
             chapter?.title ?? widget.book.title,
             textAlign: isPoem ? TextAlign.center : TextAlign.start,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: _getTextColor(),
+            style: readerFontTextStyle(
+              _readerFont,
+              textStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: _readerFont == ReaderFont.tiroDevanagariHindi
+                    ? FontWeight.w400
+                    : FontWeight.bold,
+                color: _getTextColor(),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -1570,10 +1577,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             chapter?.content ??
                 widget.book.description ??
                 'No readable content available yet.',
-            textStyle: TextStyle(
-              color: _getTextColor(),
-              fontSize: _fontSize,
-              height: 1.8,
+            textStyle: readerFontTextStyle(
+              _readerFont,
+              textStyle: TextStyle(
+                color: _getTextColor(),
+                fontSize: _fontSize,
+                height: 1.8,
+              ),
             ),
             customStylesBuilder: (element) {
               final tag = element.localName?.toLowerCase();
@@ -1600,11 +1610,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 }
                 return Text(
                   element.text,
-                  style: TextStyle(
-                    fontSize: _fontSize,
-                    height: 1.8,
-                    color: _getTextColor(),
-                    fontStyle: isPoem ? FontStyle.italic : null,
+                  style: readerFontTextStyle(
+                    _readerFont,
+                    textStyle: TextStyle(
+                      fontSize: _fontSize,
+                      height: 1.8,
+                      color: _getTextColor(),
+                      fontStyle: isPoem ? FontStyle.italic : null,
+                    ),
                   ),
                 );
               }
@@ -1700,6 +1713,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               mutedColor: _getSecondaryTextColor(),
               accentColor: _getReaderActionColor(),
               fontSize: _fontSize,
+              font: _readerFont,
               isPoem: isPoem,
               isActive: block.ttsIndex == _activeTtsBlockIndex,
               onTap: block.ttsIndex == null || chapter == null
@@ -4225,129 +4239,167 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (context) => ModalFeedbackScope(
         child: StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.readerSettings,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
-                  Slider(
-                    value: _fontSize,
-                    min: 14,
-                    max: 28,
-                    onChanged: (value) {
-                      setState(() => _fontSize = value);
-                      setModalState(() {});
-                    },
-                    onChangeEnd: (value) {
-                      unawaited(AppHaptics.selection());
-                      ref
-                          .read(readerSettingsControllerProvider.notifier)
-                          .setFontSize(value);
-                    },
-                  ),
-                  Text(
-                    l10n.theme,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _ThemeOption(
-                        label: l10n.systemDefault,
-                        color: Theme.of(context).colorScheme.surface,
-                        icon: Icons.brightness_auto_rounded,
-                        selected: _readerTheme == ReaderTheme.system,
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _readerTheme = ReaderTheme.system);
-                          ref
-                              .read(readerSettingsControllerProvider.notifier)
-                              .setTheme(_readerTheme);
-                          setModalState(() {});
-                        },
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.readerSettings,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      _ThemeOption(
-                        label: l10n.light,
-                        color: Colors.white,
-                        selected: _readerTheme == ReaderTheme.light,
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _readerTheme = ReaderTheme.light);
-                          ref
-                              .read(readerSettingsControllerProvider.notifier)
-                              .setTheme(_readerTheme);
-                          setModalState(() {});
-                        },
-                      ),
-                      _ThemeOption(
-                        label: l10n.sepia,
-                        color: const Color(0xFFF4ECD8),
-                        selected: _readerTheme == ReaderTheme.sepia,
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _readerTheme = ReaderTheme.sepia);
-                          ref
-                              .read(readerSettingsControllerProvider.notifier)
-                              .setTheme(_readerTheme);
-                          setModalState(() {});
-                        },
-                      ),
-                      _ThemeOption(
-                        label: l10n.dark,
-                        color: const Color(0xFF1A1A1A),
-                        textColor: Colors.white,
-                        selected: _readerTheme == ReaderTheme.dark,
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _readerTheme = ReaderTheme.dark);
-                          ref
-                              .read(readerSettingsControllerProvider.notifier)
-                              .setTheme(_readerTheme);
-                          setModalState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: ref.read(dictionaryTargetLanguageProvider),
-                    decoration: InputDecoration(
-                      labelText: l10n.dictionaryTranslationLanguage,
-                      prefixIcon: const Icon(Icons.translate_rounded),
                     ),
-                    items: dictionaryLanguages.entries
-                        .map(
-                          (entry) => DropdownMenuItem(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      ref
-                          .read(dictionaryTargetLanguageProvider.notifier)
-                          .setLanguage(value);
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
+                    Slider(
+                      value: _fontSize,
+                      min: 14,
+                      max: 28,
+                      onChanged: (value) {
+                        setState(() => _fontSize = value);
+                        setModalState(() {});
+                      },
+                      onChangeEnd: (value) {
+                        unawaited(AppHaptics.selection());
+                        ref
+                            .read(readerSettingsControllerProvider.notifier)
+                            .setFontSize(value);
+                      },
+                    ),
+                    Text(
+                      l10n.theme,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _ThemeOption(
+                          label: l10n.systemDefault,
+                          color: Theme.of(context).colorScheme.surface,
+                          icon: Icons.brightness_auto_rounded,
+                          selected: _readerTheme == ReaderTheme.system,
+                          onTap: () {
+                            unawaited(AppHaptics.selection());
+                            setState(() => _readerTheme = ReaderTheme.system);
+                            ref
+                                .read(readerSettingsControllerProvider.notifier)
+                                .setTheme(_readerTheme);
+                            setModalState(() {});
+                          },
+                        ),
+                        _ThemeOption(
+                          label: l10n.light,
+                          color: Colors.white,
+                          selected: _readerTheme == ReaderTheme.light,
+                          onTap: () {
+                            unawaited(AppHaptics.selection());
+                            setState(() => _readerTheme = ReaderTheme.light);
+                            ref
+                                .read(readerSettingsControllerProvider.notifier)
+                                .setTheme(_readerTheme);
+                            setModalState(() {});
+                          },
+                        ),
+                        _ThemeOption(
+                          label: l10n.sepia,
+                          color: const Color(0xFFF4ECD8),
+                          selected: _readerTheme == ReaderTheme.sepia,
+                          onTap: () {
+                            unawaited(AppHaptics.selection());
+                            setState(() => _readerTheme = ReaderTheme.sepia);
+                            ref
+                                .read(readerSettingsControllerProvider.notifier)
+                                .setTheme(_readerTheme);
+                            setModalState(() {});
+                          },
+                        ),
+                        _ThemeOption(
+                          label: l10n.dark,
+                          color: const Color(0xFF1A1A1A),
+                          textColor: Colors.white,
+                          selected: _readerTheme == ReaderTheme.dark,
+                          onTap: () {
+                            unawaited(AppHaptics.selection());
+                            setState(() => _readerTheme = ReaderTheme.dark);
+                            ref
+                                .read(readerSettingsControllerProvider.notifier)
+                                .setTheme(_readerTheme);
+                            setModalState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.readerFont,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = 10.0;
+                        final cardWidth = constraints.maxWidth >= 420
+                            ? (constraints.maxWidth - gap) / 2
+                            : constraints.maxWidth;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final font in ReaderFont.values)
+                              SizedBox(
+                                width: cardWidth,
+                                child: _ReaderFontOption(
+                                  key: ValueKey('reader-font-${font.name}'),
+                                  font: font,
+                                  label: _readerFontLabel(l10n, font),
+                                  selected: _readerFont == font,
+                                  onTap: () {
+                                    unawaited(AppHaptics.selection());
+                                    setState(() => _readerFont = font);
+                                    setModalState(() {});
+                                    unawaited(
+                                      ref
+                                          .read(
+                                            readerSettingsControllerProvider
+                                                .notifier,
+                                          )
+                                          .setFont(font),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
       ),
     );
+  }
+
+  String _readerFontLabel(AppLocalizations l10n, ReaderFont font) {
+    return switch (font) {
+      ReaderFont.notoSansDevanagari => l10n.readerFontNotoSansDevanagari,
+      ReaderFont.tiroDevanagariHindi => l10n.readerFontTiroDevanagariHindi,
+      ReaderFont.notoSerifDevanagari => l10n.readerFontNotoSerifDevanagari,
+      ReaderFont.eczar => l10n.readerFontEczar,
+      ReaderFont.martel => l10n.readerFontMartel,
+      ReaderFont.laila => l10n.readerFontLaila,
+    };
   }
 
   ReaderTheme _getEffectiveTheme() {
@@ -4463,6 +4515,7 @@ class _ReaderTtsBlockView extends StatelessWidget {
     required this.mutedColor,
     required this.accentColor,
     required this.fontSize,
+    required this.font,
     required this.isPoem,
     required this.isActive,
     required this.onTap,
@@ -4473,6 +4526,7 @@ class _ReaderTtsBlockView extends StatelessWidget {
   final Color mutedColor;
   final Color accentColor;
   final double fontSize;
+  final ReaderFont font;
   final bool isPoem;
   final bool isActive;
   final VoidCallback? onTap;
@@ -4530,12 +4584,18 @@ class _ReaderTtsBlockView extends StatelessWidget {
             child: Text(
               block.text,
               textAlign: isPoem ? TextAlign.center : TextAlign.start,
-              style: TextStyle(
-                color: isQuote ? mutedColor : textColor,
-                fontSize: isHeading ? 22 : fontSize,
-                height: isHeading ? 1.35 : 1.8,
-                fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
-                fontStyle: isQuote || isPoem ? FontStyle.italic : null,
+              style: readerFontTextStyle(
+                font,
+                textStyle: TextStyle(
+                  color: isQuote ? mutedColor : textColor,
+                  fontSize: isHeading ? 22 : fontSize,
+                  height: isHeading ? 1.35 : 1.8,
+                  fontWeight:
+                      isHeading && font != ReaderFont.tiroDevanagariHindi
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  fontStyle: isQuote || isPoem ? FontStyle.italic : null,
+                ),
               ),
             ),
           ),
@@ -5300,6 +5360,90 @@ class _ThemeOption extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderFontOption extends StatelessWidget {
+  const _ReaderFontOption({
+    super.key,
+    required this.font,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  static const _previewText = 'कहानियाँ हमें नई दुनिया में ले जाती हैं।';
+
+  final ReaderFont font;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: selected
+                ? colorScheme.primaryContainer.withValues(alpha: 0.5)
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                  ),
+                  if (selected)
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _previewText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: readerFontTextStyle(
+                  font,
+                  textStyle: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontSize: 17,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

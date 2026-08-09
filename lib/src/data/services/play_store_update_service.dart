@@ -5,10 +5,14 @@ class PlayStoreUpdateResult {
   const PlayStoreUpdateResult({
     required this.updateAvailable,
     this.availableVersionCode,
+    this.updatePriority = 0,
+    this.immediateUpdateAllowed = false,
   });
 
   final bool updateAvailable;
   final int? availableVersionCode;
+  final int updatePriority;
+  final bool immediateUpdateAllowed;
 }
 
 /// A service that interacts directly with the Google Play Store to check
@@ -31,6 +35,8 @@ class PlayStoreUpdateService {
         updateAvailable:
             updateInfo.updateAvailability == UpdateAvailability.updateAvailable,
         availableVersionCode: updateInfo.availableVersionCode,
+        updatePriority: updateInfo.updatePriority,
+        immediateUpdateAllowed: updateInfo.immediateUpdateAllowed,
       );
     } catch (e) {
       // In development or sideloaded builds, the Play Core API throws a PlatformException.
@@ -40,6 +46,26 @@ class PlayStoreUpdateService {
         '(expected in debug/sideloaded environment): $e',
       );
       return null;
+    }
+  }
+
+  /// Starts Google Play's full-screen immediate update flow.
+  ///
+  /// Returns `true` only when Play reports that the update completed. A denied
+  /// or failed update returns `false` so callers can fall back to the Store.
+  Future<bool> performImmediateUpdate() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return false;
+    }
+
+    try {
+      final result = await InAppUpdate.performImmediateUpdate();
+      return result == AppUpdateResult.success;
+    } catch (e) {
+      debugPrint(
+        'PlayStoreUpdateService: Immediate update could not start: $e',
+      );
+      return false;
     }
   }
 }

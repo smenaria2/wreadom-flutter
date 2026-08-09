@@ -4,6 +4,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../../domain/models/dictionary_entry.dart';
 import '../../providers/dictionary_providers.dart';
+import '../../providers/locale_provider.dart';
 
 class DictionarySheet extends ConsumerStatefulWidget {
   const DictionarySheet({
@@ -109,7 +110,7 @@ class _DictionaryResult extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final target = ref.watch(dictionaryTargetLanguageProvider);
+    final target = ref.watch(localeControllerProvider).languageCode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

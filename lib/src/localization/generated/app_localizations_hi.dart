@@ -3261,9 +3261,6 @@ class AppLocalizationsHi extends AppLocalizations {
       'Wiktionary शब्दकोश डेटा, FreeDictionaryAPI.com (CC BY-SA 4.0) के माध्यम से।';
 
   @override
-  String get dictionaryTranslationLanguage => 'शब्दकोश अनुवाद भाषा';
-
-  @override
   String createTopicTag(String tag) {
     return '\"$tag\" बनाएँ';
   }
@@ -3384,4 +3381,25 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get softwarePackagesCategory => 'सॉफ़्टवेयर पैकेज';
+
+  @override
+  String get readerFont => 'फ़ॉन्ट';
+
+  @override
+  String get readerFontNotoSansDevanagari => 'नोटो सैन्स देवनागरी';
+
+  @override
+  String get readerFontTiroDevanagariHindi => 'टाइरो देवनागरी हिंदी';
+
+  @override
+  String get readerFontNotoSerifDevanagari => 'नोटो सेरिफ़ देवनागरी';
+
+  @override
+  String get readerFontEczar => 'एक्ज़ार';
+
+  @override
+  String get readerFontMartel => 'मार्टेल';
+
+  @override
+  String get readerFontLaila => 'लैला';
 }

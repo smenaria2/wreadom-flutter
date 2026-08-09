@@ -5798,12 +5798,6 @@ abstract class AppLocalizations {
   /// **'Dictionary data from Wiktionary via FreeDictionaryAPI.com (CC BY-SA 4.0).'**
   String get dictionaryAttribution;
 
-  /// No description provided for @dictionaryTranslationLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Dictionary translation language'**
-  String get dictionaryTranslationLanguage;
-
   /// No description provided for @createTopicTag.
   ///
   /// In en, this message translates to:
@@ -6018,6 +6012,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Software Packages'**
   String get softwarePackagesCategory;
+
+  /// No description provided for @readerFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Font'**
+  String get readerFont;
+
+  /// No description provided for @readerFontNotoSansDevanagari.
+  ///
+  /// In en, this message translates to:
+  /// **'Noto Sans Devanagari'**
+  String get readerFontNotoSansDevanagari;
+
+  /// No description provided for @readerFontTiroDevanagariHindi.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiro Devanagari Hindi'**
+  String get readerFontTiroDevanagariHindi;
+
+  /// No description provided for @readerFontNotoSerifDevanagari.
+  ///
+  /// In en, this message translates to:
+  /// **'Noto Serif Devanagari'**
+  String get readerFontNotoSerifDevanagari;
+
+  /// No description provided for @readerFontEczar.
+  ///
+  /// In en, this message translates to:
+  /// **'Eczar'**
+  String get readerFontEczar;
+
+  /// No description provided for @readerFontMartel.
+  ///
+  /// In en, this message translates to:
+  /// **'Martel'**
+  String get readerFontMartel;
+
+  /// No description provided for @readerFontLaila.
+  ///
+  /// In en, this message translates to:
+  /// **'Laila'**
+  String get readerFontLaila;
 }
 
 class _AppLocalizationsDelegate

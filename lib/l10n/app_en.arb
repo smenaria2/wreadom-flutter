@@ -1871,7 +1871,6 @@
   "dictionaryTimeout": "The dictionary took too long to respond.",
   "dictionaryUnavailable": "The dictionary is temporarily unavailable.",
   "dictionaryAttribution": "Dictionary data from Wiktionary via FreeDictionaryAPI.com (CC BY-SA 4.0).",
-  "dictionaryTranslationLanguage": "Dictionary translation language",
   "createTopicTag": "Create \"{tag}\"",
   "@createTopicTag": {"placeholders": {"tag": {"type": "String"}}},
   "popularTopics": "Popular topics",
@@ -1943,5 +1942,12 @@
   "hindiTransliterationCategory": "Hindi Transliteration",
   "typographyCategory": "Typography & Fonts",
   "mediaSourcesCategory": "Media & Content Discovery",
-  "softwarePackagesCategory": "Software Packages"
+  "softwarePackagesCategory": "Software Packages",
+  "readerFont": "Font",
+  "readerFontNotoSansDevanagari": "Noto Sans Devanagari",
+  "readerFontTiroDevanagariHindi": "Tiro Devanagari Hindi",
+  "readerFontNotoSerifDevanagari": "Noto Serif Devanagari",
+  "readerFontEczar": "Eczar",
+  "readerFontMartel": "Martel",
+  "readerFontLaila": "Laila"
 }

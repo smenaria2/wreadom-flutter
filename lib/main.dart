@@ -27,6 +27,7 @@ import 'src/presentation/providers/animation_settings_provider.dart';
 import 'src/presentation/providers/tier_progress_provider.dart';
 import 'src/presentation/providers/navigation_providers.dart';
 import 'src/presentation/providers/accessibility_providers.dart';
+import 'src/presentation/providers/app_update_provider.dart';
 import 'src/presentation/components/profile/tier_up_celebration_sheet.dart';
 import 'src/domain/models/user_model.dart';
 import 'src/presentation/routing/app_router.dart';
@@ -37,6 +38,7 @@ import 'src/presentation/screens/main_navigation_shell.dart';
 import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/screens/email_verification_screen.dart';
 import 'src/presentation/screens/startup_splash_screen.dart';
+import 'src/presentation/screens/compulsory_update_gate.dart';
 import 'src/presentation/theme/app_theme.dart';
 import 'src/presentation/routing/startup_entry_policy.dart';
 import 'src/presentation/providers/email_verification_provider.dart';
@@ -486,6 +488,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     _firestoreCacheConfigured = widget.firebaseBootstrap.cacheConfigured;
     _firebaseRetrying = !_firebaseReady;
     _pendingNavigation.updateReadiness(firebaseReady: _firebaseReady);
+    unawaited(ref.read(appUpdateAvailabilityProvider.future));
     final initialAppLink = widget.initialAppLink;
     if (initialAppLink != null) {
       _handleUri(initialAppLink);
@@ -819,40 +822,42 @@ class _MyAppState extends ConsumerState<MyApp> {
             },
             home: _showStartupSplash
                 ? StartupSplashScreen(onFinished: _completeStartupSplash)
-                : ShakeToReportListener(
-                    navigatorKey: _navigatorKey,
-                    child: AuthWrapper(
-                      firebaseReady: _firebaseReady,
-                      firebaseRetrying: _firebaseRetrying,
-                      onRetryFirebase: _retryFirebaseStartup,
-                      onReadinessChanged:
-                          ({
-                            required authenticated,
-                            required emailVerified,
-                            required onboardingReady,
-                          }) {
-                            _pendingNavigation.updateReadiness(
-                              authenticated: authenticated,
-                              emailVerified: emailVerified,
-                              onboardingReady: onboardingReady,
+                : CompulsoryUpdateGate(
+                    child: ShakeToReportListener(
+                      navigatorKey: _navigatorKey,
+                      child: AuthWrapper(
+                        firebaseReady: _firebaseReady,
+                        firebaseRetrying: _firebaseRetrying,
+                        onRetryFirebase: _retryFirebaseStartup,
+                        onReadinessChanged:
+                            ({
+                              required authenticated,
+                              required emailVerified,
+                              required onboardingReady,
+                            }) {
+                              _pendingNavigation.updateReadiness(
+                                authenticated: authenticated,
+                                emailVerified: emailVerified,
+                                onboardingReady: onboardingReady,
+                              );
+                              _drainPendingDeepLinkTarget();
+                            },
+                        onSignedOut: () {
+                          ref
+                              .read(appFullyLoadedProvider.notifier)
+                              .setLoaded(false);
+                          ref
+                              .read(isSigningOutProvider.notifier)
+                              .setSigningOut(false);
+                          _pendingNavigation
+                            ..clear()
+                            ..updateReadiness(
+                              authenticated: false,
+                              emailVerified: false,
+                              onboardingReady: false,
                             );
-                            _drainPendingDeepLinkTarget();
-                          },
-                      onSignedOut: () {
-                        ref
-                            .read(appFullyLoadedProvider.notifier)
-                            .setLoaded(false);
-                        ref
-                            .read(isSigningOutProvider.notifier)
-                            .setSigningOut(false);
-                        _pendingNavigation
-                          ..clear()
-                          ..updateReadiness(
-                            authenticated: false,
-                            emailVerified: false,
-                            onboardingReady: false,
-                          );
-                      },
+                        },
+                      ),
                     ),
                   ),
           ),

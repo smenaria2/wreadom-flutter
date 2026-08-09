@@ -19,6 +19,11 @@ https://creativecommons.org/licenses/by-sa/4.0/
       [
         'Plus Jakarta Sans',
         'Noto Sans Devanagari',
+        'Tiro Devanagari Hindi',
+        'Noto Serif Devanagari',
+        'Eczar',
+        'Martel',
+        'Laila',
         'Dancing Script',
         'Cormorant Garamond',
         'Inter',

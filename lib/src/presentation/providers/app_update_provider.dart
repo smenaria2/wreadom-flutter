@@ -38,13 +38,19 @@ class AppUpdateAvailability {
   const AppUpdateAvailability({
     required this.config,
     required this.installedBuildNumber,
+    this.updatePriority = 0,
+    this.immediateUpdateAllowed = false,
   });
 
   final AppUpdateConfig config;
   final int installedBuildNumber;
+  final int updatePriority;
+  final bool immediateUpdateAllowed;
 
   bool get isUpdateAvailable =>
       config.androidBuildNumber > installedBuildNumber;
+
+  bool get isCompulsory => isUpdateAvailable && updatePriority == 5;
 }
 
 final appUpdateAvailabilityProvider = FutureProvider<AppUpdateAvailability?>((
@@ -80,6 +86,8 @@ final appUpdateAvailabilityProvider = FutureProvider<AppUpdateAvailability?>((
   final availability = AppUpdateAvailability(
     config: config,
     installedBuildNumber: installedBuildNumber,
+    updatePriority: updateInfo.updatePriority,
+    immediateUpdateAllowed: updateInfo.immediateUpdateAllowed,
   );
   return availability.isUpdateAvailable ? availability : null;
 });

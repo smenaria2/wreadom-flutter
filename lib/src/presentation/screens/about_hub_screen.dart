@@ -5,17 +5,28 @@ import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/screens/attributions_screen.dart';
 import 'package:librebook_flutter/src/presentation/widgets/app_background.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutHubScreen extends StatelessWidget {
   const AboutHubScreen({super.key});
 
-  void _openCreatorProfile(BuildContext context) {
-    Navigator.of(context).pushNamed(
-      AppRoutes.publicProfile,
-      arguments: const PublicProfileArguments(
-        userId: '3eOsWQIlW6c7XWCw8cnMIxed71R2',
-      ),
-    );
+  Future<void> _openCreatorWebsite(BuildContext context) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse('https://creator.wreadom.in'),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+
+    if (!opened && context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
+    }
   }
 
   @override
@@ -108,7 +119,7 @@ class AboutHubScreen extends StatelessWidget {
                       InkWell(
                         key: const Key('about_creator_profile_link'),
                         borderRadius: BorderRadius.circular(8),
-                        onTap: () => _openCreatorProfile(context),
+                        onTap: () => _openCreatorWebsite(context),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8.0,

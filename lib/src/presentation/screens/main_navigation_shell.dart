@@ -179,8 +179,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     final updateAvailability = ref
         .watch(appUpdateAvailabilityProvider)
         .maybeWhen(data: (availability) => availability, orElse: () => null);
-    final hasUpdate = updateAvailability != null;
-    if (updateAvailability != null) {
+    final hasUpdate =
+        updateAvailability != null && !updateAvailability.isCompulsory;
+    if (hasUpdate) {
       _queueUpdateNotice(updateAvailability);
     }
 
@@ -338,6 +339,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   }
 
   void _queueUpdateNotice(AppUpdateAvailability availability) {
+    if (availability.isCompulsory) return;
     final buildNumber = availability.config.androidBuildNumber;
     if (!_checkedUpdateNoticeBuilds.add(buildNumber)) return;
 

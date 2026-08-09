@@ -879,7 +879,9 @@ class _AppUpdateTile extends ConsumerWidget {
     final updateAsync = ref.watch(appUpdateAvailabilityProvider);
     return updateAsync.maybeWhen(
       data: (availability) {
-        if (availability == null) return const SizedBox.shrink();
+        if (availability == null || availability.isCompulsory) {
+          return const SizedBox.shrink();
+        }
         final l10n = AppLocalizations.of(context)!;
         return _MenuTile(
           icon: Icons.system_update_alt_rounded,
