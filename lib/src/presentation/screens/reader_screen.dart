@@ -4240,6 +4240,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+      ),
       builder: (context) => ModalFeedbackScope(
         child: StatefulBuilder(
           builder: (context, setModalState) {
@@ -4344,40 +4347,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const gap = 10.0;
-                        final cardWidth = constraints.maxWidth >= 420
-                            ? (constraints.maxWidth - gap) / 2
-                            : constraints.maxWidth;
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final font in ReaderFont.values)
-                              SizedBox(
-                                width: cardWidth,
-                                child: _ReaderFontOption(
-                                  key: ValueKey('reader-font-${font.name}'),
-                                  font: font,
-                                  label: _readerFontLabel(l10n, font),
-                                  selected: _readerFont == font,
-                                  onTap: () {
-                                    unawaited(AppHaptics.selection());
-                                    setState(() => _readerFont = font);
-                                    setModalState(() {});
-                                    unawaited(
-                                      ref
-                                          .read(
-                                            readerSettingsControllerProvider
-                                                .notifier,
-                                          )
-                                          .setFont(font),
-                                    );
-                                  },
-                                ),
+                    DropdownButtonFormField<ReaderFont>(
+                      key: const Key('reader-font-dropdown'),
+                      initialValue: _readerFont,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.text_fields_rounded),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (final font in ReaderFont.values)
+                          DropdownMenuItem<ReaderFont>(
+                            value: font,
+                            child: Text(
+                              _readerFontLabel(l10n, font),
+                              overflow: TextOverflow.ellipsis,
+                              style: readerFontTextStyle(
+                                font,
+                                textStyle: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge,
                               ),
-                          ],
+                            ),
+                          ),
+                      ],
+                      onChanged: (font) {
+                        if (font == null || font == _readerFont) return;
+                        unawaited(AppHaptics.selection());
+                        setState(() => _readerFont = font);
+                        setModalState(() {});
+                        unawaited(
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setFont(font),
                         );
                       },
                     ),
@@ -5360,90 +5362,6 @@ class _ThemeOption extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReaderFontOption extends StatelessWidget {
-  const _ReaderFontOption({
-    super.key,
-    required this.font,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  static const _previewText = 'कहानियाँ हमें नई दुनिया में ले जाती हैं।';
-
-  final ReaderFont font;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: selected
-                ? colorScheme.primaryContainer.withValues(alpha: 0.5)
-                : colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? colorScheme.primary
-                  : colorScheme.outlineVariant,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                  ),
-                  if (selected)
-                    Icon(
-                      Icons.check_circle_rounded,
-                      size: 18,
-                      color: colorScheme.primary,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _previewText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: readerFontTextStyle(
-                  font,
-                  textStyle: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 17,
-                    height: 1.45,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

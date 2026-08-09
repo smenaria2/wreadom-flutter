@@ -83,16 +83,15 @@ void main() {
     expect(families, isNot(contains(null)));
   });
 
-  test('reader UI uses font previews and styles every reading path', () {
+  test('reader UI uses a half-height font dropdown and styles every path', () {
     final readerSource = File(
       'lib/src/presentation/screens/reader_screen.dart',
     ).readAsStringSync();
 
-    expect(readerSource, contains("ValueKey('reader-font-\${font.name}')"));
-    expect(
-      readerSource,
-      contains("'कहानियाँ हमें नई दुनिया में ले जाती हैं।'"),
-    );
+    expect(readerSource, contains("Key('reader-font-dropdown')"));
+    expect(readerSource, contains('DropdownButtonFormField<ReaderFont>'));
+    expect(readerSource, contains('MediaQuery.sizeOf(context).height * 0.5'));
+    expect(readerSource, isNot(contains('_ReaderFontOption')));
     expect(readerSource, contains('readerFontTextStyle('));
     expect(
       readerSource,
