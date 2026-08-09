@@ -213,8 +213,24 @@ void main() {
       final source = File('lib/src/data/services/notification_service.dart').readAsStringSync();
 
       expect(source, contains('reader_tts_channel_v2'));
-      expect(source, contains('deleteNotificationChannel(channelId: \'reader_tts_channel\')'));
-      expect(source, isNot(contains('\'reader_tts_channel\','))); // No longer registered as new channel
+      expect(
+        source,
+        contains(
+          RegExp(
+            r"deleteNotificationChannel\(\s*channelId:\s*'reader_tts_channel',?\s*\)",
+          ),
+        ),
+      );
+      expect(
+        source,
+        isNot(
+          contains(
+            RegExp(
+              r"AndroidNotificationChannel\(\s*'reader_tts_channel',",
+            ),
+          ),
+        ),
+      );
     });
   });
 

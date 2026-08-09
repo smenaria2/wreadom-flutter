@@ -122,7 +122,9 @@ class NotificationService {
         >();
 
     if (androidPlugin != null) {
-      await androidPlugin.deleteNotificationChannel(channelId: 'reader_tts_channel');
+      await androidPlugin.deleteNotificationChannel(
+        channelId: 'reader_tts_channel',
+      );
     }
 
     const AndroidNotificationChannel ttsChannel = AndroidNotificationChannel(
@@ -277,8 +279,20 @@ class NotificationService {
     }
     if (response.payload == 'reader_tts') return;
     if (response.payload == 'audio_post') return;
-    if (response.payload != null) {
-      final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+    final payload = response.payload;
+    if (payload != null && payload.trim().isNotEmpty) {
+      Map<String, dynamic> data;
+      try {
+        final decoded = jsonDecode(payload);
+        if (decoded is! Map) {
+          debugPrint('Ignoring malformed local notification payload.');
+          return;
+        }
+        data = decoded.map((key, value) => MapEntry(key.toString(), value));
+      } catch (error) {
+        debugPrint('Could not decode local notification payload: $error');
+        return;
+      }
       if (kDebugMode) {
         debugPrint('Tapped local notification');
       }
@@ -556,22 +570,25 @@ class NotificationService {
     return await _fcm.getToken();
   }
 
-  Future<bool> requestPermission() async {
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+  Future<bool> requestPermissionIfNeeded() async {
+    var settings = await _fcm.getNotificationSettings();
+    if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+      settings = await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('User granted permission');
+      debugPrint('Notification permission is authorized');
       return true;
     } else if (settings.authorizationStatus ==
         AuthorizationStatus.provisional) {
-      debugPrint('User granted provisional permission');
+      debugPrint('Notification permission is provisional');
       return true;
     } else {
-      debugPrint('User declined or has not accepted permission');
+      debugPrint('Notification permission is not available');
       return false;
     }
   }

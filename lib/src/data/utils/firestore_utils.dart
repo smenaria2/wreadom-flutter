@@ -1,6 +1,101 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/map_utils.dart';
 
+int? _intOrNull(dynamic value) {
+  if (value is Timestamp) return value.millisecondsSinceEpoch;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+double? _doubleOrNull(dynamic value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+List<String> _stringList(dynamic value) => value is List
+    ? value.map((entry) => entry.toString()).toList(growable: false)
+    : <String>[];
+
+Map<String, String>? _stringMapOrNull(dynamic value) {
+  if (value is! Map) return null;
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue.toString()),
+  );
+}
+
+Map<String, dynamic> _normalizeCommentReplyMap(dynamic raw) {
+  final reply = asStringMap(raw);
+  reply['id'] = reply['id']?.toString();
+  reply['userId'] = reply['userId']?.toString() ?? '';
+  reply['username'] = reply['username']?.toString() ?? 'reader';
+  reply['text'] = reply['text']?.toString() ?? '';
+  reply['timestamp'] = _intOrNull(reply['timestamp']) ?? 0;
+  reply['likes'] = _stringList(reply['likes']);
+  reply['mentions'] = _stringMapOrNull(reply['mentions']);
+  for (final key in const [
+    'displayName',
+    'penName',
+    'userPhotoURL',
+    'audioUrl',
+    'audioObjectKey',
+    'audioMimeType',
+  ]) {
+    reply[key] = reply[key]?.toString();
+  }
+  for (final key in const ['audioDurationMs', 'audioSizeBytes']) {
+    reply[key] = _intOrNull(reply[key]);
+  }
+  return reply;
+}
+
+Map<String, dynamic> _normalizeCommentMap(dynamic raw) {
+  final comment = asStringMap(raw);
+  comment['id'] = comment['id']?.toString();
+  comment['userId'] = comment['userId']?.toString() ?? '';
+  comment['username'] = comment['username']?.toString() ?? 'reader';
+  comment['text'] = comment['text']?.toString() ?? '';
+  comment['timestamp'] = _intOrNull(comment['timestamp']) ?? 0;
+  comment['likes'] = _stringList(comment['likes']);
+  comment['replies'] = comment['replies'] is List
+      ? (comment['replies'] as List)
+            .whereType<Map>()
+            .map(_normalizeCommentReplyMap)
+            .toList(growable: false)
+      : <Map<String, dynamic>>[];
+  comment['mentions'] = _stringMapOrNull(comment['mentions']);
+  for (final key in const [
+    'rating',
+    'chapterIndex',
+    'likesCount',
+    'repliesCount',
+    'highlightedAt',
+    'audioDurationMs',
+    'audioSizeBytes',
+  ]) {
+    comment[key] = _intOrNull(comment[key]);
+  }
+  for (final key in const [
+    'bookTitle',
+    'chapterTitle',
+    'chapterId',
+    'quote',
+    'feedPostId',
+    'userPhotoURL',
+    'displayName',
+    'penName',
+    'highlightedByUserId',
+    'audioUrl',
+    'audioObjectKey',
+    'audioMimeType',
+  ]) {
+    comment[key] = comment[key]?.toString();
+  }
+  if (comment['isHighlighted'] is! bool) {
+    comment['isHighlighted'] = null;
+  }
+  return comment;
+}
+
 /// Default `notificationSettings` document shape aligned with the web app /
 /// [FirebaseAuthRepository] new-user writes. Used when the field is missing
 /// on legacy user documents.
@@ -36,10 +131,18 @@ Map<String, dynamic> normalizeUserMapForModel(dynamic raw, String docId) {
 
   final bookmarksRaw = m['bookmarks'];
   if (bookmarksRaw is List) {
-    m['bookmarks'] = bookmarksRaw
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+    m['bookmarks'] = bookmarksRaw.whereType<Map>().map((entry) {
+      final bookmark = asStringMap(entry);
+      bookmark['id'] = bookmark['id']?.toString();
+      bookmark['userId'] = bookmark['userId']?.toString() ?? docId;
+      bookmark['position'] = _doubleOrNull(bookmark['position']) ?? 0.0;
+      bookmark['label'] = bookmark['label']?.toString() ?? '';
+      bookmark['timestamp'] = _intOrNull(bookmark['timestamp']) ?? 0;
+      bookmark['chapterIndex'] = _intOrNull(bookmark['chapterIndex']);
+      bookmark['chapterTitle'] = bookmark['chapterTitle']?.toString();
+      bookmark['highlightedText'] = bookmark['highlightedText']?.toString();
+      return bookmark;
+    }).toList();
   } else {
     m['bookmarks'] = <dynamic>[];
   }
@@ -52,6 +155,38 @@ Map<String, dynamic> normalizeUserMapForModel(dynamic raw, String docId) {
   m['username'] = m['username']?.toString().isNotEmpty == true
       ? m['username'].toString()
       : 'reader';
+  for (final key in const [
+    'displayName',
+    'photoURL',
+    'coverPhotoURL',
+    'bio',
+    'penName',
+    'privacyLevel',
+    'preferredLanguage',
+  ]) {
+    m[key] = m[key]?.toString();
+  }
+  for (final key in const [
+    'followersCount',
+    'followingCount',
+    'createdAt',
+    'lastLogin',
+    'authorPoints',
+    'authorRank',
+    'readerPoints',
+    'readerRank',
+    'booksReadCount',
+    'commentsPostedCount',
+  ]) {
+    m[key] = _intOrNull(m[key]);
+  }
+  m['pinnedWorks'] = m['pinnedWorks'] == null
+      ? null
+      : _stringList(m['pinnedWorks']);
+  m['fcmTokens'] = m['fcmTokens'] == null ? null : _stringList(m['fcmTokens']);
+  if (m['readingProgress'] is! Map) m['readingProgress'] = null;
+  if (m['profileVisibility'] is! Map) m['profileVisibility'] = null;
+  if (m['isDeactivated'] is! bool) m['isDeactivated'] = null;
 
   return m;
 }
@@ -64,12 +199,20 @@ Map<String, dynamic> _mergeNotificationSettingsDefaults(dynamic raw) {
   for (final entry in defaults.entries) {
     if (entry.value is Map<String, dynamic>) {
       final current = normalized[entry.key];
+      final fallback = Map<String, dynamic>.from(
+        entry.value as Map<String, dynamic>,
+      );
+      final candidate = current is Map ? asStringMap(current) : fallback;
       normalized[entry.key] = {
-        ...Map<String, dynamic>.from(entry.value as Map<String, dynamic>),
-        if (current is Map) ...asStringMap(current),
+        'app': candidate['app'] is bool ? candidate['app'] : fallback['app'],
+        'browser': candidate['browser'] is bool
+            ? candidate['browser']
+            : fallback['browser'],
       };
     } else {
-      normalized.putIfAbsent(entry.key, () => entry.value);
+      if (normalized[entry.key] is! bool) {
+        normalized[entry.key] = entry.value;
+      }
     }
   }
   return normalized;
@@ -81,10 +224,7 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
   result['id'] = id;
 
   // Convert Timestamps to milliseconds since epoch for the model
-  if (result['timestamp'] is Timestamp) {
-    result['timestamp'] =
-        (result['timestamp'] as Timestamp).millisecondsSinceEpoch;
-  }
+  result['timestamp'] = _intOrNull(result['timestamp']) ?? 0;
 
   // Ensure likes is at least an empty list if missing
   if (result['likes'] == null) {
@@ -98,28 +238,47 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
   }
 
   if (result['replies'] is List) {
-    result['replies'] = (result['replies'] as List).whereType<Map>().map((raw) {
-      final reply = Map<String, dynamic>.from(raw);
-      reply['userId'] = reply['userId']?.toString() ?? '';
-      reply['username'] = reply['username']?.toString() ?? 'reader';
-      reply['text'] = reply['text']?.toString() ?? '';
-      reply['timestamp'] = reply['timestamp'] is int
-          ? reply['timestamp']
-          : int.tryParse(reply['timestamp']?.toString() ?? '') ?? 0;
-      reply['likes'] = reply['likes'] is List
-          ? (reply['likes'] as List).map((e) => e.toString()).toList()
-          : <String>[];
-      reply['audioUrl'] = reply['audioUrl']?.toString();
-      reply['audioObjectKey'] = reply['audioObjectKey']?.toString();
-      reply['audioDurationMs'] = reply['audioDurationMs'] is int
-          ? reply['audioDurationMs']
-          : int.tryParse(reply['audioDurationMs']?.toString() ?? '');
-      reply['audioMimeType'] = reply['audioMimeType']?.toString();
-      reply['audioSizeBytes'] = reply['audioSizeBytes'] is int
-          ? reply['audioSizeBytes']
-          : int.tryParse(reply['audioSizeBytes']?.toString() ?? '');
-      return reply;
-    }).toList();
+    result['replies'] = (result['replies'] as List)
+        .whereType<Map>()
+        .map(_normalizeCommentReplyMap)
+        .toList();
+  }
+
+  result['userId'] = result['userId']?.toString() ?? '';
+  result['username'] = result['username']?.toString() ?? 'reader';
+  result['mentions'] = _stringMapOrNull(result['mentions']);
+  if (result['comments'] is List) {
+    result['comments'] = (result['comments'] as List)
+        .whereType<Map>()
+        .map(_normalizeCommentMap)
+        .toList(growable: false);
+  } else if (result.containsKey('comments')) {
+    result['comments'] = <Map<String, dynamic>>[];
+  }
+  if (result['images'] is List) {
+    result['images'] = (result['images'] as List)
+        .whereType<Map>()
+        .map((raw) {
+          final image = asStringMap(raw);
+          image['id'] = image['id']?.toString() ?? '';
+          image['url'] = image['url']?.toString() ?? '';
+          image['caption'] = image['caption']?.toString();
+          image['likes'] = _stringList(image['likes']);
+          return image;
+        })
+        .where((image) => (image['url'] as String).isNotEmpty)
+        .toList(growable: false);
+  } else if (result.containsKey('images')) {
+    result['images'] = <Map<String, dynamic>>[];
+  }
+  for (final key in const [
+    'rating',
+    'likesCount',
+    'commentCount',
+    'audioDurationMs',
+    'audioSizeBytes',
+  ]) {
+    result[key] = _intOrNull(result[key]);
   }
 
   if (result['participantDetails'] is Map) {
@@ -154,6 +313,8 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
   // Ensure text exists
   if (result['text'] == null) {
     result['text'] = '';
+  } else {
+    result['text'] = result['text'].toString();
   }
 
   return result;
@@ -162,6 +323,9 @@ Map<String, dynamic> mapFirestoreData(dynamic data, String id) {
 Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   final m = asStringMap(raw);
   m['id'] = docId;
+  m['title'] = m['title']?.toString().trim().isNotEmpty == true
+      ? m['title'].toString()
+      : 'Untitled';
 
   // Ensure lists exist
   final authorsRaw = m['authors'];
@@ -266,9 +430,51 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
   }
 
   // Ensure IDs/Counts
-  m['download_count'] ??= m['downloadCount'] ?? 0;
-  m['viewCount'] ??= m['readCount'] ?? m['reads'] ?? m['views'] ?? 0;
-  m['media_type'] ??= 'text';
+  m['download_count'] =
+      _intOrNull(m['download_count'] ?? m['downloadCount']) ?? 0;
+  m['viewCount'] =
+      _intOrNull(
+        m['viewCount'] ?? m['readCount'] ?? m['reads'] ?? m['views'],
+      ) ??
+      0;
+  m['media_type'] = m['media_type']?.toString() ?? 'text';
+
+  for (final key in const [
+    'createdAt',
+    'updatedAt',
+    'publishedAt',
+    'recommendationCount',
+    'ratingsCount',
+    'chapterCount',
+    'collaborationRequestedAt',
+    'collaborationRespondedAt',
+    'leafCount',
+    'leafUpdatedAt',
+  ]) {
+    m[key] = _intOrNull(m[key]);
+  }
+  for (final key in const ['weightedScore', 'averageRating']) {
+    m[key] = _doubleOrNull(m[key]);
+  }
+  for (final key in const [
+    'description',
+    'coverUrl',
+    'source',
+    'contentType',
+    'authorId',
+    'status',
+    'identifier',
+    'collaborationStatus',
+    'collaboratorId',
+    'collaboratorName',
+    'collaboratorPhotoURL',
+    'collaborationRequestedBy',
+  ]) {
+    m[key] = m[key]?.toString();
+  }
+  for (final key in const ['isOriginal', 'hasLeaves', 'optOutComplementary']) {
+    if (m[key] is! bool) m[key] = null;
+  }
 
   // Timestamps
   if (m['createdAt'] == null && m['timestamp'] != null) {

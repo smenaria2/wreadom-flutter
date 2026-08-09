@@ -1,168 +1,121 @@
 # publish_play_store.ps1
-# This script builds the release AAB using build_ver_aab.ps1
-# and uploads/deploys it to the Google Play Store "internal" track.
+# Builds, versions, commits, and publishes the app to Google Play internal,
+# then deploys the matching web release through the existing root script.
 
-$gplayDir = Join-Path (Get-Location) ".gplay"
+$ErrorActionPreference = "Stop"
+$projectRoot = $PSScriptRoot
+$gplayDir = Join-Path $projectRoot ".gplay"
 $gplayPath = Join-Path $gplayDir "gplay.exe"
 $gplayUrl = "https://github.com/tamtom/play-console-cli/releases/download/v0.5.3/gplay-windows-amd64.exe"
+$aabPath = Join-Path $projectRoot "build\app\outputs\bundle\release\app-release.aab"
+$pubspecPath = Join-Path $projectRoot "pubspec.yaml"
 
-# 1. Ensure gplay.exe exists
-if (-not (Test-Path $gplayDir)) {
-    New-Item -ItemType Directory -Path $gplayDir -Force | Out-Null
+function Stop-Publish {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "Publish aborted: $Message" -ForegroundColor Red
+    exit 1
 }
 
-if (-not (Test-Path $gplayPath)) {
-    Write-Host "--------------------------------------------------"
-    Write-Host "Downloading Google Play Console CLI (gplay)..." -ForegroundColor Cyan
-    Write-Host "--------------------------------------------------"
-    try {
-        Invoke-WebRequest -Uri $gplayUrl -OutFile $gplayPath
-        Write-Host "Download complete: $gplayPath" -ForegroundColor Green
-    } catch {
-        Write-Error "Failed to download gplay.exe: $_"
-        exit 1
+try {
+    Set-Location -LiteralPath $projectRoot
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Stop-Publish "Git is required for the release/version-control workflow."
     }
-}
+    $gitRoot = (& git rev-parse --show-toplevel 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitRoot)) {
+        Stop-Publish "The project root is not a Git repository."
+    }
+    if ((Resolve-Path -LiteralPath $gitRoot).Path -ne (Resolve-Path -LiteralPath $projectRoot).Path) {
+        Stop-Publish "Run the repository's own root publish script; Git root mismatch detected."
+    }
 
-# 2. Resolve Service Account JSON key
-$serviceAccountKey = $env:GPLAY_SERVICE_ACCOUNT_JSON
+    $initialStatus = (& git status --porcelain --untracked-files=all | Out-String).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($initialStatus)) {
+        Stop-Publish "The Git worktree must be clean before publishing. Commit or stash intended changes first; the script will commit only its generated pubspec version bump."
+    }
 
-if (-not $serviceAccountKey) {
-    # Check Doppler
-    if (Get-Command doppler -ErrorAction SilentlyContinue) {
-        Write-Host "Checking Doppler for GPLAY_SERVICE_ACCOUNT_KEY..." -ForegroundColor Green
+    if (-not (Test-Path -LiteralPath $gplayDir)) {
+        New-Item -ItemType Directory -Path $gplayDir -Force | Out-Null
+    }
+    if (-not (Test-Path -LiteralPath $gplayPath -PathType Leaf)) {
+        Write-Host "Downloading pinned Google Play Console CLI v0.5.3..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri $gplayUrl -OutFile $gplayPath
+    }
+
+    $serviceAccountKey = $env:GPLAY_SERVICE_ACCOUNT_JSON
+    if ([string]::IsNullOrWhiteSpace($serviceAccountKey) -and (Get-Command doppler -ErrorAction SilentlyContinue)) {
+        Write-Host "Reading Google Play credentials from Doppler..." -ForegroundColor Cyan
         try {
             $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent | ConvertFrom-Json
-            if ($secretJson.GPLAY_SERVICE_ACCOUNT_KEY) {
-                Write-Host "Found GPLAY_SERVICE_ACCOUNT_KEY in Doppler." -ForegroundColor Green
-                $serviceAccountKey = $secretJson.GPLAY_SERVICE_ACCOUNT_KEY
+            if ($LASTEXITCODE -eq 0 -and $secretJson.GPLAY_SERVICE_ACCOUNT_KEY) {
+                $serviceAccountKey = [string]$secretJson.GPLAY_SERVICE_ACCOUNT_KEY
             }
         } catch {
-            Write-Warning "Failed to read secrets from Doppler."
+            Write-Warning "Doppler Google Play credentials were unavailable."
         }
     }
-}
-
-# Fallback to local file in project root if still not set
-if (-not $serviceAccountKey -and (Test-Path "play_store_key.json")) {
-    $serviceAccountKey = Get-Content -Raw "play_store_key.json"
-    Write-Host "Using credentials from local file: play_store_key.json" -ForegroundColor Green
-}
-
-# Verify we have credentials
-if (-not $serviceAccountKey) {
-    Write-Error @"
-Authentication credentials not found.
-To fix this, please do one of the following:
-1. Save your service account JSON key to 'play_store_key.json' in the root directory.
-2. Store your service account JSON key string in Doppler as 'GPLAY_SERVICE_ACCOUNT_KEY'.
-3. Set the 'GPLAY_SERVICE_ACCOUNT_JSON' environment variable to the path or content of your JSON key file.
-"@
-    exit 1
-}
-
-# Set environment variable for gplay CLI
-$env:GPLAY_SERVICE_ACCOUNT_JSON = $serviceAccountKey
-
-
-# 3. Build the Release App Bundle
-Write-Host "--------------------------------------------------"
-Write-Host "Building Release App Bundle..." -ForegroundColor Cyan
-Write-Host "--------------------------------------------------"
-
-& .\build_ver_aab.ps1
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Build failed. Aborting Play Store upload."
-    exit 1
-}
-
-$aabPath = "build\app\outputs\bundle\release\app-release.aab"
-if (-not (Test-Path $aabPath)) {
-    Write-Error "Could not find built app bundle at $aabPath"
-    exit 1
-}
-
-# 4. Extract Version and Build Number from pubspec.yaml
-$versionString = ""
-if (Test-Path "pubspec.yaml") {
-    $content = Get-Content "pubspec.yaml"
-    foreach ($line in $content) {
-        if ($line -match '^version:\s*(.+)') {
-            $versionString = $Matches[1].Trim()
-            break
-        }
+    $localKeyPath = Join-Path $projectRoot "play_store_key.json"
+    if ([string]::IsNullOrWhiteSpace($serviceAccountKey) -and (Test-Path -LiteralPath $localKeyPath -PathType Leaf)) {
+        $serviceAccountKey = $localKeyPath
+        Write-Host "Using ignored play_store_key.json." -ForegroundColor Cyan
     }
-}
-
-if (-not $versionString) {
-    $versionString = "1.0.0" # Fallback default
-}
-
-# 5. Extract Git Commit Info for Release Notes
-$commitInfo = "New release build."
-if (Get-Command git -ErrorAction SilentlyContinue) {
-    try {
-        $commitInfo = & git log -n 5 --pretty=format:"- %s"
-        if ($commitInfo -is [array]) {
-            $commitInfo = $commitInfo -join "`n"
-        }
-        if ($commitInfo.Length -gt 450) {
-            $commitInfo = $commitInfo.Substring(0, 450) + "..."
-        }
-    } catch {
-        # Keep fallback
+    if ([string]::IsNullOrWhiteSpace($serviceAccountKey)) {
+        Stop-Publish "Google Play credentials were not found in GPLAY_SERVICE_ACCOUNT_JSON, Doppler, or ignored play_store_key.json."
     }
-}
+    $env:GPLAY_SERVICE_ACCOUNT_JSON = $serviceAccountKey
 
-# 6. Commit Version Bump and changes to Git first
-if (Get-Command git -ErrorAction SilentlyContinue) {
-    Write-Host "--------------------------------------------------"
-    Write-Host "Committing version bump to Git..." -ForegroundColor Cyan
-    Write-Host "--------------------------------------------------"
-    try {
-        & git add -A
-        $gitStatus = & git status --porcelain
-        if ($gitStatus) {
-            & git commit -m "release: version $versionString"
-            Write-Host "Committed successfully to Git." -ForegroundColor Green
-        } else {
-            Write-Host "No changes to commit." -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Warning "Failed to commit to Git: $_"
-    }
-}
-
-# 7. Upload/Release to Internal Track
-Write-Host "--------------------------------------------------"
-Write-Host "Releasing to Google Play Store (Internal track)..." -ForegroundColor Cyan
-Write-Host "Version Name: $versionString"
-Write-Host "Release Notes:`n$commitInfo"
-Write-Host "--------------------------------------------------"
-
-# Run the release command
-& $gplayPath release --package in.wreadom.app --track internal --bundle $aabPath --version-name $versionString --release-notes $commitInfo
-
-$releaseExitCode = $LASTEXITCODE
-
-
-if ($releaseExitCode -eq 0) {
-    Write-Host "--------------------------------------------------"
-    Write-Host "Successfully published to Google Play Store (Internal)!" -ForegroundColor Green
-    Write-Host "--------------------------------------------------"
-    
-    # 8. Deploy to Vercel
-    Write-Host "--------------------------------------------------"
-    Write-Host "Starting deployment to Vercel..." -ForegroundColor Cyan
-    Write-Host "--------------------------------------------------"
-    & .\deploy_vercel.ps1 -Production
+    Write-Host "Building the production release App Bundle..." -ForegroundColor Cyan
+    & (Join-Path $projectRoot "build_ver_aab.ps1")
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Vercel deployment failed."
-        exit 1
+        Stop-Publish "The production App Bundle build failed."
     }
-} else {
-    Write-Error "Play Store release failed with exit code $releaseExitCode"
-    exit 1
-}
+    if (-not (Test-Path -LiteralPath $aabPath -PathType Leaf)) {
+        Stop-Publish "The expected App Bundle was not found at $aabPath"
+    }
 
+    $pubspec = Get-Content -Raw -LiteralPath $pubspecPath
+    $versionMatch = [regex]::Match($pubspec, '(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+\+[0-9]+)\s*$')
+    if (-not $versionMatch.Success) {
+        Stop-Publish "The built pubspec version could not be parsed."
+    }
+    $versionString = $versionMatch.Groups[1].Value
+
+    $commitInfo = (& git log -n 5 --pretty=format:"- %s" | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($commitInfo)) {
+        $commitInfo = "New release build."
+    }
+    if ($commitInfo.Length -gt 450) {
+        $commitInfo = $commitInfo.Substring(0, 450) + "..."
+    }
+
+    & git add -- pubspec.yaml
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Publish "Git could not stage the pubspec version bump."
+    }
+    $stagedFiles = @(& git diff --cached --name-only)
+    if ($stagedFiles.Count -ne 1 -or $stagedFiles[0] -ne "pubspec.yaml") {
+        Stop-Publish "Unexpected files are staged. Publishing will not continue."
+    }
+    & git commit -m "release: version $versionString"
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Publish "Git could not commit the generated version bump."
+    }
+
+    Write-Host "Releasing $versionString to Google Play internal..." -ForegroundColor Cyan
+    & $gplayPath release --package in.wreadom.app --track internal --bundle $aabPath --version-name $versionString --release-notes $commitInfo
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Publish "Google Play release failed with exit code $LASTEXITCODE. The local version commit was retained for traceability."
+    }
+
+    Write-Host "Google Play release succeeded. Deploying the matching web app..." -ForegroundColor Green
+    & (Join-Path $projectRoot "deploy_vercel.ps1") -Production
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Publish "Google Play succeeded, but Vercel deployment failed."
+    }
+
+    Write-Host "Google Play internal and Vercel production releases succeeded." -ForegroundColor Green
+    exit 0
+} catch {
+    Stop-Publish $_.Exception.Message
+}

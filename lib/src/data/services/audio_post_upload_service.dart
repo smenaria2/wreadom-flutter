@@ -49,11 +49,29 @@ class AudioPostUploadService {
         );
       }
 
-      final bytes = await file.readAsBytes();
       final normalizedMimeType = inferAudioPostMimeType(
         fileName: file.name,
         mimeType: mimeType,
       );
+      if (!_supportedAudioMimeTypes.contains(normalizedMimeType)) {
+        throw const AudioPostUploadException('Unsupported audio type.');
+      }
+      if (durationMs <= 0) {
+        throw const AudioPostUploadException(
+          'Audio duration could not be verified.',
+        );
+      }
+      final actualSizeBytes = await file.length();
+      if (actualSizeBytes <= 0) {
+        throw const AudioPostUploadException('Audio file is empty.');
+      }
+      if (actualSizeBytes > maxAudioBytes || sizeBytes > maxAudioBytes) {
+        throw const AudioPostUploadException(
+          'Audio post must be 10MB or smaller.',
+        );
+      }
+
+      final bytes = await file.readAsBytes();
       validateAudioPostUpload(
         bytes: bytes,
         mimeType: normalizedMimeType,

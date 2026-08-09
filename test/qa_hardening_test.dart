@@ -367,9 +367,7 @@ void main() {
       'support',
       'submitError',
       'help',
-      'legal',
-      'privacyPolicy',
-      'termsOfUse',
+      'about',
       'logout',
     ]) {
       expect(source, contains('l10n.$key'));
@@ -379,6 +377,9 @@ void main() {
       expect(source, isNot(contains(label)));
     }
     expect(source, isNot(contains("title: 'Settings'")));
+    expect(source, isNot(contains('l10n.legal')));
+    expect(source, isNot(contains('l10n.privacyPolicy')));
+    expect(source, isNot(contains('l10n.termsOfUse')));
     expect(source, contains('Icons.manage_accounts_outlined'));
     expect(source, contains('Icons.menu_rounded'));
     expect(source, isNot(contains('Icons.more_vert')));

@@ -21,6 +21,7 @@ class SharingIntentHandler {
   StreamSubscription<List<SharedMediaFile>>? _intentSub;
   bool _initialized = false;
   List<SharedMediaFile>? _initialMedia;
+  static const int _maxSharedAudioBytes = 10 * 1024 * 1024;
 
   Future<bool> hasInitialShare() async {
     final cached = _initialMedia;
@@ -152,7 +153,14 @@ class SharingIntentHandler {
       debugPrint("SharingIntentHandler: Handling shared audio");
       String resolvedPath = path;
       if (path.startsWith('content://')) {
-        resolvedPath = await _copyToTempFile(path, file.mimeType);
+        final copiedPath = await _copyToTempFile(path, file.mimeType);
+        if (copiedPath == null) {
+          debugPrint(
+            'SharingIntentHandler: Shared audio could not be copied safely.',
+          );
+          return;
+        }
+        resolvedPath = copiedPath;
       }
 
       // 1. Get file size
@@ -229,13 +237,21 @@ class SharingIntentHandler {
     return extensions.any((ext) => lowerPath.endsWith(ext));
   }
 
-  Future<String> _copyToTempFile(String path, String? mimeType) async {
+  Future<String?> _copyToTempFile(String path, String? mimeType) async {
     if (!path.startsWith('content://')) return path;
 
+    File? tempFile;
     try {
       final xfile = XFile(path);
-      final bytes = await xfile.readAsBytes();
-      if (bytes.isEmpty) return path;
+      try {
+        final knownLength = await xfile.length();
+        if (knownLength <= 0 || knownLength > _maxSharedAudioBytes) {
+          return null;
+        }
+      } catch (_) {
+        // Some Android content providers do not expose a reliable length.
+        // The streaming limit below remains authoritative.
+      }
 
       final tempDir = await getTemporaryDirectory();
 
@@ -280,15 +296,34 @@ class SharingIntentHandler {
 
       final fileName =
           'shared_audio_${DateTime.now().millisecondsSinceEpoch}$ext';
-      final tempFile = File(p.join(tempDir.path, fileName));
-      await tempFile.writeAsBytes(bytes);
+      tempFile = File(p.join(tempDir.path, fileName));
+      final sink = tempFile.openWrite();
+      var copiedBytes = 0;
+      try {
+        await for (final chunk in xfile.openRead()) {
+          copiedBytes += chunk.length;
+          if (copiedBytes > _maxSharedAudioBytes) {
+            throw const FileSystemException('Shared audio is too large.');
+          }
+          sink.add(chunk);
+        }
+      } finally {
+        await sink.close();
+      }
+      if (copiedBytes == 0) {
+        await tempFile.delete();
+        return null;
+      }
       debugPrint(
         "SharingIntentHandler: Copied content:// to temp file: ${tempFile.path}",
       );
       return tempFile.path;
     } catch (e) {
       debugPrint("SharingIntentHandler: Error copying content:// URI: $e");
-      return path;
+      if (tempFile != null && await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      return null;
     }
   }
 }

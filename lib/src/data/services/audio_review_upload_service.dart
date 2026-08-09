@@ -28,6 +28,15 @@ class AudioReviewUploadService {
     }
 
     final file = XFile(filePath, mimeType: mimeType);
+    final actualSizeBytes = await file.length();
+    if (actualSizeBytes <= 0) {
+      throw const AudioReviewUploadException('Recorded audio is empty.');
+    }
+    if (actualSizeBytes > maxAudioBytes) {
+      throw const AudioReviewUploadException(
+        'Audio review must be 2MB or smaller.',
+      );
+    }
     final bytes = await file.readAsBytes();
     if (bytes.isEmpty) {
       throw const AudioReviewUploadException('Recorded audio is empty.');

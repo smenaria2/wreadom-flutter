@@ -87,54 +87,56 @@ void main() {
         expect(find.text('Terms of Use'), findsNothing);
         expect(find.text('Privacy Policy'), findsNothing);
 
-        // Verify About tile exists in drawer
-        expect(find.text('About', skipOffstage: false), findsOneWidget);
+        // The drawer list is lazy; scroll until the lower Support items exist.
+        await tester.scrollUntilVisible(
+          find.text('About'),
+          240,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('About'), findsOneWidget);
       },
     );
   });
 
   group('About Hub Structure & Content Tests', () {
-    testWidgets('renders Wreadom logo, description, creator link, and 3 hub tiles', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildTestApp(child: const AboutHubScreen()),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders Wreadom logo, description, creator link, and 3 hub tiles',
+      (tester) async {
+        await tester.pumpWidget(_buildTestApp(child: const AboutHubScreen()));
+        await tester.pumpAndSettle();
 
-      // Check Wreadom image logo exists
-      expect(find.byType(Image), findsOneWidget);
+        // Check Wreadom image logo exists
+        expect(find.byType(Image), findsOneWidget);
 
-      // Check description text
-      expect(
-        find.text(
-          'Read classic books and original stories, discover independent writers, and publish your own work.',
-        ),
-        findsOneWidget,
-      );
+        // Check description text
+        expect(
+          find.text(
+            'Read classic books and original stories, discover independent writers, and publish your own work.',
+          ),
+          findsOneWidget,
+        );
 
-      // Check creator link text
-      expect(find.text('Proudly created by Sumit Menaria'), findsOneWidget);
+        // Check creator link text
+        expect(find.text('Proudly created by Sumit Menaria'), findsOneWidget);
 
-      // Check the 3 hub tiles below it
-      final listTiles = find.byType(ListTile);
-      expect(listTiles, findsNWidgets(3));
+        // Check the 3 hub tiles below it
+        final listTiles = find.byType(ListTile);
+        expect(listTiles, findsNWidgets(3));
 
-      final tile1 = tester.widget<ListTile>(listTiles.at(0));
-      final tile2 = tester.widget<ListTile>(listTiles.at(1));
-      final tile3 = tester.widget<ListTile>(listTiles.at(2));
+        final tile1 = tester.widget<ListTile>(listTiles.at(0));
+        final tile2 = tester.widget<ListTile>(listTiles.at(1));
+        final tile3 = tester.widget<ListTile>(listTiles.at(2));
 
-      expect((tile1.title as Text).data, 'Terms of Use');
-      expect((tile2.title as Text).data, 'Privacy Policy');
-      expect((tile3.title as Text).data, 'Attributions');
-    });
+        expect((tile1.title as Text).data, 'Terms of Use');
+        expect((tile2.title as Text).data, 'Privacy Policy');
+        expect((tile3.title as Text).data, 'Attributions');
+      },
+    );
 
     testWidgets('tapping Attributions navigates to AttributionsScreen', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _buildTestApp(child: const AboutHubScreen()),
-      );
+      await tester.pumpWidget(_buildTestApp(child: const AboutHubScreen()));
       await tester.pumpAndSettle();
 
       await tester.drag(find.byType(ListView), const Offset(0, -300));
@@ -193,9 +195,7 @@ void main() {
     testWidgets('renders all curated entries and open-source software row', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _buildTestApp(child: const AttributionsScreen()),
-      );
+      await tester.pumpWidget(_buildTestApp(child: const AttributionsScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('Dictionary & Word Definitions'), findsOneWidget);
@@ -213,9 +213,7 @@ void main() {
     testWidgets('tapping Open-source software licenses opens LicensePage', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _buildTestApp(child: const AttributionsScreen()),
-      );
+      await tester.pumpWidget(_buildTestApp(child: const AttributionsScreen()));
       await tester.pumpAndSettle();
 
       await tester.drag(find.byType(ListView), const Offset(0, -600));

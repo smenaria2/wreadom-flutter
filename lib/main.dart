@@ -6,6 +6,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_glass_morphism/flutter_glass_morphism.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/providers/homepage_providers.dart';
@@ -23,6 +25,7 @@ import 'src/presentation/providers/notification_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/providers/animation_settings_provider.dart';
 import 'src/presentation/providers/tier_progress_provider.dart';
+import 'src/presentation/providers/navigation_providers.dart';
 import 'src/presentation/providers/accessibility_providers.dart';
 import 'src/presentation/components/profile/tier_up_celebration_sheet.dart';
 import 'src/domain/models/user_model.dart';
@@ -55,59 +58,222 @@ import 'src/utils/sharing_intent_handler.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
-Future<void> main() async {
+bool _hasMountedFlutterApp = false;
+bool _crashlyticsReady = false;
+bool _licensesRegistered = false;
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  AppLogCollector.init();
+  _installGlobalErrorHandlers();
+
   runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    registerCustomLicenses();
     try {
-      if (!kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.android ||
-              defaultTargetPlatform == TargetPlatform.iOS ||
-              defaultTargetPlatform == TargetPlatform.macOS)) {
-        await JustAudioBackground.init(
-          androidNotificationChannelId:
-              'com.ryanheise.audioservice.channel.audio',
-          androidNotificationChannelName: 'Audio Playback',
-          androidNotificationOngoing: true,
-        );
-      }
-    } catch (e, stack) {
-      // Log error but do not block app startup
-      AppLogCollector.recordZoneError(e, stack);
+      await _launchApplication();
+    } catch (error, stackTrace) {
+      _recordUncaughtError(error, stackTrace);
+      _showBootstrapFailure();
     }
-    AppLogCollector.init();
-    FlutterError.onError = (details) {
-      AppLogCollector.recordFlutterError(details);
-      FlutterError.presentError(details);
-    };
-    ui.PlatformDispatcher.instance.onError = (error, stack) {
-      AppLogCollector.recordZoneError(error, stack);
-      return false;
-    };
-    final appLinks = AppLinks();
-    final startupEntryFuture = _resolveStartupEntry(appLinks);
-    final sharedPreferences = await SharedPreferences.getInstance();
-    final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
-    final startupEntry = await startupEntryFuture;
-    runApp(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-        ],
-        child: MyApp(
-          firebaseBootstrap: firebaseBootstrap,
-          appLinks: appLinks,
+  }, _handleZoneError);
+}
+
+void _installGlobalErrorHandlers() {
+  FlutterError.onError = (details) {
+    AppLogCollector.recordFlutterError(details);
+    if (_crashlyticsReady) {
+      unawaited(FirebaseCrashlytics.instance.recordFlutterFatalError(details));
+    }
+    FlutterError.presentError(details);
+  };
+  ui.PlatformDispatcher.instance.onError = (error, stack) {
+    _recordUncaughtError(error, stack);
+    return true;
+  };
+}
+
+void _handleZoneError(Object error, StackTrace stackTrace) {
+  _recordUncaughtError(error, stackTrace);
+  if (!_hasMountedFlutterApp) {
+    _showBootstrapFailure();
+  }
+}
+
+void _recordUncaughtError(Object error, StackTrace stackTrace) {
+  AppLogCollector.recordZoneError(error, stackTrace);
+  if (_crashlyticsReady) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stackTrace, fatal: true),
+    );
+  }
+}
+
+Future<void> _launchApplication() async {
+  if (!_licensesRegistered) {
+    registerCustomLicenses();
+    _licensesRegistered = true;
+  }
+  try {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      await JustAudioBackground.init(
+        androidNotificationChannelId:
+            'com.ryanheise.audioservice.channel.audio',
+        androidNotificationChannelName: 'Audio Playback',
+        androidNotificationOngoing: true,
+      );
+    }
+  } catch (error, stackTrace) {
+    AppLogCollector.recordZoneError(error, stackTrace);
+  }
+
+  final appLinks = AppLinks();
+  final startupEntryFuture = _resolveStartupEntry(appLinks);
+  final sharedPreferences = await SharedPreferences.getInstance().timeout(
+    _MyAppState._startupTimeout,
+  );
+  final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
+  await _initializeCrashReporting(firebaseBootstrap);
+  final startupEntry = await startupEntryFuture;
+  _hasMountedFlutterApp = true;
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: MyApp(
+        firebaseBootstrap: firebaseBootstrap,
+        appLinks: appLinks,
+        initialAppLink: startupEntry.initialAppLink,
+        skipStartupSplash: !shouldShowStartupSplash(
           initialAppLink: startupEntry.initialAppLink,
-          skipStartupSplash: !shouldShowStartupSplash(
-            initialAppLink: startupEntry.initialAppLink,
-            hasInitialShare: startupEntry.hasInitialShare,
-            hasSeenSplash: SplashPreferencesService.hasSeenSplash(sharedPreferences),
-            disableAnimations: DisableAnimationsNotifier.isAnimationsDisabled(sharedPreferences),
+          hasInitialShare: startupEntry.hasInitialShare,
+          hasSeenSplash: SplashPreferencesService.hasSeenSplash(
+            sharedPreferences,
+          ),
+          disableAnimations: DisableAnimationsNotifier.isAnimationsDisabled(
+            sharedPreferences,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _initializeCrashReporting(
+  FirebaseBootstrapResult bootstrap,
+) async {
+  final supportedPlatform =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+  if (!bootstrap.ready || !supportedPlatform) return;
+
+  try {
+    final crashlytics = FirebaseCrashlytics.instance;
+    await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+    final packageInfo = await PackageInfo.fromPlatform();
+    await Future.wait([
+      crashlytics.setCustomKey('app_version', packageInfo.version),
+      crashlytics.setCustomKey('build_number', packageInfo.buildNumber),
+      crashlytics.setCustomKey('platform', defaultTargetPlatform.name),
+      crashlytics.setCustomKey('firebase_ready', bootstrap.ready),
+      crashlytics.setCustomKey('app_check_ready', bootstrap.appCheckConfigured),
+    ]);
+    _crashlyticsReady = true;
+  } catch (error, stackTrace) {
+    AppLogCollector.recordZoneError(error, stackTrace);
+  }
+}
+
+void _showBootstrapFailure() {
+  _hasMountedFlutterApp = true;
+  runApp(BootstrapFailureApp(onRetry: _retryBootstrap));
+}
+
+Future<void> _retryBootstrap() async {
+  try {
+    await _launchApplication();
+  } catch (error, stackTrace) {
+    _recordUncaughtError(error, stackTrace);
+    rethrow;
+  }
+}
+
+class BootstrapFailureApp extends StatefulWidget {
+  const BootstrapFailureApp({super.key, required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  State<BootstrapFailureApp> createState() => _BootstrapFailureAppState();
+}
+
+class _BootstrapFailureAppState extends State<BootstrapFailureApp> {
+  bool _retrying = false;
+
+  Future<void> _retry() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    try {
+      await widget.onRetry();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _retrying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, size: 48),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Wreadom could not start.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Check your connection and try again.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _retrying ? null : _retry,
+                      icon: _retrying
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_rounded),
+                      label: const Text('Try again'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
-  }, AppLogCollector.recordZoneError);
+  }
 }
 
 Future<({bool hasInitialShare, Uri? initialAppLink})> _resolveStartupEntry(
@@ -341,7 +507,9 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _completeStartupSplash() {
     if (!mounted || !_showStartupSplash) return;
     setState(() => _showStartupSplash = false);
-    SplashPreferencesService.markSplashSeen(ref.read(sharedPreferencesProvider));
+    SplashPreferencesService.markSplashSeen(
+      ref.read(sharedPreferencesProvider),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _pendingNavigation.updateReadiness(
@@ -622,7 +790,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             restorationScopeId: 'wreadom_app',
             title: 'Wreadom',
             debugShowCheckedModeBanner: false,
-            showSemanticsDebugger: kDebugMode && ref.watch(showSemanticsDebuggerProvider),
+            showSemanticsDebugger:
+                kDebugMode && ref.watch(showSemanticsDebuggerProvider),
             locale: locale,
             localizationsDelegates: const [
               AppLocalizations.delegate,
@@ -670,6 +839,9 @@ class _MyAppState extends ConsumerState<MyApp> {
                             _drainPendingDeepLinkTarget();
                           },
                       onSignedOut: () {
+                        ref
+                            .read(appFullyLoadedProvider.notifier)
+                            .setLoaded(false);
                         ref
                             .read(isSigningOutProvider.notifier)
                             .setSigningOut(false);
@@ -806,6 +978,7 @@ class AuthWrapper extends ConsumerWidget {
           return OnboardingGate(
             userId: user.uid,
             onReady: () {
+              ref.read(appFullyLoadedProvider.notifier).setLoaded(true);
               unawaited(warmUserHomepageCache(ref));
               NotificationService.instance.drainPendingNavigation();
               onReadinessChanged(

@@ -2552,6 +2552,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           context,
         ).timeout(const Duration(seconds: 2), onTimeout: () {});
       }
+      if (!mounted) return;
       setState(() {
         _quoteSharePayload = _QuoteSharePayload(
           quote: quoteWithBreaks,
@@ -2565,10 +2566,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final boundary =
           _quoteImageKey.currentContext?.findRenderObject()
               as RenderRepaintBoundary?;
-      final image = await boundary?.toImage(pixelRatio: 3);
+      final image = await boundary?.toImage(pixelRatio: 2);
       final bytes = await image
           ?.toByteData(format: ui.ImageByteFormat.png)
           .then((data) => data?.buffer.asUint8List());
+      if (!mounted) return;
 
       final chapterIndex = _chapterIndex;
       final chapterLink = AppLinkHelper.chapter(
@@ -2929,7 +2931,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             enabled: !_isSubmittingComment,
                             decoration: InputDecoration(
                               hintText: l10n.chapterReviewPromptHint,
-                              contentPadding: const EdgeInsets.fromLTRB(16, 16, 44, 40),
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                44,
+                                40,
+                              ),
                             ),
                             onChanged: (_) => setModalState(() {}),
                           ),
@@ -3838,8 +3845,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     child: HindiInputWrapper(
                                       controller: _commentController.value,
                                       focusNode: _commentFocusNode,
-                                      enabled: !_isSubmittingComment && !(_replyingTo == null && _existingUserReview != null && !_isReviewEditMode),
-                                      readOnly: _replyingTo == null && _existingUserReview != null && !_isReviewEditMode,
+                                      enabled:
+                                          !_isSubmittingComment &&
+                                          !(_replyingTo == null &&
+                                              _existingUserReview != null &&
+                                              !_isReviewEditMode),
+                                      readOnly:
+                                          _replyingTo == null &&
+                                          _existingUserReview != null &&
+                                          !_isReviewEditMode,
                                       centerVertically: true,
                                       rightOffset: 44.0,
                                       child: TextField(
@@ -3859,7 +3873,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                             color: _getSecondaryTextColor(),
                                           ),
                                           border: InputBorder.none,
-                                          contentPadding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+                                          contentPadding:
+                                              const EdgeInsets.fromLTRB(
+                                                16,
+                                                14,
+                                                4,
+                                                14,
+                                              ),
                                           suffixIcon: IconButton(
                                             tooltip: _isRecordingAudioReview
                                                 ? l10n.stopRecording
@@ -3899,7 +3919,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                           ),
                                         ),
                                         onChanged: (_) => setModalState(() {}),
-                                        style: TextStyle(color: _getTextColor()),
+                                        style: TextStyle(
+                                          color: _getTextColor(),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -3909,12 +3931,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     child: GlassSurface(
                                       strong: true,
                                       borderRadius: BorderRadius.circular(18),
-                                      onTap: _isSubmittingComment ||
+                                      onTap:
+                                          _isSubmittingComment ||
                                               (_replyingTo == null &&
-                                                  ((_existingUserReview != null &&
+                                                  ((_existingUserReview !=
+                                                              null &&
                                                           !_isReviewEditMode) ||
                                                       !_canSubmitReview)) ||
-                                              (_replyingTo != null && !_canSubmitReply)
+                                              (_replyingTo != null &&
+                                                  !_canSubmitReply)
                                           ? null
                                           : () async {
                                               await _submitComment(
@@ -3945,8 +3970,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                                 !_canSubmitReview)) ||
                                                         (_replyingTo != null &&
                                                             !_canSubmitReply)
-                                                        ? 0.35
-                                                        : 1,
+                                                    ? 0.35
+                                                    : 1,
                                               ),
                                             ),
                                             const SizedBox(width: 6),
@@ -3963,10 +3988,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                                           null &&
                                                                       !_isReviewEditMode) ||
                                                                   !_canSubmitReview)) ||
-                                                          (_replyingTo != null &&
+                                                          (_replyingTo !=
+                                                                  null &&
                                                               !_canSubmitReply)
-                                                          ? 0.35
-                                                          : 1,
+                                                      ? 0.35
+                                                      : 1,
                                                 ),
                                               ),
                                             ),
@@ -5723,7 +5749,7 @@ class _ReaderBottomBar extends StatelessWidget {
                     valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     minHeight: 2,
                   ),
-                   ReaderChapterProgressDetails(
+                  ReaderChapterProgressDetails(
                     currentChapterNumber: currentChapterNumber,
                     totalChapters: totalChapters,
                     progress: safeProgress,

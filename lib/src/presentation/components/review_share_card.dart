@@ -68,7 +68,9 @@ Future<void> shareReviewCard(
     final boundary =
         boundaryKey.currentContext?.findRenderObject()
             as RenderRepaintBoundary?;
-    final image = await boundary?.toImage(pixelRatio: 2.0);
+    // The card already has a 1536px logical width. Capturing at 2x can exceed
+    // 50MB of raw RGBA memory on portrait cards and crash low-memory devices.
+    final image = await boundary?.toImage();
     final bytes = await image
         ?.toByteData(format: ui.ImageByteFormat.png)
         .then((data) => data?.buffer.asUint8List());
@@ -138,7 +140,10 @@ Future<void> shareReviewCommentCard(
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
     }
-    await _precacheNetworkImage(context, optimizedAvatarUrl(comment.userPhotoURL));
+    await _precacheNetworkImage(
+      context,
+      optimizedAvatarUrl(comment.userPhotoURL),
+    );
     if (!context.mounted) {
       await Share.share(fallbackText, subject: l10n.reviewTitle(bookTitle));
       return;
@@ -148,7 +153,7 @@ Future<void> shareReviewCommentCard(
     final boundary =
         boundaryKey.currentContext?.findRenderObject()
             as RenderRepaintBoundary?;
-    final image = await boundary?.toImage(pixelRatio: 2.0);
+    final image = await boundary?.toImage();
     final bytes = await image
         ?.toByteData(format: ui.ImageByteFormat.png)
         .then((data) => data?.buffer.asUint8List());

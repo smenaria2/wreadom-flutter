@@ -91,6 +91,7 @@ dependencies:
   firebase_analytics: ^12.3.0
   in_app_review: ^2.0.12
   lottie: ^3.3.3
+  firebase_crashlytics: ^5.2.7
 
 dev_dependencies:
   flutter_test:

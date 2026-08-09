@@ -244,6 +244,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
     // Coordinate rotation with playing state
     _playerStateSubscription = _player.playerStateStream.listen((state) {
+      if (!mounted) return;
       final isCurrent = ref.read(activeAudioPostUrlProvider) == _audioIdentity;
       final disableAnimations = MediaQuery.of(context).disableAnimations;
       if (isCurrent &&
@@ -317,7 +318,7 @@ class _AudioPostPlayerState extends ConsumerState<AudioPostPlayer>
 
   @override
   void dispose() {
-    _playerStateSubscription.cancel();
+    unawaited(_playerStateSubscription.cancel());
     _rotationController.dispose();
     super.dispose();
   }

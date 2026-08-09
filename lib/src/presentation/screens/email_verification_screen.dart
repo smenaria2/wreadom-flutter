@@ -21,37 +21,56 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _EmailVerificationScreenState
-    extends ConsumerState<EmailVerificationScreen> {
+    extends ConsumerState<EmailVerificationScreen>
+    with WidgetsBindingObserver {
   int _cooldown = 0;
   Timer? _cooldownTimer;
   Timer? _autoCheckTimer;
   bool _checking = false;
   bool _resending = false;
+  bool _appIsActive = true;
   String? _successMessage;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Auto check status every 5 seconds
     _autoCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _checkStatus(isAuto: true);
+      if (_appIsActive) {
+        unawaited(_checkStatus(isAuto: true));
+      }
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appIsActive = state == AppLifecycleState.resumed;
+    if (_appIsActive) {
+      unawaited(_checkStatus(isAuto: true));
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cooldownTimer?.cancel();
     _autoCheckTimer?.cancel();
     super.dispose();
   }
 
   void _startCooldown() {
+    if (!mounted) return;
     setState(() {
       _cooldown = 60;
     });
     _cooldownTimer?.cancel();
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (_cooldown > 1) {
         setState(() {
           _cooldown--;
@@ -80,12 +99,14 @@ class _EmailVerificationScreenState
       final user = fb_auth.FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.sendEmailVerification();
+        if (!mounted) return;
         setState(() {
           _successMessage = l10n.resendSuccess;
         });
         _startCooldown();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
       });
@@ -99,11 +120,12 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _checkStatus({bool isAuto = false}) async {
-    if (_checking) return;
+    if (_checking || !_appIsActive) return;
+
+    _checking = true;
 
     if (!isAuto) {
       setState(() {
-        _checking = true;
         _errorMessage = null;
         _successMessage = null;
       });
@@ -115,6 +137,7 @@ class _EmailVerificationScreenState
       final user = fb_auth.FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.reload();
+        if (!mounted) return;
         // Get fresh user reference after reload
         final updatedUser = fb_auth.FirebaseAuth.instance.currentUser;
         if (updatedUser != null && updatedUser.emailVerified) {
@@ -130,15 +153,16 @@ class _EmailVerificationScreenState
         }
       }
     } catch (e) {
-      if (!isAuto) {
+      if (mounted && !isAuto) {
         setState(() {
           _errorMessage = e.toString();
         });
       }
     } finally {
+      _checking = false;
       if (mounted && !isAuto) {
         setState(() {
-          _checking = false;
+          // Rebuild the manual action after the in-flight check completes.
         });
       }
     }

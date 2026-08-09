@@ -59,6 +59,13 @@ class ImageUploadService {
     required String userId,
     ImageUploadPreset preset = ImageUploadPreset.general,
   }) async {
+    final sizeBytes = await file.length();
+    if (sizeBytes <= 0) {
+      throw const ImageUploadException('Image file is empty.');
+    }
+    if (sizeBytes > maxImageBytes) {
+      throw const ImageUploadException('Image must be 10MB or smaller.');
+    }
     final bytes = await file.readAsBytes();
     return uploadImageBytes(
       bytes: bytes,

@@ -30,7 +30,6 @@ import '../widgets/social_links_menu.dart';
 import '../widgets/submit_error_dialog.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/image_proxy_utils.dart';
-import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../components/profile/user_posts_tab.dart';
 import '../components/profile/user_about_tab.dart';
@@ -714,11 +713,6 @@ class ProfileSideMenu extends ConsumerWidget {
   void _go(BuildContext context, String route) {
     Navigator.of(context).pop();
     Navigator.of(context).pushNamed(route);
-  }
-
-  Future<void> _openPolicy(BuildContext context, String route) async {
-    Navigator.of(context).pop();
-    await AppRouter.openExternalPolicy(context, route);
   }
 
   Future<void> _showErrorReportDialog(

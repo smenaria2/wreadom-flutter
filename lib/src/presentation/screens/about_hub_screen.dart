@@ -5,7 +5,6 @@ import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/screens/attributions_screen.dart';
 import 'package:librebook_flutter/src/presentation/widgets/app_background.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AboutHubScreen extends StatelessWidget {
   const AboutHubScreen({super.key});
@@ -13,7 +12,9 @@ class AboutHubScreen extends StatelessWidget {
   void _openCreatorProfile(BuildContext context) {
     Navigator.of(context).pushNamed(
       AppRoutes.publicProfile,
-      arguments: const PublicProfileArguments(userId: '3eOsWQIlW6c7XWCw8cnMIxed71R2'),
+      arguments: const PublicProfileArguments(
+        userId: '3eOsWQIlW6c7XWCw8cnMIxed71R2',
+      ),
     );
   }
 
@@ -35,7 +36,10 @@ class AboutHubScreen extends StatelessWidget {
           const Positioned.fill(child: AppBackground()),
           SafeArea(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 16.0,
+              ),
               children: [
                 const SizedBox(height: 12),
                 // Wreadom Logo Header
@@ -47,7 +51,9 @@ class AboutHubScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.25,
+                          ),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
@@ -60,15 +66,16 @@ class AboutHubScreen extends StatelessWidget {
                         width: 96,
                         height: 96,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => CircleAvatar(
-                          radius: 48,
-                          backgroundColor: theme.colorScheme.primary,
-                          child: const Icon(
-                            Icons.auto_stories_rounded,
-                            size: 48,
-                            color: Colors.white,
-                          ),
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            CircleAvatar(
+                              radius: 48,
+                              backgroundColor: theme.colorScheme.primary,
+                              child: const Icon(
+                                Icons.auto_stories_rounded,
+                                size: 48,
+                                color: Colors.white,
+                              ),
+                            ),
                       ),
                     ),
                   ),
@@ -93,9 +100,7 @@ class AboutHubScreen extends StatelessWidget {
                       Text(
                         l10n.aboutDescription,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.6,
-                        ),
+                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
                       ),
                       const SizedBox(height: 20),
                       const Divider(height: 1),

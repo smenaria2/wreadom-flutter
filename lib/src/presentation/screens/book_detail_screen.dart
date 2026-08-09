@@ -117,6 +117,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
             );
           }
           _precacheCover(book.coverUrl);
+          _preloadChapters(book.id);
           if (widget.initialReaderChapterIndex != null) {
             return _ReaderDeepLinkLauncher(
               book: book,
@@ -186,11 +187,12 @@ class _UnavailableBookView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? searchTarget = (bookTitle != null && bookTitle!.trim().isNotEmpty)
+    final String? searchTarget =
+        (bookTitle != null && bookTitle!.trim().isNotEmpty)
         ? bookTitle!.trim()
         : ((authorName != null && authorName!.trim().isNotEmpty)
-            ? authorName!.trim()
-            : null);
+              ? authorName!.trim()
+              : null);
 
     return StaticInfoScreen(
       title: 'Content Not Found',
@@ -691,7 +693,11 @@ class _BookDetailBody extends ConsumerWidget {
     );
   }
 
-  bool _hasProgress(WidgetRef ref, AsyncValue<dynamic> userAsync, String bookId) {
+  bool _hasProgress(
+    WidgetRef ref,
+    AsyncValue<dynamic> userAsync,
+    String bookId,
+  ) {
     final prefs = ref.read(sharedPreferencesProvider);
     final key = 'local_progress_$bookId';
     if (prefs.containsKey(key)) return true;
@@ -1856,7 +1862,9 @@ class _BookDetailHeader extends StatelessWidget {
                 scale: 1 - (progress * 0.10),
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
-                  child: heroTag == null || MediaQuery.of(context).disableAnimations
+                  child:
+                      heroTag == null ||
+                          MediaQuery.of(context).disableAnimations
                       ? _DetailCover(book: book)
                       : Hero(
                           tag: heroTag!,
@@ -1969,7 +1977,9 @@ class _ExpandableTextState extends State<_ExpandableText> {
             Text(
               widget.text,
               maxLines: _expanded ? null : 4,
-              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: _expanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
               style: style,
             ),
             if (isTruncated)
@@ -2291,7 +2301,10 @@ class _BookQuickActionTile extends StatelessWidget {
               )
             else
               Center(
-                child: Icon(icon, color: selected ? scheme.primary : scheme.onSurface),
+                child: Icon(
+                  icon,
+                  color: selected ? scheme.primary : scheme.onSurface,
+                ),
               ),
             const SizedBox(height: 6),
             Text(

@@ -13,12 +13,6 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:enableOnBackInvokedCallback="false">
-        <meta-data
-            android:name="io.flutter.embedding.android.DisableSurfaceControl"
-            android:value="false" />
-        <meta-data
-            android:name="io.flutter.embedding.android.EnableImpeller"
-            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

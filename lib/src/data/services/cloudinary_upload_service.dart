@@ -23,6 +23,13 @@ class CloudinaryUploadService {
     required String userId,
     String deliveryTransform = 'f_auto,q_auto,w_1200,c_limit',
   }) async {
+    final sizeBytes = await file.length();
+    if (sizeBytes <= 0) {
+      throw const CloudinaryUploadException('Image file is empty.');
+    }
+    if (sizeBytes > maxImageBytes) {
+      throw const CloudinaryUploadException('Image must be 10MB or smaller.');
+    }
     final bytes = await file.readAsBytes();
     return uploadImageBytes(
       bytes: bytes,
@@ -53,6 +60,9 @@ class CloudinaryUploadService {
       );
     }
 
+    if (bytes.isEmpty) {
+      throw const CloudinaryUploadException('Image file is empty.');
+    }
     if (bytes.length > maxImageBytes) {
       throw const CloudinaryUploadException('Image must be 10MB or smaller.');
     }

@@ -165,7 +165,7 @@ class _CollaborationRequestScreenState
 
   Future<void> _respond({required bool accept}) async {
     final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
+    if (!mounted || user == null) return;
     setState(() => _isResponding = true);
     try {
       await ref

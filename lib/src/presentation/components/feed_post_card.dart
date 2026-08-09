@@ -1401,7 +1401,6 @@ class _ActionButton extends StatelessWidget {
   final Color? iconColor;
   final String label;
   final VoidCallback onTap;
-  final bool loading;
   final String semanticLabel;
 
   const _ActionButton({
@@ -1410,7 +1409,6 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.semanticLabel,
-    this.loading = false,
   });
 
   @override
@@ -1421,24 +1419,17 @@ class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       value: label,
       child: InkWell(
-        onTap: loading ? null : onTap,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             children: [
-              if (loading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Icon(
-                  icon,
-                  size: 18,
-                  color: iconColor ?? colorScheme.onSurfaceVariant,
-                ),
+              Icon(
+                icon,
+                size: 18,
+                color: iconColor ?? colorScheme.onSurfaceVariant,
+              ),
               if (label.isNotEmpty) ...[
                 const SizedBox(width: 4),
                 Text(

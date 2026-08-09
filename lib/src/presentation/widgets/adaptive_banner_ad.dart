@@ -20,6 +20,7 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
   BannerAd? _ad;
   bool _loaded = false;
   int? _lastWidth;
+  int _loadGeneration = 0;
 
   @override
   void didChangeDependencies() {
@@ -33,11 +34,13 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
     if (width <= 0) return;
     if (_lastWidth == width && _ad != null) return;
     _lastWidth = width;
+    final generation = ++_loadGeneration;
 
     final size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
-    if (!mounted || size == null) return;
+    if (!mounted || generation != _loadGeneration || size == null) return;
 
     await _ad?.dispose();
+    if (!mounted || generation != _loadGeneration) return;
     setState(() {
       _loaded = false;
       _ad = null;
@@ -49,7 +52,7 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
       size: size,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          if (!mounted) {
+          if (!mounted || generation != _loadGeneration) {
             ad.dispose();
             return;
           }
@@ -57,7 +60,7 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          if (!mounted) return;
+          if (!mounted || generation != _loadGeneration) return;
           setState(() {
             if (identical(_ad, ad)) _ad = null;
             _loaded = false;
@@ -72,6 +75,7 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
 
   @override
   void dispose() {
+    _loadGeneration++;
     _ad?.dispose();
     super.dispose();
   }

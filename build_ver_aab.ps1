@@ -1,84 +1,130 @@
 # build_ver_aab.ps1
-# This script keeps the app version name the same, updates the build number
-# to seconds since the app build epoch, and builds the release App Bundle (AAB).
+# Updates only the build number and creates a production release App Bundle.
 
-$pubspecPath = "pubspec.yaml"
+$ErrorActionPreference = "Stop"
+$projectRoot = $PSScriptRoot
+$pubspecPath = Join-Path $projectRoot "pubspec.yaml"
+$productionDefinesPath = Join-Path $projectRoot "dart_defines.production.json"
+$temporaryDefinesPath = $null
+$originalPubspec = $null
+$pubspecChanged = $false
 
-if (-not (Test-Path $pubspecPath)) {
-    Write-Error "pubspec.yaml not found in the current directory."
-    exit 1
-}
+function Test-ProductionDefines {
+    param([Parameter(Mandatory = $true)][string]$Path)
 
-$content = Get-Content $pubspecPath
-$newContent = @()
-$foundVersion = $false
-$version = ""
-$buildNumber = 0
-$buildEpoch = [DateTimeOffset]::Parse('2024-01-01T00:00:00Z')
-$now = [DateTimeOffset]::UtcNow
-$epochBuildNumber = [int64][Math]::Floor(($now - $buildEpoch).TotalSeconds)
-
-foreach ($line in $content) {
-    if ($line -match '^version: ([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)') {
-        $version = $Matches[1]
-        $buildNumber = $epochBuildNumber
-        $newVersionLine = "version: $version+$buildNumber"
-        $newContent += $newVersionLine
-        $foundVersion = $true
-    } else {
-        $newContent += $line
+    try {
+        $defines = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+    } catch {
+        throw "Production Dart defines are not valid JSON: $Path"
     }
-}
 
-if ($foundVersion) {
-    # Write with UTF8 without BOM to keep it clean for Flutter
-    $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllLines((Resolve-Path $pubspecPath), $newContent, $Utf8NoBomEncoding)
-    
-    Write-Host "--------------------------------------------------"
-    Write-Host "Updated pubspec.yaml to version: $version+$buildNumber"
-    Write-Host "Starting Flutter Build (App Bundle Release)..."
-    Write-Host "--------------------------------------------------"
-    
-    $dartDefinesFile = "dart_defines.production.json"
-    $isTempDefines = $false
-
-    if (Get-Command doppler -ErrorAction SilentlyContinue) {
-        Write-Host "Fetching latest production secrets from Doppler..." -ForegroundColor Green
-        try {
-            $secretJson = & doppler secrets download --project wreadom --config prd --format json --no-file --silent
-            if ($LASTEXITCODE -ne 0 -or -not $secretJson) {
-                throw "Doppler secrets download failed."
-            }
-            $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
-            [System.IO.File]::WriteAllText((Join-Path (Get-Location) $dartDefinesFile), ($secretJson -join [Environment]::NewLine), $Utf8NoBomEncoding)
-            $isTempDefines = $true
-        } catch {
-            Write-Warning "Failed to download secrets from Doppler. Falling back to existing file if available."
+    $requiredKeys = @(
+        "FIREBASE_ANDROID_API_KEY",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_UPLOAD_PRESET"
+    )
+    foreach ($key in $requiredKeys) {
+        $property = $defines.PSObject.Properties[$key]
+        $value = if ($null -eq $property) { "" } else { [string]$property.Value }
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            throw "Production Dart defines are missing required key: $key"
+        }
+        if ($value -match '(?i)(change[_-]?me|replace[_-]?me|your[_-]|example|placeholder)') {
+            throw "Production Dart define $key still contains a placeholder value."
         }
     }
 
-    if (Test-Path $dartDefinesFile) {
-        Write-Host "Using $dartDefinesFile for release Dart defines."
-        flutter build appbundle --release --dart-define-from-file=$dartDefinesFile
-    } elseif (Test-Path "dart_defines.local.json") {
-        Write-Warning "Production defines not found. Falling back to dart_defines.local.json for release build."
-        flutter build appbundle --release --dart-define-from-file=dart_defines.local.json
-    } else {
-        Write-Warning "No Dart defines file found. Building without custom Dart defines."
-        flutter build appbundle --release
+    $emulatorProperty = $defines.PSObject.Properties["USE_FIREBASE_EMULATORS"]
+    if ($null -ne $emulatorProperty) {
+        try {
+            if ([System.Convert]::ToBoolean($emulatorProperty.Value)) {
+                throw "Production builds cannot enable Firebase emulators."
+            }
+        } catch [System.FormatException] {
+            throw "USE_FIREBASE_EMULATORS must be a JSON boolean or boolean string."
+        }
+    }
+}
+
+try {
+    Set-Location -LiteralPath $projectRoot
+
+    if (-not (Test-Path -LiteralPath $pubspecPath -PathType Leaf)) {
+        throw "pubspec.yaml was not found in $projectRoot"
+    }
+    if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
+        throw "Flutter is not available on PATH."
     }
 
-    if ($isTempDefines -and (Test-Path $dartDefinesFile)) {
-        Write-Host "Cleaning up temporary production defines file..." -ForegroundColor Green
-        Remove-Item $dartDefinesFile -Force
+    $dartDefinesFile = $null
+    if (Get-Command doppler -ErrorAction SilentlyContinue) {
+        Write-Host "Fetching production Dart defines from Doppler..." -ForegroundColor Cyan
+        try {
+            $secretJson = (& doppler secrets download --project wreadom --config prd --format json --no-file --silent | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($secretJson)) {
+                throw "Doppler returned no production configuration."
+            }
+            $temporaryDefinesPath = Join-Path ([System.IO.Path]::GetTempPath()) "wreadom_dart_defines_$PID.json"
+            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+            [System.IO.File]::WriteAllText($temporaryDefinesPath, $secretJson, $utf8NoBom)
+            $dartDefinesFile = $temporaryDefinesPath
+        } catch {
+            Write-Warning "Doppler production configuration was unavailable: $($_.Exception.Message)"
+        }
     }
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "`nSuccess! App Bundle is ready at: build\app\outputs\bundle\release\app-release.aab"
-    } else {
-        Write-Error "`nBuild failed with exit code $LASTEXITCODE"
+
+    if ($null -eq $dartDefinesFile) {
+        if (-not (Test-Path -LiteralPath $productionDefinesPath -PathType Leaf)) {
+            throw "Production Dart defines are required. Configure Doppler or create ignored dart_defines.production.json. Local/emulator defines are never used for release builds."
+        }
+        Write-Host "Using ignored dart_defines.production.json." -ForegroundColor Cyan
+        $dartDefinesFile = $productionDefinesPath
     }
-} else {
-    Write-Error "Could not find version line (e.g., 'version: 1.0.0+1') in pubspec.yaml"
+    Test-ProductionDefines -Path $dartDefinesFile
+
+    $originalPubspec = [System.IO.File]::ReadAllText($pubspecPath)
+    $versionPattern = '(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)\s*$'
+    $versionMatch = [regex]::Match($originalPubspec, $versionPattern)
+    if (-not $versionMatch.Success) {
+        throw "Could not find a pubspec version in the form 1.2.3+45."
+    }
+
+    $versionName = $versionMatch.Groups[1].Value
+    $previousBuildNumber = [int64]$versionMatch.Groups[2].Value
+    $buildEpoch = [DateTimeOffset]::Parse('2024-01-01T00:00:00Z')
+    $epochBuildNumber = [int64][Math]::Floor(([DateTimeOffset]::UtcNow - $buildEpoch).TotalSeconds)
+    $buildNumber = [Math]::Max($epochBuildNumber, $previousBuildNumber + 1)
+    $newVersion = "$versionName+$buildNumber"
+    $updatedPubspec = [regex]::Replace($originalPubspec, $versionPattern, "version: $newVersion", 1)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($pubspecPath, $updatedPubspec, $utf8NoBom)
+    $pubspecChanged = $true
+
+    Write-Host "--------------------------------------------------"
+    Write-Host "Building production App Bundle $newVersion..." -ForegroundColor Cyan
+    Write-Host "--------------------------------------------------"
+    & flutter build appbundle --release "--dart-define-from-file=$dartDefinesFile"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Flutter App Bundle build failed with exit code $LASTEXITCODE."
+    }
+
+    $aabPath = Join-Path $projectRoot "build\app\outputs\bundle\release\app-release.aab"
+    if (-not (Test-Path -LiteralPath $aabPath -PathType Leaf)) {
+        throw "Flutter reported success but the App Bundle was not created at $aabPath"
+    }
+
+    Write-Host "Success! App Bundle is ready at: $aabPath" -ForegroundColor Green
+    exit 0
+} catch {
+    if ($pubspecChanged -and $null -ne $originalPubspec) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($pubspecPath, $originalPubspec, $utf8NoBom)
+        Write-Warning "The failed build's pubspec version change was rolled back."
+    }
+    Write-Host "Build aborted: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+} finally {
+    if ($null -ne $temporaryDefinesPath -and (Test-Path -LiteralPath $temporaryDefinesPath)) {
+        Remove-Item -LiteralPath $temporaryDefinesPath -Force
+    }
 }

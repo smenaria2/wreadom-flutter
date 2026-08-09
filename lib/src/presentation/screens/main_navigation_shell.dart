@@ -31,6 +31,8 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   StreamSubscription<String>? _tokenRefreshSubscription;
   final Set<int> _checkedUpdateNoticeBuilds = <int>{};
+  bool _loadedWorkScheduled = false;
+  int _notificationSetupGeneration = 0;
 
   static const String _updateNoticePrefix = 'wreadom_update_notice_shown_';
 
@@ -38,45 +40,74 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
-      _setupNotifications();
-      _checkLowPowerNotice();
+    });
+  }
+
+  void _scheduleLoadedWork() {
+    if (_loadedWorkScheduled) return;
+    _loadedWorkScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !ref.read(appFullyLoadedProvider)) return;
+      unawaited(_setupNotifications());
+      unawaited(_checkLowPowerNotice());
     });
   }
 
   Future<void> _setupNotifications() async {
+    final generation = ++_notificationSetupGeneration;
     final notificationService = NotificationService.instance;
-    final hasPermission = await notificationService.requestPermission();
+    bool hasPermission;
+    try {
+      hasPermission = await notificationService.requestPermissionIfNeeded();
+    } catch (error) {
+      debugPrint('Notification permission check failed: $error');
+      return;
+    }
+    if (!mounted || generation != _notificationSetupGeneration) return;
+    if (!hasPermission) return;
 
-    if (hasPermission) {
-      final token = await notificationService.getFcmToken();
-      if (token != null) {
-        final user = await ref.read(currentUserProvider.future);
-        if (user != null) {
-          try {
-            await ref
-                .read(authRepositoryProvider)
-                .claimFcmToken(user.id, token);
-            debugPrint('FCM Token updated successfully');
-          } catch (e) {
-            debugPrint('Failed to update FCM Token: $e');
-          }
+    String? token;
+    try {
+      token = await notificationService.getFcmToken();
+    } catch (error) {
+      debugPrint('FCM token registration could not start: $error');
+    }
+    if (!mounted || generation != _notificationSetupGeneration) return;
+    if (token != null) {
+      final user = await ref.read(currentUserProvider.future);
+      if (!mounted || generation != _notificationSetupGeneration) return;
+      if (user != null) {
+        try {
+          await ref.read(authRepositoryProvider).claimFcmToken(user.id, token);
+          debugPrint('FCM Token updated successfully');
+        } catch (e) {
+          debugPrint('Failed to update FCM Token: $e');
         }
       }
     }
 
-    _tokenRefreshSubscription ??= notificationService.onTokenRefresh.listen((
-      token,
-    ) async {
-      final user = await ref.read(currentUserProvider.future);
-      if (user == null) return;
-      try {
-        await ref.read(authRepositoryProvider).claimFcmToken(user.id, token);
-        debugPrint('Refreshed FCM token updated successfully');
-      } catch (e) {
-        debugPrint('Failed to update refreshed FCM token: $e');
-      }
-    });
+    _tokenRefreshSubscription ??= notificationService.onTokenRefresh.listen(
+      (token) async {
+        if (!mounted || generation != _notificationSetupGeneration) return;
+        final user = await ref.read(currentUserProvider.future);
+        if (!mounted ||
+            generation != _notificationSetupGeneration ||
+            user == null) {
+          return;
+        }
+        try {
+          await ref.read(authRepositoryProvider).claimFcmToken(user.id, token);
+          debugPrint('Refreshed FCM token updated successfully');
+        } catch (e) {
+          debugPrint('Failed to update refreshed FCM token: $e');
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('FCM token refresh stream failed: $error');
+      },
+    );
   }
 
   Future<void> _checkLowPowerNotice() async {
@@ -124,7 +155,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   void dispose() {
-    _tokenRefreshSubscription?.cancel();
+    _notificationSetupGeneration++;
+    unawaited(_tokenRefreshSubscription?.cancel());
     super.dispose();
   }
 
@@ -138,6 +170,10 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final appFullyLoaded = ref.watch(appFullyLoadedProvider);
+    if (appFullyLoaded) {
+      _scheduleLoadedWork();
+    }
     final l10n = AppLocalizations.of(context)!;
     final selectedIndex = ref.watch(selectedTabProvider);
     final updateAvailability = ref
@@ -225,64 +261,76 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     final animDuration = MediaQuery.of(context).disableAnimations
         ? Duration.zero
         : const Duration(milliseconds: 220);
+    void selectTab() {
+      ref.read(selectedTabProvider.notifier).setTab(index);
+      if (index == 4) {
+        ref.read(profileTabIndexProvider.notifier).setIndex(0);
+      }
+    }
 
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          ref.read(selectedTabProvider.notifier).setTab(index);
-          if (index == 4) {
-            ref.read(profileTabIndexProvider.notifier).setIndex(0);
-          }
-        },
-        child: AnimatedContainer(
-          duration: animDuration,
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                : Colors.transparent,
-            border: Border.all(
-              color: isSelected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.18)
-                  : Colors.transparent,
-              width: 1.5,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: label,
+        onTap: selectTab,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: selectTab,
+            child: AnimatedContainer(
+              constraints: const BoxConstraints(minHeight: 52),
+              duration: animDuration,
+              curve: Curves.easeInOut,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: isSelected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedScale(
+                    duration: animDuration,
+                    scale: isSelected ? 1.1 : 1.0,
+                    child: _UpdateBadgeIcon(
+                      icon: isSelected ? selectedIcon : icon,
+                      showBadge: badge,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  AnimatedDefaultTextStyle(
+                    duration: animDuration,
+                    style: theme.textTheme.labelMedium!.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w500,
+                      fontSize: 12,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedScale(
-                duration: animDuration,
-                scale: isSelected ? 1.1 : 1.0,
-                child: _UpdateBadgeIcon(
-                  icon: isSelected ? selectedIcon : icon,
-                  showBadge: badge,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                ),
-              ),
-              const SizedBox(height: 4),
-              AnimatedDefaultTextStyle(
-                duration: animDuration,
-                style: theme.textTheme.labelMedium!.copyWith(
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                  fontSize: 11,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
           ),
         ),
       ),

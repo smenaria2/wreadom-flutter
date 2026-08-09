@@ -1,3 +1,5 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -26,49 +28,45 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: child,
-          ),
+          home: Scaffold(body: child),
         ),
       ),
     );
   }
 
-  testWidgets('PrimaryButton renders with correct semantics label when loading and not loading', (
-    tester,
+  testWidgets(
+    'PrimaryButton renders with correct semantics label when loading and not loading',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        testApp(PrimaryButton(text: 'Submit Comment', onPressed: () {})),
+      );
+      await tester.pumpAndSettle();
+
+      // Check semantic node label is "Submit Comment"
+      expect(find.bySemanticsLabel('Submit Comment'), findsOneWidget);
+
+      // Re-pump with loading state
+      await tester.pumpWidget(
+        testApp(
+          PrimaryButton(
+            text: 'Submit Comment',
+            onPressed: () {},
+            isLoading: true,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Check semantic node label announces loading state
+      expect(find.bySemanticsLabel('Submit Comment, loading'), findsOneWidget);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('PageView horizontal scroll semantics support', (
+    WidgetTester tester,
   ) async {
-    final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(
-      testApp(
-        PrimaryButton(
-          text: 'Submit Comment',
-          onPressed: () {},
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Check semantic node label is "Submit Comment"
-    expect(find.bySemanticsLabel('Submit Comment'), findsOneWidget);
-
-    // Re-pump with loading state
-    await tester.pumpWidget(
-      testApp(
-        PrimaryButton(
-          text: 'Submit Comment',
-          onPressed: () {},
-          isLoading: true,
-        ),
-      ),
-    );
-    await tester.pump();
-
-    // Check semantic node label announces loading state
-    expect(find.bySemanticsLabel('Submit Comment, loading'), findsOneWidget);
-    semantics.dispose();
-  });
-
-  testWidgets('PageView horizontal scroll semantics support', (WidgetTester tester) async {
     final semantics = tester.ensureSemantics();
     final controller = PageController();
     await tester.pumpWidget(
@@ -97,49 +95,58 @@ void main() {
     final page1Node = tester.getSemantics(find.bySemanticsLabel('Page 1'));
     final parentNode = page1Node.parent;
     expect(parentNode, isNotNull);
-    expect(parentNode!.getSemanticsData().hasAction(SemanticsAction.scrollLeft), true);
+    expect(
+      parentNode!.getSemanticsData().hasAction(SemanticsAction.scrollLeft),
+      true,
+    );
     semantics.dispose();
   });
 
-  testWidgets('Theme Option wrapper renders with correct semantics properties', (WidgetTester tester) async {
-    final semantics = tester.ensureSemantics();
-    var tapped = false;
-    
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Semantics(
-            container: true,
-            button: true,
-            label: 'Sepia',
-            selected: true,
-            onTap: () {
-              tapped = true;
-            },
-            child: GestureDetector(
+  testWidgets(
+    'Theme Option wrapper renders with correct semantics properties',
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      var tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Semantics(
+              container: true,
+              button: true,
+              label: 'Sepia',
+              selected: true,
               onTap: () {
                 tapped = true;
               },
-              child: const Text('Sepia'),
+              child: GestureDetector(
+                onTap: () {
+                  tapped = true;
+                },
+                child: const Text('Sepia'),
+              ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // Verify semantics label, selected, and button properties
-    final node = tester.getSemantics(find.bySemanticsLabel('Sepia').first);
-    expect(node.label, 'Sepia');
-    expect(node.hasFlag(SemanticsFlag.isSelected), true);
-    expect(node.hasFlag(SemanticsFlag.isButton), true);
+      // Verify semantics label, selected, and button properties
+      final semanticsFinder = find.semantics.byPredicate(
+        (node) =>
+            node.label == 'Sepia' &&
+            node.flagsCollection.isSelected == Tristate.isTrue &&
+            node.flagsCollection.isButton,
+      );
+      final node = semanticsFinder.evaluate().single;
+      expect(node.label, 'Sepia');
+      expect(node.flagsCollection.isSelected, Tristate.isTrue);
+      expect(node.flagsCollection.isButton, true);
 
-    // Trigger tap through semantics
-    tester.binding.pipelineOwner.semanticsOwner!.performAction(
-      node.id,
-      SemanticsAction.tap,
-    );
-    expect(tapped, true);
-    semantics.dispose();
-  });
+      // Trigger tap through semantics
+      tester.semantics.performAction(semanticsFinder, SemanticsAction.tap);
+      expect(tapped, true);
+      semantics.dispose();
+    },
+  );
 }
