@@ -118,6 +118,21 @@ void main() {
     expect(repository.profileDetailsCallCount, 0);
     expect(repository.savedPrivacyLevel, 'private');
   });
+
+  testWidgets('normalizes and saves an Instagram profile URL', (tester) async {
+    final repository = _FakeProfileRepository();
+    await _pumpProfileSettings(tester, repository, _testUser());
+
+    await tester.enterText(
+      find.byType(TextField).at(3),
+      'https://www.instagram.com/wreadom.in/',
+    );
+    await _tapSaveSettings(tester);
+    await tester.pumpAndSettle();
+
+    expect(repository.savedInstagramHandle, 'wreadom.in');
+  });
+
   testWidgets('legacy users render default notification controls', (
     tester,
   ) async {
@@ -178,6 +193,7 @@ class _FakeProfileRepository implements ProfileRepository {
   final bool failProfileDetails;
   String? savedPrivacyLevel;
   NotificationSettings? savedNotificationSettings;
+  String? savedInstagramHandle;
   int profileDetailsCallCount = 0;
 
   @override
@@ -186,8 +202,10 @@ class _FakeProfileRepository implements ProfileRepository {
     String? bio,
     String? penName,
     String? displayName,
+    String? instagramHandle,
   }) async {
     profileDetailsCallCount += 1;
+    savedInstagramHandle = instagramHandle;
     if (failProfileDetails) {
       throw Exception('profile details should not be updated');
     }

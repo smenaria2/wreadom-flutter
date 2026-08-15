@@ -17,6 +17,7 @@ class FirebaseProfileRepository implements ProfileRepository {
       email: '',
       bio: null,
       penName: null,
+      instagramHandle: null,
       readingHistory: [],
       savedBooks: [],
       bookmarks: [],
@@ -147,6 +148,7 @@ class FirebaseProfileRepository implements ProfileRepository {
     return user.copyWith(
       email: '',
       bio: null,
+      instagramHandle: null,
       readingHistory: const [],
       savedBooks: const [],
       bookmarks: const [],
@@ -269,6 +271,7 @@ class FirebaseProfileRepository implements ProfileRepository {
     String? bio,
     String? penName,
     String? displayName,
+    String? instagramHandle,
   }) async {
     final current = await _firestore.collection('users').doc(userId).get();
     final currentData = current.data() ?? const <String, dynamic>{};
@@ -276,9 +279,13 @@ class FirebaseProfileRepository implements ProfileRepository {
     final currentBio = _normalizedOptional(currentData['bio']);
     final currentPenName = _normalizedOptional(currentData['penName']);
     final currentDisplayName = _normalizedOptional(currentData['displayName']);
+    final currentInstagramHandle = _normalizedOptional(
+      currentData['instagramHandle'],
+    );
     final nextBio = _normalizedOptional(bio);
     final nextPenName = _normalizedOptional(penName);
     final nextDisplayName = _normalizedOptional(displayName);
+    final nextInstagramHandle = _normalizedOptional(instagramHandle);
 
     if (currentBio != nextBio) {
       updates['bio'] = _emptyStringDeletes(bio);
@@ -288,6 +295,9 @@ class FirebaseProfileRepository implements ProfileRepository {
     }
     if (currentDisplayName != nextDisplayName) {
       updates['displayName'] = _emptyStringDeletes(displayName);
+    }
+    if (currentInstagramHandle != nextInstagramHandle) {
+      updates['instagramHandle'] = _emptyStringDeletes(instagramHandle);
     }
     if (currentPenName != nextPenName ||
         currentDisplayName != nextDisplayName) {

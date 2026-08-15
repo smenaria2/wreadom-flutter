@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../utils/book_collaboration_utils.dart';
 import '../components/writer/writer_book_card.dart';
@@ -56,6 +57,48 @@ class WriterDashboardScreen extends ConsumerWidget {
               ),
               floating: true,
               pinned: true,
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: GlassSurface(
+                  strong: true,
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => _openSocialStudio(context),
+                  semanticButton: true,
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.auto_stories_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.socialStudio,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                l10n.socialStudioDescription,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.open_in_new_rounded, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
             const SliverToBoxAdapter(child: WriterDashboardHeader()),
             SliverToBoxAdapter(
@@ -206,6 +249,25 @@ class WriterDashboardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openSocialStudio(BuildContext context) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse('https://publish.wreadom.in'),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.couldNotOpenSocialStudio),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDeleteDraft(

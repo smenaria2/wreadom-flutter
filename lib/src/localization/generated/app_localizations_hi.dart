@@ -120,6 +120,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bio => 'परिचय';
 
   @override
+  String get instagram => 'इंस्टाग्राम';
+
+  @override
+  String get instagramProfile => 'इंस्टाग्राम प्रोफ़ाइल';
+
+  @override
+  String get instagramProfileHelper =>
+      '@username या Instagram प्रोफ़ाइल URL दर्ज करें';
+
+  @override
+  String get invalidInstagramProfile =>
+      'मान्य Instagram प्रोफ़ाइल हैंडल या URL दर्ज करें।';
+
+  @override
+  String get couldNotOpenInstagram => 'Instagram प्रोफ़ाइल नहीं खुल सकी।';
+
+  @override
   String get privacy => 'गोपनीयता';
 
   @override
@@ -1211,6 +1228,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get writerDashboard => 'लेखक डैशबोर्ड';
+
+  @override
+  String get socialStudio => 'सोशल स्टूडियो';
+
+  @override
+  String get socialStudioDescription =>
+      'बुक रील बनाएँ और अपनी पांडुलिपि को प्रकाशन के लिए तैयार करें।';
+
+  @override
+  String get couldNotOpenSocialStudio => 'सोशल स्टूडियो नहीं खुल सका।';
 
   @override
   String get createContent => 'रचना लिखें';

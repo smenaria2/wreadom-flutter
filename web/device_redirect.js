@@ -1,5 +1,26 @@
 (function () {
   const hostname = window.location.hostname;
+  const stayOnWebKey = 'wreadom_stay_on_web';
+
+  // Allow Android users to opt into the web app with ?stay=1. Remember the
+  // choice so internal navigation and later visits do not redirect them.
+  const stayParam = new URLSearchParams(window.location.search).get('stay');
+  if (stayParam === '1') {
+    try {
+      window.localStorage.setItem(stayOnWebKey, '1');
+    } catch (_) {
+      // The current page still stays open if storage is unavailable.
+    }
+    return;
+  }
+
+  try {
+    if (window.localStorage.getItem(stayOnWebKey) === '1') {
+      return;
+    }
+  } catch (_) {
+    // Continue with the normal device redirect when storage is unavailable.
+  }
 
   // Skip redirection when running locally on localhost, 127.0.0.1, or local subnet IPs
   const isLocalHost =

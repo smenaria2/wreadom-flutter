@@ -251,6 +251,7 @@ service cloud.firestore {
           'coverPhotoURL',
           'bio',
           'penName',
+          'instagramHandle',
           'privacyLevel',
           'profileVisibility',
           'pinnedWorks',

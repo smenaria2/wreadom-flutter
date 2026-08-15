@@ -28,6 +28,7 @@ import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/resilient_profile_avatar.dart';
 import '../widgets/see_more_content_button.dart';
+import '../widgets/instagram_profile_link.dart';
 
 class PublicProfileScreen extends ConsumerWidget {
   const PublicProfileScreen({super.key, required this.userId});
@@ -149,6 +150,10 @@ class PublicProfileScreen extends ConsumerWidget {
                           if ((user.bio ?? '').isNotEmpty) ...[
                             const SizedBox(height: 12),
                             _ExpandableBio(text: user.bio!),
+                          ],
+                          if ((user.instagramHandle ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            InstagramProfileLink(handle: user.instagramHandle!),
                           ],
                           const SizedBox(height: 20),
                           Row(

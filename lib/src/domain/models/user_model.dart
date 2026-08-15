@@ -78,6 +78,7 @@ abstract class UserModel with _$UserModel {
     String? coverPhotoURL,
     String? bio,
     String? penName,
+    String? instagramHandle,
     String? privacyLevel,
     bool? isDeactivated,
     ProfileVisibility? profileVisibility,

@@ -14,6 +14,7 @@ abstract class ProfileRepository {
     String? bio,
     String? penName,
     String? displayName,
+    String? instagramHandle,
   });
   Future<void> updateCoverPhoto(String userId, String? coverPhotoURL);
   Future<void> updateNotificationSettings(

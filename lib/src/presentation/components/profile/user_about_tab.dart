@@ -3,6 +3,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../../domain/models/user_model.dart';
 import '../../routing/app_routes.dart';
+import '../../widgets/instagram_profile_link.dart';
 import 'author_stats_panel.dart';
 
 class UserAboutTab extends StatelessWidget {
@@ -45,6 +46,10 @@ class UserAboutTab extends StatelessWidget {
             height: 1.5,
           ),
         ),
+        if ((user.instagramHandle ?? '').isNotEmpty) ...[
+          const SizedBox(height: 12),
+          InstagramProfileLink(handle: user.instagramHandle!),
+        ],
         const SizedBox(height: 20),
         AuthorStatsPanel(user: user),
       ],

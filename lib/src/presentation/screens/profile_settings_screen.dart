@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/data/utils/firestore_utils.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import '../../utils/instagram_profile_utils.dart';
 import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/glass_scaffold.dart';
@@ -26,6 +27,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _bioController = TextEditingController();
   final _penNameController = TextEditingController();
   final _displayNameController = TextEditingController();
+  final _instagramController = TextEditingController();
   String _privacy = 'public';
   NotificationSettings? _notificationSettings;
   Map<String, bool> _notificationAppValues = const {};
@@ -39,6 +41,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     _bioController.dispose();
     _penNameController.dispose();
     _displayNameController.dispose();
+    _instagramController.dispose();
     super.dispose();
   }
 
@@ -58,6 +61,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             _bioController.text = user.bio ?? '';
             _penNameController.text = user.penName ?? '';
             _displayNameController.text = user.displayName ?? '';
+            _instagramController.text = user.instagramHandle ?? '';
             _privacy = user.privacyLevel ?? 'public';
             _notificationSettings =
                 user.notificationSettings ??
@@ -105,6 +109,15 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       controller: _bioController,
                       maxLines: 4,
                       decoration: InputDecoration(labelText: l10n.bio),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _instagramController,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: l10n.instagramProfile,
+                        helperText: l10n.instagramProfileHelper,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -174,6 +187,16 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final nextBio = _bioController.text.trim();
     final nextPenName = _blankToNull(_penNameController.text);
     final nextDisplayName = _blankToNull(_displayNameController.text);
+    final instagramInput = _instagramController.text.trim();
+    final nextInstagramHandle = instagramInput.isEmpty
+        ? null
+        : normalizeInstagramHandle(instagramInput);
+    if (instagramInput.isNotEmpty && nextInstagramHandle == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invalidInstagramProfile)));
+      return;
+    }
     final nextSettings = _notificationSettings == null
         ? null
         : _settingsWithAppValues(
@@ -184,7 +207,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         _normalizeNullable(user.bio) != _normalizeNullable(nextBio) ||
         _normalizeNullable(user.penName) != _normalizeNullable(nextPenName) ||
         _normalizeNullable(user.displayName) !=
-            _normalizeNullable(nextDisplayName);
+            _normalizeNullable(nextDisplayName) ||
+        _normalizeNullable(user.instagramHandle) != nextInstagramHandle;
     final privacyChanged = (user.privacyLevel ?? 'public') != _privacy;
     final notificationsChanged =
         nextSettings != null && nextSettings != user.notificationSettings;
@@ -200,6 +224,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           bio: nextBio,
           penName: nextPenName,
           displayName: nextDisplayName,
+          instagramHandle: nextInstagramHandle,
         );
       }
       if (notificationsChanged) {

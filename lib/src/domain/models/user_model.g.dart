@@ -122,6 +122,7 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   coverPhotoURL: json['coverPhotoURL'] as String?,
   bio: json['bio'] as String?,
   penName: json['penName'] as String?,
+  instagramHandle: json['instagramHandle'] as String?,
   privacyLevel: json['privacyLevel'] as String?,
   isDeactivated: json['isDeactivated'] as bool?,
   profileVisibility: json['profileVisibility'] == null
@@ -169,6 +170,7 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'coverPhotoURL': instance.coverPhotoURL,
       'bio': instance.bio,
       'penName': instance.penName,
+      'instagramHandle': instance.instagramHandle,
       'privacyLevel': instance.privacyLevel,
       'isDeactivated': instance.isDeactivated,
       'profileVisibility': instance.profileVisibility,

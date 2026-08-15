@@ -320,6 +320,36 @@ abstract class AppLocalizations {
   /// **'Bio'**
   String get bio;
 
+  /// No description provided for @instagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram'**
+  String get instagram;
+
+  /// No description provided for @instagramProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram profile'**
+  String get instagramProfile;
+
+  /// No description provided for @instagramProfileHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter @username or an Instagram profile URL'**
+  String get instagramProfileHelper;
+
+  /// No description provided for @invalidInstagramProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid Instagram profile handle or URL.'**
+  String get invalidInstagramProfile;
+
+  /// No description provided for @couldNotOpenInstagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the Instagram profile.'**
+  String get couldNotOpenInstagram;
+
   /// No description provided for @privacy.
   ///
   /// In en, this message translates to:
@@ -2275,6 +2305,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Writer Dashboard'**
   String get writerDashboard;
+
+  /// No description provided for @socialStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Studio'**
+  String get socialStudio;
+
+  /// No description provided for @socialStudioDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create book reels and prepare your manuscript for publishing.'**
+  String get socialStudioDescription;
+
+  /// No description provided for @couldNotOpenSocialStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open Social Studio.'**
+  String get couldNotOpenSocialStudio;
 
   /// No description provided for @createContent.
   ///
