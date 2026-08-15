@@ -34,15 +34,20 @@ final writerDashboardTabProvider = NotifierProvider<WriterDashboardTab, String>(
 bool writerBookMatchesTab(Book book, String activeTab) {
   final status = book.status?.trim().toLowerCase();
   if (activeTab == 'published') return status == 'published';
-  return status != 'published' && status != 'deleted';
+  if (activeTab == 'draft') {
+    return status != 'published' && status != 'deleted';
+  }
+  return false;
 }
 
 /// Fetches books for the current user based on status
 final filteredMyBooksProvider = FutureProvider<List<Book>>((ref) async {
+  final activeTab = ref.watch(writerDashboardTabProvider);
+  if (activeTab == 'social') return const [];
+
   final user = await ref.watch(currentUserProvider.future);
   if (user == null) return [];
 
-  final activeTab = ref.watch(writerDashboardTabProvider);
   final books = await ref.watch(writerRepositoryProvider).getUserBooks(user.id);
   return books.where((book) => writerBookMatchesTab(book, activeTab)).toList();
 });

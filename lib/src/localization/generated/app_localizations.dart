@@ -2312,11 +2312,155 @@ abstract class AppLocalizations {
   /// **'Social Studio'**
   String get socialStudio;
 
+  /// No description provided for @socialStudioEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'WREADOM PUBLISH'**
+  String get socialStudioEyebrow;
+
   /// No description provided for @socialStudioDescription.
   ///
   /// In en, this message translates to:
   /// **'Create book reels and prepare your manuscript for publishing.'**
   String get socialStudioDescription;
+
+  /// No description provided for @socialStudioReels.
+  ///
+  /// In en, this message translates to:
+  /// **'Book reels'**
+  String get socialStudioReels;
+
+  /// No description provided for @socialStudioManuscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish-ready manuscript'**
+  String get socialStudioManuscript;
+
+  /// No description provided for @socialStudioEligibilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Made for your published originals'**
+  String get socialStudioEligibilityTitle;
+
+  /// No description provided for @socialStudioEligibilityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in at Wreadom Publish to work with books you authored, published, and marked as original.'**
+  String get socialStudioEligibilityBody;
+
+  /// No description provided for @socialStudioWhatYouCanCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'What you can create'**
+  String get socialStudioWhatYouCanCreate;
+
+  /// No description provided for @socialStudioReelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Branded book reels'**
+  String get socialStudioReelsTitle;
+
+  /// No description provided for @socialStudioReelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn your cover, title, selected excerpts, and author profile into an MP4 reel.'**
+  String get socialStudioReelsBody;
+
+  /// No description provided for @socialStudioCarouselTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Carousels and slides'**
+  String get socialStudioCarouselTitle;
+
+  /// No description provided for @socialStudioCarouselBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a complete image carousel or download individual promotional slides.'**
+  String get socialStudioCarouselBody;
+
+  /// No description provided for @socialStudioCaptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Captions and hashtags'**
+  String get socialStudioCaptionTitle;
+
+  /// No description provided for @socialStudioCaptionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate ready-to-copy promotional captions and relevant hashtags for your book.'**
+  String get socialStudioCaptionBody;
+
+  /// No description provided for @socialStudioPrintTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print & Publish'**
+  String get socialStudioPrintTitle;
+
+  /// No description provided for @socialStudioPrintBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare a publication-ready DOCX manuscript and download your book cover.'**
+  String get socialStudioPrintBody;
+
+  /// No description provided for @socialStudioHowItWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get socialStudioHowItWorks;
+
+  /// No description provided for @socialStudioStep1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a published book'**
+  String get socialStudioStep1Title;
+
+  /// No description provided for @socialStudioStep1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Studio securely shows only your eligible published original works.'**
+  String get socialStudioStep1Body;
+
+  /// No description provided for @socialStudioStep2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Select and style excerpts'**
+  String get socialStudioStep2Title;
+
+  /// No description provided for @socialStudioStep2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick chapter text, arrange slides, choose backgrounds, and preview the result.'**
+  String get socialStudioStep2Body;
+
+  /// No description provided for @socialStudioStep3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Export and share'**
+  String get socialStudioStep3Title;
+
+  /// No description provided for @socialStudioStep3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Download reels, carousels, slides, captions, or your print-ready manuscript.'**
+  String get socialStudioStep3Body;
+
+  /// No description provided for @socialStudioInstagramTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grow together on Instagram'**
+  String get socialStudioInstagramTitle;
+
+  /// No description provided for @socialStudioInstagramBody.
+  ///
+  /// In en, this message translates to:
+  /// **'After publishing your reel or post, invite @wreadom.in as a collaborator to help showcase your work.'**
+  String get socialStudioInstagramBody;
+
+  /// No description provided for @openSocialStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Social Studio'**
+  String get openSocialStudio;
 
   /// No description provided for @couldNotOpenSocialStudio.
   ///

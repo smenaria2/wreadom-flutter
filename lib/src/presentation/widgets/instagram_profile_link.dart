@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../localization/generated/app_localizations.dart';
 import '../../utils/instagram_profile_utils.dart';
+import 'instagram_brand_icon.dart';
 
 class InstagramProfileLink extends StatelessWidget {
   const InstagramProfileLink({super.key, required this.handle});
@@ -15,7 +16,7 @@ class InstagramProfileLink extends StatelessWidget {
     return ListTile(
       key: const Key('instagram_profile_link'),
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.camera_alt_outlined),
+      leading: const InstagramBrandIcon(size: 38),
       title: Text(l10n.instagram),
       subtitle: Text('@$handle'),
       trailing: const Icon(Icons.open_in_new_rounded, size: 18),

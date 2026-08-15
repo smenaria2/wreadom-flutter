@@ -1233,8 +1233,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get socialStudio => 'Social Studio';
 
   @override
+  String get socialStudioEyebrow => 'WREADOM PUBLISH';
+
+  @override
   String get socialStudioDescription =>
       'Create book reels and prepare your manuscript for publishing.';
+
+  @override
+  String get socialStudioReels => 'Book reels';
+
+  @override
+  String get socialStudioManuscript => 'Publish-ready manuscript';
+
+  @override
+  String get socialStudioEligibilityTitle =>
+      'Made for your published originals';
+
+  @override
+  String get socialStudioEligibilityBody =>
+      'Sign in at Wreadom Publish to work with books you authored, published, and marked as original.';
+
+  @override
+  String get socialStudioWhatYouCanCreate => 'What you can create';
+
+  @override
+  String get socialStudioReelsTitle => 'Branded book reels';
+
+  @override
+  String get socialStudioReelsBody =>
+      'Turn your cover, title, selected excerpts, and author profile into an MP4 reel.';
+
+  @override
+  String get socialStudioCarouselTitle => 'Carousels and slides';
+
+  @override
+  String get socialStudioCarouselBody =>
+      'Export a complete image carousel or download individual promotional slides.';
+
+  @override
+  String get socialStudioCaptionTitle => 'Captions and hashtags';
+
+  @override
+  String get socialStudioCaptionBody =>
+      'Generate ready-to-copy promotional captions and relevant hashtags for your book.';
+
+  @override
+  String get socialStudioPrintTitle => 'Print & Publish';
+
+  @override
+  String get socialStudioPrintBody =>
+      'Prepare a publication-ready DOCX manuscript and download your book cover.';
+
+  @override
+  String get socialStudioHowItWorks => 'How it works';
+
+  @override
+  String get socialStudioStep1Title => 'Choose a published book';
+
+  @override
+  String get socialStudioStep1Body =>
+      'Social Studio securely shows only your eligible published original works.';
+
+  @override
+  String get socialStudioStep2Title => 'Select and style excerpts';
+
+  @override
+  String get socialStudioStep2Body =>
+      'Pick chapter text, arrange slides, choose backgrounds, and preview the result.';
+
+  @override
+  String get socialStudioStep3Title => 'Export and share';
+
+  @override
+  String get socialStudioStep3Body =>
+      'Download reels, carousels, slides, captions, or your print-ready manuscript.';
+
+  @override
+  String get socialStudioInstagramTitle => 'Grow together on Instagram';
+
+  @override
+  String get socialStudioInstagramBody =>
+      'After publishing your reel or post, invite @wreadom.in as a collaborator to help showcase your work.';
+
+  @override
+  String get openSocialStudio => 'Open Social Studio';
 
   @override
   String get couldNotOpenSocialStudio => 'Could not open Social Studio.';

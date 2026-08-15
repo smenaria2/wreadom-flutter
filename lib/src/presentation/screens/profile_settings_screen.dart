@@ -9,6 +9,7 @@ import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../widgets/instagram_brand_icon.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({
@@ -117,6 +118,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       decoration: InputDecoration(
                         labelText: l10n.instagramProfile,
                         helperText: l10n.instagramProfileHelper,
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: InstagramBrandIcon(size: 24),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

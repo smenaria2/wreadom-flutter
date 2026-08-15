@@ -86,6 +86,13 @@ void main() {
       ),
       isFalse,
     );
+    expect(
+      writerBookMatchesTab(
+        book(id: '6', title: 'Published', status: 'published'),
+        'social',
+      ),
+      isFalse,
+    );
   });
 
   test(

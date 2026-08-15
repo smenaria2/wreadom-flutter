@@ -1233,8 +1233,90 @@ class AppLocalizationsHi extends AppLocalizations {
   String get socialStudio => 'सोशल स्टूडियो';
 
   @override
+  String get socialStudioEyebrow => 'रीडम पब्लिश';
+
+  @override
   String get socialStudioDescription =>
       'बुक रील बनाएँ और अपनी पांडुलिपि को प्रकाशन के लिए तैयार करें।';
+
+  @override
+  String get socialStudioReels => 'बुक रील';
+
+  @override
+  String get socialStudioManuscript => 'प्रकाशन-योग्य पांडुलिपि';
+
+  @override
+  String get socialStudioEligibilityTitle =>
+      'आपकी प्रकाशित मौलिक कृतियों के लिए';
+
+  @override
+  String get socialStudioEligibilityBody =>
+      'अपनी लिखी, प्रकाशित और मौलिक के रूप में चिह्नित पुस्तकों पर काम करने के लिए Wreadom Publish में साइन इन करें।';
+
+  @override
+  String get socialStudioWhatYouCanCreate => 'आप क्या बना सकते हैं';
+
+  @override
+  String get socialStudioReelsTitle => 'ब्रांडेड बुक रील';
+
+  @override
+  String get socialStudioReelsBody =>
+      'अपने कवर, शीर्षक, चुने हुए अंश और लेखक प्रोफ़ाइल को MP4 रील में बदलें।';
+
+  @override
+  String get socialStudioCarouselTitle => 'कैरोसेल और स्लाइड';
+
+  @override
+  String get socialStudioCarouselBody =>
+      'पूरी इमेज कैरोसेल एक्सपोर्ट करें या अलग-अलग प्रचार स्लाइड डाउनलोड करें।';
+
+  @override
+  String get socialStudioCaptionTitle => 'कैप्शन और हैशटैग';
+
+  @override
+  String get socialStudioCaptionBody =>
+      'अपनी पुस्तक के लिए तैयार प्रचार कैप्शन और उपयोगी हैशटैग बनाएँ।';
+
+  @override
+  String get socialStudioPrintTitle => 'प्रिंट और पब्लिश';
+
+  @override
+  String get socialStudioPrintBody =>
+      'प्रकाशन के लिए तैयार DOCX पांडुलिपि बनाएँ और पुस्तक का कवर डाउनलोड करें।';
+
+  @override
+  String get socialStudioHowItWorks => 'यह कैसे काम करता है';
+
+  @override
+  String get socialStudioStep1Title => 'प्रकाशित पुस्तक चुनें';
+
+  @override
+  String get socialStudioStep1Body =>
+      'सोशल स्टूडियो केवल आपकी योग्य प्रकाशित मौलिक कृतियाँ सुरक्षित रूप से दिखाता है।';
+
+  @override
+  String get socialStudioStep2Title => 'अंश चुनें और सजाएँ';
+
+  @override
+  String get socialStudioStep2Body =>
+      'अध्याय का टेक्स्ट चुनें, स्लाइड व्यवस्थित करें, बैकग्राउंड चुनें और प्रीव्यू देखें।';
+
+  @override
+  String get socialStudioStep3Title => 'एक्सपोर्ट और शेयर करें';
+
+  @override
+  String get socialStudioStep3Body =>
+      'रील, कैरोसेल, स्लाइड, कैप्शन या प्रकाशन-योग्य पांडुलिपि डाउनलोड करें।';
+
+  @override
+  String get socialStudioInstagramTitle => 'Instagram पर साथ बढ़ें';
+
+  @override
+  String get socialStudioInstagramBody =>
+      'रील या पोस्ट प्रकाशित करने के बाद अपनी कृति को अधिक लोगों तक पहुँचाने के लिए @wreadom.in को collaborator के रूप में आमंत्रित करें।';
+
+  @override
+  String get openSocialStudio => 'सोशल स्टूडियो खोलें';
 
   @override
   String get couldNotOpenSocialStudio => 'सोशल स्टूडियो नहीं खुल सका।';
