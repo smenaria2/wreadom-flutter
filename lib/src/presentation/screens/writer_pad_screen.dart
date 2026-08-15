@@ -124,8 +124,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final ScrollController _editorScrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
   final List<_ChapterDraft> _chapters = [];
+  final Set<String> _changedChapterIds = <String>{};
 
   Timer? _autosaveTimer;
+  Timer? _localCheckpointTimer;
   Timer? _chapterLockRenewTimer;
   StreamSubscription<List<ChapterEditLock>>? _chapterLocksSubscription;
   String? _bookId;
@@ -140,12 +142,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _isUploadingCover = false;
   bool _isDirty = false;
   bool _isLocalDirty = false;
+  bool _isLocalCheckpointSaving = false;
   bool _isRestoringLocalDraft = false;
   bool _allowPop = false;
   bool _isHandlingBack = false;
   bool _metadataListenersAttached = false;
   bool _bookTitleEditedByUser = false;
   bool _syncingBookTitleFromChapter = false;
+  int _localChangeRevision = 0;
+  Future<void> _localCheckpointQueue = Future<void>.value();
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
   String _category = 'Thriller';
@@ -447,10 +452,16 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final user = await _currentUserOrNull();
     if (!mounted || user == null) return;
 
-    final draft = await ref
+    final loaded = await ref
         .read(writerDraftServiceProvider)
-        .getDraft(_draftKey(user.id));
-    if (!mounted || draft == null) return;
+        .loadDraft(_draftKey(user.id));
+    if (!mounted || loaded.book == null) {
+      if (loaded.quarantined && mounted) {
+        _showSnack('An unreadable local draft was safely set aside.');
+      }
+      return;
+    }
+    final draft = loaded.book!;
 
     final serverUpdatedAt = widget.book?.updatedAt;
     final localUpdatedAt = draft.updatedAt;
@@ -503,6 +514,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
     });
     _isRestoringLocalDraft = false;
+    if (loaded.recovered && mounted) {
+      _showSnack('Recovered an older local draft on this device.');
+    }
   }
 
   List<Chapter> _normalizeHydratedChapters(List<Chapter> chapters) {
@@ -590,41 +604,46 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _chapterLocksSubscription = ref
         .read(writerRepositoryProvider)
         .watchChapterLocks(bookId)
-        .listen((locks) {
-          if (!mounted) return;
-          final user = ref.read(currentUserProvider).asData?.value;
-          final currentChapterId = _chapters.isEmpty
-              ? null
-              : _currentChapter.id;
-          final wasLockedByOther =
-              currentChapterId != null &&
-              _isChapterLockedByOther(_currentChapter, user);
+        .listen(
+          (locks) {
+            if (!mounted) return;
+            final user = ref.read(currentUserProvider).asData?.value;
+            final currentChapterId = _chapters.isEmpty
+                ? null
+                : _currentChapter.id;
+            final wasLockedByOther =
+                currentChapterId != null &&
+                _isChapterLockedByOther(_currentChapter, user);
 
-          final nextLocks = <String, ChapterEditLock>{
-            for (final lock in locks) lock.chapterId: lock,
-          };
+            final nextLocks = <String, ChapterEditLock>{
+              for (final lock in locks) lock.chapterId: lock,
+            };
 
-          // To check what will be locked by other after updating
-          final prevLocks = _chapterLocks;
-          _chapterLocks = nextLocks;
-          final willBeLockedByOther =
-              currentChapterId != null &&
-              _isChapterLockedByOther(_currentChapter, user);
-          _chapterLocks = prevLocks;
-
-          setState(() {
+            // To check what will be locked by other after updating
+            final prevLocks = _chapterLocks;
             _chapterLocks = nextLocks;
-          });
+            final willBeLockedByOther =
+                currentChapterId != null &&
+                _isChapterLockedByOther(_currentChapter, user);
+            _chapterLocks = prevLocks;
 
-          if (wasLockedByOther && !willBeLockedByOther) {
-            final backupVersions = _localBackupVersionsForChangedChapters();
-            // Re-hydrate chapters from Firestore to get the co-author's edits,
-            // silently backing up local changes into the version history.
-            unawaited(
-              _hydrateAuthoringChapters(localBackupVersions: backupVersions),
-            );
-          }
-        });
+            setState(() {
+              _chapterLocks = nextLocks;
+            });
+
+            if (wasLockedByOther && !willBeLockedByOther) {
+              final backupVersions = _localBackupVersionsForChangedChapters();
+              // Re-hydrate chapters from Firestore to get the co-author's edits,
+              // silently backing up local changes into the version history.
+              unawaited(
+                _hydrateAuthoringChapters(localBackupVersions: backupVersions),
+              );
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('[WriterPad] chapter lock stream failed: $error');
+          },
+        );
   }
 
   Future<void> _syncCurrentChapterLock() async {
@@ -641,13 +660,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       return;
     }
     await _releaseHeldChapterLock(exceptChapterId: chapterId);
-    final acquired = await ref
-        .read(writerRepositoryProvider)
-        .acquireChapterLock(
-          bookId,
-          chapterId,
-          ChapterLockHolder(id: user.id, name: _displayNameForLock(user)),
-        );
+    bool acquired;
+    try {
+      acquired = await ref
+          .read(writerRepositoryProvider)
+          .acquireChapterLock(
+            bookId,
+            chapterId,
+            ChapterLockHolder(id: user.id, name: _displayNameForLock(user)),
+          );
+    } catch (error) {
+      debugPrint('[WriterPad] chapter lock acquisition failed: $error');
+      return;
+    }
     if (!mounted || !acquired) return;
     _heldChapterLockId = chapterId;
     _startChapterLockRenewal();
@@ -673,9 +698,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final bookId = _bookId ?? widget.book?.id;
     final chapterId = _heldChapterLockId;
     if (bookId == null || chapterId == null) return;
-    await ref
-        .read(writerRepositoryProvider)
-        .renewChapterLock(bookId, chapterId);
+    try {
+      await ref
+          .read(writerRepositoryProvider)
+          .renewChapterLock(bookId, chapterId);
+    } catch (error) {
+      debugPrint('[WriterPad] chapter lock renewal failed: $error');
+    }
   }
 
   Future<void> _releaseHeldChapterLock({
@@ -693,6 +722,14 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     await ref.read(writerRepositoryProvider).releaseChapterLock(bookId, lockId);
   }
 
+  Future<void> _releaseHeldChapterLockSafely() async {
+    try {
+      await _releaseHeldChapterLock();
+    } catch (error) {
+      debugPrint('[WriterPad] chapter lock release failed: $error');
+    }
+  }
+
   String _displayNameForLock(UserModel user) {
     final displayName = user.displayName?.trim();
     if (displayName != null && displayName.isNotEmpty) return displayName;
@@ -705,9 +742,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _autosaveTimer?.cancel();
+    _localCheckpointTimer?.cancel();
     _chapterLockRenewTimer?.cancel();
     _chapterLocksSubscription?.cancel();
-    unawaited(_releaseHeldChapterLock());
+    unawaited(_releaseHeldChapterLockSafely());
     if (_metadataListenersAttached) {
       _titleController.value.removeListener(_handleBookTitleChanged);
       _editorFocusNode.removeListener(_handleEditorFocusChanged);
@@ -736,8 +774,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      unawaited(_syncDraftCheckpoint());
-      unawaited(_releaseHeldChapterLock());
+      unawaited(_saveLocalDraft());
+      unawaited(_releaseHeldChapterLockSafely());
     }
   }
 
@@ -1018,10 +1056,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _isHandlingBack = true;
     try {
       while (mounted) {
-        await _saveLocalDraft();
-        final remoteSaved = await _syncDraftCheckpoint();
+        final locallySaved = await _saveLocalDraft();
         if (!mounted) return;
-        if (remoteSaved || !_hasSavableContent) {
+        if (locallySaved || !_hasSavableContent) {
           setState(() => _allowPop = true);
           navigator.pop();
           return;
@@ -1095,7 +1132,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           enabled: !lockedByOther,
                           maxLength: 100,
                           maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                          buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
+                          buildCounter:
+                              (
+                                context, {
+                                required currentLength,
+                                required isFocused,
+                                required maxLength,
+                              }) => null,
                           style: TextStyle(
                             color: _onWriterSurfaceColor(context),
                             fontSize: 20,
@@ -1220,16 +1263,21 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           }
 
                           if (_hindiController.hasSuggestion) {
-                            final isShift = HardwareKeyboard.instance.isShiftPressed;
+                            final isShift =
+                                HardwareKeyboard.instance.isShiftPressed;
                             // ── Shift+Tab / ArrowLeft: previous suggestion ─
-                            if ((event.logicalKey == LogicalKeyboardKey.tab && isShift) ||
-                                event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                            if ((event.logicalKey == LogicalKeyboardKey.tab &&
+                                    isShift) ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowLeft) {
                               _hindiController.selectPreviousSuggestion();
                               return KeyEventResult.handled;
                             }
                             // ── Tab / ArrowRight: next suggestion ─────────
-                            if ((event.logicalKey == LogicalKeyboardKey.tab && !isShift) ||
-                                event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                            if ((event.logicalKey == LogicalKeyboardKey.tab &&
+                                    !isShift) ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowRight) {
                               _hindiController.selectNextSuggestion();
                               return KeyEventResult.handled;
                             }
@@ -1584,7 +1632,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
             if (termsIndex == -1 || privacyIndex == -1) {
               return Text(
-                rawNotice.replaceAll('__TERMS__', l10n.termsOfUse).replaceAll('__PRIVACY__', l10n.privacyPolicy),
+                rawNotice
+                    .replaceAll('__TERMS__', l10n.termsOfUse)
+                    .replaceAll('__PRIVACY__', l10n.privacyPolicy),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 11,
@@ -1595,21 +1645,68 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
             final parts = <_WriterTextPart>[];
             if (termsIndex < privacyIndex) {
-              parts.add(_WriterTextPart(rawNotice.substring(0, termsIndex), false, null));
-              parts.add(_WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms));
-              parts.add(_WriterTextPart(rawNotice.substring(termsIndex + 9, privacyIndex), false, null));
-              parts.add(_WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy));
-              parts.add(_WriterTextPart(rawNotice.substring(privacyIndex + 11), false, null));
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(0, termsIndex),
+                  false,
+                  null,
+                ),
+              );
+              parts.add(
+                _WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms),
+              );
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(termsIndex + 9, privacyIndex),
+                  false,
+                  null,
+                ),
+              );
+              parts.add(
+                _WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy),
+              );
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(privacyIndex + 11),
+                  false,
+                  null,
+                ),
+              );
             } else {
-              parts.add(_WriterTextPart(rawNotice.substring(0, privacyIndex), false, null));
-              parts.add(_WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy));
-              parts.add(_WriterTextPart(rawNotice.substring(privacyIndex + 11, termsIndex), false, null));
-              parts.add(_WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms));
-              parts.add(_WriterTextPart(rawNotice.substring(termsIndex + 9), false, null));
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(0, privacyIndex),
+                  false,
+                  null,
+                ),
+              );
+              parts.add(
+                _WriterTextPart(l10n.privacyPolicy, true, AppRoutes.privacy),
+              );
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(privacyIndex + 11, termsIndex),
+                  false,
+                  null,
+                ),
+              );
+              parts.add(
+                _WriterTextPart(l10n.termsOfUse, true, AppRoutes.terms),
+              );
+              parts.add(
+                _WriterTextPart(
+                  rawNotice.substring(termsIndex + 9),
+                  false,
+                  null,
+                ),
+              );
             }
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
               child: Text.rich(
                 TextSpan(
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1622,7 +1719,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       return WidgetSpan(
                         alignment: PlaceholderAlignment.middle,
                         child: GestureDetector(
-                          onTap: () => AppRouter.openExternalPolicy(context, part.route!),
+                          onTap: () => AppRouter.openExternalPolicy(
+                            context,
+                            part.route!,
+                          ),
                           child: Text(
                             part.text,
                             style: TextStyle(
@@ -1641,7 +1741,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 textAlign: TextAlign.center,
               ),
             );
-          }
+          },
         ),
       ],
     );
@@ -1669,7 +1769,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               child: WriterCustomToolbar(
                 controller: controller,
                 focusNode: _editorFocusNode,
-                onInsertImage: _isUploadingInlineImage ? null : _pickInlineImage,
+                onInsertImage: _isUploadingInlineImage
+                    ? null
+                    : _pickInlineImage,
                 isUploadingInlineImage: _isUploadingInlineImage,
                 onInsertVideo: _showMediaInsertDialog,
                 onVersionHistory: _currentChapter.versions.isEmpty
@@ -1684,8 +1786,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                 onToggleHindi: () {
                   setState(() {
                     _hindiController.toggleEnabled();
-                    _hindiController
-                        .updateForSelection(_currentChapter.controller);
+                    _hindiController.updateForSelection(
+                      _currentChapter.controller,
+                    );
                   });
                 },
               ),
@@ -1767,7 +1870,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       controller: controller,
       maxLines: maxLines,
       maxLength: maxLength,
-      maxLengthEnforcement: maxLength != null ? MaxLengthEnforcement.enforced : null,
+      maxLengthEnforcement: maxLength != null
+          ? MaxLengthEnforcement.enforced
+          : null,
       style: TextStyle(color: onSurfaceColor),
       decoration: InputDecoration(
         labelText: label,
@@ -2036,6 +2141,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _isLocalDirty = true;
       _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
     });
+    _markDirty();
   }
 
   void _reorderChapter(int oldIndex, int newIndex) {
@@ -2049,6 +2155,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     _isDirty = true;
     _isLocalDirty = true;
     _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
+    _changedChapterIds.addAll(
+      _chapters.map((chapter) => chapter.id).whereType<String>(),
+    );
+    _localChangeRevision += 1;
+    _scheduleLocalCheckpoint();
   }
 
   bool _toggleChapterVisibility(int index) {
@@ -2070,6 +2181,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _isLocalDirty = true;
       _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
     });
+    if (chapter.id != null) _changedChapterIds.add(chapter.id!);
+    _localChangeRevision += 1;
+    _scheduleLocalCheckpoint();
     return true;
   }
 
@@ -3113,24 +3227,44 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           : l10n.writerSavingDraft;
     });
 
+    var locallySaved = false;
+    final saveStartRevision = _localChangeRevision;
+    final saveStopwatch = Stopwatch()..start();
     try {
       final localDraftKey = _draftKey(user.id);
+      // A cloud write may take seconds or fail while offline. Secure the
+      // current editor snapshot before it begins, but do not block a time
+      // sensitive publish if the device store itself is temporarily busy.
+      locallySaved = await _saveLocalDraft();
+      final existingChapterIds = _chapters
+          .map((chapter) => chapter.id)
+          .whereType<String>()
+          .toSet();
       final book = _buildBookForSave(user, status: status);
       final baseChapterRevisions = _baseChapterRevisionsForSave();
+      final changedChapterIds = <String>{
+        ..._changedChapterIds,
+        for (final chapter in book.chapters ?? const <Chapter>[])
+          if (!existingChapterIds.contains(chapter.id)) chapter.id,
+        if (status != _statusForSave)
+          for (final chapter in book.chapters ?? const <Chapter>[]) chapter.id,
+      };
       final shouldNotifyFollowers = status == 'published' && !_isPublished;
+      List<Chapter> savedChapters = book.chapters ?? const <Chapter>[];
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
       } else {
-        await ref
+        savedChapters = await ref
             .read(writerRepositoryProvider)
             .updateBook(
               _bookId!,
               book,
               baseChapterRevisions: baseChapterRevisions,
+              changedChapterIds: changedChapterIds,
             );
       }
-      await _hydrateAuthoringChapters();
+      _applySavedChapterRevisions(savedChapters);
       if (shouldNotifyFollowers && _bookId != null) {
         // Cloud Functions generate follower notifications for new publications.
         AnalyticsService.logBookPublish(bookId: _bookId!);
@@ -3141,24 +3275,32 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _savedBookLeaves = book.leaves;
       _savedPublishedAt = book.publishedAt;
       _savedStatus = status;
-      unawaited(
-        ref
-            .read(writerDraftServiceProvider)
-            .deleteDraft(localDraftKey)
-            .catchError((Object _) {}),
-      );
+      final editorChangedDuringSave = _localChangeRevision != saveStartRevision;
+      if (!editorChangedDuringSave) {
+        unawaited(
+          ref
+              .read(writerDraftServiceProvider)
+              .deleteDraft(localDraftKey)
+              .catchError((Object _) {}),
+        );
+      }
       ref.invalidate(myBooksProvider);
       ref.invalidate(filteredMyBooksProvider);
       if (!mounted) return true;
       setState(() {
-        _isDirty = false;
-        _isLocalDirty = false;
         _isSaving = false;
-        _saveStatus = status == 'published'
-            ? (wasPublished ? l10n.bookSaved : l10n.writerPublishedStatus)
-            : l10n.draftSaved;
+        if (!editorChangedDuringSave) {
+          _isDirty = false;
+          _isLocalDirty = false;
+          _changedChapterIds.clear();
+          _saveStatus = status == 'published'
+              ? (wasPublished ? l10n.bookSaved : l10n.writerPublishedStatus)
+              : l10n.draftSaved;
+        } else {
+          _saveStatus = l10n.unsavedChanges;
+        }
       });
-      if (showSnack) {
+      if (showSnack && !editorChangedDuringSave) {
         _showSnack(
           status == 'published'
               ? (wasPublished ? l10n.bookSaved : l10n.storyPublished)
@@ -3169,10 +3311,21 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         setState(() => _allowPop = true);
         Navigator.of(context).pop();
       }
+      _logWriterSave(
+        status: status,
+        outcome: 'success',
+        elapsedMs: saveStopwatch.elapsedMilliseconds,
+        locallySaved: locallySaved,
+      );
       return true;
     } on ChapterSaveConflictException {
       await _saveLocalDraft();
-      await _hydrateAuthoringChapters();
+      _logWriterSave(
+        status: status,
+        outcome: 'conflict',
+        elapsedMs: saveStopwatch.elapsedMilliseconds,
+        locallySaved: locallySaved,
+      );
       if (!mounted) return false;
       setState(() {
         _isSaving = false;
@@ -3185,46 +3338,125 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       }
       return false;
     } catch (error) {
+      _logWriterSave(
+        status: status,
+        outcome: _saveErrorKind(error),
+        elapsedMs: saveStopwatch.elapsedMilliseconds,
+        locallySaved: locallySaved,
+      );
       if (!mounted) return false;
       setState(() {
         _isSaving = false;
         _saveStatus = l10n.writerSaveFailed;
       });
       if (showSnack) {
-        _showSnack(l10n.couldNotSave('$error'));
+        _showSnack(_saveFailureMessage(error, locallySaved));
       }
       return false;
     }
   }
 
   Future<bool> _syncDraftCheckpoint() async {
-    if (!_isDirty || _isSaving || !_hasSavableContent) return true;
-    return _save(status: _statusForSave, allowUntitled: true, showSnack: false);
+    if (!_isLocalDirty || !_hasSavableContent) return true;
+    return _saveLocalDraft();
+  }
+
+  void _applySavedChapterRevisions(List<Chapter> savedChapters) {
+    final revisions = <String, int>{
+      for (final chapter in savedChapters) chapter.id: chapter.revision,
+    };
+    for (final draft in _chapters) {
+      final id = draft.id;
+      if (id != null && revisions.containsKey(id)) {
+        draft.revision = revisions[id]!;
+      }
+    }
   }
 
   Future<bool> _saveLocalDraft() async {
     if (!_hasSavableContent) return true;
     final user = await _currentUserOrNull();
     if (user == null) return false;
-
-    try {
-      final book = _buildBookForSave(user, status: 'draft');
-      await ref
-          .read(writerDraftServiceProvider)
-          .saveDraft(draftKey: _draftKey(user.id), book: book);
-      if (!mounted) return true;
+    final revision = _localChangeRevision;
+    final book = _buildBookForSave(user, status: 'draft');
+    var saved = false;
+    _localCheckpointQueue = _localCheckpointQueue.then((_) async {
+      _isLocalCheckpointSaving = true;
+      try {
+        await ref
+            .read(writerDraftServiceProvider)
+            .saveDraft(draftKey: _draftKey(user.id), book: book);
+        saved = true;
+      } catch (error) {
+        debugPrint('[WriterPad] local checkpoint failed: $error');
+      } finally {
+        _isLocalCheckpointSaving = false;
+      }
+    });
+    await _localCheckpointQueue;
+    if (!mounted) return saved;
+    if (saved && revision == _localChangeRevision) {
       setState(() {
         _isLocalDirty = false;
-        _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
+        if (!_isSaving) {
+          _saveStatus = AppLocalizations.of(context)!.savedOnDevice;
+        }
       });
-      return true;
-    } catch (_) {
-      if (!mounted) return false;
+    } else if (!saved) {
       setState(
         () => _saveStatus = AppLocalizations.of(context)!.localSaveFailed,
       );
-      return false;
     }
+    return saved;
+  }
+
+  String _saveFailureMessage(Object error, bool locallySaved) {
+    final value = error.toString().toLowerCase();
+    final prefix = locallySaved
+        ? 'Your latest writing is saved on this device. '
+        : 'Cloud save failed. ';
+    if (value.contains('permission') || value.contains('unauthenticated')) {
+      return '${prefix}Please sign in again and retry.';
+    }
+    if (value.contains('network') ||
+        value.contains('unavailable') ||
+        value.contains('timeout')) {
+      return '${prefix}Check your connection and retry.';
+    }
+    if (error is ChapterSaveConflictException) {
+      return '${prefix}This chapter changed elsewhere. Review it before retrying.';
+    }
+    return '${prefix}Please retry in a moment.';
+  }
+
+  String _saveErrorKind(Object error) {
+    final value = error.toString().toLowerCase();
+    if (value.contains('permission') || value.contains('unauthenticated')) {
+      return 'auth';
+    }
+    if (value.contains('network') ||
+        value.contains('unavailable') ||
+        value.contains('timeout')) {
+      return 'network';
+    }
+    return 'unexpected';
+  }
+
+  void _logWriterSave({
+    required String status,
+    required String outcome,
+    required int elapsedMs,
+    required bool locallySaved,
+  }) {
+    final parameters = <String, Object>{
+      'operation': status == 'published' ? 'publish' : 'save_draft',
+      'outcome': outcome,
+      'elapsed_ms': elapsedMs,
+      'chapter_count': _chapters.length,
+      'local_checkpoint': locallySaved ? 1 : 0,
+    };
+    debugPrint('[WriterPadSave] $parameters');
+    AnalyticsService.logEvent('writer_save_result', parameters: parameters);
   }
 
   Book _buildBookForSave(UserModel user, {required String status}) {
@@ -3683,6 +3915,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   void _markDirty() {
     if (!mounted || _isRestoringLocalDraft) return;
+    _localChangeRevision += 1;
+    final chapterId = _chapters.isEmpty ? null : _currentChapter.id;
+    if (chapterId != null && chapterId.trim().isNotEmpty) {
+      _changedChapterIds.add(chapterId);
+    }
+    _scheduleLocalCheckpoint();
     _onEditorSelectionOrTextChanged();
     _syncBookTitleFromFirstChapter();
     if (!_isDirty) {
@@ -3697,6 +3935,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _saveStatus = AppLocalizations.of(context)!.unsavedChanges;
       });
     }
+  }
+
+  void _scheduleLocalCheckpoint() {
+    _localCheckpointTimer?.cancel();
+    _localCheckpointTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted && _isLocalDirty && !_isLocalCheckpointSaving) {
+        unawaited(_saveLocalDraft());
+      }
+    });
   }
 
   void _syncBookTitleFromFirstChapter() {

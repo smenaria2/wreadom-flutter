@@ -9,11 +9,14 @@ abstract class WriterRepository {
     String? excludeBookId,
   });
   Future<String> createBook(Book book);
-  Future<void> updateBook(
+
+  /// Returns the canonical chapter revisions committed by the server.
+  Future<List<Chapter>> updateBook(
     String bookId,
     Book book, {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
+    Set<String> changedChapterIds = const <String>{},
   });
   Future<List<Chapter>> getAuthoringChapters(String bookId);
   Stream<List<ChapterEditLock>> watchChapterLocks(String bookId);

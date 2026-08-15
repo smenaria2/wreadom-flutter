@@ -373,11 +373,12 @@ class FirebaseWriterRepository implements WriterRepository {
   }
 
   @override
-  Future<void> updateBook(
+  Future<List<Chapter>> updateBook(
     String bookId,
     Book book, {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
+    Set<String> changedChapterIds = const <String>{},
   }) async {
     final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
@@ -404,7 +405,7 @@ class FirebaseWriterRepository implements WriterRepository {
         data['removedCollaboratorId'] = null;
       }
     }
-    await _writeBookAndAuthorChapters(
+    return _writeBookAndAuthorChapters(
       bookRef: bookRef,
       data: data,
       chapters: book.chapters ?? const <Chapter>[],
@@ -412,6 +413,7 @@ class FirebaseWriterRepository implements WriterRepository {
       readExistingChapters: true,
       deletedChapterIds: deletedChapterIds,
       baseChapterRevisions: baseChapterRevisions,
+      changedChapterIds: changedChapterIds,
     );
   }
 
@@ -452,7 +454,7 @@ class FirebaseWriterRepository implements WriterRepository {
     });
   }
 
-  Future<void> _writeBookAndAuthorChapters({
+  Future<List<Chapter>> _writeBookAndAuthorChapters({
     required DocumentReference<Map<String, dynamic>> bookRef,
     required Map<String, dynamic> data,
     required List<Chapter> chapters,
@@ -460,6 +462,7 @@ class FirebaseWriterRepository implements WriterRepository {
     required bool readExistingChapters,
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
+    Set<String> changedChapterIds = const <String>{},
   }) async {
     if (chapters.length > _batchChunkSize) {
       throw StateError(
@@ -482,26 +485,34 @@ class FirebaseWriterRepository implements WriterRepository {
         );
       }
       await batch.commit();
-      return;
+      return incoming;
     }
 
-    final existingSnapshot = await bookRef.collection('authorChapters').get();
-    final existingRefs = existingSnapshot.docs
-        .map((doc) => doc.reference)
-        .toList(growable: false);
-    final writeCount = incoming.length + existingRefs.length + 1;
+    // A normal edit should not download every chapter before it can save. The
+    // editor sends the chapters that changed since the last successful save;
+    // legacy callers retain the previous all-chapters behaviour by omitting
+    // [changedChapterIds].
+    final changedIds = changedChapterIds.isEmpty
+        ? incoming.map((chapter) => chapter.id).toSet()
+        : changedChapterIds
+              .map((id) => id.trim())
+              .where((id) => id.isNotEmpty)
+              .toSet();
+    final writeCount = changedIds.length + deletedChapterIds.length + 1;
     if (writeCount > 500) {
       throw StateError(
         'This book has too many chapter changes for one atomic save.',
       );
     }
 
+    var savedChapters = incoming;
     await _firestore.runTransaction((transaction) async {
       await transaction.get(bookRef);
       final existingChapters = <Chapter>[];
       final existingDocRefs =
           <String, DocumentReference<Map<String, dynamic>>>{};
-      for (final ref in existingRefs) {
+      for (final id in changedIds) {
+        final ref = bookRef.collection('authorChapters').doc(id);
         final snapshot = await transaction.get(ref);
         if (!snapshot.exists) continue;
         final chapter = _chapterFromSnapshot(snapshot);
@@ -509,16 +520,38 @@ class FirebaseWriterRepository implements WriterRepository {
         existingDocRefs[chapter.id] = ref;
       }
 
-      final mergeResult = mergeAuthoringChaptersForSave(
-        incomingChapters: incoming,
-        existingChapters: existingChapters,
-        deletedChapterIds: deletedChapterIds,
-        baseChapterRevisions: baseChapterRevisions,
-      );
-      final canonical = mergeResult.chapters;
+      final existingById = <String, Chapter>{
+        for (final chapter in existingChapters) chapter.id: chapter,
+      };
+      final deletedIds = deletedChapterIds.map((id) => id.trim()).toSet();
+      final conflicts = <String>[];
+      final canonical = <Chapter>[];
+      for (final incomingChapter in incoming) {
+        final id = incomingChapter.id.trim();
+        if (id.isEmpty || deletedIds.contains(id)) continue;
+        if (!changedIds.contains(id)) {
+          canonical.add(incomingChapter);
+          continue;
+        }
+        final existing = existingById[id];
+        final baseRevision = baseChapterRevisions[id];
+        if (existing != null &&
+            baseRevision != null &&
+            existing.revision != baseRevision) {
+          conflicts.add(id);
+          continue;
+        }
+        final nextRevision = existing == null
+            ? incomingChapter.revision + 1
+            : existing.revision + 1;
+        canonical.add(incomingChapter.copyWith(revision: nextRevision));
+      }
+      if (conflicts.isNotEmpty) throw ChapterSaveConflictException(conflicts);
+      savedChapters = canonical;
       _applyBookChapterProjection(data, canonical);
       transaction.set(bookRef, data, SetOptions(merge: mergeBook));
       for (final chapter in canonical) {
+        if (!changedIds.contains(chapter.id)) continue;
         transaction.set(
           bookRef.collection('authorChapters').doc(chapter.id),
           _chapterToFirestore(chapter),
@@ -532,6 +565,7 @@ class FirebaseWriterRepository implements WriterRepository {
         transaction.delete(ref);
       }
     });
+    return savedChapters;
   }
 
   void _applyBookChapterProjection(

@@ -94,8 +94,9 @@ void main() {
         currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
         if (writerRepository != null)
           writerRepositoryProvider.overrideWithValue(writerRepository),
-        if (writerDraftStore != null)
-          writerDraftServiceProvider.overrideWithValue(writerDraftStore),
+        writerDraftServiceProvider.overrideWithValue(
+          writerDraftStore ?? _FakeWriterDraftStore(),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -157,6 +158,57 @@ void main() {
       ),
     );
   }
+
+  test(
+    'WriterDraftService stores a normalized checkpoint and recovers legacy text chapters',
+    () async {
+      final service = WriterDraftService();
+      await service.init();
+      final box = Hive.box('writer_drafts');
+      const key = 'legacy-text-chapter';
+      await box.put(key, {
+        'schemaVersion': 1,
+        'book': {
+          'id': 'legacy-book',
+          'title': 'Legacy draft',
+          'authors': const [
+            {'name': 'Writer'},
+          ],
+          'subjects': const <String>[],
+          'languages': const ['en'],
+          'formats': const <String, String>{},
+          'download_count': 0,
+          'media_type': 'text',
+          'bookshelves': const <String>[],
+          'chapters': const ['<p>Recovered writing</p>'],
+        },
+      });
+
+      final loaded = await service.loadDraft(key);
+
+      expect(loaded.recovered, isTrue);
+      expect(loaded.book?.chapters, hasLength(1));
+      expect(loaded.book?.chapters?.single.content, '<p>Recovered writing</p>');
+      await service.deleteDraft(key);
+    },
+  );
+
+  test(
+    'WriterDraftService quarantines unreadable snapshots without throwing',
+    () async {
+      final service = WriterDraftService();
+      await service.init();
+      final box = Hive.box('writer_drafts');
+      const key = 'broken-checkpoint';
+      await box.put(key, {'schemaVersion': 2, 'snapshot': 'not-a-map'});
+
+      final loaded = await service.loadDraft(key);
+
+      expect(loaded.book, isNull);
+      expect(loaded.quarantined, isTrue);
+      expect(box.get(key), isNull);
+    },
+  );
 
   Future<void> expandWriterToolbar(WidgetTester tester) async {
     await tester.pumpAndSettle();
@@ -400,88 +452,75 @@ void main() {
     expect(find.text('Hidden'), findsNothing);
   });
 
-  testWidgets('failed remote save keeps editor open and offers exit choices', (
+  testWidgets(
+    'Back exits after local checkpoint without waiting for remote save',
+    (tester) async {
+      final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
+      final draftStore = _FakeWriterDraftStore();
+      await tester.pumpWidget(
+        routedWriterPadTestApp(
+          testBook(status: 'draft'),
+          writerRepository: repository,
+          writerDraftStore: draftStore,
+        ),
+      );
+      await tester.tap(find.text('Open writer'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Changed chapter');
+      await tester.tap(find.byIcon(Icons.close).first);
+      await tester.pumpAndSettle();
+
+      expect(repository.updateAttempts, 0);
+      expect(find.text('Open writer'), findsOneWidget);
+      expect(find.text('Writing Editor'), findsNothing);
+      expect(await draftStore.getDraft('user-1:book-1'), isNotNull);
+    },
+  );
+
+  testWidgets('failed explicit cloud save keeps the local checkpoint', (
     tester,
   ) async {
     final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
     final draftStore = _FakeWriterDraftStore();
     await tester.pumpWidget(
-      routedWriterPadTestApp(
+      writerPadTestApp(
         testBook(status: 'draft'),
         writerRepository: repository,
         writerDraftStore: draftStore,
       ),
     );
-    await tester.tap(find.text('Open writer'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Changed chapter');
-    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.tap(find.byIcon(Icons.save_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.text('Save failed'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Save again'), findsOneWidget);
-    expect(find.text('Exit without saving'), findsOneWidget);
+    expect(repository.updateAttempts, 1);
     expect(find.text('Writing Editor'), findsOneWidget);
     expect(await draftStore.getDraft('user-1:book-1'), isNotNull);
   });
 
-  testWidgets('save again retries and exits only after remote save succeeds', (
+  testWidgets('lifecycle interruption creates a local checkpoint', (
     tester,
   ) async {
     final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
     final draftStore = _FakeWriterDraftStore();
     await tester.pumpWidget(
-      routedWriterPadTestApp(
+      writerPadTestApp(
         testBook(status: 'draft'),
         writerRepository: repository,
         writerDraftStore: draftStore,
       ),
     );
-    await tester.tap(find.text('Open writer'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Changed chapter');
-    await tester.tap(find.byIcon(Icons.close).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save again'));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pumpAndSettle();
 
-    expect(repository.updateAttempts, 2);
-    expect(find.text('Open writer'), findsOneWidget);
-    expect(find.text('Writing Editor'), findsNothing);
-  });
-
-  testWidgets('exit without saving closes and preserves local checkpoint', (
-    tester,
-  ) async {
-    final repository = _FakeWriterRepository(updateFailuresRemaining: 1);
-    final draftStore = _FakeWriterDraftStore();
-    await tester.pumpWidget(
-      routedWriterPadTestApp(
-        testBook(status: 'draft'),
-        writerRepository: repository,
-        writerDraftStore: draftStore,
-      ),
-    );
-    await tester.tap(find.text('Open writer'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Changed chapter');
-    await tester.tap(find.byIcon(Icons.close).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Exit without saving'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Open writer'), findsOneWidget);
-    expect(find.text('Writing Editor'), findsNothing);
+    expect(repository.updateAttempts, 0);
     expect(await draftStore.getDraft('user-1:book-1'), isNotNull);
   });
 
-  testWidgets('successful close saves remotely and exits automatically', (
+  testWidgets('Back exits without a cloud transaction when online', (
     tester,
   ) async {
     final repository = _FakeWriterRepository();
@@ -499,7 +538,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.close).first);
     await tester.pumpAndSettle();
 
-    expect(repository.updateAttempts, 1);
+    expect(repository.updateAttempts, 0);
     expect(find.text('Open writer'), findsOneWidget);
     expect(find.text('Writing Editor'), findsNothing);
   });
@@ -616,6 +655,7 @@ void main() {
         overrides: [
           currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
           writerRepositoryProvider.overrideWithValue(repository),
+          writerDraftServiceProvider.overrideWithValue(_FakeWriterDraftStore()),
         ],
         child: MaterialApp(
           localizationsDelegates: const [
@@ -997,6 +1037,11 @@ class _FakeWriterDraftStore implements WriterDraftStore {
   Future<Book?> getDraft(String draftKey) async => _drafts[draftKey];
 
   @override
+  Future<WriterDraftLoadResult> loadDraft(String draftKey) async {
+    return WriterDraftLoadResult(book: _drafts[draftKey]);
+  }
+
+  @override
   Future<void> saveDraft({required String draftKey, required Book book}) async {
     _drafts[draftKey] = book;
   }
@@ -1020,11 +1065,12 @@ class _FakeWriterRepository implements WriterRepository {
   }
 
   @override
-  Future<void> updateBook(
+  Future<List<Chapter>> updateBook(
     String bookId,
     Book book, {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
+    Set<String> changedChapterIds = const <String>{},
   }) async {
     updateAttempts += 1;
     if (updateFailuresRemaining > 0) {
@@ -1032,6 +1078,7 @@ class _FakeWriterRepository implements WriterRepository {
       throw StateError('simulated remote save failure');
     }
     updatedBook = book;
+    return book.chapters ?? const <Chapter>[];
   }
 
   @override
