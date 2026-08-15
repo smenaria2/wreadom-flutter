@@ -47,9 +47,7 @@ class ReelsPreviewCarousel extends ConsumerWidget {
       if (state.isInitialLoading) {
         return const SizedBox(
           height: 180,
-          child: Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: Center(child: CircularProgressIndicator()),
         );
       }
       return const SizedBox.shrink();
@@ -65,7 +63,7 @@ class ReelsPreviewCarousel extends ConsumerWidget {
           itemCount: posts.length.clamp(0, 15),
           itemBuilder: (context, index) {
             final post = posts[index];
-            return _ReelPreviewCard(post: post);
+            return ReelPreviewCard(post: post);
           },
         ),
       ),
@@ -73,8 +71,8 @@ class ReelsPreviewCarousel extends ConsumerWidget {
   }
 }
 
-class _ReelPreviewCard extends StatelessWidget {
-  const _ReelPreviewCard({required this.post});
+class ReelPreviewCard extends StatelessWidget {
+  const ReelPreviewCard({super.key, required this.post});
 
   final FeedPost post;
 
@@ -82,9 +80,14 @@ class _ReelPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasImage = post.imageUrl != null && post.imageUrl!.trim().isNotEmpty;
-    final hasBookCover = post.bookCover != null && post.bookCover!.trim().isNotEmpty;
-    final coverUrl = hasImage ? post.imageUrl : (hasBookCover ? post.bookCover : null);
-    final gradientIndex = (post.id.hashCode).abs() % ReelsPreviewCarousel._gradientPresets.length;
+    final hasBookCover =
+        post.bookCover != null && post.bookCover!.trim().isNotEmpty;
+    final coverUrl = hasImage
+        ? post.imageUrl
+        : (hasBookCover ? post.bookCover : null);
+    final postText = post.text.trim();
+    final gradientIndex =
+        (post.id.hashCode).abs() % ReelsPreviewCarousel._gradientPresets.length;
     final gradient = ReelsPreviewCarousel._gradientPresets[gradientIndex];
 
     String resolveName() {
@@ -99,8 +102,11 @@ class _ReelPreviewCard extends StatelessWidget {
       }
       return 'Anonymous';
     }
+
     final displayName = resolveName();
-    final initialLetter = displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'W';
+    final initialLetter = displayName.isNotEmpty
+        ? displayName.substring(0, 1).toUpperCase()
+        : 'W';
 
     return Container(
       width: 110,
@@ -108,10 +114,10 @@ class _ReelPreviewCard extends StatelessWidget {
       child: GlassSurface(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          Navigator.of(context, rootNavigator: true).pushNamed(
-            AppRoutes.feedReels,
-            arguments: post.id,
-          );
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pushNamed(AppRoutes.feedReels, arguments: post.id);
         },
         child: Stack(
           fit: StackFit.expand,
@@ -121,17 +127,13 @@ class _ReelPreviewCard extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: coverUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  decoration: BoxDecoration(gradient: gradient),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  decoration: BoxDecoration(gradient: gradient),
-                ),
+                placeholder: (context, url) =>
+                    Container(decoration: BoxDecoration(gradient: gradient)),
+                errorWidget: (context, url, error) =>
+                    Container(decoration: BoxDecoration(gradient: gradient)),
               )
             else
-              Container(
-                decoration: BoxDecoration(gradient: gradient),
-              ),
+              Container(decoration: BoxDecoration(gradient: gradient)),
 
             // Dimming Overlay
             Container(
@@ -148,25 +150,37 @@ class _ReelPreviewCard extends StatelessWidget {
               ),
             ),
 
-            // Text Snippet inside Card (only if no image covers the card background)
-            if (coverUrl == null && post.text.trim().isNotEmpty)
+            // Keep the post copy visible even when an image or book cover is
+            // used as the card background.
+            if (postText.isNotEmpty)
               Positioned(
                 left: 8,
                 right: 8,
-                top: 48,
-                bottom: 36,
+                top: 44,
+                bottom: 34,
                 child: Center(
-                  child: Text(
-                    post.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 5,
                     ),
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      postText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
@@ -205,9 +219,6 @@ class _ReelPreviewCard extends StatelessWidget {
                 ),
               ),
             ),
-
-
-
             // Star Rating (if review) or small overlay
             if (post.type.toLowerCase() == 'review' && post.rating != null)
               Positioned(
