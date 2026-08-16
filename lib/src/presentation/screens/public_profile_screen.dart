@@ -596,6 +596,8 @@ class _PublicProfileHeader extends StatelessWidget {
               ),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.high,
+              placeholder: (context, url) => const SizedBox.shrink(),
+              errorWidget: (context, url, error) => const SizedBox.shrink(),
             ),
           )
         else

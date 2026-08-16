@@ -60,6 +60,8 @@ import 'src/utils/sharing_intent_handler.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
+import 'src/utils/crashlytics_error_filter.dart';
+
 bool _hasMountedFlutterApp = false;
 bool _crashlyticsReady = false;
 bool _licensesRegistered = false;
@@ -82,8 +84,20 @@ void main() {
 void _installGlobalErrorHandlers() {
   FlutterError.onError = (details) {
     AppLogCollector.recordFlutterError(details);
+    final severity = CrashlyticsErrorFilter.classifyFlutterError(details);
     if (_crashlyticsReady) {
-      unawaited(FirebaseCrashlytics.instance.recordFlutterFatalError(details));
+      if (severity == ErrorSeverity.fatal) {
+        unawaited(
+          FirebaseCrashlytics.instance.recordFlutterFatalError(details),
+        );
+      } else if (severity == ErrorSeverity.nonFatal) {
+        unawaited(
+          FirebaseCrashlytics.instance.recordFlutterError(
+            details,
+            fatal: false,
+          ),
+        );
+      }
     }
     FlutterError.presentError(details);
   };
@@ -102,10 +116,28 @@ void _handleZoneError(Object error, StackTrace stackTrace) {
 
 void _recordUncaughtError(Object error, StackTrace stackTrace) {
   AppLogCollector.recordZoneError(error, stackTrace);
+  final severity = CrashlyticsErrorFilter.classifyUncaughtError(
+    error,
+    stackTrace,
+  );
   if (_crashlyticsReady) {
-    unawaited(
-      FirebaseCrashlytics.instance.recordError(error, stackTrace, fatal: true),
-    );
+    if (severity == ErrorSeverity.fatal) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stackTrace,
+          fatal: true,
+        ),
+      );
+    } else if (severity == ErrorSeverity.nonFatal) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stackTrace,
+          fatal: false,
+        ),
+      );
+    }
   }
 }
 

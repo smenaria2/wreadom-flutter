@@ -2016,6 +2016,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                             modalSetState(() {});
                           },
                           itemBuilder: (context, i) {
+                            if (i >= _chapters.length) {
+                              return SizedBox.shrink(
+                                key: ValueKey('chapter-overview-stale-$i'),
+                              );
+                            }
                             final chapter = _chapters[i];
                             final isCurrent = i == _currentChapterIndex;
                             return _ChapterOverviewCard(
@@ -3246,8 +3251,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         ..._changedChapterIds,
         for (final chapter in book.chapters ?? const <Chapter>[])
           if (!existingChapterIds.contains(chapter.id)) chapter.id,
-        if (status != _statusForSave)
-          for (final chapter in book.chapters ?? const <Chapter>[]) chapter.id,
       };
       final shouldNotifyFollowers = status == 'published' && !_isPublished;
       List<Chapter> savedChapters = book.chapters ?? const <Chapter>[];
@@ -3262,6 +3265,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               book,
               baseChapterRevisions: baseChapterRevisions,
               changedChapterIds: changedChapterIds,
+              changedChapterIdsAreAuthoritative: true,
             );
       }
       _applySavedChapterRevisions(savedChapters);

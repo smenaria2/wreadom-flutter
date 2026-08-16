@@ -54,5 +54,28 @@ abstract class Book with _$Book {
     bool? optOutComplementary,
   }) = _Book;
 
-  factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);
+  factory Book.fromJson(Map<String, dynamic> json) {
+    final leavesRaw = json['leaves'];
+    if (leavesRaw == null) return _$BookFromJson(json);
+
+    final sanitized = <Map<String, dynamic>>[];
+    if (leavesRaw is List) {
+      for (final rawLeaf in leavesRaw) {
+        if (rawLeaf is! Map) continue;
+        final leaf = <String, dynamic>{
+          for (final entry in rawLeaf.entries)
+            if (entry.key is String) entry.key as String: entry.value,
+        };
+        try {
+          LeafAttachment.fromJson(leaf);
+          sanitized.add(leaf);
+        } on Object {
+          // Invalid legacy leaf entries must not prevent the book from loading.
+        }
+      }
+    }
+    final copy = Map<String, dynamic>.from(json);
+    copy['leaves'] = sanitized;
+    return _$BookFromJson(copy);
+  }
 }

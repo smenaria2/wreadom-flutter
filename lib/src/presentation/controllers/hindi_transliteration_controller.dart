@@ -102,9 +102,16 @@ class HindiTransliterationController extends ChangeNotifier {
     if (hasSuggestion && _tokenStartOffset != null && _tokenEndOffset != null) {
       final start = _tokenStartOffset!;
       final end = _tokenEndOffset!;
-      if (caretOffset == end + 1 && caretOffset <= plainText.length) {
+      if (start >= 0 &&
+          end <= plainText.length &&
+          start <= end &&
+          caretOffset == end + 1 &&
+          caretOffset <= plainText.length) {
         final lastChar = plainText[caretOffset - 1];
-        if (lastChar == ' ' || lastChar == '.' || lastChar == ',' || lastChar == ':') {
+        if (lastChar == ' ' ||
+            lastChar == '.' ||
+            lastChar == ',' ||
+            lastChar == ':') {
           final prefixText = plainText.substring(start, end);
           if (prefixText == _activeRomanToken) {
             final topSuggestion = hindiSuggestion;

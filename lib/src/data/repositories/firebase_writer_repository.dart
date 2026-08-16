@@ -9,6 +9,7 @@ import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
 import '../utils/firestore_utils.dart';
+import 'chapter_save_write_plan.dart';
 import 'chapter_save_merge.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
@@ -379,6 +380,7 @@ class FirebaseWriterRepository implements WriterRepository {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
+    bool changedChapterIdsAreAuthoritative = false,
   }) async {
     final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
@@ -414,6 +416,7 @@ class FirebaseWriterRepository implements WriterRepository {
       deletedChapterIds: deletedChapterIds,
       baseChapterRevisions: baseChapterRevisions,
       changedChapterIds: changedChapterIds,
+      changedChapterIdsAreAuthoritative: changedChapterIdsAreAuthoritative,
     );
   }
 
@@ -463,6 +466,7 @@ class FirebaseWriterRepository implements WriterRepository {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
+    bool changedChapterIdsAreAuthoritative = false,
   }) async {
     if (chapters.length > _batchChunkSize) {
       throw StateError(
@@ -492,13 +496,15 @@ class FirebaseWriterRepository implements WriterRepository {
     // editor sends the chapters that changed since the last successful save;
     // legacy callers retain the previous all-chapters behaviour by omitting
     // [changedChapterIds].
-    final changedIds = changedChapterIds.isEmpty
-        ? incoming.map((chapter) => chapter.id).toSet()
-        : changedChapterIds
-              .map((id) => id.trim())
-              .where((id) => id.isNotEmpty)
-              .toSet();
-    final writeCount = changedIds.length + deletedChapterIds.length + 1;
+    final writePlan = buildChapterSaveWritePlan(
+      incomingChapterIds: incoming.map((chapter) => chapter.id),
+      changedChapterIds: changedChapterIds,
+      changedChapterIdsAreAuthoritative: changedChapterIdsAreAuthoritative,
+    );
+    final changedIds = writePlan.fullChapterIds;
+    final writeCount = writePlan.writeCount(
+      deletedChapterCount: deletedChapterIds.length,
+    );
     if (writeCount > 500) {
       throw StateError(
         'This book has too many chapter changes for one atomic save.',
@@ -507,17 +513,26 @@ class FirebaseWriterRepository implements WriterRepository {
 
     var savedChapters = incoming;
     await _firestore.runTransaction((transaction) async {
-      await transaction.get(bookRef);
+      final bookFuture = transaction.get(bookRef);
+      final chapterFutures = Future.wait(
+        changedIds.map((id) async {
+          final ref = bookRef.collection('authorChapters').doc(id);
+          final snapshot = await transaction.get(ref);
+          return (id: id, ref: ref, snapshot: snapshot);
+        }),
+      );
+
+      await bookFuture;
+      final chapterReads = await chapterFutures;
+
       final existingChapters = <Chapter>[];
       final existingDocRefs =
           <String, DocumentReference<Map<String, dynamic>>>{};
-      for (final id in changedIds) {
-        final ref = bookRef.collection('authorChapters').doc(id);
-        final snapshot = await transaction.get(ref);
-        if (!snapshot.exists) continue;
-        final chapter = _chapterFromSnapshot(snapshot);
+      for (final read in chapterReads) {
+        if (!read.snapshot.exists) continue;
+        final chapter = _chapterFromSnapshot(read.snapshot);
         existingChapters.add(chapter);
-        existingDocRefs[chapter.id] = ref;
+        existingDocRefs[chapter.id] = read.ref;
       }
 
       final existingById = <String, Chapter>{
@@ -551,11 +566,16 @@ class FirebaseWriterRepository implements WriterRepository {
       _applyBookChapterProjection(data, canonical);
       transaction.set(bookRef, data, SetOptions(merge: mergeBook));
       for (final chapter in canonical) {
-        if (!changedIds.contains(chapter.id)) continue;
-        transaction.set(
-          bookRef.collection('authorChapters').doc(chapter.id),
-          _chapterToFirestore(chapter),
-        );
+        final chapterRef = bookRef.collection('authorChapters').doc(chapter.id);
+        if (changedIds.contains(chapter.id)) {
+          transaction.set(chapterRef, _chapterToFirestore(chapter));
+        } else if (writePlan.metadataOnlyChapterIds.contains(chapter.id)) {
+          // Status is book-level metadata in WriterPad. Synchronize it for
+          // unchanged chapters without reading or overwriting their bodies.
+          transaction.set(chapterRef, <String, dynamic>{
+            'status': chapter.status,
+          }, SetOptions(merge: true));
+        }
       }
       for (final deletedId in deletedChapterIds) {
         final id = deletedId.trim();

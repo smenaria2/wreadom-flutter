@@ -649,7 +649,7 @@ void main() {
 
   testWidgets('first publication confirms story published', (tester) async {
     final repository = _FakeWriterRepository();
-    final draft = testBook(status: 'draft');
+    final draft = testBook(status: 'draft', chapterCount: 12);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -699,6 +699,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(repository.updatedBook?.status, 'published');
+    expect(repository.changedChapterIds, isEmpty);
+    expect(repository.changedChapterIdsAreAuthoritative, isTrue);
     expect(find.text('Story published.'), findsWidgets);
     expect(find.text('Content saved.'), findsNothing);
   });
@@ -1057,6 +1059,8 @@ class _FakeWriterRepository implements WriterRepository {
   int updateFailuresRemaining;
   int updateAttempts = 0;
   Book? updatedBook;
+  Set<String> changedChapterIds = const <String>{};
+  bool changedChapterIdsAreAuthoritative = false;
 
   @override
   Future<String> createBook(Book book) async {
@@ -1071,8 +1075,11 @@ class _FakeWriterRepository implements WriterRepository {
     Set<String> deletedChapterIds = const <String>{},
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
+    bool changedChapterIdsAreAuthoritative = false,
   }) async {
     updateAttempts += 1;
+    this.changedChapterIds = Set<String>.from(changedChapterIds);
+    this.changedChapterIdsAreAuthoritative = changedChapterIdsAreAuthoritative;
     if (updateFailuresRemaining > 0) {
       updateFailuresRemaining -= 1;
       throw StateError('simulated remote save failure');
