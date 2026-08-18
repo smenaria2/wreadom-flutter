@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+
+import '../../utils/cloudflare_audio_resolver.dart';
 
 class SecureAudioPlayer extends StatefulWidget {
   const SecureAudioPlayer({
@@ -35,15 +35,18 @@ class SecureAudioPlayer extends StatefulWidget {
 
 class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
   late final AudioPlayer _player;
+  StreamSubscription<PlayerException>? _errorSubscription;
   bool _loaded = false;
   bool _loading = false;
   String? _error;
-  String? _resolvedUrl;
 
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
+    _player = AudioPlayer(useProxyForRequestHeaders: false);
+    _errorSubscription = _player.errorStream.listen(
+      (error) => _handlePlaybackFailure(error, StackTrace.current),
+    );
   }
 
   @override
@@ -54,20 +57,34 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
         oldWidget.objectKey != widget.objectKey) {
       _loaded = false;
       _error = null;
-      _resolvedUrl = null;
-      _player.stop();
+      unawaited(_player.stop());
     }
   }
 
-  Future<String> _audioUrl() async {
-    final objectKey = widget.objectKey?.trim();
-    if (objectKey == null || objectKey.isEmpty) return widget.url;
-    final response = await FirebaseFunctions.instance
-        .httpsCallable('createAudioReviewDownloadUrl')
-        .call<Map<String, dynamic>>({'objectKey': objectKey});
-    final downloadUrl = response.data['downloadUrl']?.toString();
-    if (downloadUrl == null || downloadUrl.isEmpty) return widget.url;
-    return downloadUrl;
+  Duration? get _metadataDuration {
+    final milliseconds = widget.durationMs;
+    return milliseconds == null || milliseconds <= 0
+        ? null
+        : Duration(milliseconds: milliseconds);
+  }
+
+  void _handlePlaybackFailure(Object error, StackTrace stack) {
+    debugPrint(
+      'Error playing audio in SecureAudioPlayer: '
+      '${sanitizeAudioPlaybackError(error)}\n$stack',
+    );
+    _loaded = false;
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _error = 'Could not play audio';
+    });
+  }
+
+  void _startPlayback() {
+    unawaited(
+      runAudioPlayback(play: _player.play, onError: _handlePlaybackFailure),
+    );
   }
 
   Future<void> _toggle() async {
@@ -83,21 +100,42 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
       if (!_loaded) {
         final localPath = widget.localPath?.trim();
         if (localPath != null && localPath.isNotEmpty) {
-          if (kIsWeb) {
-            await _player.setUrl(localPath);
-          } else {
-            await _player.setFilePath(localPath);
-          }
+          await _player.setAudioSource(
+            createCloudflareAudioSource(
+              localPath: localPath,
+              title: widget.label,
+              duration: _metadataDuration,
+            ),
+          );
         } else {
-          _resolvedUrl ??= await _audioUrl();
-          await _player.setUrl(_resolvedUrl!);
+          await setCloudflareAudioSourceWithRetry(
+            resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
+              objectKey: widget.objectKey,
+              url: widget.url,
+              forceRefreshToken: forceRefresh,
+            ),
+            setAudioSource: _player.setAudioSource,
+            createSource: (request) => createCloudflareAudioSource(
+              request: request,
+              title: widget.label,
+              duration: _metadataDuration,
+            ),
+          );
         }
         _loaded = true;
       }
-      unawaited(_player.play());
-    } catch (_) {
-      _error = 'Could not play audio';
-      if (mounted) setState(() => _loading = false);
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
+      }
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = null;
+        });
+      }
+      _startPlayback();
+    } catch (e, stack) {
+      _handlePlaybackFailure(e, stack);
     } finally {
       if (mounted && _loading) setState(() => _loading = false);
     }
@@ -110,15 +148,15 @@ class _SecureAudioPlayerState extends State<SecureAudioPlayer> {
         return;
       }
       await _player.seek(Duration.zero);
-      unawaited(_player.play());
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _error = 'Could not replay audio');
+      _startPlayback();
+    } catch (e, stack) {
+      _handlePlaybackFailure(e, stack);
     }
   }
 
   @override
   void dispose() {
+    unawaited(_errorSubscription?.cancel());
     _player.dispose();
     super.dispose();
   }

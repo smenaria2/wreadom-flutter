@@ -6,9 +6,8 @@ import '../../domain/services/hindi_transliteration_engine.dart';
 
 /// Controller managing Hindi transliteration state for Quill editor.
 class HindiTransliterationController extends ChangeNotifier {
-  HindiTransliterationController({
-    HindiTransliterationEngine? engine,
-  }) : _engine = engine ?? const DevlipiHindiEngine();
+  HindiTransliterationController({HindiTransliterationEngine? engine})
+    : _engine = engine ?? const DevlipiHindiEngine();
 
   final HindiTransliterationEngine _engine;
 
@@ -35,10 +34,12 @@ class HindiTransliterationController extends ChangeNotifier {
   String? get hindiSuggestion => _hindiSuggestions.firstOrNull;
   int get selectedIndex => _selectedIndex;
 
-  String? get selectedSuggestion =>
-      _hindiSuggestions.isEmpty
-          ? null
-          : _hindiSuggestions[_selectedIndex.clamp(0, _hindiSuggestions.length - 1)];
+  String? get selectedSuggestion => _hindiSuggestions.isEmpty
+      ? null
+      : _hindiSuggestions[_selectedIndex.clamp(
+          0,
+          _hindiSuggestions.length - 1,
+        )];
 
   bool get hasSuggestion =>
       _isEnabled &&
@@ -78,7 +79,8 @@ class HindiTransliterationController extends ChangeNotifier {
   void selectPreviousSuggestion() {
     if (_hindiSuggestions.isEmpty) return;
     _selectedIndex =
-        (_selectedIndex - 1 + _hindiSuggestions.length) % _hindiSuggestions.length;
+        (_selectedIndex - 1 + _hindiSuggestions.length) %
+        _hindiSuggestions.length;
     notifyListeners();
   }
 
@@ -95,8 +97,19 @@ class HindiTransliterationController extends ChangeNotifier {
     }
 
     final selection = controller.selection;
-    final caretOffset = selection.extentOffset;
     final plainText = controller.document.toPlainText();
+
+    if (!selection.isCollapsed ||
+        selection.extentOffset <= 0 ||
+        selection.extentOffset > plainText.length) {
+      if (_hasActiveState()) {
+        _clearSuggestionState();
+        notifyListeners();
+      }
+      return;
+    }
+
+    final caretOffset = selection.extentOffset;
 
     // Check if the user typed punctuation immediately after the active Roman token
     if (hasSuggestion && _tokenStartOffset != null && _tokenEndOffset != null) {
@@ -143,22 +156,6 @@ class HindiTransliterationController extends ChangeNotifier {
       }
     }
 
-    if (!selection.isCollapsed || selection.extentOffset <= 0) {
-      if (_hasActiveState()) {
-        _clearSuggestionState();
-        notifyListeners();
-      }
-      return;
-    }
-
-    if (caretOffset > plainText.length) {
-      if (_hasActiveState()) {
-        _clearSuggestionState();
-        notifyListeners();
-      }
-      return;
-    }
-
     // Replace single period followed by space with । followed by space
     if (caretOffset >= 2) {
       final lastChar = plainText[caretOffset - 1];
@@ -183,9 +180,12 @@ class HindiTransliterationController extends ChangeNotifier {
     // If caret has moved away from the last committed position, discard restoration buffer.
     if (_lastCommittedStart != null && _lastCommittedHindi != null) {
       final appendedLen = _lastCommittedAppended?.length ?? 0;
-      final expectedEndWithAppended = _lastCommittedStart! + _lastCommittedHindi!.length + appendedLen;
-      final expectedEndWithoutAppended = _lastCommittedStart! + _lastCommittedHindi!.length;
-      if (caretOffset != expectedEndWithAppended && caretOffset != expectedEndWithoutAppended) {
+      final expectedEndWithAppended =
+          _lastCommittedStart! + _lastCommittedHindi!.length + appendedLen;
+      final expectedEndWithoutAppended =
+          _lastCommittedStart! + _lastCommittedHindi!.length;
+      if (caretOffset != expectedEndWithAppended &&
+          caretOffset != expectedEndWithoutAppended) {
         _clearLastCommitted();
       }
     }
@@ -212,7 +212,8 @@ class HindiTransliterationController extends ChangeNotifier {
     final suggestions = _engine.transliterateToken(token);
 
     if (suggestions.isNotEmpty) {
-      final changed = _activeRomanToken != token ||
+      final changed =
+          _activeRomanToken != token ||
           _tokenStartOffset != start ||
           _tokenEndOffset != caretOffset ||
           !_listEquals(_hindiSuggestions, suggestions);
@@ -294,7 +295,8 @@ class HindiTransliterationController extends ChangeNotifier {
     final hindiText = _lastCommittedHindi!;
     final appendedText = _lastCommittedAppended ?? '';
 
-    final expectedEndWithAppended = start + hindiText.length + appendedText.length;
+    final expectedEndWithAppended =
+        start + hindiText.length + appendedText.length;
     final expectedEndWithoutAppended = start + hindiText.length;
 
     int currentReplacementLen = 0;
@@ -315,7 +317,8 @@ class HindiTransliterationController extends ChangeNotifier {
     }
 
     final textAtPos = plainText.substring(start, start + currentReplacementLen);
-    final expectedText = currentReplacementLen == (hindiText.length + appendedText.length)
+    final expectedText =
+        currentReplacementLen == (hindiText.length + appendedText.length)
         ? (hindiText + appendedText)
         : hindiText;
 

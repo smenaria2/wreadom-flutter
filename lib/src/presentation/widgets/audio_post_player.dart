@@ -2,16 +2,15 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
-import 'package:librebook_flutter/src/config/env_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/utils/app_haptics.dart';
+import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/feed_post.dart';
+import '../../utils/cloudflare_audio_resolver.dart';
 import '../providers/audio_post_providers.dart';
 import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
@@ -34,8 +33,26 @@ final activeAudioPostUrlProvider =
     NotifierProvider<ActiveAudioPostUrl, String?>(ActiveAudioPostUrl.new);
 
 final audioPostPlayerProvider = Provider<AudioPlayer>((ref) {
-  final player = AudioPlayer();
-  ref.onDispose(player.dispose);
+  final player = AudioPlayer(useProxyForRequestHeaders: false);
+  final errorSubscription = player.errorStream.listen((error) {
+    if (_audioPostSourceLoadInProgress) {
+      debugPrint(
+        'Audio post source load failed before retry: '
+        '${sanitizeAudioPlaybackError(error)}',
+      );
+      return;
+    }
+    _audioPostRequestGeneration += 1;
+    _loadedAudioPostIdentity = null;
+    ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
+    debugPrint(
+      'Error playing an audio post: ${sanitizeAudioPlaybackError(error)}',
+    );
+  });
+  ref.onDispose(() {
+    unawaited(errorSubscription.cancel());
+    unawaited(player.dispose());
+  });
   return player;
 });
 
@@ -47,26 +64,14 @@ String? audioPostIdentityFor(FeedPost post) {
   return null;
 }
 
-Future<String> resolveAudioPostUrl(FeedPost post) async {
-  final objectKey = post.audioObjectKey?.trim();
-  if (objectKey == null || objectKey.isEmpty) {
-    return post.audioUrl ?? '';
-  }
-
-  try {
-    final baseUrl = EnvConfig.cloudflareAudioProxyUrl.replaceAll(
-      RegExp(r'/+$'),
-      '',
-    );
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    return token != null
-        ? '$baseUrl/$objectKey?token=${Uri.encodeComponent(token)}'
-        : '$baseUrl/$objectKey';
-  } catch (e) {
-    debugPrint('Error preparing Cloudflare Worker audio request: $e');
-    return post.audioUrl ?? '';
-  }
-}
+Future<CloudflareAudioRequest?> resolveAudioPostRequest(
+  FeedPost post, {
+  bool forceRefreshToken = false,
+}) => resolveCloudflareAudioRequest(
+  objectKey: post.audioObjectKey,
+  url: post.audioUrl,
+  forceRefreshToken: forceRefreshToken,
+);
 
 MediaItem audioPostMediaItemFor(FeedPost post, String audioIdentity) {
   final audioCoverUrl = post.audioCoverUrl;
@@ -139,10 +144,6 @@ Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
   activeAudio.setActiveUrl(audioIdentity);
 
   if (action == AudioPostPlaybackAction.load) {
-    final resolvedUrl = await resolveAudioPostUrl(post);
-    if (resolvedUrl.isEmpty) {
-      throw StateError('Audio URL was empty.');
-    }
     if (!_isLatestAudioPostRequest(
       activeAudio,
       audioIdentity,
@@ -160,12 +161,20 @@ Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
       )) {
         return;
       }
-      await player.setAudioSource(
-        AudioSource.uri(
-          Uri.parse(resolvedUrl),
-          tag: audioPostMediaItemFor(post, audioIdentity),
-        ),
-      );
+      _audioPostSourceLoadInProgress = true;
+      try {
+        await setCloudflareAudioSourceWithRetry(
+          resolveRequest: (forceRefresh) =>
+              resolveAudioPostRequest(post, forceRefreshToken: forceRefresh),
+          setAudioSource: player.setAudioSource,
+          createSource: (request) => createCloudflareAudioSource(
+            request: request,
+            mediaItem: audioPostMediaItemFor(post, audioIdentity),
+          ),
+        );
+      } finally {
+        _audioPostSourceLoadInProgress = false;
+      }
       if (_isLatestAudioPostRequest(
         activeAudio,
         audioIdentity,
@@ -201,6 +210,7 @@ bool _isLatestAudioPostRequest(
 
 String? _loadedAudioPostIdentity;
 int _audioPostRequestGeneration = 0;
+bool _audioPostSourceLoadInProgress = false;
 Future<void> _audioPostLoadQueue = Future<void>.value();
 
 class AudioPostPlayer extends ConsumerStatefulWidget {

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -10,6 +9,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import '../../domain/models/comment.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/image_proxy_utils.dart';
+import '../../utils/cloudflare_audio_resolver.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -431,7 +431,8 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                               widget.bookTitle ??
                                               comment.bookTitle ??
                                               '',
-                                          bookAuthorId: widget.bookAuthorId ?? '',
+                                          bookAuthorId:
+                                              widget.bookAuthorId ?? '',
                                           bookAuthorName:
                                               widget.bookAuthorName ?? '',
                                           bookCover: widget.bookCover,
@@ -451,7 +452,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                         decoration: BoxDecoration(
                                           color: theme.colorScheme.primary
                                               .withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           border: Border.all(
                                             color: theme.colorScheme.primary
                                                 .withValues(alpha: 0.2),
@@ -465,7 +468,8 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                           softWrap: false,
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                                color: theme.colorScheme.primary,
+                                                color:
+                                                    theme.colorScheme.primary,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -707,9 +711,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                                     const SizedBox(width: 4),
                                     Text(
                                       '$displayLikeCount',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: widget.metadataColor,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: widget.metadataColor,
+                                          ),
                                     ),
                                   ],
                                 ],
@@ -1238,7 +1243,9 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                                     ? Icons.favorite_rounded
                                     : Icons.favorite_border_rounded,
                                 size: 13,
-                                color: liked ? Colors.red : widget.metadataColor,
+                                color: liked
+                                    ? Colors.red
+                                    : widget.metadataColor,
                               ),
                               if (displayLikeCount > 0) ...[
                                 const SizedBox(width: 3),
@@ -1365,15 +1372,18 @@ class _AudioCommentPlayer extends StatefulWidget {
 
 class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
   late final AudioPlayer _player;
+  StreamSubscription<PlayerException>? _errorSubscription;
   bool _loaded = false;
   bool _loading = false;
   String? _error;
-  String? _resolvedUrl;
 
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
+    _player = AudioPlayer(useProxyForRequestHeaders: false);
+    _errorSubscription = _player.errorStream.listen(
+      (error) => _handlePlaybackFailure(error, StackTrace.current),
+    );
   }
 
   @override
@@ -1383,24 +1393,39 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
         oldWidget.objectKey != widget.objectKey) {
       _loaded = false;
       _error = null;
-      _resolvedUrl = null;
-      _player.stop();
+      unawaited(_player.stop());
     }
   }
 
-  Future<String> _playableUrl() async {
-    final objectKey = widget.objectKey?.trim();
-    if (objectKey == null || objectKey.isEmpty) return widget.url;
-    final response = await FirebaseFunctions.instance
-        .httpsCallable('createAudioReviewDownloadUrl')
-        .call<Map<String, dynamic>>({'objectKey': objectKey});
-    final downloadUrl = response.data['downloadUrl']?.toString();
-    if (downloadUrl == null || downloadUrl.isEmpty) return widget.url;
-    return downloadUrl;
+  Duration? get _metadataDuration {
+    final milliseconds = widget.durationMs;
+    return milliseconds == null || milliseconds <= 0
+        ? null
+        : Duration(milliseconds: milliseconds);
+  }
+
+  void _handlePlaybackFailure(Object error, StackTrace stack) {
+    debugPrint(
+      'Error playing audio in _AudioCommentPlayer: '
+      '${sanitizeAudioPlaybackError(error)}\n$stack',
+    );
+    _loaded = false;
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _error = 'Could not play audio';
+    });
+  }
+
+  void _startPlayback() {
+    unawaited(
+      runAudioPlayback(play: _player.play, onError: _handlePlaybackFailure),
+    );
   }
 
   @override
   void dispose() {
+    unawaited(_errorSubscription?.cancel());
     _player.dispose();
     super.dispose();
   }
@@ -1415,18 +1440,33 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
     try {
       if (!_loaded) {
         setState(() => _loading = true);
-        _resolvedUrl ??= await _playableUrl();
-        await _player.setUrl(_resolvedUrl!);
+        await setCloudflareAudioSourceWithRetry(
+          resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
+            objectKey: widget.objectKey,
+            url: widget.url,
+            forceRefreshToken: forceRefresh,
+          ),
+          setAudioSource: _player.setAudioSource,
+          createSource: (request) => createCloudflareAudioSource(
+            request: request,
+            title: 'Audio review',
+            duration: _metadataDuration,
+          ),
+        );
         _loaded = true;
-        if (mounted) setState(() => _loading = false);
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = null;
+          });
+        }
       }
       if (_player.processingState == ProcessingState.completed) {
         await _player.seek(Duration.zero);
       }
-      unawaited(_player.play());
-    } catch (_) {
-      _error = 'Could not play audio';
-      if (mounted) setState(() => _loading = false);
+      _startPlayback();
+    } catch (e, stack) {
+      _handlePlaybackFailure(e, stack);
     } finally {
       if (mounted && _loading) setState(() => _loading = false);
     }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,9 +13,11 @@ import 'package:librebook_flutter/src/domain/models/book.dart';
 import 'package:librebook_flutter/src/domain/models/chapter.dart';
 import 'package:librebook_flutter/src/domain/models/chapter_edit_lock.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
+import 'package:librebook_flutter/src/domain/repositories/book_repository.dart';
 import 'package:librebook_flutter/src/domain/repositories/writer_repository.dart';
 import 'package:librebook_flutter/src/data/services/writer_draft_service.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
+import 'package:librebook_flutter/src/presentation/providers/book_providers.dart';
 import 'package:librebook_flutter/src/presentation/providers/writer_providers.dart';
 import 'package:librebook_flutter/src/presentation/screens/writer_pad_screen.dart';
 
@@ -84,6 +87,7 @@ void main() {
     Future<bool> Function(Uri uri)? openPrintPage,
     Future<bool> Function(Uri uri)? openChatGpt,
     Future<void> Function(String text)? copyAiPrompt,
+    BookRepository? bookRepository,
     WriterRepository? writerRepository,
     WriterDraftStore? writerDraftStore,
     bool restoreLocalDrafts = false,
@@ -92,6 +96,9 @@ void main() {
     return ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+        bookRepositoryProvider.overrideWithValue(
+          bookRepository ?? _FakeBookRepository(book: book),
+        ),
         if (writerRepository != null)
           writerRepositoryProvider.overrideWithValue(writerRepository),
         writerDraftServiceProvider.overrideWithValue(
@@ -127,6 +134,9 @@ void main() {
     return ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+        bookRepositoryProvider.overrideWithValue(
+          _FakeBookRepository(book: book),
+        ),
         writerRepositoryProvider.overrideWithValue(writerRepository),
         writerDraftServiceProvider.overrideWithValue(writerDraftStore),
       ],
@@ -593,6 +603,121 @@ void main() {
     expect(await draftStore.getDraft(draftKey), isNull);
   });
 
+  testWidgets(
+    'fresh server timestamp rejects a draft newer than the widget snapshot',
+    (tester) async {
+      final widgetBook = testBook(
+        status: 'draft',
+        id: 'fresh-timestamp-book',
+      ).copyWith(updatedAt: 10);
+      final freshBook = widgetBook.copyWith(
+        title: 'Fresh server title',
+        updatedAt: 100,
+      );
+      final staleLocalBook = widgetBook.copyWith(
+        title: 'Locally stale title',
+        updatedAt: 50,
+      );
+      const draftKey = 'user-1:fresh-timestamp-book';
+      final draftStore = _FakeWriterDraftStore({draftKey: staleLocalBook});
+
+      await tester.pumpWidget(
+        writerPadTestApp(
+          widgetBook,
+          bookRepository: _FakeBookRepository(book: freshBook),
+          restoreLocalDrafts: true,
+          writerDraftStore: draftStore,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Locally stale title'), findsNothing);
+      expect(await draftStore.getDraft(draftKey), isNull);
+    },
+  );
+
+  testWidgets('delayed server hydration preserves metadata edited after open', (
+    tester,
+  ) async {
+    final initialBook = testBook(status: 'draft', id: 'delayed-book');
+    final freshBookCompleter = Completer<Book?>();
+
+    await tester.pumpWidget(
+      writerPadTestApp(
+        initialBook,
+        bookRepository: _FakeBookRepository(
+          getBookResult: freshBookCompleter.future,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).at(0),
+      'Title edited locally',
+    );
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'Synopsis edited locally',
+    );
+
+    freshBookCompleter.complete(
+      initialBook.copyWith(
+        title: 'Newer server title',
+        description: 'Newer server synopsis',
+        topics: const ['server-topic'],
+        updatedAt: 100,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final fields = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .toList();
+    expect(fields[0].controller?.text, 'Title edited locally');
+    expect(fields[1].controller?.text, 'Synopsis edited locally');
+  });
+
+  testWidgets('fresh metadata hydration does not full-write a chapter', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository();
+    final initialBook = testBook(status: 'draft', id: 'metadata-book');
+    final freshBook = initialBook.copyWith(
+      title: 'Fresh metadata title',
+      description: 'Fresh metadata synopsis',
+      topics: const ['fresh-topic'],
+      collaborationStatus: 'accepted',
+      collaboratorId: 'user-2',
+      collaboratorName: 'Fresh collaborator',
+      collaboratorPhotoURL: 'https://example.com/fresh-collaborator.jpg',
+      authorIds: const ['user-1', 'user-2'],
+      viewCount: 88,
+      updatedAt: 100,
+    );
+
+    await tester.pumpWidget(
+      writerPadTestApp(
+        initialBook,
+        bookRepository: _FakeBookRepository(book: freshBook),
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.save_rounded).first);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.changedChapterIdsHistory, hasLength(1));
+    expect(repository.changedChapterIdsHistory.single, isEmpty);
+    expect(repository.updatedBook?.collaborationStatus, 'accepted');
+    expect(repository.updatedBook?.collaboratorId, 'user-2');
+    expect(repository.updatedBook?.collaboratorName, 'Fresh collaborator');
+    expect(repository.updatedBook?.viewCount, 88);
+  });
+
   testWidgets('content details shows one themed action set', (tester) async {
     await tester.pumpWidget(
       writerPadTestApp(testBook(status: 'draft', chapterCount: 2)),
@@ -647,6 +772,40 @@ void main() {
     expect(find.text('Draft saved'), findsWidgets);
   });
 
+  testWidgets('new chapter is full-written only on its first successful save', (
+    tester,
+  ) async {
+    final repository = _FakeWriterRepository();
+    await tester.pumpWidget(
+      writerPadTestApp(
+        testBook(status: 'draft', chapterCount: 2),
+        writerRepository: repository,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Chapters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add new chapter'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.save_rounded));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.updatedBook?.chapters, hasLength(3));
+    expect(repository.changedChapterIdsHistory, hasLength(1));
+    final newChapterId = repository.updatedBook!.chapters!.last.id;
+    expect(repository.changedChapterIdsHistory.single, {newChapterId});
+
+    await tester.tap(find.byIcon(Icons.save_rounded));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.changedChapterIdsHistory, hasLength(2));
+    expect(repository.changedChapterIdsHistory.last, isEmpty);
+  });
+
   testWidgets('first publication confirms story published', (tester) async {
     final repository = _FakeWriterRepository();
     final draft = testBook(status: 'draft', chapterCount: 12);
@@ -654,6 +813,9 @@ void main() {
       ProviderScope(
         overrides: [
           currentUserProvider.overrideWith((ref) => Stream.value(testUser)),
+          bookRepositoryProvider.overrideWithValue(
+            _FakeBookRepository(book: draft),
+          ),
           writerRepositoryProvider.overrideWithValue(repository),
           writerDraftServiceProvider.overrideWithValue(_FakeWriterDraftStore()),
         ],
@@ -1049,6 +1211,19 @@ class _FakeWriterDraftStore implements WriterDraftStore {
   }
 }
 
+class _FakeBookRepository implements BookRepository {
+  _FakeBookRepository({Book? book, Future<Book?>? getBookResult})
+    : _getBookResult = getBookResult ?? Future<Book?>.value(book);
+
+  final Future<Book?> _getBookResult;
+
+  @override
+  Future<Book?> getBook(String bookId) => _getBookResult;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FakeWriterRepository implements WriterRepository {
   _FakeWriterRepository({
     this.authoringChapters = const <Chapter>[],
@@ -1060,6 +1235,7 @@ class _FakeWriterRepository implements WriterRepository {
   int updateAttempts = 0;
   Book? updatedBook;
   Set<String> changedChapterIds = const <String>{};
+  final List<Set<String>> changedChapterIdsHistory = <Set<String>>[];
   bool changedChapterIdsAreAuthoritative = false;
 
   @override
@@ -1079,6 +1255,7 @@ class _FakeWriterRepository implements WriterRepository {
   }) async {
     updateAttempts += 1;
     this.changedChapterIds = Set<String>.from(changedChapterIds);
+    changedChapterIdsHistory.add(Set<String>.from(changedChapterIds));
     this.changedChapterIdsAreAuthoritative = changedChapterIdsAreAuthoritative;
     if (updateFailuresRemaining > 0) {
       updateFailuresRemaining -= 1;

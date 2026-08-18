@@ -342,11 +342,14 @@ class WriterDashboardScreen extends ConsumerWidget {
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final book = books[index];
                         final isPublished = book.status == 'published';
-                        void openEditor() {
-                          Navigator.of(context).pushNamed(
+                        void openEditor() async {
+                          await Navigator.of(context).pushNamed(
                             AppRoutes.writerPad,
                             arguments: WriterPadArguments(book: book),
                           );
+                          if (context.mounted) {
+                            ref.invalidate(filteredMyBooksProvider);
+                          }
                         }
 
                         void openStoryPage() {

@@ -10,15 +10,18 @@ void main() {
   group('DevlipiHindiEngine Unit Tests', () {
     const engine = DevlipiHindiEngine();
 
-    test('Common Dakshina spellings return highest-attested Hindi candidate first', () {
-      final results = engine.transliterateToken('namaste');
-      expect(results, isNotEmpty);
-      expect(results.first, equals('नमस्ते'));
+    test(
+      'Common Dakshina spellings return highest-attested Hindi candidate first',
+      () {
+        final results = engine.transliterateToken('namaste');
+        expect(results, isNotEmpty);
+        expect(results.first, equals('नमस्ते'));
 
-      final bharat = engine.transliterateToken('bharat');
-      expect(bharat, isNotEmpty);
-      expect(bharat.first, equals('भारत'));
-    });
+        final bharat = engine.transliterateToken('bharat');
+        expect(bharat, isNotEmpty);
+        expect(bharat.first, equals('भारत'));
+      },
+    );
 
     test('Alternate Roman spellings resolve correctly', () {
       final dhanyavaad = engine.transliterateToken('dhanyavaad');
@@ -49,13 +52,16 @@ void main() {
       expect(results, isNotEmpty);
     });
 
-    test('Empty input, whitespace, numbers, and punctuation return empty list', () {
-      expect(engine.transliterateToken(''), isEmpty);
-      expect(engine.transliterateToken('   '), isEmpty);
-      expect(engine.transliterateToken('!!!'), isEmpty);
-      expect(engine.transliterateToken('...'), isEmpty);
-      expect(engine.transliterateToken('12345'), isEmpty);
-    });
+    test(
+      'Empty input, whitespace, numbers, and punctuation return empty list',
+      () {
+        expect(engine.transliterateToken(''), isEmpty);
+        expect(engine.transliterateToken('   '), isEmpty);
+        expect(engine.transliterateToken('!!!'), isEmpty);
+        expect(engine.transliterateToken('...'), isEmpty);
+        expect(engine.transliterateToken('12345'), isEmpty);
+      },
+    );
 
     test('Existing Devanagari text is ignored and returned as empty list', () {
       expect(engine.transliterateToken('नमस्ते'), isEmpty);
@@ -68,13 +74,16 @@ void main() {
       expect(engine.transliterateToken('user@domain.com'), isEmpty);
     });
 
-    test('Inaccurate heuristic mutations (broad nukta, matra flip, trailing-a) are removed', () {
-      // Input without nukta in standard spelling should not generate artificial nukta variations like "फ़" unless dictionary or devlipi provides it
-      final testInput = engine.transliterateToken('fool');
-      // Verify no broad nukta / matra-flipping pollution
-      expect(testInput.length, lessThanOrEqualTo(10));
-      expect(testInput.toSet().length, equals(testInput.length));
-    });
+    test(
+      'Inaccurate heuristic mutations (broad nukta, matra flip, trailing-a) are removed',
+      () {
+        // Input without nukta in standard spelling should not generate artificial nukta variations like "फ़" unless dictionary or devlipi provides it
+        final testInput = engine.transliterateToken('fool');
+        // Verify no broad nukta / matra-flipping pollution
+        expect(testInput.length, lessThanOrEqualTo(10));
+        expect(testInput.toSet().length, equals(testInput.length));
+      },
+    );
   });
 
   group('HindiTransliterationController Unit Tests', () {
@@ -148,37 +157,43 @@ void main() {
       expect(text, isNot(contains('Namaste')));
     });
 
-    test('Dismiss suggestion clears active suggestion state without text edit', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'Namaste');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 7),
-        ChangeSource.local,
-      );
+    test(
+      'Dismiss suggestion clears active suggestion state without text edit',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'Namaste');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 7),
+          ChangeSource.local,
+        );
 
-      controller.updateForSelection(quillController);
-      expect(controller.hasSuggestion, isTrue);
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
 
-      controller.dismissSuggestion();
-      expect(controller.hasSuggestion, isFalse);
-      expect(quillController.document.toPlainText(), equals('Namaste\n'));
-    });
+        controller.dismissSuggestion();
+        expect(controller.hasSuggestion, isFalse);
+        expect(quillController.document.toPlainText(), equals('Namaste\n'));
+      },
+    );
 
-    test('Chapter switch clears suggestion but keeps enabled session state', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'Namaste');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 7),
-        ChangeSource.local,
-      );
+    test(
+      'Chapter switch clears suggestion but keeps enabled session state',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'Namaste');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 7),
+          ChangeSource.local,
+        );
 
-      controller.updateForSelection(quillController);
-      expect(controller.hasSuggestion, isTrue);
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
 
-      controller.clearForChapterSwitch();
-      expect(controller.hasSuggestion, isFalse);
-      expect(controller.isEnabled, isTrue);
-    });
+        controller.clearForChapterSwitch();
+        expect(controller.hasSuggestion, isFalse);
+        expect(controller.isEnabled, isTrue);
+      },
+    );
 
     test('Quill replacement can be undone via QuillController.undo()', () {
       controller.isEnabled = true;
@@ -194,32 +209,32 @@ void main() {
       expect(quillController.document.toPlainText(), contains('नमस्ते'));
 
       quillController.undo();
-      expect(
-        quillController.document.toPlainText(),
-        isNot(contains('नमस्ते')),
-      );
+      expect(quillController.document.toPlainText(), isNot(contains('नमस्ते')));
     });
 
-    test('Pressing backspace after commit restores Roman token and suggestions', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'Raam');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 4),
-        ChangeSource.local,
-      );
+    test(
+      'Pressing backspace after commit restores Roman token and suggestions',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'Raam');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 4),
+          ChangeSource.local,
+        );
 
-      controller.updateForSelection(quillController);
-      expect(controller.hasSuggestion, isTrue);
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
 
-      final topSuggestion = controller.hindiSuggestion!;
-      controller.commitSuggestion(quillController);
-      expect(quillController.document.toPlainText(), contains(topSuggestion));
-      expect(controller.canRestoreCommit, isTrue);
+        final topSuggestion = controller.hindiSuggestion!;
+        controller.commitSuggestion(quillController);
+        expect(quillController.document.toPlainText(), contains(topSuggestion));
+        expect(controller.canRestoreCommit, isTrue);
 
-      final handled = controller.handleBackspace(quillController);
-      expect(handled, isTrue);
-      expect(quillController.document.toPlainText(), equals('Raam\n'));
-    });
+        final handled = controller.handleBackspace(quillController);
+        expect(handled, isTrue);
+        expect(quillController.document.toPlainText(), equals('Raam\n'));
+      },
+    );
 
     test('Pressing backspace after Space commit restores Roman token', () {
       controller.isEnabled = true;
@@ -233,10 +248,7 @@ void main() {
       expect(controller.hasSuggestion, isTrue);
 
       final topSuggestion = controller.hindiSuggestion!;
-      controller.commitSuggestion(
-        quillController,
-        appendText: ' ',
-      );
+      controller.commitSuggestion(quillController, appendText: ' ');
       expect(
         quillController.document.toPlainText(),
         equals('$topSuggestion \n'),
@@ -309,78 +321,114 @@ void main() {
       expect(quillController.document.toPlainText(), equals('hello. \n'));
     });
 
-    test('Punctuation typing immediately after Roman token auto-commits suggestion', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'hain');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 4),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
-      expect(controller.hasSuggestion, isTrue);
+    test(
+      'Punctuation typing immediately after Roman token auto-commits suggestion',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'hain');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 4),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
 
-      // User types '.'
-      quillController.document.insert(4, '.');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 5),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
+        // User types '.'
+        quillController.document.insert(4, '.');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 5),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
 
-      expect(quillController.document.toPlainText(), equals('हैं।\n'));
-      expect(controller.canRestoreCommit, isTrue);
+        expect(quillController.document.toPlainText(), equals('हैं।\n'));
+        expect(controller.canRestoreCommit, isTrue);
 
-      // Backspace restores 'hain'
-      final handled = controller.handleBackspace(quillController);
-      expect(handled, isTrue);
-      expect(quillController.document.toPlainText(), equals('hain\n'));
-    });
+        // Backspace restores 'hain'
+        final handled = controller.handleBackspace(quillController);
+        expect(handled, isTrue);
+        expect(quillController.document.toPlainText(), equals('hain\n'));
+      },
+    );
 
-    test('Comma typing immediately after Roman token auto-commits suggestion', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'hain');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 4),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
+    test(
+      'Comma typing immediately after Roman token auto-commits suggestion',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'hain');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 4),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
 
-      // User types ','
-      quillController.document.insert(4, ',');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 5),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
+        // User types ','
+        quillController.document.insert(4, ',');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 5),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
 
-      expect(quillController.document.toPlainText(), equals('हैं,\n'));
-    });
+        expect(quillController.document.toPlainText(), equals('हैं,\n'));
+      },
+    );
 
-    test('Space typing delta immediately after Roman token auto-commits suggestion', () {
-      controller.isEnabled = true;
-      quillController.document.insert(0, 'hain');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 4),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
-      expect(controller.hasSuggestion, isTrue);
+    test(
+      'Space typing delta immediately after Roman token auto-commits suggestion',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'hain');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 4),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
 
-      // User types space ' ' (as an IME delta text insertion)
-      quillController.document.insert(4, ' ');
-      quillController.updateSelection(
-        const TextSelection.collapsed(offset: 5),
-        ChangeSource.local,
-      );
-      controller.updateForSelection(quillController);
+        // User types space ' ' (as an IME delta text insertion)
+        quillController.document.insert(4, ' ');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 5),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
 
-      expect(quillController.document.toPlainText(), equals('हैं \n'));
-      expect(controller.canRestoreCommit, isTrue);
+        expect(quillController.document.toPlainText(), equals('हैं \n'));
+        expect(controller.canRestoreCommit, isTrue);
 
-      // Backspace restores 'hain'
-      final handled = controller.handleBackspace(quillController);
-      expect(handled, isTrue);
-      expect(quillController.document.toPlainText(), equals('hain\n'));
-    });
+        // Backspace restores 'hain'
+        final handled = controller.handleBackspace(quillController);
+        expect(handled, isTrue);
+        expect(quillController.document.toPlainText(), equals('hain\n'));
+      },
+    );
+
+    test(
+      'Out of bounds selection offsets do not throw and clear suggestions',
+      () {
+        controller.isEnabled = true;
+        quillController.document.insert(0, 'short');
+        quillController.updateSelection(
+          const TextSelection.collapsed(offset: 5),
+          ChangeSource.local,
+        );
+        controller.updateForSelection(quillController);
+        expect(controller.hasSuggestion, isTrue);
+
+        final shortenedDocument = Document()..insert(0, 'x');
+        final outOfBoundsController = QuillController(
+          document: shortenedDocument,
+          selection: const TextSelection.collapsed(offset: 999),
+        );
+        addTearDown(outOfBoundsController.dispose);
+
+        expect(
+          () => controller.updateForSelection(outOfBoundsController),
+          returnsNormally,
+        );
+        expect(controller.hasSuggestion, isFalse);
+      },
+    );
   });
 }

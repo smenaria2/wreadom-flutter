@@ -14,6 +14,7 @@ import '../../domain/models/chapter.dart';
 import '../../domain/models/chapter_edit_lock.dart';
 import '../../domain/models/leaf_attachment.dart';
 import '../../domain/models/user_model.dart';
+import '../../domain/repositories/writer_repository.dart';
 import '../../data/repositories/chapter_save_merge.dart';
 import '../../data/services/analytics_service.dart';
 import '../../utils/app_review_helper.dart';
@@ -26,6 +27,7 @@ import '../providers/follow_providers.dart';
 import '../providers/profile_providers.dart';
 import '../providers/writer_taxonomy_provider.dart';
 import '../providers/writer_providers.dart';
+import '../providers/book_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
 import '../components/writer_topic_input.dart';
@@ -123,14 +125,17 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
+  WriterRepository? _chapterLockRepository;
   final List<_ChapterDraft> _chapters = [];
   final Set<String> _changedChapterIds = <String>{};
+  final Set<String> _persistedChapterIds = <String>{};
 
   Timer? _autosaveTimer;
   Timer? _localCheckpointTimer;
   Timer? _chapterLockRenewTimer;
   StreamSubscription<List<ChapterEditLock>>? _chapterLocksSubscription;
   String? _bookId;
+  Book? _latestServerBook;
   List<LeafAttachment>? _savedBookLeaves;
   int? _savedPublishedAt;
   String? _savedStatus;
@@ -150,6 +155,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _bookTitleEditedByUser = false;
   bool _syncingBookTitleFromChapter = false;
   int _localChangeRevision = 0;
+  int _chapterChangeRevision = 0;
   Future<void> _localCheckpointQueue = Future<void>.value();
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
@@ -181,8 +187,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   _ChapterDraft get _currentChapter => _chapters[_currentChapterIndex];
 
   bool get _isPublished =>
-      (_savedStatus ?? widget.book?.status)?.trim().toLowerCase() ==
+      (_savedStatus ?? _baselineBook?.status)?.trim().toLowerCase() ==
       'published';
+
+  Book? get _baselineBook => _latestServerBook ?? widget.book;
 
   bool get _isSingleChapter => _chapters.length <= 1;
 
@@ -222,7 +230,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           _autoCoverIndex = 0;
           _coverUrl = images[0];
         });
-        _markDirty();
+        _markMetadataDirty();
       }
     } catch (_) {
       // Fail silently
@@ -241,7 +249,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _autoCoverIndex = (_autoCoverIndex + 1) % _autoCoverUrls.length;
       _coverUrl = _autoCoverUrls[_autoCoverIndex];
     });
-    _markDirty();
+    _markMetadataDirty();
   }
 
   Future<void> _retryAutoCoverFetch() async {
@@ -300,8 +308,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   void _attachMetadataListeners() {
     if (_metadataListenersAttached) return;
     _titleController.value.addListener(_handleBookTitleChanged);
-    _descriptionController.value.addListener(_markDirty);
-    _topicsController.value.addListener(_markDirty);
+    _descriptionController.value.addListener(_markMetadataDirty);
+    _topicsController.value.addListener(_markMetadataDirty);
     _metadataListenersAttached = true;
   }
 
@@ -319,10 +327,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _handleBookTitleChanged() {
-    if (!_syncingBookTitleFromChapter && widget.book == null) {
+    if (!_isRestoringLocalDraft && !_syncingBookTitleFromChapter) {
       _bookTitleEditedByUser = true;
     }
-    _markDirty();
+    _markMetadataDirty();
   }
 
   @override
@@ -331,6 +339,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     WidgetsBinding.instance.addObserver(this);
     _editorFocusNode.addListener(_handleEditorFocusChanged);
     final book = widget.book;
+    _latestServerBook = book;
     _bookId = book?.id;
     _savedStatus = book?.status;
     _localDraftId =
@@ -361,6 +370,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
     for (final chapter in book?.chapters ?? const <Chapter>[]) {
       _chapters.add(_ChapterDraft.fromChapter(chapter, _markDirty));
+      if (chapter.id.trim().isNotEmpty) {
+        _persistedChapterIds.add(chapter.id);
+      }
     }
     if (_chapters.isEmpty) {
       _chapters.add(
@@ -393,14 +405,107 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   Future<void> _initializeAuthoringState() async {
-    await _hydrateAuthoringChapters();
-    if (widget.restoreLocalDrafts) await _restoreLocalDraft();
+    final bookId = _bookId ?? widget.book?.id;
+    final chapterChangeRevision = _chapterChangeRevision;
+    final titleAtRequest = _titleController.value.text;
+    final descriptionAtRequest = _descriptionController.value.text;
+    final coverAtRequest = _coverUrl;
+    final contentTypeAtRequest = _contentType;
+    final languageAtRequest = _language;
+    final categoryAtRequest = _category;
+    final topicsAtRequest = _topicsController.value.text;
+    final optOutAtRequest = _optOutComplementary;
+    final collaborationAtRequest = (
+      enabled: _collabEnabled,
+      id: _selectedCollaboratorId,
+      name: _selectedCollaboratorName,
+      photoUrl: _selectedCollaboratorPhotoURL,
+    );
+    int? latestServerUpdatedAt;
+    if (bookId != null && bookId.trim().isNotEmpty) {
+      try {
+        final freshBook = await ref
+            .read(bookRepositoryProvider)
+            .getBook(bookId);
+        if (freshBook != null && mounted) {
+          latestServerUpdatedAt = freshBook.updatedAt;
+          final collaborationIsUnchanged =
+              _collabEnabled == collaborationAtRequest.enabled &&
+              _selectedCollaboratorId == collaborationAtRequest.id &&
+              _selectedCollaboratorName == collaborationAtRequest.name &&
+              _selectedCollaboratorPhotoURL == collaborationAtRequest.photoUrl;
+          _isRestoringLocalDraft = true;
+          try {
+            setState(() {
+              _latestServerBook = freshBook;
+              _savedStatus = freshBook.status;
+              _savedPublishedAt = freshBook.publishedAt;
+              if (!_bookTitleEditedByUser &&
+                  _titleController.value.text == titleAtRequest &&
+                  freshBook.title.trim().isNotEmpty) {
+                _titleController.value.text =
+                    freshBook.title == 'Untitled Story' ? '' : freshBook.title;
+              }
+              if (_descriptionController.value.text == descriptionAtRequest) {
+                _descriptionController.value.text = freshBook.description ?? '';
+              }
+              if (_coverUrl == coverAtRequest) {
+                _coverUrl = freshBook.coverUrl;
+              }
+              if (_contentType == contentTypeAtRequest) {
+                _contentType = _contentTypeFromBook(freshBook.contentType);
+                _restorableContentType.value = _contentType;
+              }
+              if (_language == languageAtRequest) {
+                _language = _languageFromBook(freshBook.languages.firstOrNull);
+                _restorableLanguage.value = _language;
+              }
+              if (_category == categoryAtRequest) {
+                _category = _initialCategory(freshBook);
+                if (!_currentCategories.contains(_category)) {
+                  _category = _defaultCategory;
+                }
+                _restorableCategory.value = _category;
+              }
+              if (_topicsController.value.text == topicsAtRequest) {
+                _topicsController.value.text = _initialTopicsText(freshBook);
+              }
+              if (_optOutComplementary == optOutAtRequest) {
+                _optOutComplementary =
+                    freshBook.optOutComplementary ?? _optOutComplementary;
+              }
+              if (collaborationIsUnchanged) {
+                _collabEnabled =
+                    freshBook.collaboratorId?.trim().isNotEmpty == true &&
+                    freshBook.collaborationStatus !=
+                        collaborationStatusDeclined;
+                _selectedCollaboratorId = freshBook.collaboratorId?.trim();
+                _selectedCollaboratorName = freshBook.collaboratorName?.trim();
+                _selectedCollaboratorPhotoURL = freshBook.collaboratorPhotoURL
+                    ?.trim();
+              }
+            });
+          } finally {
+            _isRestoringLocalDraft = false;
+          }
+        }
+      } catch (error) {
+        debugPrint('[WriterPad] fresh book hydration failed: $error');
+      }
+    }
+    await _hydrateAuthoringChapters(
+      expectedChapterChangeRevision: chapterChangeRevision,
+    );
+    if (widget.restoreLocalDrafts) {
+      await _restoreLocalDraft(latestServerUpdatedAt: latestServerUpdatedAt);
+    }
     _startChapterLockWatch();
     unawaited(_syncCurrentChapterLock());
   }
 
   Future<void> _hydrateAuthoringChapters({
     Map<String, ChapterVersion>? localBackupVersions,
+    int? expectedChapterChangeRevision,
   }) async {
     final bookId = _bookId ?? widget.book?.id;
     if (bookId == null || bookId.trim().isEmpty) return;
@@ -409,6 +514,10 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
           .read(writerRepositoryProvider)
           .getAuthoringChapters(bookId);
       if (!mounted || chapters.isEmpty) return;
+      if (expectedChapterChangeRevision != null &&
+          _chapterChangeRevision != expectedChapterChangeRevision) {
+        return;
+      }
       final hydrated = _normalizeHydratedChapters(chapters);
       setState(() {
         for (final chapter in _chapters) {
@@ -437,6 +546,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               return _ChapterDraft.fromChapter(finalChapter, _markDirty);
             }),
           );
+        _persistedChapterIds
+          ..clear()
+          ..addAll(
+            hydrated
+                .map((chapter) => chapter.id.trim())
+                .where((id) => id.isNotEmpty),
+          );
         _ensureVisibleChapter();
         _setCurrentChapterIndex(
           _currentChapterIndex.clamp(0, _chapters.length - 1),
@@ -448,7 +564,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
   }
 
-  Future<void> _restoreLocalDraft() async {
+  Future<void> _restoreLocalDraft({int? latestServerUpdatedAt}) async {
     final user = await _currentUserOrNull();
     if (!mounted || user == null) return;
 
@@ -463,7 +579,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
     final draft = loaded.book!;
 
-    final serverUpdatedAt = widget.book?.updatedAt;
+    final serverUpdatedAt = latestServerUpdatedAt ?? widget.book?.updatedAt;
     final localUpdatedAt = draft.updatedAt;
     if (serverUpdatedAt != null &&
         localUpdatedAt != null &&
@@ -558,11 +674,19 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   bool get _canUseChapterLocks {
     final bookId = _bookId ?? widget.book?.id;
-    final book = widget.book;
+    final book = _baselineBook;
     return bookId != null &&
         bookId.trim().isNotEmpty &&
         book != null &&
         isAcceptedCollaboration(book);
+  }
+
+  WriterRepository _writerRepositoryForChapterLocks() {
+    final existing = _chapterLockRepository;
+    if (existing != null) return existing;
+    final repository = ref.read(writerRepositoryProvider);
+    _chapterLockRepository = repository;
+    return repository;
   }
 
   ChapterEditLock? _activeLockFor(String? chapterId) {
@@ -601,8 +725,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (!_canUseChapterLocks || _chapterLocksSubscription != null) return;
     final bookId = _bookId ?? widget.book?.id;
     if (bookId == null || bookId.trim().isEmpty) return;
-    _chapterLocksSubscription = ref
-        .read(writerRepositoryProvider)
+    final repository = _writerRepositoryForChapterLocks();
+    _chapterLocksSubscription = repository
         .watchChapterLocks(bookId)
         .listen(
           (locks) {
@@ -662,13 +786,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     await _releaseHeldChapterLock(exceptChapterId: chapterId);
     bool acquired;
     try {
-      acquired = await ref
-          .read(writerRepositoryProvider)
-          .acquireChapterLock(
-            bookId,
-            chapterId,
-            ChapterLockHolder(id: user.id, name: _displayNameForLock(user)),
-          );
+      final repository = _writerRepositoryForChapterLocks();
+      acquired = await repository.acquireChapterLock(
+        bookId,
+        chapterId,
+        ChapterLockHolder(id: user.id, name: _displayNameForLock(user)),
+      );
     } catch (error) {
       debugPrint('[WriterPad] chapter lock acquisition failed: $error');
       return;
@@ -699,9 +822,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final chapterId = _heldChapterLockId;
     if (bookId == null || chapterId == null) return;
     try {
-      await ref
-          .read(writerRepositoryProvider)
-          .renewChapterLock(bookId, chapterId);
+      final repository = _chapterLockRepository;
+      if (repository == null) return;
+      await repository.renewChapterLock(bookId, chapterId);
     } catch (error) {
       debugPrint('[WriterPad] chapter lock renewal failed: $error');
     }
@@ -719,7 +842,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapterLockRenewTimer?.cancel();
       _chapterLockRenewTimer = null;
     }
-    await ref.read(writerRepositoryProvider).releaseChapterLock(bookId, lockId);
+    final repository = _chapterLockRepository;
+    if (repository == null) return;
+    await repository.releaseChapterLock(bookId, lockId);
   }
 
   Future<void> _releaseHeldChapterLockSafely() async {
@@ -749,8 +874,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     if (_metadataListenersAttached) {
       _titleController.value.removeListener(_handleBookTitleChanged);
       _editorFocusNode.removeListener(_handleEditorFocusChanged);
-      _descriptionController.value.removeListener(_markDirty);
-      _topicsController.value.removeListener(_markDirty);
+      _descriptionController.value.removeListener(_markMetadataDirty);
+      _topicsController.value.removeListener(_markMetadataDirty);
     }
     _titleController.dispose();
     _descriptionController.dispose();
@@ -1527,7 +1652,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                     _autoCoverUrls.clear();
                                   });
                                   _checkAndFetchAutoCover();
-                                  _markDirty();
+                                  _markMetadataDirty();
                                 },
                           icon: const Icon(Icons.delete_outline_rounded),
                           label: Text(l10n.remove),
@@ -1567,7 +1692,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                       _restorableCategory.value = _category;
                     }
                   });
-                  _markDirty();
+                  _markMetadataDirty();
                 },
               ),
               const SizedBox(height: 14),
@@ -1581,7 +1706,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     _category = value;
                     _restorableCategory.value = _category;
                   });
-                  _markDirty();
+                  _markMetadataDirty();
                 },
               ),
               const SizedBox(height: 14),
@@ -1595,7 +1720,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     _language = value;
                     _restorableLanguage.value = _language;
                   });
-                  _markDirty();
+                  _markMetadataDirty();
                 },
               ),
               const SizedBox(height: 14),
@@ -2139,8 +2264,15 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   void _addChapter() {
+    final authorId =
+        _baselineBook?.authorId ??
+        ref.read(currentUserProvider).asData?.value?.id ??
+        'author';
+    final newId = _newChapterId(authorId, _chapters.length);
+    final draft = _ChapterDraft.empty(_markDirty)..id = newId;
     setState(() {
-      _chapters.add(_ChapterDraft.empty(_markDirty));
+      _chapters.add(draft);
+      _changedChapterIds.add(newId);
       _setCurrentChapterIndex(_chapters.length - 1);
       _isDirty = true;
       _isLocalDirty = true;
@@ -2164,6 +2296,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _chapters.map((chapter) => chapter.id).whereType<String>(),
     );
     _localChangeRevision += 1;
+    _chapterChangeRevision += 1;
     _scheduleLocalCheckpoint();
   }
 
@@ -2188,6 +2321,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     });
     if (chapter.id != null) _changedChapterIds.add(chapter.id!);
     _localChangeRevision += 1;
+    _chapterChangeRevision += 1;
     _scheduleLocalCheckpoint();
     return true;
   }
@@ -2273,7 +2407,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   String _statusForChapterMove() {
-    return widget.book?.status == 'published' ? 'published' : 'draft';
+    return _baselineBook?.status == 'published' ? 'published' : 'draft';
   }
 
   Future<bool> _showImportDraftsPicker() async {
@@ -2661,7 +2795,6 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _descriptionController.value.text = text.length <= 260
           ? text
           : '${text.substring(0, 260).trimRight()}...';
-      _markDirty();
       return;
     }
   }
@@ -2747,7 +2880,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final l10n = AppLocalizations.of(context)!;
     final user = await _currentUserOrNull();
     if (user == null || !mounted) return;
-    final book = widget.book;
+    final book = _baselineBook;
     if (book != null && !canDeleteCollaborativeBook(book, user.id)) {
       _showSnack(l10n.removeCollabBeforeDelete);
       return;
@@ -3060,7 +3193,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
             preset: ImageUploadPreset.bookCover,
           );
       setState(() => _coverUrl = uploaded);
-      _markDirty();
+      _markMetadataDirty();
       _showSnack(l10n.coverUploaded);
     } catch (error) {
       _showSnack(l10n.couldNotUploadCover('$error'));
@@ -3217,7 +3350,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       return false;
     }
     if (_collabEnabled &&
-        !isAcceptedCollaboration(widget.book ?? _emptyBookForCollabCheck()) &&
+        !isAcceptedCollaboration(_baselineBook ?? _emptyBookForCollabCheck()) &&
         (_selectedCollaboratorId == null ||
             _selectedCollaboratorId!.trim().isEmpty)) {
       _showSnack(l10n.selectCoAuthorBeforeSaving);
@@ -3241,16 +3374,12 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       // current editor snapshot before it begins, but do not block a time
       // sensitive publish if the device store itself is temporarily busy.
       locallySaved = await _saveLocalDraft();
-      final existingChapterIds = _chapters
-          .map((chapter) => chapter.id)
-          .whereType<String>()
-          .toSet();
       final book = _buildBookForSave(user, status: status);
       final baseChapterRevisions = _baseChapterRevisionsForSave();
       final changedChapterIds = <String>{
         ..._changedChapterIds,
         for (final chapter in book.chapters ?? const <Chapter>[])
-          if (!existingChapterIds.contains(chapter.id)) chapter.id,
+          if (!_persistedChapterIds.contains(chapter.id)) chapter.id,
       };
       final shouldNotifyFollowers = status == 'published' && !_isPublished;
       List<Chapter> savedChapters = book.chapters ?? const <Chapter>[];
@@ -3268,6 +3397,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               changedChapterIdsAreAuthoritative: true,
             );
       }
+      _persistedChapterIds
+        ..clear()
+        ..addAll(
+          savedChapters
+              .map((chapter) => chapter.id.trim())
+              .where((id) => id.isNotEmpty),
+        );
+      _latestServerBook = book.copyWith(
+        id: _bookId ?? book.id,
+        chapters: savedChapters,
+        status: status,
+      );
       _applySavedChapterRevisions(savedChapters);
       if (shouldNotifyFollowers && _bookId != null) {
         // Cloud Functions generate follower notifications for new publications.
@@ -3504,7 +3645,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
     final topics = topicsByNormalizedName.values.toList(growable: false);
     final subjects = <String>{_category, ...topics}.toList();
-    final existingBook = widget.book;
+    final existingBook = _baselineBook;
     final primaryAuthorId = existingBook?.authorId?.trim().isNotEmpty == true
         ? existingBook!.authorId!.trim()
         : user.id;
@@ -3567,34 +3708,34 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     );
 
     return Book(
-      id: _bookId ?? widget.book?.id ?? '',
+      id: _bookId ?? existingBook?.id ?? '',
       title: bookTitle,
       description: _descriptionController.value.text.trim(),
       coverUrl: _coverUrl?.trim().isEmpty == true ? null : _coverUrl,
       authors: bookAuthors,
       subjects: subjects,
       languages: [_language],
-      formats: widget.book?.formats ?? const {},
-      downloadCount: widget.book?.downloadCount ?? 0,
-      mediaType: widget.book?.mediaType ?? 'text',
-      bookshelves: widget.book?.bookshelves ?? const [],
-      year: widget.book?.year,
+      formats: existingBook?.formats ?? const {},
+      downloadCount: existingBook?.downloadCount ?? 0,
+      mediaType: existingBook?.mediaType ?? 'text',
+      bookshelves: existingBook?.bookshelves ?? const [],
+      year: existingBook?.year,
       source: 'firestore',
       isOriginal: true,
       contentType: _contentType,
       authorId: primaryAuthorId,
       chapters: chapters,
       status: status,
-      createdAt: widget.book?.createdAt ?? now,
+      createdAt: existingBook?.createdAt ?? now,
       updatedAt: now,
       publishedAt: publishedAt,
       optOutComplementary: _optOutComplementary,
-      identifier: widget.book?.identifier,
-      recommendationCount: widget.book?.recommendationCount,
-      weightedScore: widget.book?.weightedScore,
-      averageRating: widget.book?.averageRating,
-      viewCount: widget.book?.viewCount,
-      ratingsCount: widget.book?.ratingsCount,
+      identifier: existingBook?.identifier,
+      recommendationCount: existingBook?.recommendationCount,
+      weightedScore: existingBook?.weightedScore,
+      averageRating: existingBook?.averageRating,
+      viewCount: existingBook?.viewCount,
+      ratingsCount: existingBook?.ratingsCount,
       topics: topics,
       chapterCount: chapters.where((chapter) => !chapter.isHidden).length,
       collaborationStatus: collaborationStatus,
@@ -3721,7 +3862,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Widget _buildCollaborationSection() {
     final l10n = AppLocalizations.of(context)!;
-    final existingBook = widget.book;
+    final existingBook = _baselineBook;
     final isAccepted =
         existingBook != null && isAcceptedCollaboration(existingBook);
     final isPending =
@@ -3805,7 +3946,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                         _selectedCollaboratorPhotoURL = null;
                       }
                     });
-                    _markDirty();
+                    _markMetadataDirty();
                   }
                 : null,
           ),
@@ -3872,7 +4013,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 : _profileName(profile);
                             _selectedCollaboratorPhotoURL = profile?.photoURL;
                           });
-                          _markDirty();
+                          _markMetadataDirty();
                         }
                       : null,
                 );
@@ -3917,16 +4058,36 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     });
   }
 
+  void _markMetadataDirty() {
+    _markDirtyState(markCurrentChapterChanged: false);
+  }
+
   void _markDirty() {
+    _markDirtyState(markCurrentChapterChanged: true);
+  }
+
+  void _markDirtyState({required bool markCurrentChapterChanged}) {
     if (!mounted || _isRestoringLocalDraft) return;
     _localChangeRevision += 1;
-    final chapterId = _chapters.isEmpty ? null : _currentChapter.id;
-    if (chapterId != null && chapterId.trim().isNotEmpty) {
-      _changedChapterIds.add(chapterId);
+    if (markCurrentChapterChanged) {
+      _chapterChangeRevision += 1;
+    }
+    if (markCurrentChapterChanged && _chapters.isNotEmpty) {
+      final current = _currentChapter;
+      if (current.id == null || current.id!.trim().isEmpty) {
+        final authorId =
+            _baselineBook?.authorId ??
+            ref.read(currentUserProvider).asData?.value?.id ??
+            'author';
+        current.id = _newChapterId(authorId, _currentChapterIndex);
+      }
+      _changedChapterIds.add(current.id!);
     }
     _scheduleLocalCheckpoint();
-    _onEditorSelectionOrTextChanged();
-    _syncBookTitleFromFirstChapter();
+    if (markCurrentChapterChanged) {
+      _onEditorSelectionOrTextChanged();
+      _syncBookTitleFromFirstChapter();
+    }
     if (!_isDirty) {
       setState(() {
         _isDirty = true;

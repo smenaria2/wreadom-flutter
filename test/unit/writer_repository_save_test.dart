@@ -1,7 +1,11 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/repositories/chapter_save_write_plan.dart';
+import 'package:librebook_flutter/src/data/repositories/firebase_writer_repository.dart';
 import 'package:librebook_flutter/src/data/utils/firestore_utils.dart';
+import 'package:librebook_flutter/src/domain/models/author.dart';
 import 'package:librebook_flutter/src/domain/models/book.dart';
+import 'package:librebook_flutter/src/domain/models/chapter.dart';
 
 void main() {
   group('Chapter save write plan', () {
@@ -40,6 +44,21 @@ void main() {
       expect(plan.fullChapterIds, {'chapter-2'});
       expect(plan.metadataOnlyChapterIds, {'chapter-1', 'chapter-3'});
     });
+
+    test(
+      'newly added chapter in multi-chapter book is included in full writes',
+      () {
+        final plan = buildChapterSaveWritePlan(
+          incomingChapterIds: const ['chapter-1', 'chapter-2', 'chapter-3-new'],
+          changedChapterIds: const {'chapter-3-new'},
+          changedChapterIdsAreAuthoritative: true,
+        );
+
+        expect(plan.fullChapterIds, {'chapter-3-new'});
+        expect(plan.metadataOnlyChapterIds, {'chapter-1', 'chapter-2'});
+        expect(plan.writeCount(deletedChapterCount: 0), 4);
+      },
+    );
   });
 
   group('WriterRepository Book Model & Normalization Tests', () {
@@ -138,4 +157,129 @@ void main() {
       expect(book.leaves, isEmpty);
     });
   });
+
+  test(
+    'repository transaction preserves unchanged bodies and writes new chapters',
+    () async {
+      final firestore = FakeFirebaseFirestore();
+      final bookRef = firestore.collection('books').doc('book-transaction');
+      await bookRef.set({
+        'title': 'Transaction Book',
+        'authors': [const Author(name: 'Writer').toJson()],
+        'subjects': <String>[],
+        'languages': ['en'],
+        'formats': <String, String>{},
+        'downloadCount': 0,
+        'mediaType': 'text',
+        'bookshelves': <String>[],
+        'source': 'firestore',
+        'isOriginal': true,
+        'contentType': 'story',
+        'authorId': 'user-1',
+        'chapters': <Map<String, dynamic>>[],
+        'status': 'draft',
+        'createdAt': 1,
+        'updatedAt': 1,
+      });
+      await bookRef.collection('authorChapters').doc('chapter-1').set({
+        'title': 'One',
+        'content': '<p>Remote one</p>',
+        'index': 0,
+        'order': 0,
+        'status': 'draft',
+        'revision': 4,
+      });
+      await bookRef.collection('authorChapters').doc('chapter-2').set({
+        'title': 'Two',
+        'content': '<p>Remote two</p>',
+        'index': 1,
+        'order': 1,
+        'status': 'draft',
+        'revision': 2,
+      });
+
+      final chapters = <Chapter>[
+        const Chapter(
+          id: 'chapter-2',
+          title: 'Two',
+          content: '<p>Updated two</p>',
+          index: 0,
+          status: 'published',
+          revision: 2,
+        ),
+        const Chapter(
+          id: 'chapter-1',
+          title: 'One',
+          content: '<p>Stale local one</p>',
+          index: 1,
+          status: 'published',
+          revision: 4,
+        ),
+        const Chapter(
+          id: 'chapter-3-new',
+          title: 'Three',
+          content: '<p>New three</p>',
+          index: 2,
+          status: 'published',
+        ),
+      ];
+      final book = Book(
+        id: 'book-transaction',
+        title: 'Transaction Book',
+        authors: const [Author(name: 'Writer')],
+        subjects: const [],
+        languages: const ['en'],
+        formats: const {},
+        downloadCount: 0,
+        mediaType: 'text',
+        bookshelves: const [],
+        source: 'firestore',
+        isOriginal: true,
+        contentType: 'story',
+        authorId: 'user-1',
+        chapters: chapters,
+        status: 'published',
+        createdAt: 1,
+        updatedAt: 2,
+        chapterCount: 3,
+      );
+
+      final saved = await FirebaseWriterRepository(firestore: firestore)
+          .updateBook(
+            book.id,
+            book,
+            baseChapterRevisions: const {'chapter-2': 2},
+            changedChapterIds: const {'chapter-2', 'chapter-3-new'},
+            changedChapterIdsAreAuthoritative: true,
+          );
+
+      expect(saved.map((chapter) => chapter.id), [
+        'chapter-2',
+        'chapter-1',
+        'chapter-3-new',
+      ]);
+      final chapterOne = await bookRef
+          .collection('authorChapters')
+          .doc('chapter-1')
+          .get();
+      final chapterTwo = await bookRef
+          .collection('authorChapters')
+          .doc('chapter-2')
+          .get();
+      final chapterThree = await bookRef
+          .collection('authorChapters')
+          .doc('chapter-3-new')
+          .get();
+
+      expect(chapterOne.data()?['content'], '<p>Remote one</p>');
+      expect(chapterOne.data()?['revision'], 4);
+      expect(chapterOne.data()?['index'], 1);
+      expect(chapterOne.data()?['order'], 1);
+      expect(chapterOne.data()?['status'], 'published');
+      expect(chapterTwo.data()?['content'], '<p>Updated two</p>');
+      expect(chapterTwo.data()?['revision'], 3);
+      expect(chapterThree.data()?['content'], '<p>New three</p>');
+      expect(chapterThree.data()?['revision'], 1);
+    },
+  );
 }

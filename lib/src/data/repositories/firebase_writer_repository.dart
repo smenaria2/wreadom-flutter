@@ -13,11 +13,23 @@ import 'chapter_save_write_plan.dart';
 import 'chapter_save_merge.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
-  FirebaseWriterRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirebaseWriterRepository({
+    FirebaseFirestore? firestore,
+    firebase_auth.FirebaseAuth? auth,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth;
 
   final FirebaseFirestore _firestore;
-  final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
+  final firebase_auth.FirebaseAuth? _auth;
+
+  firebase_auth.FirebaseAuth? get _resolvedAuth {
+    if (_auth != null) return _auth;
+    try {
+      return firebase_auth.FirebaseAuth.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
   static const int _batchChunkSize = 450;
   static const Duration _chapterLockTimeout = Duration(seconds: 90);
@@ -124,7 +136,7 @@ class FirebaseWriterRepository implements WriterRepository {
 
   @override
   Future<void> renewChapterLock(String bookId, String chapterId) async {
-    final userId = _auth.currentUser?.uid.trim();
+    final userId = _resolvedAuth?.currentUser?.uid.trim();
     if (userId == null || userId.isEmpty) return;
     final lockRef = _firestore
         .collection('books')
@@ -149,7 +161,7 @@ class FirebaseWriterRepository implements WriterRepository {
 
   @override
   Future<void> releaseChapterLock(String bookId, String chapterId) async {
-    final userId = _auth.currentUser?.uid.trim();
+    final userId = _resolvedAuth?.currentUser?.uid.trim();
     if (userId == null || userId.isEmpty) return;
     final lockRef = _firestore
         .collection('books')
@@ -398,7 +410,7 @@ class FirebaseWriterRepository implements WriterRepository {
           book.collaborationStatus == null &&
           book.collaboratorId == null;
       if (isCollabRemoval) {
-        data['collaborationRemovedBy'] = _auth.currentUser?.uid;
+        data['collaborationRemovedBy'] = _resolvedAuth?.currentUser?.uid;
         data['collaborationRemovedAt'] = DateTime.now().millisecondsSinceEpoch;
         data['removedCollaboratorId'] = removedCollaboratorId;
       } else if (book.collaborationStatus == collaborationStatusPending) {
@@ -512,79 +524,106 @@ class FirebaseWriterRepository implements WriterRepository {
     }
 
     var savedChapters = incoming;
-    await _firestore.runTransaction((transaction) async {
-      final bookFuture = transaction.get(bookRef);
-      final chapterFutures = Future.wait(
-        changedIds.map((id) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        await transaction.get(bookRef);
+        final chapterReads =
+            <
+              ({
+                String id,
+                DocumentReference<Map<String, dynamic>> ref,
+                DocumentSnapshot<Map<String, dynamic>> snapshot,
+              })
+            >[];
+        for (final id in changedIds) {
           final ref = bookRef.collection('authorChapters').doc(id);
           final snapshot = await transaction.get(ref);
-          return (id: id, ref: ref, snapshot: snapshot);
-        }),
+          chapterReads.add((id: id, ref: ref, snapshot: snapshot));
+        }
+
+        final existingChapters = <Chapter>[];
+        final existingDocRefs =
+            <String, DocumentReference<Map<String, dynamic>>>{};
+        for (final read in chapterReads) {
+          if (!read.snapshot.exists) continue;
+          final chapter = _chapterFromSnapshot(read.snapshot);
+          existingChapters.add(chapter);
+          existingDocRefs[chapter.id] = read.ref;
+        }
+
+        final existingById = <String, Chapter>{
+          for (final chapter in existingChapters) chapter.id: chapter,
+        };
+        final deletedIds = deletedChapterIds.map((id) => id.trim()).toSet();
+        final conflicts = <String>[];
+        final canonical = <Chapter>[];
+        for (final incomingChapter in incoming) {
+          final id = incomingChapter.id.trim();
+          if (id.isEmpty || deletedIds.contains(id)) continue;
+          if (!changedIds.contains(id)) {
+            canonical.add(incomingChapter);
+            continue;
+          }
+          final existing = existingById[id];
+          final baseRevision = baseChapterRevisions[id];
+          if (existing != null &&
+              baseRevision != null &&
+              existing.revision != baseRevision) {
+            conflicts.add(id);
+            continue;
+          }
+          final nextRevision = existing == null
+              ? incomingChapter.revision + 1
+              : existing.revision + 1;
+          canonical.add(incomingChapter.copyWith(revision: nextRevision));
+        }
+        if (conflicts.isNotEmpty) throw ChapterSaveConflictException(conflicts);
+        savedChapters = canonical;
+        _applyBookChapterProjection(data, canonical);
+        transaction.set(bookRef, data, SetOptions(merge: mergeBook));
+        for (final chapter in canonical) {
+          final chapterRef = bookRef
+              .collection('authorChapters')
+              .doc(chapter.id);
+          if (changedIds.contains(chapter.id)) {
+            transaction.set(chapterRef, _chapterToFirestore(chapter));
+          } else if (writePlan.metadataOnlyChapterIds.contains(chapter.id)) {
+            // Update canonical metadata without replacing the remote body. If a
+            // legacy author-chapter document is absent, retry all chapters as
+            // full writes after this transaction aborts.
+            transaction.update(chapterRef, <String, dynamic>{
+              'status': chapter.status,
+              'index': chapter.index,
+              'order': chapter.index,
+            });
+          }
+        }
+        for (final deletedId in deletedChapterIds) {
+          final id = deletedId.trim();
+          if (id.isEmpty) continue;
+          final ref =
+              existingDocRefs[id] ??
+              bookRef.collection('authorChapters').doc(id);
+          transaction.delete(ref);
+        }
+      });
+    } on FirebaseException catch (error) {
+      if (error.code != 'not-found' ||
+          writePlan.metadataOnlyChapterIds.isEmpty) {
+        rethrow;
+      }
+      return _writeBookAndAuthorChapters(
+        bookRef: bookRef,
+        data: data,
+        chapters: incoming,
+        mergeBook: mergeBook,
+        readExistingChapters: true,
+        deletedChapterIds: deletedChapterIds,
+        baseChapterRevisions: baseChapterRevisions,
+        changedChapterIds: incoming.map((chapter) => chapter.id).toSet(),
+        changedChapterIdsAreAuthoritative: true,
       );
-
-      await bookFuture;
-      final chapterReads = await chapterFutures;
-
-      final existingChapters = <Chapter>[];
-      final existingDocRefs =
-          <String, DocumentReference<Map<String, dynamic>>>{};
-      for (final read in chapterReads) {
-        if (!read.snapshot.exists) continue;
-        final chapter = _chapterFromSnapshot(read.snapshot);
-        existingChapters.add(chapter);
-        existingDocRefs[chapter.id] = read.ref;
-      }
-
-      final existingById = <String, Chapter>{
-        for (final chapter in existingChapters) chapter.id: chapter,
-      };
-      final deletedIds = deletedChapterIds.map((id) => id.trim()).toSet();
-      final conflicts = <String>[];
-      final canonical = <Chapter>[];
-      for (final incomingChapter in incoming) {
-        final id = incomingChapter.id.trim();
-        if (id.isEmpty || deletedIds.contains(id)) continue;
-        if (!changedIds.contains(id)) {
-          canonical.add(incomingChapter);
-          continue;
-        }
-        final existing = existingById[id];
-        final baseRevision = baseChapterRevisions[id];
-        if (existing != null &&
-            baseRevision != null &&
-            existing.revision != baseRevision) {
-          conflicts.add(id);
-          continue;
-        }
-        final nextRevision = existing == null
-            ? incomingChapter.revision + 1
-            : existing.revision + 1;
-        canonical.add(incomingChapter.copyWith(revision: nextRevision));
-      }
-      if (conflicts.isNotEmpty) throw ChapterSaveConflictException(conflicts);
-      savedChapters = canonical;
-      _applyBookChapterProjection(data, canonical);
-      transaction.set(bookRef, data, SetOptions(merge: mergeBook));
-      for (final chapter in canonical) {
-        final chapterRef = bookRef.collection('authorChapters').doc(chapter.id);
-        if (changedIds.contains(chapter.id)) {
-          transaction.set(chapterRef, _chapterToFirestore(chapter));
-        } else if (writePlan.metadataOnlyChapterIds.contains(chapter.id)) {
-          // Status is book-level metadata in WriterPad. Synchronize it for
-          // unchanged chapters without reading or overwriting their bodies.
-          transaction.set(chapterRef, <String, dynamic>{
-            'status': chapter.status,
-          }, SetOptions(merge: true));
-        }
-      }
-      for (final deletedId in deletedChapterIds) {
-        final id = deletedId.trim();
-        if (id.isEmpty) continue;
-        final ref =
-            existingDocRefs[id] ?? bookRef.collection('authorChapters').doc(id);
-        transaction.delete(ref);
-      }
-    });
+    }
     return savedChapters;
   }
 
