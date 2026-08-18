@@ -9,7 +9,23 @@ void main() {
   const proxy = 'https://wreadom-audio.smenaria2.workers.dev';
 
   group('resolveCloudflareAudioRequest', () {
-    test('mobile uses a Bearer header and keeps token out of URL', () async {
+    test('defaults to attaching query token for all platforms (mobile and web)', () async {
+      final request = await resolveCloudflareAudioRequest(
+        objectKey: 'audio-reviews/user1/book1/clip.m4a',
+        customProxyUrl: proxy,
+        tokenLoader: ({required forceRefresh}) async => 'test-token',
+      );
+
+      expect(
+        request?.uri.toString(),
+        '$proxy/audio-reviews/user1/book1/clip.m4a?token=test-token',
+      );
+      expect(request?.uri.queryParameters['token'], 'test-token');
+      expect(request?.headers, {'Accept': '*/*'});
+      expect(request?.mediaId, 'audio-reviews/user1/book1/clip.m4a');
+    });
+
+    test('explicit useQueryToken: false uses a Bearer header and keeps token out of URL', () async {
       final request = await resolveCloudflareAudioRequest(
         objectKey: 'audio-reviews/user1/book1/clip.m4a',
         customProxyUrl: proxy,

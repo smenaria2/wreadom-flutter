@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'crashlytics_error_filter.dart';
+
 class AppLogEntry {
   const AppLogEntry({
     required this.type,
@@ -49,10 +51,18 @@ class AppLogCollector {
   }
 
   static void recordFlutterError(FlutterErrorDetails details) {
+    if (CrashlyticsErrorFilter.classifyFlutterError(details) ==
+        ErrorSeverity.ignore) {
+      return;
+    }
     add('error', '${details.exceptionAsString()}\n${details.stack ?? ''}');
   }
 
   static void recordZoneError(Object error, StackTrace stackTrace) {
+    if (CrashlyticsErrorFilter.classifyUncaughtError(error, stackTrace) ==
+        ErrorSeverity.ignore) {
+      return;
+    }
     add('error', '$error\n$stackTrace');
   }
 }

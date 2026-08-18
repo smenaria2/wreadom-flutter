@@ -87,6 +87,12 @@ class CrashlyticsErrorFilter {
       return true;
     }
 
+    // DiagnosticsProperty flutter error formatting artifact during teardown
+    if (errorStr.contains("Instance of 'DiagnosticsProperty<void>'") ||
+        errorStr.contains('DiagnosticsProperty')) {
+      return true;
+    }
+
     return false;
   }
 

@@ -83,8 +83,11 @@ void main() {
 
 void _installGlobalErrorHandlers() {
   FlutterError.onError = (details) {
-    AppLogCollector.recordFlutterError(details);
     final severity = CrashlyticsErrorFilter.classifyFlutterError(details);
+    if (severity == ErrorSeverity.ignore) {
+      return;
+    }
+    AppLogCollector.recordFlutterError(details);
     if (_crashlyticsReady) {
       if (severity == ErrorSeverity.fatal) {
         unawaited(
@@ -102,12 +105,23 @@ void _installGlobalErrorHandlers() {
     FlutterError.presentError(details);
   };
   ui.PlatformDispatcher.instance.onError = (error, stack) {
+    final severity = CrashlyticsErrorFilter.classifyUncaughtError(error, stack);
+    if (severity == ErrorSeverity.ignore) {
+      return true;
+    }
     _recordUncaughtError(error, stack);
     return true;
   };
 }
 
 void _handleZoneError(Object error, StackTrace stackTrace) {
+  final severity = CrashlyticsErrorFilter.classifyUncaughtError(
+    error,
+    stackTrace,
+  );
+  if (severity == ErrorSeverity.ignore) {
+    return;
+  }
   _recordUncaughtError(error, stackTrace);
   if (!_hasMountedFlutterApp) {
     _showBootstrapFailure();
@@ -115,11 +129,14 @@ void _handleZoneError(Object error, StackTrace stackTrace) {
 }
 
 void _recordUncaughtError(Object error, StackTrace stackTrace) {
-  AppLogCollector.recordZoneError(error, stackTrace);
   final severity = CrashlyticsErrorFilter.classifyUncaughtError(
     error,
     stackTrace,
   );
+  if (severity == ErrorSeverity.ignore) {
+    return;
+  }
+  AppLogCollector.recordZoneError(error, stackTrace);
   if (_crashlyticsReady) {
     if (severity == ErrorSeverity.fatal) {
       unawaited(

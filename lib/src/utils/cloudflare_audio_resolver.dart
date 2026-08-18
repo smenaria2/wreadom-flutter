@@ -39,9 +39,8 @@ Future<String?> _loadFirebaseToken({required bool forceRefresh}) async {
 
 /// Builds an authenticated request to the Cloudflare audio Worker.
 ///
-/// Mobile players send the identity token as a Bearer header. Browser media
-/// elements cannot attach custom headers, so web retains the Worker's query
-/// credential contract.
+/// Attaches the identity token as a URL query parameter (`?token=...`) across all
+/// platforms (mobile and web) for reliable ExoPlayer, AVPlayer, and browser streaming.
 Future<CloudflareAudioRequest?> resolveCloudflareAudioRequest({
   String? objectKey,
   String? url,
@@ -86,7 +85,7 @@ Future<CloudflareAudioRequest?> resolveCloudflareAudioRequest({
 
   final headers = <String, String>{'Accept': '*/*'};
   if (isWorkerRequest) {
-    final queryAuthentication = useQueryToken ?? kIsWeb;
+    final queryAuthentication = useQueryToken ?? true;
     if (!queryAuthentication && uri.queryParameters.containsKey('token')) {
       final query = Map<String, String>.from(uri.queryParameters)
         ..remove('token');
