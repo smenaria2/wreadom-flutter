@@ -36,7 +36,6 @@ import '../components/home_series_section.dart';
 import '../components/interactive_features_sheet.dart';
 import '../components/book/book_card_meta_tags.dart';
 
-
 bool _isInitialHomepageLoad(AsyncValue<dynamic> value) {
   return value.isLoading && !value.hasValue;
 }
@@ -128,8 +127,7 @@ class HomeBooksScreen extends ConsumerWidget {
     final iaAsync = ref.watch(homepageIABooksProvider);
     final leavesAsync = ref.watch(booksWithLeavesProvider);
     final bannersAsync = ref.watch(homeBannersProvider);
-    final miniPlayerVisible =
-        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final bottomPadding = bottomOverlayContentPadding(
       miniPlayerVisible: miniPlayerVisible,
     );

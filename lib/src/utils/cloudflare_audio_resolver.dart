@@ -205,5 +205,12 @@ String sanitizeAudioPlaybackError(Object error) {
       .replaceAllMapped(
         RegExp(r'(Bearer\s+)[^\s,;}]+', caseSensitive: false),
         (match) => '${match.group(1)}<redacted>',
+      )
+      .replaceAllMapped(
+        RegExp(
+          r'([?&](?:X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token)=)[^&\s)]+',
+          caseSensitive: false,
+        ),
+        (match) => '${match.group(1)}<redacted>',
       );
 }

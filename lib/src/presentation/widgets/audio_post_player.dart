@@ -22,8 +22,11 @@ class ActiveAudioPostUrl extends Notifier<String?> {
   @override
   String? build() => null;
 
-  void setActiveUrl(String? url) {
+  void setActiveUrl(String? url, {bool showMiniPlayer = true}) {
     state = url;
+    ref
+        .read(audioPostMiniPlayerVisibleProvider.notifier)
+        .setVisible(url != null && showMiniPlayer);
   }
 
   bool isActive(String url) => state == url;
@@ -32,12 +35,24 @@ class ActiveAudioPostUrl extends Notifier<String?> {
 final activeAudioPostUrlProvider =
     NotifierProvider<ActiveAudioPostUrl, String?>(ActiveAudioPostUrl.new);
 
+class AudioPostMiniPlayerVisibility extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setVisible(bool visible) => state = visible;
+}
+
+final audioPostMiniPlayerVisibleProvider =
+    NotifierProvider<AudioPostMiniPlayerVisibility, bool>(
+      AudioPostMiniPlayerVisibility.new,
+    );
+
 final audioPostPlayerProvider = Provider<AudioPlayer>((ref) {
   final player = AudioPlayer(useProxyForRequestHeaders: false);
   final errorSubscription = player.errorStream.listen((error) {
     if (_audioPostSourceLoadInProgress) {
       debugPrint(
-        'Audio post source load failed before retry: '
+        'Audio source load failed before retry: '
         '${sanitizeAudioPlaybackError(error)}',
       );
       return;
@@ -45,9 +60,7 @@ final audioPostPlayerProvider = Provider<AudioPlayer>((ref) {
     _audioPostRequestGeneration += 1;
     _loadedAudioPostIdentity = null;
     ref.read(activeAudioPostUrlProvider.notifier).setActiveUrl(null);
-    debugPrint(
-      'Error playing an audio post: ${sanitizeAudioPlaybackError(error)}',
-    );
+    debugPrint('Error playing app audio: ${sanitizeAudioPlaybackError(error)}');
   });
   ref.onDispose(() {
     unawaited(errorSubscription.cancel());
@@ -149,6 +162,7 @@ Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
 Future<void> toggleSharedNetworkAudio(
   WidgetRef ref, {
   required String audioIdentity,
+  bool showInMiniPlayer = true,
   required Future<CloudflareAudioRequest?> Function(bool forceRefresh)
   resolveRequest,
   required AudioSource Function(CloudflareAudioRequest request) createSource,
@@ -164,6 +178,7 @@ Future<void> toggleSharedNetworkAudio(
   await ensureSharedNetworkAudioPlaying(
     ref,
     audioIdentity: audioIdentity,
+    showInMiniPlayer: showInMiniPlayer,
     resolveRequest: resolveRequest,
     createSource: createSource,
   );
@@ -173,6 +188,7 @@ Future<void> toggleSharedNetworkAudio(
 Future<void> ensureSharedNetworkAudioPlaying(
   WidgetRef ref, {
   required String audioIdentity,
+  bool showInMiniPlayer = true,
   required Future<CloudflareAudioRequest?> Function(bool forceRefresh)
   resolveRequest,
   required AudioSource Function(CloudflareAudioRequest request) createSource,
@@ -191,7 +207,7 @@ Future<void> ensureSharedNetworkAudioPlaying(
   if (action == AudioPostPlaybackAction.none) return;
 
   final requestGeneration = ++_audioPostRequestGeneration;
-  activeAudio.setActiveUrl(audioIdentity);
+  activeAudio.setActiveUrl(audioIdentity, showMiniPlayer: showInMiniPlayer);
 
   if (action == AudioPostPlaybackAction.load) {
     if (!_isLatestAudioPostRequest(

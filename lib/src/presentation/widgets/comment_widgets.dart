@@ -1432,6 +1432,7 @@ class _AudioCommentPlayerState extends ConsumerState<_AudioCommentPlayer> {
       await toggleSharedNetworkAudio(
         ref,
         audioIdentity: audioIdentity,
+        showInMiniPlayer: false,
         resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
           objectKey: widget.objectKey,
           url: widget.url,

@@ -19,7 +19,8 @@ class AudioPostMiniPlayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeUrl = ref.watch(activeAudioPostUrlProvider);
-    if (activeUrl == null || activeUrl.isEmpty) {
+    final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
+    if (!miniPlayerVisible || activeUrl == null || activeUrl.isEmpty) {
       return const SizedBox.shrink();
     }
 

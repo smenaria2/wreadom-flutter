@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/presentation/widgets/audio_post_player.dart';
 
 void main() {
@@ -73,7 +74,25 @@ void main() {
 
     expect(source, contains('ref.read(audioPostPlayerProvider)'));
     expect(source, contains('toggleSharedNetworkAudio('));
+    expect(source, contains('showInMiniPlayer: false'));
+    expect(source, contains('resolveCloudflareAudioRequest('));
     expect(source, isNot(contains('AudioPlayer(useProxyForRequestHeaders')));
     expect(source, isNot(contains('_player.dispose()')));
+  });
+
+  test('review playback does not expose the feed mini player', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final activeAudio = container.read(activeAudioPostUrlProvider.notifier);
+
+    activeAudio.setActiveUrl('review-audio', showMiniPlayer: false);
+    expect(container.read(activeAudioPostUrlProvider), 'review-audio');
+    expect(container.read(audioPostMiniPlayerVisibleProvider), isFalse);
+
+    activeAudio.setActiveUrl('post-audio');
+    expect(container.read(audioPostMiniPlayerVisibleProvider), isTrue);
+
+    activeAudio.setActiveUrl(null);
+    expect(container.read(audioPostMiniPlayerVisibleProvider), isFalse);
   });
 }

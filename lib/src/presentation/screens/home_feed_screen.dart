@@ -58,8 +58,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final lockScroll = ref.watch(lockScrollProvider);
-    final miniPlayerVisible =
-        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final fabBottomPadding = bottomOverlayFabPadding(
       miniPlayerVisible: miniPlayerVisible,
     );
@@ -214,8 +213,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     );
     final lockScroll = ref.watch(lockScrollProvider);
     final l10n = AppLocalizations.of(context)!;
-    final miniPlayerVisible =
-        ref.watch(activeAudioPostUrlProvider)?.isNotEmpty == true;
+    final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final listBottomPadding = bottomOverlayContentPadding(
       miniPlayerVisible: miniPlayerVisible,
     );
@@ -270,52 +268,58 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
         onSelected: (value) => setState(() => _selectedType = value),
         offset: const Offset(0, 44),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        itemBuilder: (_) => [
-          'all',
-          'comment',
-          'quote',
-          'review',
-          'question',
-        ].map((type) {
-          final selected = _selectedType == type;
-          return PopupMenuItem<String>(
-            value: type,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? theme.colorScheme.primaryContainer
-                        : theme.colorScheme.surfaceContainerHighest,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    iconFor(type),
-                    size: 15,
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
+        itemBuilder: (_) =>
+            ['all', 'comment', 'quote', 'review', 'question'].map((type) {
+              final selected = _selectedType == type;
+              return PopupMenuItem<String>(
+                value: type,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  labelFor(type),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? theme.colorScheme.primaryContainer
+                            : theme.colorScheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        iconFor(type),
+                        size: 15,
+                        color: selected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      labelFor(type),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    if (selected) ...[
+                      const Spacer(),
+                      Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ],
+                  ],
                 ),
-                if (selected) ...[const Spacer(), Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary)],
-              ],
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
         child: GlassSurface(
           strong: true,
           borderRadius: BorderRadius.circular(20),
@@ -324,11 +328,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                iconFor(_selectedType),
-                size: 15,
-                color: activeColor,
-              ),
+              Icon(iconFor(_selectedType), size: 15, color: activeColor),
               const SizedBox(width: 5),
               Text(
                 isFiltered ? labelFor(_selectedType) : l10n.feedFilterLabel,
@@ -379,10 +379,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       ),
     );
 
-    final feedHeaders = <Widget>[
-      headerRow,
-      const ReelsPreviewCarousel(),
-    ];
+    final feedHeaders = <Widget>[headerRow, const ReelsPreviewCarousel()];
 
     Widget centeredScrollable(Widget child) {
       return LayoutBuilder(
@@ -818,8 +815,6 @@ class _QuestionPromptCard extends StatelessWidget {
     );
   }
 }
-
-
 
 class _LoadMoreFeedButton extends StatelessWidget {
   const _LoadMoreFeedButton({

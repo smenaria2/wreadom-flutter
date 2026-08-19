@@ -9,41 +9,47 @@ void main() {
   const proxy = 'https://wreadom-audio.smenaria2.workers.dev';
 
   group('resolveCloudflareAudioRequest', () {
-    test('defaults to attaching query token for all platforms (mobile and web)', () async {
-      final request = await resolveCloudflareAudioRequest(
-        objectKey: 'audio-reviews/user1/book1/clip.m4a',
-        customProxyUrl: proxy,
-        tokenLoader: ({required forceRefresh}) async => 'test-token',
-      );
+    test(
+      'defaults to attaching query token for all platforms (mobile and web)',
+      () async {
+        final request = await resolveCloudflareAudioRequest(
+          objectKey: 'audio-reviews/user1/book1/clip.m4a',
+          customProxyUrl: proxy,
+          tokenLoader: ({required forceRefresh}) async => 'test-token',
+        );
 
-      expect(
-        request?.uri.toString(),
-        '$proxy/audio-reviews/user1/book1/clip.m4a?token=test-token',
-      );
-      expect(request?.uri.queryParameters['token'], 'test-token');
-      expect(request?.headers, {'Accept': '*/*'});
-      expect(request?.mediaId, 'audio-reviews/user1/book1/clip.m4a');
-    });
+        expect(
+          request?.uri.toString(),
+          '$proxy/audio-reviews/user1/book1/clip.m4a?token=test-token',
+        );
+        expect(request?.uri.queryParameters['token'], 'test-token');
+        expect(request?.headers, {'Accept': '*/*'});
+        expect(request?.mediaId, 'audio-reviews/user1/book1/clip.m4a');
+      },
+    );
 
-    test('explicit useQueryToken: false uses a Bearer header and keeps token out of URL', () async {
-      final request = await resolveCloudflareAudioRequest(
-        objectKey: 'audio-reviews/user1/book1/clip.m4a',
-        customProxyUrl: proxy,
-        useQueryToken: false,
-        tokenLoader: ({required forceRefresh}) async => 'mobile-token',
-      );
+    test(
+      'explicit useQueryToken: false uses a Bearer header and keeps token out of URL',
+      () async {
+        final request = await resolveCloudflareAudioRequest(
+          objectKey: 'audio-reviews/user1/book1/clip.m4a',
+          customProxyUrl: proxy,
+          useQueryToken: false,
+          tokenLoader: ({required forceRefresh}) async => 'mobile-token',
+        );
 
-      expect(
-        request?.uri.toString(),
-        '$proxy/audio-reviews/user1/book1/clip.m4a',
-      );
-      expect(request?.uri.queryParameters, isEmpty);
-      expect(request?.headers, {
-        'Accept': '*/*',
-        'Authorization': 'Bearer mobile-token',
-      });
-      expect(request?.mediaId, 'audio-reviews/user1/book1/clip.m4a');
-    });
+        expect(
+          request?.uri.toString(),
+          '$proxy/audio-reviews/user1/book1/clip.m4a',
+        );
+        expect(request?.uri.queryParameters, isEmpty);
+        expect(request?.headers, {
+          'Accept': '*/*',
+          'Authorization': 'Bearer mobile-token',
+        });
+        expect(request?.mediaId, 'audio-reviews/user1/book1/clip.m4a');
+      },
+    );
 
     test('web retains the Worker query credential', () async {
       final request = await resolveCloudflareAudioRequest(
@@ -220,13 +226,20 @@ void main() {
     test('redacts query and Bearer credentials from errors', () {
       final sanitized = sanitizeAudioPlaybackError(
         'GET https://worker/audio?token=secret-token '
-        'Authorization: Bearer secret.jwt.value',
+        'Authorization: Bearer secret.jwt.value '
+        'https://b2/audio?X-Amz-Credential=access%2Fscope'
+        '&X-Amz-Signature=signed-secret'
+        '&X-Amz-Security-Token=session-secret',
       );
 
       expect(sanitized, isNot(contains('secret-token')));
       expect(sanitized, isNot(contains('secret.jwt.value')));
+      expect(sanitized, isNot(contains('access%2Fscope')));
+      expect(sanitized, isNot(contains('signed-secret')));
+      expect(sanitized, isNot(contains('session-secret')));
       expect(sanitized, contains('token=<redacted>'));
       expect(sanitized, contains('Bearer <redacted>'));
+      expect(sanitized, contains('X-Amz-Signature=<redacted>'));
     });
 
     test('implementation has no Firebase callable signing fallback', () {
