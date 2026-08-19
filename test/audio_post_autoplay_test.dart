@@ -67,17 +67,25 @@ void main() {
     expect(detail, contains('autoPlayAudio: true'));
   });
 
-  test('audio reviews reuse the single coordinated background player', () {
-    final source = File(
+  test('audio reviews reuse the single coordinated background player and provide pause and stop buttons', () {
+    final commentSource = File(
       'lib/src/presentation/widgets/comment_widgets.dart',
     ).readAsStringSync();
+    final playerSource = File(
+      'lib/src/presentation/widgets/audio_comment_player.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('ref.read(audioPostPlayerProvider)'));
-    expect(source, contains('toggleSharedNetworkAudio('));
-    expect(source, contains('showInMiniPlayer: false'));
-    expect(source, contains('resolveCloudflareAudioRequest('));
-    expect(source, isNot(contains('AudioPlayer(useProxyForRequestHeaders')));
-    expect(source, isNot(contains('_player.dispose()')));
+    expect(commentSource, contains('AudioCommentPlayer'));
+
+    expect(playerSource, contains('ref.read(audioPostPlayerProvider)'));
+    expect(playerSource, contains('toggleSharedNetworkAudio('));
+    expect(playerSource, contains('showInMiniPlayer: false'));
+    expect(playerSource, contains('resolveCloudflareAudioRequest('));
+    expect(playerSource, contains('Icons.pause_circle_filled_rounded'));
+    expect(playerSource, contains('Icons.stop_circle_rounded'));
+    expect(playerSource, contains('Icons.play_circle_fill_rounded'));
+    expect(playerSource, isNot(contains('AudioPlayer(useProxyForRequestHeaders')));
+    expect(playerSource, isNot(contains('_player.dispose()')));
   });
 
   test('review playback does not expose the feed mini player', () {

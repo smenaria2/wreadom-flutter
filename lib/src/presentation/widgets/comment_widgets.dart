@@ -3,14 +3,11 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/image_proxy_utils.dart';
-import '../../utils/cloudflare_audio_resolver.dart';
 import '../providers/auth_providers.dart';
 import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
@@ -24,7 +21,7 @@ import '../utils/error_message_utils.dart';
 import '../utils/optimistic_mutation.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/modal_feedback_scope.dart';
-import '../widgets/audio_post_player.dart';
+import '../widgets/audio_comment_player.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -1353,195 +1350,7 @@ class _InlineEditBox extends StatelessWidget {
   }
 }
 
-class _AudioCommentPlayer extends ConsumerStatefulWidget {
-  const _AudioCommentPlayer({
-    required this.url,
-    required this.objectKey,
-    required this.durationMs,
-    this.textColor,
-    this.metadataColor,
-  });
-
-  final String url;
-  final String? objectKey;
-  final int? durationMs;
-  final Color? textColor;
-  final Color? metadataColor;
-
-  @override
-  ConsumerState<_AudioCommentPlayer> createState() =>
-      _AudioCommentPlayerState();
-}
-
-class _AudioCommentPlayerState extends ConsumerState<_AudioCommentPlayer> {
-  late final AudioPlayer _player;
-  bool _loading = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _player = ref.read(audioPostPlayerProvider);
-  }
-
-  @override
-  void didUpdateWidget(covariant _AudioCommentPlayer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url ||
-        oldWidget.objectKey != widget.objectKey) {
-      _error = null;
-    }
-  }
-
-  String? get _audioIdentity {
-    final objectKey = widget.objectKey?.trim();
-    if (objectKey != null && objectKey.isNotEmpty) return objectKey;
-    final url = widget.url.trim();
-    return url.isEmpty ? null : url;
-  }
-
-  Duration? get _metadataDuration {
-    final milliseconds = widget.durationMs;
-    return milliseconds == null || milliseconds <= 0
-        ? null
-        : Duration(milliseconds: milliseconds);
-  }
-
-  void _handlePlaybackFailure(Object error, StackTrace stack) {
-    debugPrint(
-      'Error playing audio in _AudioCommentPlayer: '
-      '${sanitizeAudioPlaybackError(error)}\n$stack',
-    );
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-      _error = 'Could not play audio';
-    });
-  }
-
-  Future<void> _toggle() async {
-    if (_loading) return;
-    final audioIdentity = _audioIdentity;
-    if (audioIdentity == null) return;
-
-    final isCurrent = ref.read(activeAudioPostUrlProvider) == audioIdentity;
-    if (isCurrent && _player.playing) {
-      await _player.pause();
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await toggleSharedNetworkAudio(
-        ref,
-        audioIdentity: audioIdentity,
-        showInMiniPlayer: false,
-        resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
-          objectKey: widget.objectKey,
-          url: widget.url,
-          forceRefreshToken: forceRefresh,
-        ),
-        createSource: (request) => createCloudflareAudioSource(
-          request: request,
-          mediaItem: MediaItem(
-            id: audioIdentity,
-            album: 'Audio Review',
-            title: 'Audio review',
-            duration: _metadataDuration,
-            extras: const {'sourceType': 'audioReview'},
-          ),
-        ),
-      );
-    } catch (e, stack) {
-      _handlePlaybackFailure(e, stack);
-    } finally {
-      if (mounted && _loading) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isCurrent = ref.watch(activeAudioPostUrlProvider) == _audioIdentity;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            StreamBuilder<PlayerState>(
-              stream: _player.playerStateStream,
-              builder: (context, snapshot) {
-                final state = snapshot.data;
-                final playing = isCurrent && state?.playing == true;
-                final buffering =
-                    isCurrent &&
-                    (state?.processingState == ProcessingState.loading ||
-                        state?.processingState == ProcessingState.buffering);
-                return IconButton(
-                  tooltip: playing ? 'Pause audio' : 'Play audio',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: _loading ? null : _toggle,
-                  icon: _loading || buffering
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          playing
-                              ? Icons.pause_circle_filled_rounded
-                              : Icons.play_circle_fill_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
-                );
-              },
-            ),
-            const SizedBox(width: 4),
-            StreamBuilder<Duration>(
-              stream: _player.positionStream,
-              builder: (context, snapshot) {
-                final fallback = Duration(milliseconds: widget.durationMs ?? 0);
-                final position = isCurrent
-                    ? snapshot.data ?? Duration.zero
-                    : Duration.zero;
-                final duration = isCurrent
-                    ? _player.duration ?? fallback
-                    : fallback;
-                final label = duration.inMilliseconds > 0
-                    ? '${_formatAudioTime(position)} / ${_formatAudioTime(duration)}'
-                    : 'Audio review';
-                return Text(
-                  _error ?? label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: _error == null
-                        ? widget.metadataColor ?? widget.textColor
-                        : theme.colorScheme.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _formatAudioTime(Duration duration) {
-  final totalSeconds = duration.inSeconds.clamp(0, 120).toInt();
-  final minutes = totalSeconds ~/ 60;
-  final seconds = totalSeconds % 60;
-  return '$minutes:${seconds.toString().padLeft(2, '0')}';
-}
+typedef _AudioCommentPlayer = AudioCommentPlayer;
 
 class _SwipeActionShell extends StatefulWidget {
   const _SwipeActionShell({
