@@ -65,4 +65,15 @@ void main() {
     expect(reel, contains('autoPlay: isActive'));
     expect(detail, contains('autoPlayAudio: true'));
   });
+
+  test('audio reviews reuse the single coordinated background player', () {
+    final source = File(
+      'lib/src/presentation/widgets/comment_widgets.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('ref.read(audioPostPlayerProvider)'));
+    expect(source, contains('toggleSharedNetworkAudio('));
+    expect(source, isNot(contains('AudioPlayer(useProxyForRequestHeaders')));
+    expect(source, isNot(contains('_player.dispose()')));
+  });
 }

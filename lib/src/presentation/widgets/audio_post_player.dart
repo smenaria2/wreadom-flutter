@@ -114,6 +114,45 @@ Future<void> playAudioPost(WidgetRef ref, FeedPost post) async {
   final audioIdentity = audioPostIdentityFor(post);
   if (audioIdentity == null || audioIdentity.isEmpty) return;
 
+  await toggleSharedNetworkAudio(
+    ref,
+    audioIdentity: audioIdentity,
+    resolveRequest: (forceRefresh) =>
+        resolveAudioPostRequest(post, forceRefreshToken: forceRefresh),
+    createSource: (request) => createCloudflareAudioSource(
+      request: request,
+      mediaItem: audioPostMediaItemFor(post, audioIdentity),
+    ),
+  );
+}
+
+Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
+  final audioIdentity = audioPostIdentityFor(post);
+  if (audioIdentity == null || audioIdentity.isEmpty) return;
+
+  await ensureSharedNetworkAudioPlaying(
+    ref,
+    audioIdentity: audioIdentity,
+    resolveRequest: (forceRefresh) =>
+        resolveAudioPostRequest(post, forceRefreshToken: forceRefresh),
+    createSource: (request) => createCloudflareAudioSource(
+      request: request,
+      mediaItem: audioPostMediaItemFor(post, audioIdentity),
+    ),
+  );
+}
+
+/// Toggles a remote source on the app's single background-enabled player.
+///
+/// `just_audio_background` supports one [AudioPlayer] instance, so every
+/// background-capable audio surface must use this coordinator on Android.
+Future<void> toggleSharedNetworkAudio(
+  WidgetRef ref, {
+  required String audioIdentity,
+  required Future<CloudflareAudioRequest?> Function(bool forceRefresh)
+  resolveRequest,
+  required AudioSource Function(CloudflareAudioRequest request) createSource,
+}) async {
   final player = ref.read(audioPostPlayerProvider);
   final activeAudio = ref.read(activeAudioPostUrlProvider.notifier);
   if (activeAudio.isActive(audioIdentity) && player.playing) {
@@ -122,12 +161,23 @@ Future<void> playAudioPost(WidgetRef ref, FeedPost post) async {
     return;
   }
 
-  await ensureAudioPostPlaying(ref, post);
+  await ensureSharedNetworkAudioPlaying(
+    ref,
+    audioIdentity: audioIdentity,
+    resolveRequest: resolveRequest,
+    createSource: createSource,
+  );
 }
 
-Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
-  final audioIdentity = audioPostIdentityFor(post);
-  if (audioIdentity == null || audioIdentity.isEmpty) return;
+/// Loads and starts a source through the serialized, retry-safe post path.
+Future<void> ensureSharedNetworkAudioPlaying(
+  WidgetRef ref, {
+  required String audioIdentity,
+  required Future<CloudflareAudioRequest?> Function(bool forceRefresh)
+  resolveRequest,
+  required AudioSource Function(CloudflareAudioRequest request) createSource,
+}) async {
+  if (audioIdentity.trim().isEmpty) return;
 
   final player = ref.read(audioPostPlayerProvider);
   final activeAudio = ref.read(activeAudioPostUrlProvider.notifier);
@@ -164,13 +214,9 @@ Future<void> ensureAudioPostPlaying(WidgetRef ref, FeedPost post) async {
       _audioPostSourceLoadInProgress = true;
       try {
         await setCloudflareAudioSourceWithRetry(
-          resolveRequest: (forceRefresh) =>
-              resolveAudioPostRequest(post, forceRefreshToken: forceRefresh),
+          resolveRequest: resolveRequest,
           setAudioSource: player.setAudioSource,
-          createSource: (request) => createCloudflareAudioSource(
-            request: request,
-            mediaItem: audioPostMediaItemFor(post, audioIdentity),
-          ),
+          createSource: createSource,
         );
       } finally {
         _audioPostSourceLoadInProgress = false;

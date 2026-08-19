@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../domain/models/comment.dart';
@@ -23,6 +24,7 @@ import '../utils/error_message_utils.dart';
 import '../utils/optimistic_mutation.dart';
 import '../widgets/report_dialog.dart';
 import '../widgets/modal_feedback_scope.dart';
+import '../widgets/audio_post_player.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -1351,7 +1353,7 @@ class _InlineEditBox extends StatelessWidget {
   }
 }
 
-class _AudioCommentPlayer extends StatefulWidget {
+class _AudioCommentPlayer extends ConsumerStatefulWidget {
   const _AudioCommentPlayer({
     required this.url,
     required this.objectKey,
@@ -1367,23 +1369,19 @@ class _AudioCommentPlayer extends StatefulWidget {
   final Color? metadataColor;
 
   @override
-  State<_AudioCommentPlayer> createState() => _AudioCommentPlayerState();
+  ConsumerState<_AudioCommentPlayer> createState() =>
+      _AudioCommentPlayerState();
 }
 
-class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
+class _AudioCommentPlayerState extends ConsumerState<_AudioCommentPlayer> {
   late final AudioPlayer _player;
-  StreamSubscription<PlayerException>? _errorSubscription;
-  bool _loaded = false;
   bool _loading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer(useProxyForRequestHeaders: false);
-    _errorSubscription = _player.errorStream.listen(
-      (error) => _handlePlaybackFailure(error, StackTrace.current),
-    );
+    _player = ref.read(audioPostPlayerProvider);
   }
 
   @override
@@ -1391,10 +1389,15 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url ||
         oldWidget.objectKey != widget.objectKey) {
-      _loaded = false;
       _error = null;
-      unawaited(_player.stop());
     }
+  }
+
+  String? get _audioIdentity {
+    final objectKey = widget.objectKey?.trim();
+    if (objectKey != null && objectKey.isNotEmpty) return objectKey;
+    final url = widget.url.trim();
+    return url.isEmpty ? null : url;
   }
 
   Duration? get _metadataDuration {
@@ -1409,7 +1412,6 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
       'Error playing audio in _AudioCommentPlayer: '
       '${sanitizeAudioPlaybackError(error)}\n$stack',
     );
-    _loaded = false;
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -1417,54 +1419,35 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
     });
   }
 
-  void _startPlayback() {
-    unawaited(
-      runAudioPlayback(play: _player.play, onError: _handlePlaybackFailure),
-    );
-  }
-
-  @override
-  void dispose() {
-    unawaited(_errorSubscription?.cancel());
-    _player.dispose();
-    super.dispose();
-  }
-
   Future<void> _toggle() async {
     if (_loading) return;
-    if (_player.playing) {
-      await _player.pause();
-      return;
-    }
-    setState(() => _error = null);
+    final audioIdentity = _audioIdentity;
+    if (audioIdentity == null) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      if (!_loaded) {
-        setState(() => _loading = true);
-        await setCloudflareAudioSourceWithRetry(
-          resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
-            objectKey: widget.objectKey,
-            url: widget.url,
-            forceRefreshToken: forceRefresh,
-          ),
-          setAudioSource: _player.setAudioSource,
-          createSource: (request) => createCloudflareAudioSource(
-            request: request,
+      await toggleSharedNetworkAudio(
+        ref,
+        audioIdentity: audioIdentity,
+        resolveRequest: (forceRefresh) => resolveCloudflareAudioRequest(
+          objectKey: widget.objectKey,
+          url: widget.url,
+          forceRefreshToken: forceRefresh,
+        ),
+        createSource: (request) => createCloudflareAudioSource(
+          request: request,
+          mediaItem: MediaItem(
+            id: audioIdentity,
+            album: 'Audio Review',
             title: 'Audio review',
             duration: _metadataDuration,
+            extras: const {'sourceType': 'audioReview'},
           ),
-        );
-        _loaded = true;
-        if (mounted) {
-          setState(() {
-            _loading = false;
-            _error = null;
-          });
-        }
-      }
-      if (_player.processingState == ProcessingState.completed) {
-        await _player.seek(Duration.zero);
-      }
-      _startPlayback();
+        ),
+      );
     } catch (e, stack) {
       _handlePlaybackFailure(e, stack);
     } finally {
@@ -1475,6 +1458,7 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isCurrent = ref.watch(activeAudioPostUrlProvider) == _audioIdentity;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -1489,10 +1473,11 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
               stream: _player.playerStateStream,
               builder: (context, snapshot) {
                 final state = snapshot.data;
-                final playing = state?.playing == true;
+                final playing = isCurrent && state?.playing == true;
                 final buffering =
-                    state?.processingState == ProcessingState.loading ||
-                    state?.processingState == ProcessingState.buffering;
+                    isCurrent &&
+                    (state?.processingState == ProcessingState.loading ||
+                        state?.processingState == ProcessingState.buffering);
                 return IconButton(
                   tooltip: playing ? 'Pause audio' : 'Play audio',
                   visualDensity: VisualDensity.compact,
@@ -1517,8 +1502,12 @@ class _AudioCommentPlayerState extends State<_AudioCommentPlayer> {
               stream: _player.positionStream,
               builder: (context, snapshot) {
                 final fallback = Duration(milliseconds: widget.durationMs ?? 0);
-                final position = snapshot.data ?? Duration.zero;
-                final duration = _player.duration ?? fallback;
+                final position = isCurrent
+                    ? snapshot.data ?? Duration.zero
+                    : Duration.zero;
+                final duration = isCurrent
+                    ? _player.duration ?? fallback
+                    : fallback;
                 final label = duration.inMilliseconds > 0
                     ? '${_formatAudioTime(position)} / ${_formatAudioTime(duration)}'
                     : 'Audio review';

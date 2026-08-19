@@ -69,9 +69,10 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                           child: GestureDetector(
                             onTap: () {
                               final postId =
-                                  mediaItem.extras?['postId'] as String? ??
-                                  mediaItem.id;
-                              if (postId.trim().isEmpty) return;
+                                  mediaItem.extras?['postId'] as String?;
+                              if (postId == null || postId.trim().isEmpty) {
+                                return;
+                              }
                               Navigator.of(context).pushNamed(
                                 AppRoutes.postDetail,
                                 arguments: PostDetailArguments(postId: postId),
@@ -87,9 +88,13 @@ class AudioPostMiniPlayer extends ConsumerWidget {
                                         imageUrl: mediaItem.artUri.toString(),
                                         fit: BoxFit.cover,
                                         placeholder: (context, url) =>
-                                            const ColoredBox(color: Colors.grey),
+                                            const ColoredBox(
+                                              color: Colors.grey,
+                                            ),
                                         errorWidget: (context, url, error) =>
-                                            const Icon(Icons.music_note_rounded),
+                                            const Icon(
+                                              Icons.music_note_rounded,
+                                            ),
                                       )
                                     : Container(
                                         color: theme.colorScheme.primary
