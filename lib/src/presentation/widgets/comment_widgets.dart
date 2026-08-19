@@ -1424,6 +1424,12 @@ class _AudioCommentPlayerState extends ConsumerState<_AudioCommentPlayer> {
     final audioIdentity = _audioIdentity;
     if (audioIdentity == null) return;
 
+    final isCurrent = ref.read(activeAudioPostUrlProvider) == audioIdentity;
+    if (isCurrent && _player.playing) {
+      await _player.pause();
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
