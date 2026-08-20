@@ -25,22 +25,27 @@ int estimateBookReadingTimeMinutes(Book book, {List<Chapter>? chapters}) {
     }
   }
 
-  // Fallback 1: Calculate from book description if present
-  if (book.description != null && book.description!.trim().isNotEmpty) {
-    final descWords = countWords(book.description!);
-    if (descWords > 0) {
-      final calculated = (descWords / _wordsPerMinute).ceil();
-      if (calculated > 0) return calculated;
-    }
+  // 2. If precomputed readingTimeMinutes exists on the book model, return it directly
+  if (book.readingTimeMinutes != null && book.readingTimeMinutes! > 0) {
+    return book.readingTimeMinutes!;
   }
 
-  // Fallback 2: Estimate based on chapter count (~3 minutes per chapter average)
-  final chapterCount = book.chapterCount ?? book.chapters?.length ?? 1;
-  if (chapterCount > 0) {
-    return (chapterCount * 3).clamp(1, 99999);
+  // 3. If precomputed wordCount exists on the book model, calculate from it
+  if (book.wordCount != null && book.wordCount! > 0) {
+    final calculated = (book.wordCount! / _wordsPerMinute).ceil();
+    return calculated < 1 ? 1 : calculated;
   }
 
-  return 1;
+  // 4. Fallback: Estimate based on chapter count and content type
+  final chapterCount = book.chapterCount ??
+      (candidateChapters?.isNotEmpty == true ? candidateChapters!.length : null) ??
+      1;
+  final defaultMinsPerChapter = switch (book.contentType?.trim().toLowerCase()) {
+    'poem' => 2,
+    'article' => 4,
+    _ => 3,
+  };
+  return (chapterCount * defaultMinsPerChapter).clamp(1, 99999);
 }
 
 /// Counts words in a string by removing HTML markup and splitting on whitespace.

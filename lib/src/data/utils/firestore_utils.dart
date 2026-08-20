@@ -446,6 +446,8 @@ Map<String, dynamic> normalizeBookMapForModel(dynamic raw, String docId) {
     'recommendationCount',
     'ratingsCount',
     'chapterCount',
+    'readingTimeMinutes',
+    'wordCount',
     'collaborationRequestedAt',
     'collaborationRespondedAt',
     'leafCount',

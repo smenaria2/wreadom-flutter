@@ -280,6 +280,55 @@ void main() {
       expect(chapterTwo.data()?['revision'], 3);
       expect(chapterThree.data()?['content'], '<p>New three</p>');
       expect(chapterThree.data()?['revision'], 1);
+
+      final updatedBookDoc = await bookRef.get();
+      expect(updatedBookDoc.data()?['wordCount'], greaterThan(0));
+      expect(updatedBookDoc.data()?['readingTimeMinutes'], greaterThan(0));
     },
   );
+
+  test('updateBook projects exact word count and reading time on book doc', () async {
+    final firestore = FakeFirebaseFirestore();
+    final bookRef = firestore.collection('books').doc('book-reading-test');
+    final chapters = [
+      Chapter(
+        id: 'c1',
+        title: 'Ch 1',
+        content: List.generate(400, (i) => 'word$i').join(' '),
+        index: 0,
+        status: 'published',
+      ),
+      Chapter(
+        id: 'c2',
+        title: 'Ch 2',
+        content: List.generate(600, (i) => 'word$i').join(' '),
+        index: 1,
+        status: 'published',
+      ),
+    ];
+    final book = Book(
+      id: 'book-reading-test',
+      title: 'Word Test Book',
+      authors: const [Author(name: 'Author')],
+      subjects: const [],
+      languages: const ['en'],
+      formats: const {},
+      downloadCount: 0,
+      mediaType: 'text',
+      bookshelves: const [],
+      chapters: chapters,
+      status: 'published',
+    );
+
+    await FirebaseWriterRepository(firestore: firestore).updateBook(
+      book.id,
+      book,
+      changedChapterIds: {'c1', 'c2'},
+    );
+
+    final savedDoc = await bookRef.get();
+    // 400 + 600 = 1000 words -> 1000 / 200 = 5 mins
+    expect(savedDoc.data()?['wordCount'], 1000);
+    expect(savedDoc.data()?['readingTimeMinutes'], 5);
+  });
 }

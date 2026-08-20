@@ -8,6 +8,7 @@ import '../../domain/models/chapter_edit_lock.dart';
 import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
+import '../../utils/reading_time_utils.dart';
 import '../utils/firestore_utils.dart';
 import 'chapter_save_write_plan.dart';
 import 'chapter_save_merge.dart';
@@ -636,6 +637,27 @@ class FirebaseWriterRepository implements WriterRepository {
       for (final chapter in visible) _chapterToFirestore(chapter),
     ];
     data['chapterCount'] = visible.length;
+
+    int totalWords = 0;
+    for (final chapter in visible) {
+      if (chapter.content.trim().isNotEmpty) {
+        totalWords += countWords(chapter.content);
+      }
+    }
+    data['wordCount'] = totalWords;
+    if (totalWords > 0) {
+      final calculated = (totalWords / 200).ceil();
+      data['readingTimeMinutes'] = calculated < 1 ? 1 : calculated;
+    } else {
+      final defaultMinsPerChapter =
+          switch (data['contentType']?.toString().trim().toLowerCase()) {
+            'poem' => 2,
+            'article' => 4,
+            _ => 3,
+          };
+      data['readingTimeMinutes'] =
+          (visible.length * defaultMinsPerChapter).clamp(1, 99999);
+    }
   }
 
   Map<String, dynamic> _chapterToFirestore(Chapter chapter) {

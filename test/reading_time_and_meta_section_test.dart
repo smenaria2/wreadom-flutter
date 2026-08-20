@@ -66,6 +66,42 @@ void main() {
       expect(mins, 3);
     });
 
+    test('Uses precomputed readingTimeMinutes directly when available', () {
+      final book = Book(
+        id: 'book-precomputed',
+        title: 'Title',
+        authors: const [],
+        subjects: const [],
+        languages: const ['en'],
+        formats: const {},
+        downloadCount: 0,
+        mediaType: 'text',
+        bookshelves: const [],
+        readingTimeMinutes: 12,
+        wordCount: 2400,
+      );
+
+      expect(estimateBookReadingTimeMinutes(book), 12);
+    });
+
+    test('Uses precomputed wordCount when readingTimeMinutes is absent', () {
+      final book = Book(
+        id: 'book-wordcount',
+        title: 'Title',
+        authors: const [],
+        subjects: const [],
+        languages: const ['en'],
+        formats: const {},
+        downloadCount: 0,
+        mediaType: 'text',
+        bookshelves: const [],
+        wordCount: 1500,
+      );
+
+      // 1500 / 200 = 7.5 -> 8 mins
+      expect(estimateBookReadingTimeMinutes(book), 8);
+    });
+
     test('Formats compact reading time correctly in English and Hindi', () async {
       expect(formatCompactReadingTime(1), '1 min');
       expect(formatCompactReadingTime(5), '5 min');
@@ -76,8 +112,10 @@ void main() {
       final l10nHi = await AppLocalizations.delegate.load(const Locale('hi'));
       expect(formatCompactReadingTime(1, l10n: l10nHi), '1 मिनट');
       expect(formatCompactReadingTime(5, l10n: l10nHi), '5 मिनट');
-      expect(formatCompactReadingTime(60, l10n: l10nHi), '1 घंटे');
-      expect(formatCompactReadingTime(75, l10n: l10nHi), '1 घंटे 15 मिनट');
+      expect(formatCompactReadingTime(60, l10n: l10nHi), '1 घंटा');
+      expect(formatCompactReadingTime(83, l10n: l10nHi), '1 घंटा 23 मिनट');
+      expect(formatCompactReadingTime(120, l10n: l10nHi), '2 घंटे');
+      expect(formatCompactReadingTime(143, l10n: l10nHi), '2 घंटे 23 मिनट');
     });
 
     test('Formats detail reading time in English', () async {
@@ -87,11 +125,13 @@ void main() {
       expect(formatDetailReadingTime(75, l10n: l10nEn), '1 hr 15 min read');
     });
 
-    test('Formats detail reading time in Hindi without का पाठ', () async {
+    test('Formats detail reading time in Hindi with proper घंटा / घंटे', () async {
       final l10nHi = await AppLocalizations.delegate.load(const Locale('hi'));
       expect(formatDetailReadingTime(5, l10n: l10nHi), '5 मिनट');
-      expect(formatDetailReadingTime(60, l10n: l10nHi), '1 घंटे');
-      expect(formatDetailReadingTime(75, l10n: l10nHi), '1 घंटे 15 मिनट');
+      expect(formatDetailReadingTime(60, l10n: l10nHi), '1 घंटा');
+      expect(formatDetailReadingTime(83, l10n: l10nHi), '1 घंटा 23 मिनट');
+      expect(formatDetailReadingTime(120, l10n: l10nHi), '2 घंटे');
+      expect(formatDetailReadingTime(143, l10n: l10nHi), '2 घंटे 23 मिनट');
     });
   });
 
@@ -103,15 +143,18 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('en'),
-          home: Scaffold(
-            body: BookCardMetricsRow(book: book),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: BookCardMetricsRow(book: book),
+            ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
       expect(find.text('159'), findsOneWidget);
@@ -126,12 +169,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('hi'),
-          home: Scaffold(
-            body: BookCardMetricsRow(book: book),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('hi'),
+            home: Scaffold(
+              body: BookCardMetricsRow(book: book),
+            ),
           ),
         ),
       );

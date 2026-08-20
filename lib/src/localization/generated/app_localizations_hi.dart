@@ -338,12 +338,24 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String readingTimeHours(int hours, int minutes) {
-    return '$hours घंटे $minutes मिनट';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours घंटे $minutes मिनट',
+      one: '1 घंटा $minutes मिनट',
+    );
+    return '$_temp0';
   }
 
   @override
   String readingTimeHoursOnly(int hours) {
-    return '$hours घंटे';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours घंटे',
+      one: '1 घंटा',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -353,12 +365,24 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String compactReadingTimeHours(int hours, int minutes) {
-    return '$hours घंटे $minutes मिनट';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours घंटे $minutes मिनट',
+      one: '1 घंटा $minutes मिनट',
+    );
+    return '$_temp0';
   }
 
   @override
   String compactReadingTimeHoursOnly(int hours) {
-    return '$hours घंटे';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours घंटे',
+      one: '1 घंटा',
+    );
+    return '$_temp0';
   }
 
   @override
