@@ -328,6 +328,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get singleChapterStat => '1 chapter';
+
+  @override
+  String readingTimeMinutes(int count) {
+    return '$count min read';
+  }
+
+  @override
+  String readingTimeHours(int hours, int minutes) {
+    return '$hours hr $minutes min read';
+  }
+
+  @override
+  String readingTimeHoursOnly(int hours) {
+    return '$hours hr read';
+  }
+
+  @override
+  String compactReadingTimeMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String compactReadingTimeHours(int hours, int minutes) {
+    return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String compactReadingTimeHoursOnly(int hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String publishedDateLabel(String date) {
+    return 'Published: $date';
+  }
+
+  @override
   String get continueReading => 'Continue Reading';
 
   @override

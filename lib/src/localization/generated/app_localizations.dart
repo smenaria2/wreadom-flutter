@@ -710,6 +710,54 @@ abstract class AppLocalizations {
   /// **'{count} chapters'**
   String chaptersStat(String count);
 
+  /// No description provided for @singleChapterStat.
+  ///
+  /// In en, this message translates to:
+  /// **'1 chapter'**
+  String get singleChapterStat;
+
+  /// No description provided for @readingTimeMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min read'**
+  String readingTimeMinutes(int count);
+
+  /// No description provided for @readingTimeHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hr {minutes} min read'**
+  String readingTimeHours(int hours, int minutes);
+
+  /// No description provided for @readingTimeHoursOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hr read'**
+  String readingTimeHoursOnly(int hours);
+
+  /// No description provided for @compactReadingTimeMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String compactReadingTimeMinutes(int count);
+
+  /// No description provided for @compactReadingTimeHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String compactReadingTimeHours(int hours, int minutes);
+
+  /// No description provided for @compactReadingTimeHoursOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String compactReadingTimeHoursOnly(int hours);
+
+  /// No description provided for @publishedDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Published: {date}'**
+  String publishedDateLabel(String date);
+
   /// No description provided for @continueReading.
   ///
   /// In en, this message translates to:

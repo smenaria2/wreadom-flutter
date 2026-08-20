@@ -17,8 +17,6 @@ import '../../domain/repositories/message_repository.dart';
 import '../../data/services/analytics_service.dart';
 import '../../utils/app_haptics.dart';
 import '../../utils/book_collaboration_utils.dart';
-import '../../utils/book_publication_date.dart';
-import '../../utils/format_utils.dart';
 import '../../utils/category_utils.dart';
 import '../../utils/image_proxy_utils.dart';
 import '../../utils/clipboard_writer.dart';
@@ -51,6 +49,7 @@ import 'static_info_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../utils/book_share_utils.dart';
 import '../utils/share_text_helper.dart';
+import '../components/book/book_detail_meta_section.dart';
 
 class BookDetailScreen extends ConsumerStatefulWidget {
   const BookDetailScreen({
@@ -542,12 +541,7 @@ class _BookDetailBody extends ConsumerWidget {
                       collaboratorId: collaboratorId,
                     ),
                     const SizedBox(height: 16),
-                    _StatsRow(book: book),
-                    if (book.status == 'published' &&
-                        publicationTimestamp(book) != null) ...[
-                      const SizedBox(height: 10),
-                      _PublicationDateRow(book: book),
-                    ],
+                    BookDetailMetaSection(book: book),
                     if (book.subjects.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Wrap(
@@ -1429,274 +1423,9 @@ class _BookTargetCommentHeader extends StatelessWidget {
   }
 }
 
-class _ArchiveVoteButton extends StatelessWidget {
-  const _ArchiveVoteButton({
-    required this.icon,
-    required this.selectedIcon,
-    required this.count,
-    required this.selected,
-    required this.onPressed,
-  });
 
-  final IconData icon;
-  final IconData selectedIcon;
-  final int count;
-  final bool selected;
-  final VoidCallback onPressed;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(selected ? selectedIcon : icon, size: 18),
-      label: Text(_formatVoteCount(count)),
-      style: OutlinedButton.styleFrom(
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        foregroundColor: selected ? theme.colorScheme.primary : null,
-        side: BorderSide(
-          color: selected
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outlineVariant,
-        ),
-      ),
-    );
-  }
 
-  static String _formatVoteCount(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
-  }
-}
-
-class _StatsRow extends ConsumerWidget {
-  const _StatsRow({required this.book});
-
-  final Book book;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final textColor = theme.colorScheme.onSurfaceVariant;
-    final commentsAsync = ref.watch(liveBookCommentsProvider(book.id));
-    final rating = commentsAsync.maybeWhen(
-      data: (comments) => _ratingSummary(book, comments),
-      orElse: () => _ratingSummary(book, const <Comment>[]),
-    );
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      children: [
-        _RatingStat(summary: rating),
-        if (_isArchiveBook(book)) _ArchiveVotesInline(book: book),
-        if (_localizedContentType(context, book) case final contentType?)
-          _Stat(
-            icon: Icons.category_outlined,
-            label: contentType,
-            color: textColor,
-          ),
-        _Stat(
-          icon: Icons.visibility_outlined,
-          label: AppLocalizations.of(
-            context,
-          )!.readsStat(_formatCount(book.viewCount ?? 0)),
-          color: textColor,
-        ),
-        if (_resolvedChapterCount(book) case final chapterCount?
-            when chapterCount > 1)
-          _Stat(
-            icon: Icons.menu_book_outlined,
-            label: AppLocalizations.of(
-              context,
-            )!.chaptersStat(chapterCount.toString()),
-            color: textColor,
-          ),
-      ],
-    );
-  }
-
-  int? _resolvedChapterCount(Book book) {
-    return book.chapterCount ?? book.chapters?.length;
-  }
-
-  String? _localizedContentType(BuildContext context, Book book) {
-    final l10n = AppLocalizations.of(context)!;
-    return switch (book.contentType?.trim().toLowerCase()) {
-      'story' => l10n.contentTypeStory,
-      'poem' => l10n.contentTypePoem,
-      'article' => l10n.contentTypeArticle,
-      _ => null,
-    };
-  }
-
-  _RatingSummary _ratingSummary(Book book, List<Comment> comments) {
-    if (book.averageRating != null && book.averageRating! > 0) {
-      return _RatingSummary(
-        average: book.averageRating!,
-        count: book.ratingsCount ?? 0,
-      );
-    }
-    final ratings = comments
-        .where((comment) => comment.rating != null && comment.rating! > 0)
-        .map((comment) => comment.rating!.toDouble())
-        .toList();
-    if (ratings.isEmpty) return const _RatingSummary.none();
-    final average =
-        ratings.reduce((sum, rating) => sum + rating) / ratings.length;
-    return _RatingSummary(average: average, count: ratings.length);
-  }
-
-  String _formatCount(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
-  }
-}
-
-class _PublicationDateRow extends StatelessWidget {
-  const _PublicationDateRow({required this.book});
-
-  final Book book;
-
-  @override
-  Widget build(BuildContext context) {
-    final timestamp = publicationTimestamp(book);
-    if (timestamp == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.calendar_today_outlined, size: 16, color: color),
-        const SizedBox(width: 6),
-        Text(
-          '${AppLocalizations.of(context)!.publishedOn}: '
-          '${FormatUtils.formatTimestamp(timestamp)}',
-          style: TextStyle(color: color, fontSize: 13),
-        ),
-      ],
-    );
-  }
-}
-
-class _ArchiveVotesInline extends ConsumerWidget {
-  const _ArchiveVotesInline({required this.book});
-
-  final Book book;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(bookVoteStatsProvider(book.id));
-    final userVoteAsync = ref.watch(userBookVoteProvider(book.id));
-    final currentVote = userVoteAsync.value;
-
-    return statsAsync.maybeWhen(
-      data: (stats) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ArchiveVoteButton(
-            icon: Icons.thumb_up_alt_outlined,
-            selectedIcon: Icons.thumb_up_alt,
-            count: stats.upvotes,
-            selected: currentVote == 'up',
-            onPressed: () => ref
-                .read(bookVoteControllerProvider)
-                .vote(book.id, currentVote == 'up' ? null : 'up'),
-          ),
-          const SizedBox(width: 6),
-          _ArchiveVoteButton(
-            icon: Icons.thumb_down_alt_outlined,
-            selectedIcon: Icons.thumb_down_alt,
-            count: stats.downvotes,
-            selected: currentVote == 'down',
-            onPressed: () => ref
-                .read(bookVoteControllerProvider)
-                .vote(book.id, currentVote == 'down' ? null : 'down'),
-          ),
-        ],
-      ),
-      orElse: () => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _RatingSummary {
-  const _RatingSummary({required this.average, required this.count});
-  const _RatingSummary.none() : average = null, count = 0;
-
-  final double? average;
-  final int count;
-}
-
-class _RatingStat extends StatelessWidget {
-  const _RatingStat({required this.summary});
-
-  final _RatingSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final average = summary.average;
-    if (average == null) {
-      return _Stat(
-        icon: Icons.star_border_rounded,
-        label: l10n.noRatings,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      );
-    }
-
-    final countLabel = summary.count > 0 ? ' (${summary.count})' : '';
-    final theme = Theme.of(context);
-    final starColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFFFD36A)
-        : const Color(0xFFC47A00);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ...List.generate(5, (index) {
-          return Icon(
-            index < average.round()
-                ? Icons.star_rounded
-                : Icons.star_border_rounded,
-            size: 16,
-            color: starColor,
-          );
-        }),
-        const SizedBox(width: 4),
-        Text(
-          '${average.toStringAsFixed(1)}$countLabel',
-          style: TextStyle(
-            color: starColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.icon, required this.label, this.color});
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(color: color, fontSize: 13)),
-      ],
-    );
-  }
-}
 
 class _PlaceholderCover extends StatelessWidget {
   const _PlaceholderCover({required this.book});

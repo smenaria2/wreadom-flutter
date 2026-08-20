@@ -35,6 +35,7 @@ import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
 import '../components/interactive_features_sheet.dart';
 import '../components/book/book_card_meta_tags.dart';
+import '../components/book/book_card_metrics_row.dart';
 
 bool _isInitialHomepageLoad(AsyncValue<dynamic> value) {
   return value.isLoading && !value.hasValue;
@@ -1565,7 +1566,7 @@ class BookshelfSection extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    const shelfHeight = 248.0;
+    const shelfHeight = 264.0;
     final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
     final hasData = books.isNotEmpty;
 
@@ -1762,40 +1763,39 @@ class _BookCardState extends State<_BookCard> {
               ),
               const SizedBox(height: 8),
               SizedBox(
-                height: 56,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 56),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.book.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          height: 1.15,
-                        ),
+                height: 72,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.book.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        height: 1.15,
                       ),
-                      const SizedBox(height: 2),
-                      BookContentTypeLabel(book: widget.book),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.book.authors.isNotEmpty
-                            ? widget.book.authors.first.name
-                            : AppLocalizations.of(context)!.unknownAuthor,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 11,
-                          height: 1.15,
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    BookContentTypeLabel(book: widget.book),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.book.authors.isNotEmpty
+                          ? widget.book.authors.first.name
+                          : AppLocalizations.of(context)!.unknownAuthor,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                        height: 1.15,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 3),
+                    BookCardMetricsRow(book: widget.book),
+                  ],
                 ),
               ),
             ],

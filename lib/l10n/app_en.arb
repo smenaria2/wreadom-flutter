@@ -142,6 +142,69 @@
       }
     }
   },
+  "singleChapterStat": "1 chapter",
+  "readingTimeMinutes": "{count} min read",
+  "@readingTimeMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readingTimeHours": "{hours} hr {minutes} min read",
+  "@readingTimeHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "readingTimeHoursOnly": "{hours} hr read",
+  "@readingTimeHoursOnly": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "compactReadingTimeMinutes": "{count} min",
+  "@compactReadingTimeMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compactReadingTimeHours": "{hours}h {minutes}m",
+  "@compactReadingTimeHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "compactReadingTimeHoursOnly": "{hours}h",
+  "@compactReadingTimeHoursOnly": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "publishedDateLabel": "Published: {date}",
+  "@publishedDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "continueReading": "Continue Reading",
   "startReading": "Start Reading",
   "aboutThisBook": "About this content",

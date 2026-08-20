@@ -6,6 +6,7 @@ import '../../utils/book_collaboration_utils.dart';
 import '../providers/homepage_providers.dart';
 import '../utils/book_author_utils.dart';
 import 'book/book_card_meta_tags.dart';
+import 'book/book_card_metrics_row.dart';
 import 'generated_book_cover.dart';
 import '../screens/book_detail_screen.dart';
 import '../widgets/glass_surface.dart';
@@ -109,6 +110,8 @@ class BookCard extends ConsumerWidget {
                   ],
                 ],
               ),
+              const SizedBox(height: 3),
+              BookCardMetricsRow(book: book),
             ],
           ),
         ),
