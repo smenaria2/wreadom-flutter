@@ -6,8 +6,9 @@ import '../../domain/models/feed_post.dart';
 import 'review_share_card.dart';
 
 /// Portrait review card designed for long reviews.
-/// Consolidates book details into a compact top header to allocate
-/// maximum height (>55%) to the review text with clean ellipsis truncation.
+/// Features a centered book cover and metadata header, dynamic auto-adjusting
+/// vertical height that tightly frames the review text without massive blank spaces,
+/// and clean transparent wreadom.in footer branding.
 class PortraitReviewCard extends StatelessWidget {
   const PortraitReviewCard({
     super.key,
@@ -30,13 +31,12 @@ class PortraitReviewCard extends StatelessWidget {
     final serifBody = GoogleFonts.cormorantGaramond(
       color: const Color(0xFF1A1612),
       fontSize: 38,
-      height: 1.38,
+      height: 1.42,
       fontWeight: FontWeight.w500,
     );
 
     return SizedBox(
       width: 1536,
-      height: 2172,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFFFFCF6),
@@ -51,7 +51,7 @@ class PortraitReviewCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Outer decorative gold border
+            // Outer decorative gold border wrapping the dynamic height
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.all(26),
@@ -66,27 +66,26 @@ class PortraitReviewCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Structured column layout
+            // Structured column layout with auto-adjusting content height
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 60),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 1. Compact Top Header (Cover + Details side-by-side)
-                  _buildHeader(context, l10n),
-                  const SizedBox(height: 30),
+                  // 1. Centered Top Header (Cover + Metadata stacked in center)
+                  _buildCenteredHeader(context, l10n),
+                  const SizedBox(height: 32),
                   const ReviewCardGoldDivider(withDiamond: true),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
-                  // 2. Middle Review Text Section (takes all remaining space)
-                  Expanded(
-                    child: _buildReviewBody(context, l10n, serifBody),
-                  ),
-                  const SizedBox(height: 30),
+                  // 2. Auto-sizing Review Text Section
+                  _buildReviewBody(context, l10n, serifBody),
+                  const SizedBox(height: 32),
                   const ReviewCardGoldDivider(withDiamond: true),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
-                  // 3. Footer (Reviewer profile & prominent wreadom.in branding)
+                  // 3. Footer (Reviewer profile & clean unboxed wreadom.in branding)
                   _buildFooter(context, l10n),
                 ],
               ),
@@ -97,91 +96,95 @@ class PortraitReviewCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
-    return SizedBox(
-      height: 420,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Book Cover
-          SizedBox(
-            width: 290,
-            height: 420,
-            child: ReviewCardBookCover(
-              coverUrl: post.bookCover,
-              title: bookTitle,
-              author: bookAuthorName,
-              seed: post.bookId?.toString() ?? bookTitle,
+  Widget _buildCenteredHeader(BuildContext context, AppLocalizations l10n) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // 1. Centered Book Cover
+        SizedBox(
+          width: 320,
+          height: 460,
+          child: ReviewCardBookCover(
+            coverUrl: post.bookCover,
+            title: bookTitle,
+            author: bookAuthorName,
+            seed: post.bookId?.toString() ?? bookTitle,
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 2. Centered Book Title
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            bookTitle,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFF0D2538),
+              fontSize: 54,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.5,
             ),
           ),
-          const SizedBox(width: 48),
-          // Book Metadata & Rating
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  bookTitle,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.cormorantGaramond(
-                    color: const Color(0xFF0D2538),
-                    fontSize: 52,
-                    height: 1.05,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  bookAuthorName.isEmpty
-                      ? l10n.unknownAuthor
-                      : bookAuthorName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFFB17A27),
-                    fontSize: 26,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 5,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                const ReviewCardGoldDivider(width: 140),
-                const SizedBox(height: 20),
-                // Star Rating
-                Row(
-                  children: List.generate(5, (index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Icon(
-                        index < rating.round()
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        color: const Color(0xFFB8862D),
-                        size: 48,
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  l10n
-                      .ratingOutOfFive(rating.toStringAsFixed(1))
-                      .toUpperCase(),
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF2B2520),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 5,
-                  ),
-                ),
-              ],
+        ),
+        const SizedBox(height: 10),
+
+        // 3. Centered Author Name
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            bookAuthorName.isEmpty ? l10n.unknownAuthor : bookAuthorName,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              color: const Color(0xFFB17A27),
+              fontSize: 26,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 5,
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 18),
+
+        // 4. Centered Small Accent Divider
+        const ReviewCardGoldDivider(width: 140),
+        const SizedBox(height: 16),
+
+        // 5. Centered Star Rating
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(5, (index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(
+                index < rating.round()
+                    ? Icons.star_rounded
+                    : Icons.star_border_rounded,
+                color: const Color(0xFFB8862D),
+                size: 46,
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 8),
+
+        // 6. Centered Rating Text
+        Text(
+          l10n.ratingOutOfFive(rating.toStringAsFixed(1)).toUpperCase(),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: const Color(0xFF2B2520),
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 5,
+          ),
+        ),
+      ],
     );
   }
 
@@ -190,73 +193,59 @@ class PortraitReviewCard extends StatelessWidget {
     AppLocalizations l10n,
     TextStyle serifBody,
   ) {
-    final text = post.text.trim().isEmpty ? l10n.feedTypeReview : post.text.trim();
+    final text =
+        post.text.trim().isEmpty ? l10n.feedTypeReview : post.text.trim();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate max lines that safely fit the available vertical height
-        // Line height is fontSize (38) * height (1.38) ≈ 52.4px
-        final availableHeight = constraints.maxHeight;
-        final approxLineHeight = 38.0 * 1.38;
-        // Leave room for padding & quotes (approx 60px)
-        final maxFittingLines = ((availableHeight - 60) / approxLineHeight).floor().clamp(1, 25);
-
-        return Stack(
-          children: [
-            // Opening quote mark
-            Positioned(
-              left: 0,
-              top: -24,
-              child: Text(
-                '"',
-                style: GoogleFonts.cormorantGaramond(
-                  color: const Color(0xFFE2D2BD),
-                  fontSize: 120,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return Stack(
+      children: [
+        // Opening quote mark
+        Positioned(
+          left: 0,
+          top: -20,
+          child: Text(
+            '"',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFE2D2BD),
+              fontSize: 110,
+              fontWeight: FontWeight.w700,
             ),
-            // Vertical gold accent bar on left
-            Positioned(
-              left: 26,
-              top: 72,
-              bottom: 12,
-              child: Container(
-                width: 1.4,
-                color: const Color(0xFFB8862D),
-              ),
+          ),
+        ),
+        // Vertical gold accent bar on left
+        Positioned(
+          left: 24,
+          top: 68,
+          bottom: 8,
+          child: Container(
+            width: 1.4,
+            color: const Color(0xFFB8862D),
+          ),
+        ),
+        // Closing quote mark
+        Positioned(
+          right: 8,
+          bottom: -24,
+          child: Text(
+            '"',
+            style: GoogleFonts.cormorantGaramond(
+              color: const Color(0xFFE2D2BD),
+              fontSize: 110,
+              fontWeight: FontWeight.w700,
             ),
-            // Closing quote mark
-            Positioned(
-              right: 12,
-              bottom: -28,
-              child: Text(
-                '"',
-                style: GoogleFonts.cormorantGaramond(
-                  color: const Color(0xFFE2D2BD),
-                  fontSize: 120,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            // Main text with strict bounds and ellipsis
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(76, 24, 48, 24),
-                child: Center(
-                  child: Text(
-                    text,
-                    maxLines: maxFittingLines,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: serifBody,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+        // Main review text (auto-adjusts height, capped at 25 lines with ellipsis)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(72, 16, 44, 16),
+          child: Text(
+            text,
+            maxLines: 25,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: serifBody,
+          ),
+        ),
+      ],
     );
   }
 
@@ -267,7 +256,7 @@ class PortraitReviewCard extends StatelessWidget {
         ReviewCardAvatar(post: post, reviewer: reviewer),
         const SizedBox(width: 32),
         Container(
-          height: 120,
+          height: 110,
           width: 1.4,
           color: const Color(0xFFB8862D),
         ),
@@ -282,18 +271,18 @@ class PortraitReviewCard extends StatelessWidget {
                 l10n.reviewedBy,
                 style: GoogleFonts.caveat(
                   color: const Color(0xFFB8862D),
-                  fontSize: 42,
+                  fontSize: 40,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 reviewer,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.cormorantGaramond(
                   color: const Color(0xFF0D2538),
-                  fontSize: 48,
+                  fontSize: 46,
                   height: 1,
                   fontWeight: FontWeight.w700,
                 ),
@@ -301,37 +290,27 @@ class PortraitReviewCard extends StatelessWidget {
             ],
           ),
         ),
-        // Prominent Wreadom.in Logo & Branding
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F1E6),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
-              width: 1.2,
+        const SizedBox(width: 24),
+        // Clean Wreadom.in Logo & Branding (no background box)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/app_logo.png',
+              height: 48,
+              width: 48,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/app_logo.png',
-                height: 44,
-                width: 44,
+            const SizedBox(width: 14),
+            Text(
+              'wreadom.in',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF8A5A20),
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.2,
               ),
-              const SizedBox(width: 16),
-              Text(
-                'wreadom.in',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF8A5A20),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.2,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
