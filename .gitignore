@@ -61,6 +61,8 @@ dart_defines.doppler.json
 # Gradle and builds
 .gradle/
 .gradle-user/
+.kotlin/
+android/.kotlin/
 android/build/
 
 .agent/
