@@ -307,5 +307,28 @@ void main() {
       expect(AppLinkHelper.resolve('/questions?book=book-1'), isNull);
       expect(AppLinkHelper.resolve('/questions?leaf=leaf-2'), isNull);
     });
+
+    test('resolves book review comment links with ? or & delimiters', () {
+      final canonical = AppLinkHelper.resolve(
+        'https://wreadom.in/book/X4ptmC0H6Ns1qkA9pS2d?comment=vL35bCJskyfOmL01FyhY',
+      );
+      expect(canonical?.route, AppRoutes.bookDetail);
+      expect(canonical?.payload, 'X4ptmC0H6Ns1qkA9pS2d');
+      expect(canonical?.commentId, 'vL35bCJskyfOmL01FyhY');
+
+      final malformedAmpersand = AppLinkHelper.resolve(
+        'https://wreadom.in/book/X4ptmC0H6Ns1qkA9pS2d&comment=vL35bCJskyfOmL01FyhY',
+      );
+      expect(malformedAmpersand?.route, AppRoutes.bookDetail);
+      expect(malformedAmpersand?.payload, 'X4ptmC0H6Ns1qkA9pS2d');
+      expect(malformedAmpersand?.commentId, 'vL35bCJskyfOmL01FyhY');
+
+      final relativeAmpersand = AppLinkHelper.resolve(
+        '/book/X4ptmC0H6Ns1qkA9pS2d&comment=vL35bCJskyfOmL01FyhY',
+      );
+      expect(relativeAmpersand?.route, AppRoutes.bookDetail);
+      expect(relativeAmpersand?.payload, 'X4ptmC0H6Ns1qkA9pS2d');
+      expect(relativeAmpersand?.commentId, 'vL35bCJskyfOmL01FyhY');
+    });
   });
 }

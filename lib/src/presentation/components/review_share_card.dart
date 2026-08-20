@@ -719,9 +719,7 @@ FeedPost _postFromComment(Comment comment, String? bookCover) {
 }
 
 String _bookReviewLink(String bookId, String? commentId) {
-  final base = AppLinkHelper.book(bookId);
-  if (commentId == null || commentId.trim().isEmpty) return base;
-  return '$base&comment=${Uri.encodeComponent(commentId)}';
+  return AppLinkHelper.book(bookId, comment: commentId);
 }
 
 String _safeFilePart(String value) {

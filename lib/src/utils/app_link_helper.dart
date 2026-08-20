@@ -122,10 +122,28 @@ class AppLinkHelper {
     }
   }
 
+  static String _normalizeRawLink(String rawLink) {
+    final trimmed = rawLink.trim();
+    if (trimmed.isEmpty) return trimmed;
+    // If the link does not have a '?' query delimiter, but has '&' attached to a path segment (e.g. /book/123&comment=456)
+    if (!trimmed.contains('?') && trimmed.contains('&')) {
+      final firstAmp = trimmed.indexOf('&');
+      final schemeIndex = trimmed.indexOf('://');
+      final firstSlashAfterScheme = schemeIndex != -1
+          ? trimmed.indexOf('/', schemeIndex + 3)
+          : trimmed.indexOf('/');
+      if (firstSlashAfterScheme != -1 && firstAmp > firstSlashAfterScheme) {
+        return '${trimmed.substring(0, firstAmp)}?${trimmed.substring(firstAmp + 1)}';
+      }
+    }
+    return trimmed;
+  }
+
   static ResolvedAppLink? resolve(String rawLink) {
     if (rawLink.trim().isEmpty) return null;
 
-    final uri = Uri.tryParse(rawLink.trim());
+    final normalized = _normalizeRawLink(rawLink);
+    final uri = Uri.tryParse(normalized);
     if (uri == null) return null;
 
     try {
@@ -189,6 +207,9 @@ class AppLinkHelper {
 
       final type = segments.first.toLowerCase();
       String? id = segments.length > 1 ? _safeDecode(segments[1]) : null;
+      if (id != null && id.contains('&')) {
+        id = id.split('&').first;
+      }
 
       switch (type) {
         case 'book':
