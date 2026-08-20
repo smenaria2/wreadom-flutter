@@ -168,10 +168,7 @@ class NotificationService {
         debugPrint('App opened from terminated state');
       }
       _emitNotificationEvent(initialMessage.data);
-      Future<void>.delayed(
-        const Duration(milliseconds: 600),
-        () => _handleRemoteMessageNavigation(initialMessage),
-      );
+      _handleRemoteMessageNavigation(initialMessage);
     }
 
     _isInitialized = true;

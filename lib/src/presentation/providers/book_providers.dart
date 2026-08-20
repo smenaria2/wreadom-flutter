@@ -108,6 +108,19 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
   ref,
   bookId,
 ) async* {
+  if (_isFirebaseBookId(bookId)) {
+    yield* FirebaseFirestore.instance
+        .collection('books')
+        .doc(bookId)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists || doc.data() == null) return null;
+          final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+          return Book.fromJson(data);
+        });
+    return;
+  }
+
   final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
   if (initial != null) yield initial;
 

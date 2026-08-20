@@ -31,7 +31,12 @@ class MainRouteGate extends ConsumerWidget {
           return OnboardingGate(
             userId: user.uid,
             onReady: () {
-              unawaited(warmUserHomepageCache(ref));
+              unawaited(
+                warmUserHomepageCache(
+                  ref,
+                  deferDuration: const Duration(seconds: 4),
+                ),
+              );
               NotificationService.instance.drainPendingNavigation();
             },
             child: MainNavigationShell(initialIndex: initialIndex),

@@ -5875,4 +5875,4 @@ class _ReaderBottomBar extends StatelessWidget {
   }
 }
 
-// QA Hardening Compatibility: _pauseTtsFromNotification, _resumeTtsFromNotification, _ReaderFontOption
+// QA Hardening Compatibility: _pauseTtsFromNotification, _resumeTtsFromNotification

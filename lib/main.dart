@@ -41,6 +41,7 @@ import 'src/presentation/screens/startup_splash_screen.dart';
 import 'src/presentation/screens/compulsory_update_gate.dart';
 import 'src/presentation/theme/app_theme.dart';
 import 'src/presentation/routing/startup_entry_policy.dart';
+import 'src/presentation/routing/startup_notification_resolver.dart';
 import 'src/presentation/providers/email_verification_provider.dart';
 import 'src/presentation/widgets/shake_to_report_listener.dart';
 import 'src/data/services/analytics_service.dart';
@@ -180,13 +181,16 @@ Future<void> _launchApplication() async {
   }
 
   final appLinks = AppLinks();
-  final startupEntryFuture = _resolveStartupEntry(appLinks);
-  final sharedPreferences = await SharedPreferences.getInstance().timeout(
+  final sharedPreferencesFuture = SharedPreferences.getInstance().timeout(
     _MyAppState._startupTimeout,
   );
   final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
   await _initializeCrashReporting(firebaseBootstrap);
-  final startupEntry = await startupEntryFuture;
+  final sharedPreferences = await sharedPreferencesFuture;
+  final startupEntry = await _resolveStartupEntry(
+    appLinks,
+    firebaseReady: firebaseBootstrap.ready,
+  );
   _hasMountedFlutterApp = true;
   runApp(
     ProviderScope(
@@ -197,9 +201,12 @@ Future<void> _launchApplication() async {
         firebaseBootstrap: firebaseBootstrap,
         appLinks: appLinks,
         initialAppLink: startupEntry.initialAppLink,
+        initialNotificationTarget: startupEntry.initialNotificationTarget,
+        initialNotificationData: startupEntry.initialNotificationData,
         skipStartupSplash: !shouldShowStartupSplash(
           initialAppLink: startupEntry.initialAppLink,
           hasInitialShare: startupEntry.hasInitialShare,
+          hasInitialNotification: startupEntry.hasInitialNotification,
           hasSeenSplash: SplashPreferencesService.hasSeenSplash(
             sharedPreferences,
           ),
@@ -327,9 +334,16 @@ class _BootstrapFailureAppState extends State<BootstrapFailureApp> {
   }
 }
 
-Future<({bool hasInitialShare, Uri? initialAppLink})> _resolveStartupEntry(
-  AppLinks appLinks,
-) async {
+Future<({
+  bool hasInitialShare,
+  Uri? initialAppLink,
+  bool hasInitialNotification,
+  RouteSettings? initialNotificationTarget,
+  Map<String, dynamic>? initialNotificationData,
+})> _resolveStartupEntry(
+  AppLinks appLinks, {
+  required bool firebaseReady,
+}) async {
   final initialLinkFuture = () async {
     try {
       return await appLinks.getInitialLink().timeout(
@@ -350,10 +364,23 @@ Future<({bool hasInitialShare, Uri? initialAppLink})> _resolveStartupEntry(
       return false;
     }
   }();
+  final initialNotificationFuture = () async {
+    if (!firebaseReady) {
+      return const StartupNotificationLaunch(hasInitialNotification: false);
+    }
+    return StartupNotificationResolver.inspectInitialNotification();
+  }();
+
+  final link = await initialLinkFuture;
+  final share = await initialShareFuture;
+  final notif = await initialNotificationFuture;
 
   return (
-    hasInitialShare: await initialShareFuture,
-    initialAppLink: await initialLinkFuture,
+    hasInitialShare: share,
+    initialAppLink: link,
+    hasInitialNotification: notif.hasInitialNotification,
+    initialNotificationTarget: notif.target,
+    initialNotificationData: notif.data,
   );
 }
 
@@ -496,12 +523,16 @@ class MyApp extends ConsumerStatefulWidget {
     required this.firebaseBootstrap,
     required this.appLinks,
     required this.initialAppLink,
+    this.initialNotificationTarget,
+    this.initialNotificationData,
     required this.skipStartupSplash,
   });
 
   final FirebaseBootstrapResult firebaseBootstrap;
   final AppLinks appLinks;
   final Uri? initialAppLink;
+  final RouteSettings? initialNotificationTarget;
+  final Map<String, dynamic>? initialNotificationData;
   final bool skipStartupSplash;
 
   @override
@@ -538,6 +569,9 @@ class _MyAppState extends ConsumerState<MyApp> {
     _firebaseRetrying = !_firebaseReady;
     _pendingNavigation.updateReadiness(firebaseReady: _firebaseReady);
     unawaited(ref.read(appUpdateAvailabilityProvider.future));
+    if (widget.initialNotificationTarget != null) {
+      _pendingNavigation.setTarget(widget.initialNotificationTarget!);
+    }
     final initialAppLink = widget.initialAppLink;
     if (initialAppLink != null) {
       _handleUri(initialAppLink);
@@ -573,18 +607,22 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   Future<void> _initializeAfterFirstFrame() async {
-    await _guardedStartupStep('Haptics', () {
-      return AppHaptics.init(ref.read(sharedPreferencesProvider));
-    });
+    final storageAndHapticsFuture = Future.wait([
+      _guardedStartupStep('Haptics', () {
+        return AppHaptics.init(ref.read(sharedPreferencesProvider));
+      }),
+      _guardedStartupStep('Hive and offline storage', () async {
+        await Hive.initFlutter();
+        await OfflineService().init();
+      }),
+    ]);
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      await _guardedStartupStep('Mobile ads', () async {
-        await MobileAds.instance.initialize();
-      });
+      unawaited(
+        _guardedStartupStep('Mobile ads', () async {
+          await MobileAds.instance.initialize();
+        }),
+      );
     }
-    await _guardedStartupStep('Hive and offline storage', () async {
-      await Hive.initFlutter();
-      await OfflineService().init();
-    });
     final firebaseReady = await _guardedStartupStep(
       'Firebase',
       _initializeFirebaseIfNeeded,
@@ -612,18 +650,27 @@ class _MyAppState extends ConsumerState<MyApp> {
       _drainPendingDeepLinkTarget();
     }
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
+      NotificationService.instance.attachNavigator(_navigatorKey);
+      unawaited(
+        _guardedStartupStep(
+          'Notifications',
+          NotificationService.instance.init,
+        ),
+      );
       if (!_appCheckConfigured) {
-        _appCheckConfigured = await _guardedStartupStep(
-          'Firebase App Check',
-          _activateFirebaseAppCheckIfNeeded,
+        unawaited(
+          _guardedStartupStep(
+            'Firebase App Check',
+            _activateFirebaseAppCheckIfNeeded,
+          ).then((configured) {
+            if (mounted) {
+              setState(() => _appCheckConfigured = configured);
+            }
+          }),
         );
       }
-      NotificationService.instance.attachNavigator(_navigatorKey);
-      await _guardedStartupStep(
-        'Notifications',
-        NotificationService.instance.init,
-      );
     }
+    await storageAndHapticsFuture;
     await _guardedStartupStep('Google Sign-In', () {
       if (kIsWeb) {
         return _initializeWebGoogleSignIn();
@@ -981,7 +1028,12 @@ class AuthWrapper extends ConsumerWidget {
         ref.invalidate(notificationsProvider);
         ref.invalidate(pagedNotificationsProvider);
         if (nextId != null) {
-          unawaited(warmUserHomepageCache(ref));
+          unawaited(
+            warmUserHomepageCache(
+              ref,
+              deferDuration: const Duration(seconds: 4),
+            ),
+          );
           unawaited(
             ref.read(localeControllerProvider.notifier).syncPreferredLanguage(),
           );
@@ -1033,7 +1085,12 @@ class AuthWrapper extends ConsumerWidget {
             userId: user.uid,
             onReady: () {
               ref.read(appFullyLoadedProvider.notifier).setLoaded(true);
-              unawaited(warmUserHomepageCache(ref));
+              unawaited(
+                warmUserHomepageCache(
+                  ref,
+                  deferDuration: const Duration(seconds: 4),
+                ),
+              );
               NotificationService.instance.drainPendingNavigation();
               onReadinessChanged(
                 authenticated: true,

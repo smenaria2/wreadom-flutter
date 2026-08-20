@@ -107,9 +107,15 @@ void warmPublicHomepageCache(WidgetRef ref) {
   );
 }
 
-Future<void> warmUserHomepageCache(WidgetRef ref) async {
+Future<void> warmUserHomepageCache(
+  WidgetRef ref, {
+  Duration? deferDuration,
+}) async {
   if (_userHomepageWarmQueued) return;
   _userHomepageWarmQueued = true;
+  if (deferDuration != null && deferDuration > Duration.zero) {
+    await Future.delayed(deferDuration);
+  }
   await Future.wait(<Future<Object?>>[
     ref.read(readingHistoryBooksProvider(5).future).then<Object?>((_) => null),
     ref.read(savedBooksProvider.future).then<Object?>((_) => null),
