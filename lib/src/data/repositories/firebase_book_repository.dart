@@ -10,6 +10,11 @@ import '../utils/firestore_utils.dart';
 import '../utils/firestore_cache_first.dart';
 import '../../utils/map_utils.dart';
 
+String _requestKeyForIds(String prefix, List<String> ids) {
+  final encoded = ids.map((id) => '${id.length}:$id').join('|');
+  return '$prefix:$encoded';
+}
+
 class FirebaseBookRepository implements BookRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -244,13 +249,25 @@ class FirebaseBookRepository implements BookRepository {
         _firestore.collection(_collection).doc(bookId),
         operation: 'book_detail',
       );
-      final doc = result.cacheAvailable ? result.cached : await result.refresh;
+      if (result.cacheAvailable && result.cached != null) {
+        try {
+          final cached = result.cached!;
+          final data = normalizeBookMapForModel(
+            asStringMap(cached.data()),
+            cached.id,
+          );
+          return Book.fromJson(data);
+        } catch (_) {
+          // A malformed cached document must not prevent a valid refresh.
+        }
+      }
+      final doc = await result.refresh;
       if (doc == null) return null;
       if (!doc.exists) return null;
       final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
       return Book.fromJson(data);
     } catch (e, stack) {
-      debugPrint('[FirebaseBookRepository] Error getting book $bookId: $e');
+      debugPrint('[FirebaseBookRepository] Book detail read failed: $e');
       Error.throwWithStackTrace(e, stack);
     }
   }
@@ -473,93 +490,83 @@ class FirebaseBookRepository implements BookRepository {
   Future<List<Book>> getBooksByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
     try {
-      final List<Book> books = [];
-
       final firebaseIds = ids.where((id) => _isFirebaseId(id)).toList();
       final archiveIds = ids.where((id) => !_isFirebaseId(id)).toList();
+      final batchReads = <Future<List<Book>>>[];
 
       // 1. Fetch Firebase (original) books
-      if (firebaseIds.isNotEmpty) {
-        final chunks = <List<String>>[];
-        for (var i = 0; i < firebaseIds.length; i += 10) {
-          chunks.add(
-            firebaseIds.sublist(
-              i,
-              i + 10 > firebaseIds.length ? firebaseIds.length : i + 10,
-            ),
-          );
-        }
-        for (final chunk in chunks) {
-          final result = await FirestoreCacheFirst.query(
-            _firestore
-                .collection(_collection)
-                .where(FieldPath.documentId, whereIn: chunk),
+      for (var i = 0; i < firebaseIds.length; i += 10) {
+        final chunk = firebaseIds.sublist(
+          i,
+          i + 10 > firebaseIds.length ? firebaseIds.length : i + 10,
+        );
+        final stableChunk = [...chunk]..sort();
+        batchReads.add(
+          _readBookIdChunk(
+            collection: _collection,
+            ids: stableChunk,
             operation: 'book_ids',
-          );
-          final snapshot = result.cacheAvailable
-              ? result.cached
-              : await result.refresh;
-          if (snapshot == null) continue;
-          books.addAll(
-            snapshot.docs.map((doc) {
-              try {
-                final data = normalizeBookMapForModel(
-                  asStringMap(doc.data()),
-                  doc.id,
-                );
-                return Book.fromJson(data);
-              } catch (_) {
-                return null;
-              }
-            }).whereType<Book>(),
-          );
-        }
+          ),
+        );
       }
 
       // 2. Fetch Internet Archive books from 'books_metadata'
-      if (archiveIds.isNotEmpty) {
-        final chunks = <List<String>>[];
-        for (var i = 0; i < archiveIds.length; i += 10) {
-          chunks.add(
-            archiveIds.sublist(
-              i,
-              i + 10 > archiveIds.length ? archiveIds.length : i + 10,
-            ),
-          );
-        }
-        for (final chunk in chunks) {
-          final result = await FirestoreCacheFirst.query(
-            _firestore
-                .collection('books_metadata')
-                .where(FieldPath.documentId, whereIn: chunk),
+      for (var i = 0; i < archiveIds.length; i += 10) {
+        final chunk = archiveIds.sublist(
+          i,
+          i + 10 > archiveIds.length ? archiveIds.length : i + 10,
+        );
+        final stableChunk = [...chunk]..sort();
+        batchReads.add(
+          _readBookIdChunk(
+            collection: 'books_metadata',
+            ids: stableChunk,
             operation: 'book_metadata_ids',
-          );
-          final snapshot = result.cacheAvailable
-              ? result.cached
-              : await result.refresh;
-          if (snapshot == null) continue;
-          books.addAll(
-            snapshot.docs.map((doc) {
-              try {
-                final data = normalizeBookMapForModel(
-                  asStringMap(doc.data()),
-                  doc.id,
-                );
-                return Book.fromJson(data);
-              } catch (_) {
-                return null;
-              }
-            }).whereType<Book>(),
-          );
-        }
+          ),
+        );
       }
 
+      final books = (await Future.wait(
+        batchReads,
+      )).expand((batch) => batch).toList(growable: false);
       final idMap = {for (var book in books) book.id: book};
       return ids.map((id) => idMap[id]).whereType<Book>().toList();
     } catch (e) {
       debugPrint('[FirebaseBookRepository] Error in getBooksByIds: $e');
       return [];
     }
+  }
+
+  Future<List<Book>> _readBookIdChunk({
+    required String collection,
+    required List<String> ids,
+    required String operation,
+  }) async {
+    final result = await FirestoreCacheFirst.query(
+      _firestore
+          .collection(collection)
+          .where(FieldPath.documentId, whereIn: ids),
+      operation: operation,
+      requestKey: _requestKeyForIds(operation, ids),
+    );
+    final snapshot = result.cacheAvailable
+        ? result.cached
+        : await result.refresh;
+    if (snapshot == null) return const <Book>[];
+    return snapshot.docs
+        .map((doc) {
+          try {
+            final data = normalizeBookMapForModel(
+              asStringMap(doc.data()),
+              doc.id,
+            );
+            return Book.fromJson(data);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Book>()
+        .toList(growable: false);
   }
 
   bool _isFirebaseId(String id) {
@@ -790,14 +797,21 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Chapter>> getChapters(String bookId) async {
     try {
-      final snapshot = await _firestore
+      final query = _firestore
           .collection(_collection)
           .doc(bookId)
           .collection('chapters')
-          .orderBy('order')
-          .get();
+          .orderBy('order');
+      final result = await FirestoreCacheFirst.query(
+        query,
+        operation: 'book_chapters',
+        requestKey: 'book_chapters:$bookId',
+      );
+      final snapshot = result.cacheAvailable
+          ? result.cached
+          : await result.refresh;
 
-      if (snapshot.docs.isEmpty) {
+      if (snapshot == null || snapshot.docs.isEmpty) {
         // Fallback: check if they are embedded in the book document
         final book = await getBook(bookId);
         return book?.chapters ?? [];

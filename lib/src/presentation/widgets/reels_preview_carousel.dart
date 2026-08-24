@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
-import 'package:librebook_flutter/src/presentation/providers/feed_providers.dart';
+import 'package:librebook_flutter/src/presentation/providers/homepage_providers.dart';
 import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/presentation/widgets/glass_surface.dart';
 import 'package:librebook_flutter/src/presentation/widgets/resilient_profile_avatar.dart';
@@ -40,11 +40,13 @@ class ReelsPreviewCarousel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(pagedFeedPostsProvider(FeedFilter.public));
-    final posts = state.items;
+    // Reuse the compiled/cache-first Home audio payload. Mounting this preview
+    // must not create a second public-feed pagination request.
+    final postsAsync = ref.watch(homepageAudioPostsProvider);
+    final posts = postsAsync.asData?.value ?? const <FeedPost>[];
 
     if (posts.isEmpty) {
-      if (state.isInitialLoading) {
+      if (postsAsync.isLoading && !postsAsync.hasValue) {
         return const SizedBox(
           height: 180,
           child: Center(child: CircularProgressIndicator()),

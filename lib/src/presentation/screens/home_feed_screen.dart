@@ -379,7 +379,21 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
       ),
     );
 
-    final feedHeaders = <Widget>[headerRow, const ReelsPreviewCarousel()];
+    final feedHeaders = <Widget>[
+      headerRow,
+      if (feedState.isRefreshing) const LinearProgressIndicator(minHeight: 2),
+      if (feedState.error != null && feedState.items.isNotEmpty)
+        MaterialBanner(
+          content: Text(l10n.somethingWentWrong),
+          actions: [
+            TextButton(
+              onPressed: feedController.refresh,
+              child: Text(l10n.tryAgain),
+            ),
+          ],
+        ),
+      const ReelsPreviewCarousel(),
+    ];
 
     Widget centeredScrollable(Widget child) {
       return LayoutBuilder(

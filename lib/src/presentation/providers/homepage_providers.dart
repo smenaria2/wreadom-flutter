@@ -16,6 +16,7 @@ import '../../data/utils/firestore_utils.dart';
 import '../../data/utils/firestore_cache_first.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
+import 'auth_providers.dart';
 import 'book_providers.dart';
 import 'featured_author_provider.dart';
 import 'feed_providers.dart';
@@ -33,13 +34,14 @@ const _homepageBooksCacheKey = 'homepage_books_cache_v3';
 const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
+const _homepageAudioPostsCacheKey = 'homepage_audio_posts_cache_v1';
 const _homepageGenreBooksCacheKeyPrefix = 'homepage_genre_books_cache_v1_';
 const _homepageRequestTimeout = Duration(seconds: 4);
 const _homepageCacheTtl = Duration(hours: 6);
 const _compiledHomepageCacheTtl = Duration(hours: 1);
 bool _homepageBackgroundRefreshQueued = false;
 bool _publicHomepageWarmQueued = false;
-bool _userHomepageWarmQueued = false;
+String? _userHomepageWarmQueuedFor;
 
 final homepageRefreshCounterProvider =
     NotifierProvider<HomepageRefreshCounter, int>(HomepageRefreshCounter.new);
@@ -82,13 +84,10 @@ void warmPublicHomepageCache(WidgetRef ref) {
   if (_publicHomepageWarmQueued) return;
   _publicHomepageWarmQueued = true;
   unawaited(
-    Future.wait(<Future<Object?>>[
-      ref.read(homepageMetadataProvider.future).then<Object?>((_) => null),
-      ref.read(homeBannersProvider.future).then<Object?>((_) => null),
-      ref.read(homepageBooksProvider.future).then<Object?>((_) => null),
-      ref.read(homepageAuthorWorksProvider.future).then<Object?>((_) => null),
-      ref.read(homepageIABooksProvider.future).then<Object?>((_) => null),
-    ]).catchError((_) => <Object?>[]),
+    ref
+        .read(compiledHomepageProvider.future)
+        .then<void>((_) {})
+        .catchError((_) {}),
   );
 }
 
@@ -96,16 +95,42 @@ Future<void> warmUserHomepageCache(
   WidgetRef ref, {
   Duration? deferDuration,
 }) async {
-  if (_userHomepageWarmQueued) return;
-  _userHomepageWarmQueued = true;
+  UserModel? initialUser;
+  try {
+    initialUser = await ref.read(currentUserProvider.future);
+  } catch (_) {
+    return;
+  }
+  if (initialUser == null || _userHomepageWarmQueuedFor == initialUser.id) {
+    return;
+  }
+  _userHomepageWarmQueuedFor = initialUser.id;
   if (deferDuration != null && deferDuration > Duration.zero) {
     await Future.delayed(deferDuration);
+  }
+  UserModel? currentUser;
+  try {
+    currentUser = await ref.read(currentUserProvider.future);
+  } catch (_) {
+    return;
+  }
+  if (currentUser?.id != initialUser.id) {
+    if (_userHomepageWarmQueuedFor == initialUser.id) {
+      _userHomepageWarmQueuedFor = null;
+    }
+    return;
   }
   await Future.wait(<Future<Object?>>[
     ref.read(readingHistoryBooksProvider(5).future).then<Object?>((_) => null),
     ref.read(savedBooksProvider.future).then<Object?>((_) => null),
     ref.read(homepageDownloadedBooksProvider.future).then<Object?>((_) => null),
   ]).catchError((_) => <Object?>[]);
+}
+
+void clearUserHomepageWarmState(String userId) {
+  if (_userHomepageWarmQueuedFor == userId) {
+    _userHomepageWarmQueuedFor = null;
+  }
 }
 
 void _queueHomepageBackgroundRefresh(Ref ref) {
@@ -141,6 +166,14 @@ bool _isCompiledHomepageCacheStale(SharedPreferences prefs) {
 
 bool _hasCompiledHomepageContent(CompiledHomepage? homepage) {
   return homepage != null && homepage.hasPublicContent;
+}
+
+CompiledHomepage? _readCompiledHomepageCache(SharedPreferences prefs) {
+  return _readCachedValue<CompiledHomepage>(
+    prefs,
+    _compiledHomepageCacheKey,
+    (json) => CompiledHomepage.fromJson(asStringMap(json)),
+  );
 }
 
 T? _readCachedValue<T>(
@@ -181,6 +214,7 @@ Future<void> _clearLegacyPublicHomepageCaches(SharedPreferences prefs) async {
     prefs.remove(_homepageAuthorWorksCacheKey),
     prefs.remove(_homepageIABooksCacheKey),
     prefs.remove(_homepageBannersCacheKey),
+    prefs.remove(_homepageAudioPostsCacheKey),
     ...genreCacheKeys.map(prefs.remove),
   ]);
 }
@@ -242,7 +276,7 @@ Future<CompiledHomepage?> _fetchAndCacheCompiledHomepage(
         .collection('settings')
         .doc('homepage_compiled')
         .get(),
-    'settings/homepage_compiled',
+    'homepage_compiled',
   );
   final data = asStringMap(doc.data());
   if (data.isEmpty) return null;
@@ -267,11 +301,7 @@ Future<CompiledHomepage?> _fetchAndCacheCompiledHomepage(
 final compiledHomepageProvider = FutureProvider<CompiledHomepage?>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
-  final cached = _readCachedValue<CompiledHomepage>(
-    prefs,
-    _compiledHomepageCacheKey,
-    (json) => CompiledHomepage.fromJson(asStringMap(json)),
-  );
+  final cached = _readCompiledHomepageCache(prefs);
 
   if (_hasCompiledHomepageContent(cached)) {
     if (refreshTick > 0 || _isCompiledHomepageCacheStale(prefs)) {
@@ -375,7 +405,7 @@ Future<HomepageMetadata> _fetchAndCacheHomepageMetadata(
         .collection('settings')
         .doc('homepage_metadata')
         .get(),
-    'settings/homepage_metadata',
+    'homepage_metadata',
   );
 
   final data = asStringMap(doc.data());
@@ -419,7 +449,7 @@ Future<List<HomeBanner>> _fetchAndCacheHomeBanners(
           .collection('settings')
           .doc('homepage_metadata')
           .get(),
-      'settings/homepage_metadata banners',
+      'homepage_metadata_banners',
     );
     final rawBanners = asStringMap(metadataDoc.data())['homeBanners'];
     if (rawBanners is List) {
@@ -673,13 +703,13 @@ double _bookPopularityScore(
 }
 
 final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.metadata.value.authors.isNotEmpty) {
-    return compiled.metadata.value;
-  }
-
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null &&
+      cachedCompiled.metadata.value.authors.isNotEmpty) {
+    return cachedCompiled.metadata.value;
+  }
   final cached = _readCachedValue<HomepageMetadata>(
     prefs,
     _homepageMetadataCacheKey,
@@ -693,6 +723,11 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     return cached;
   }
 
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  if (compiled != null && compiled.metadata.value.authors.isNotEmpty) {
+    return compiled.metadata.value;
+  }
+
   try {
     return _fetchAndCacheHomepageMetadata(prefs);
   } catch (e, stack) {
@@ -702,13 +737,13 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
 });
 
 final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.metadata.homeBanners.isNotEmpty) {
-    return compiled.metadata.homeBanners;
-  }
-
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null &&
+      cachedCompiled.metadata.homeBanners.isNotEmpty) {
+    return cachedCompiled.metadata.homeBanners;
+  }
   final cached = _readCachedValue<List<HomeBanner>>(
     prefs,
     _homepageBannersCacheKey,
@@ -721,6 +756,11 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
       _queueHomepageBackgroundRefresh(ref);
     }
     return cached;
+  }
+
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  if (compiled != null && compiled.metadata.homeBanners.isNotEmpty) {
+    return compiled.metadata.homeBanners;
   }
 
   try {
@@ -771,13 +811,12 @@ final homepageRecommendedBooksProvider = FutureProvider<List<Book>>((
 });
 
 final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.allBooks.isNotEmpty) {
-    return compiled.shelves.allBooks;
-  }
-
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null && cachedCompiled.shelves.allBooks.isNotEmpty) {
+    return cachedCompiled.shelves.allBooks;
+  }
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageBooksCacheKey,
@@ -789,6 +828,11 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
       _queueHomepageBackgroundRefresh(ref);
     }
     return cached;
+  }
+
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  if (compiled != null && compiled.shelves.allBooks.isNotEmpty) {
+    return compiled.shelves.allBooks;
   }
 
   try {
@@ -808,13 +852,12 @@ final homepageAuthorsProvider = FutureProvider((ref) async {
 enum HomeAuthorRanking { newAuthors, mostRead, mostPublished }
 
 final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.authorWorks.isNotEmpty) {
-    return compiled.shelves.authorWorks;
-  }
-
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null && cachedCompiled.shelves.authorWorks.isNotEmpty) {
+    return cachedCompiled.shelves.authorWorks;
+  }
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageAuthorWorksCacheKey,
@@ -826,6 +869,11 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
       _queueHomepageBackgroundRefresh(ref);
     }
     return cached;
+  }
+
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  if (compiled != null && compiled.shelves.authorWorks.isNotEmpty) {
+    return compiled.shelves.authorWorks;
   }
 
   try {
@@ -996,13 +1044,22 @@ const _emptyHomeAuthorMetrics = HomeAuthorMetrics(
 );
 
 final homepageTrendingWorksProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.trending.isNotEmpty) {
-    return compiled.shelves.trending;
+  final cachedCompiled = _readCompiledHomepageCache(
+    ref.watch(sharedPreferencesProvider),
+  );
+  if (cachedCompiled != null && cachedCompiled.shelves.trending.isNotEmpty) {
+    return cachedCompiled.shelves.trending;
   }
 
   final metadata = await ref.watch(homepageMetadataProvider.future);
   final books = await ref.watch(homepageBooksProvider.future);
+  final refreshedCompiled = _readCompiledHomepageCache(
+    ref.read(sharedPreferencesProvider),
+  );
+  if (refreshedCompiled != null &&
+      refreshedCompiled.shelves.trending.isNotEmpty) {
+    return refreshedCompiled.shelves.trending;
+  }
   final statsData = metadata.recommendationStats;
   final now = DateTime.now().millisecondsSinceEpoch;
   final weekInMs = 7 * 24 * 60 * 60 * 1000;
@@ -1083,6 +1140,11 @@ final homepageDownloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
 final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
   final prefs = ref.watch(sharedPreferencesProvider);
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null &&
+      cachedCompiled.shelves.communityClassics.isNotEmpty) {
+    return cachedCompiled.shelves.communityClassics;
+  }
   final cached = _readCachedValue<List<Book>>(
     prefs,
     _homepageIABooksCacheKey,
@@ -1096,6 +1158,11 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
     return cached;
   }
 
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  if (compiled != null && compiled.shelves.communityClassics.isNotEmpty) {
+    return compiled.shelves.communityClassics;
+  }
+
   try {
     final books = await ref.watch(homepageRecommendedBooksProvider.future);
     return _fetchAndCacheHomepageIABooks(prefs, books);
@@ -1107,12 +1174,21 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
 
 // Category Providers powered by the Homepage combined list
 final homepageOriginalsProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.originals.isNotEmpty) {
-    return compiled.shelves.originals;
+  final cachedCompiled = _readCompiledHomepageCache(
+    ref.watch(sharedPreferencesProvider),
+  );
+  if (cachedCompiled != null && cachedCompiled.shelves.originals.isNotEmpty) {
+    return cachedCompiled.shelves.originals;
   }
 
   final books = await ref.watch(homepageBooksProvider.future);
+  final refreshedCompiled = _readCompiledHomepageCache(
+    ref.read(sharedPreferencesProvider),
+  );
+  if (refreshedCompiled != null &&
+      refreshedCompiled.shelves.originals.isNotEmpty) {
+    return refreshedCompiled.shelves.originals;
+  }
   final originals =
       books
           .where(
@@ -1128,6 +1204,30 @@ final homepageOriginalsProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final homepageAudioPostsProvider = FutureProvider<List<FeedPost>>((ref) async {
+  final stopwatch = Stopwatch()..start();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final refreshTick = ref.watch(homepageRefreshCounterProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  if (cachedCompiled != null && cachedCompiled.shelves.audioPosts.isNotEmpty) {
+    return cachedCompiled.shelves.audioPosts
+        .where(_isPublicFeedPost)
+        .toList(growable: false);
+  }
+  final cached = _readCachedValue<List<FeedPost>>(
+    prefs,
+    _homepageAudioPostsCacheKey,
+    (json) => (json as List)
+        .map((raw) => FeedPost.fromJson(asStringMap(raw)))
+        .where(_isPublicFeedPost)
+        .toList(growable: false),
+  );
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
+    return cached;
+  }
+
   final compiled = await ref.watch(compiledHomepageProvider.future);
   if (compiled != null && compiled.shelves.audioPosts.isNotEmpty) {
     return compiled.shelves.audioPosts
@@ -1135,19 +1235,42 @@ final homepageAudioPostsProvider = FutureProvider<List<FeedPost>>((ref) async {
         .toList(growable: false);
   }
 
-  final posts = await ref
-      .watch(feedRepositoryProvider)
-      .getAudioFeedPosts(limit: 12);
-  return posts.where(_isPublicFeedPost).toList(growable: false);
+  final remaining =
+      FirestoreCacheFirst.defaultServerTimeout - stopwatch.elapsed;
+  if (remaining <= Duration.zero) return const <FeedPost>[];
+  try {
+    final posts = await ref
+        .watch(feedRepositoryProvider)
+        .getAudioFeedPosts(limit: 12)
+        .timeout(remaining);
+    final publicPosts = posts.where(_isPublicFeedPost).toList(growable: false);
+    await _writeCachedValue(
+      prefs,
+      _homepageAudioPostsCacheKey,
+      publicPosts.map((post) => post.toJson()).toList(),
+    );
+    return publicPosts;
+  } catch (_) {
+    return const <FeedPost>[];
+  }
 });
 final homepagePopularProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.popular.isNotEmpty) {
-    return compiled.shelves.popular;
+  final cachedCompiled = _readCompiledHomepageCache(
+    ref.watch(sharedPreferencesProvider),
+  );
+  if (cachedCompiled != null && cachedCompiled.shelves.popular.isNotEmpty) {
+    return cachedCompiled.shelves.popular;
   }
 
   final metadata = await ref.watch(homepageMetadataProvider.future);
   final books = await ref.watch(homepageBooksProvider.future);
+  final refreshedCompiled = _readCompiledHomepageCache(
+    ref.read(sharedPreferencesProvider),
+  );
+  if (refreshedCompiled != null &&
+      refreshedCompiled.shelves.popular.isNotEmpty) {
+    return refreshedCompiled.shelves.popular;
+  }
   final originals = await ref.watch(homepageOriginalsProvider.future);
   final trending = await ref.watch(homepageTrendingWorksProvider.future);
   final excluded = {
@@ -1165,12 +1288,21 @@ final homepagePopularProvider = FutureProvider<List<Book>>((ref) async {
 });
 
 final homepageRecentProvider = FutureProvider<List<Book>>((ref) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null && compiled.shelves.recent.isNotEmpty) {
-    return compiled.shelves.recent;
+  final cachedCompiled = _readCompiledHomepageCache(
+    ref.watch(sharedPreferencesProvider),
+  );
+  if (cachedCompiled != null && cachedCompiled.shelves.recent.isNotEmpty) {
+    return cachedCompiled.shelves.recent;
   }
 
   final books = await ref.watch(homepageBooksProvider.future);
+  final refreshedCompiled = _readCompiledHomepageCache(
+    ref.read(sharedPreferencesProvider),
+  );
+  if (refreshedCompiled != null &&
+      refreshedCompiled.shelves.recent.isNotEmpty) {
+    return refreshedCompiled.shelves.recent;
+  }
   final originals = await ref.watch(homepageOriginalsProvider.future);
   final trending = await ref.watch(homepageTrendingWorksProvider.future);
   final excluded = {
@@ -1190,11 +1322,6 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
   ref,
   genre,
 ) async {
-  final compiled = await ref.watch(compiledHomepageProvider.future);
-  if (compiled != null) {
-    return compiled.shelves.genreBooks(genre);
-  }
-
   final refreshTick = ref.watch(homepageRefreshCounterProvider);
   final repo = ref.watch(bookRepositoryProvider);
   final normalized = genre.trim();
@@ -1202,6 +1329,11 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
   final cacheKey =
       '$_homepageGenreBooksCacheKeyPrefix${normalized.toLowerCase()}';
   final prefs = ref.watch(sharedPreferencesProvider);
+  final cachedCompiled = _readCompiledHomepageCache(prefs);
+  final compiledBooks = cachedCompiled?.shelves.genreBooks(normalized);
+  if (compiledBooks != null && compiledBooks.isNotEmpty) {
+    return compiledBooks;
+  }
   final cached = _readCachedValue<List<Book>>(
     prefs,
     cacheKey,
@@ -1213,6 +1345,12 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
       _queueHomepageBackgroundRefresh(ref);
     }
     return cached;
+  }
+
+  final compiled = await ref.watch(compiledHomepageProvider.future);
+  final freshCompiledBooks = compiled?.shelves.genreBooks(normalized);
+  if (freshCompiledBooks != null && freshCompiledBooks.isNotEmpty) {
+    return freshCompiledBooks;
   }
 
   final metadata = await ref.watch(homepageMetadataProvider.future);

@@ -229,13 +229,11 @@ class CompositeBookRepository implements BookRepository {
       }
     }
 
-    final results = <Book>[];
-    if (firebaseIds.isNotEmpty) {
-      results.addAll(await _firebaseRepo.getBooksByIds(firebaseIds));
-    }
-    if (archiveIds.isNotEmpty) {
-      results.addAll(await _archiveRepo.getBooksByIds(archiveIds));
-    }
+    final batches = await Future.wait<List<Book>>([
+      if (firebaseIds.isNotEmpty) _firebaseRepo.getBooksByIds(firebaseIds),
+      if (archiveIds.isNotEmpty) _archiveRepo.getBooksByIds(archiveIds),
+    ]);
+    final results = batches.expand((batch) => batch).toList(growable: false);
 
     // Sort to original order
     final idMap = {for (var book in results) book.id: book};

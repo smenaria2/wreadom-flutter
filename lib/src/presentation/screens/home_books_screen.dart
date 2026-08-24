@@ -121,12 +121,6 @@ class HomeBooksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final originalsAsync = ref.watch(homepageOriginalsProvider);
-    final popularAsync = ref.watch(homepagePopularProvider);
-    final trendingAsync = ref.watch(homepageTrendingWorksProvider);
-    final recentAsync = ref.watch(homepageRecentProvider);
-    final iaAsync = ref.watch(homepageIABooksProvider);
-    final leavesAsync = ref.watch(booksWithLeavesProvider);
     final bannersAsync = ref.watch(homeBannersProvider);
     final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final bottomPadding = bottomOverlayContentPadding(
@@ -136,14 +130,138 @@ class HomeBooksScreen extends ConsumerWidget {
     // Watch saved books for the new section
 
     final l10n = AppLocalizations.of(context)!;
-    final showProminentGuide =
-        _isInitialHomepageLoad(bannersAsync) ||
-        _isInitialHomepageLoad(originalsAsync) ||
-        _isInitialHomepageLoad(popularAsync) ||
-        _isInitialHomepageLoad(trendingAsync) ||
-        _isInitialHomepageLoad(recentAsync) ||
-        _isInitialHomepageLoad(iaAsync) ||
-        _isInitialHomepageLoad(leavesAsync);
+    final showProminentGuide = _isInitialHomepageLoad(bannersAsync);
+
+    final sections = <Widget>[
+      _HomeBannerStrip(bannersAsync: bannersAsync),
+      if (showProminentGuide) ...[
+        const InteractiveFeaturesSheet(prominent: true),
+        const SizedBox(height: 8),
+      ] else
+        const SizedBox(height: 16),
+      const _AuthorSpotlight(),
+      const SizedBox(height: 16),
+      const _HeroBanner(),
+      const SizedBox(height: 28),
+      const _ContinueReadingSection(),
+      const _SavedBooksSection(),
+      _DeferredBookshelfSection(
+        title: l10n.booksWithLeaves,
+        provider: booksWithLeavesProvider,
+        sectionId: 'books-with-leaves',
+        onSeeAll: () =>
+            _openCategory(context, 'books-with-leaves', l10n.booksWithLeaves),
+      ),
+      _DeferredBookshelfSection(
+        title: l10n.contentOnAgaazTopics,
+        provider: contentOnAgaazTopicsProvider,
+        sectionId: 'content-on-agaaz-topics',
+        onSeeAll: () => _openCategory(
+          context,
+          'content-on-agaaz-topics',
+          l10n.contentOnAgaazTopics,
+        ),
+      ),
+      _DeferredBookshelfSection(
+        title: _HomeShelfDestination.originals.getLocalizedCategory(l10n),
+        provider: homepageOriginalsProvider,
+        sectionId: _HomeShelfDestination.originals.sectionId,
+        onSeeAll: () => _openShelfDestination(
+          context,
+          _HomeShelfDestination.originals,
+          l10n,
+        ),
+      ),
+      _DeferredBookshelfSection(
+        title: _HomeShelfDestination.trending.getLocalizedCategory(l10n),
+        provider: homepageTrendingWorksProvider,
+        sectionId: _HomeShelfDestination.trending.sectionId,
+        onSeeAll: () => _openShelfDestination(
+          context,
+          _HomeShelfDestination.trending,
+          l10n,
+        ),
+      ),
+      const _AudioPostsSection(),
+      const HomeSeriesSection(),
+      _DeferredBookshelfSection(
+        title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
+        provider: homepagePopularProvider,
+        sectionId: _HomeShelfDestination.popular.sectionId,
+        onSeeAll: () =>
+            _openShelfDestination(context, _HomeShelfDestination.popular, l10n),
+      ),
+      _DeferredBookshelfSection(
+        title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
+        provider: homepageRecentProvider,
+        sectionId: _HomeShelfDestination.recent.sectionId,
+        onSeeAll: () =>
+            _openShelfDestination(context, _HomeShelfDestination.recent, l10n),
+      ),
+      const _AuthorsSection(),
+      _LazyGenreSection(
+        title: l10n.genreMystery,
+        providerKey: 'mystery',
+        sectionId: 'mystery',
+      ),
+      _LazyGenreSection(
+        title: l10n.genrePoetry,
+        providerKey: 'poetry',
+        sectionId: 'poetry',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreClassic,
+        providerKey: 'classic',
+        sectionId: 'classic',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreRomance,
+        providerKey: 'romance',
+        sectionId: 'romance',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreSocial,
+        providerKey: 'social',
+        sectionId: 'social',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreHistory,
+        providerKey: 'history',
+        sectionId: 'history',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreStories,
+        providerKey: 'stories',
+        sectionId: 'stories',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreCompetition,
+        providerKey: 'Wreadom Competition #1',
+        sectionId: 'wreadom-competition-1',
+      ),
+      _LazyGenreSection(
+        title: l10n.genreOther,
+        providerKey: 'other',
+        sectionId: 'other',
+      ),
+      _DeferredBookshelfSection(
+        title: _HomeShelfDestination.communityClassics.getLocalizedCategory(
+          l10n,
+        ),
+        provider: homepageIABooksProvider,
+        sectionId: _HomeShelfDestination.communityClassics.sectionId,
+        onSeeAll: () => _openShelfDestination(
+          context,
+          _HomeShelfDestination.communityClassics,
+          l10n,
+        ),
+      ),
+      if (!showProminentGuide) ...[
+        const InteractiveFeaturesSheet(),
+        const SizedBox(height: 16),
+      ],
+      SizedBox(height: bottomPadding),
+    ];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -205,174 +323,37 @@ class HomeBooksScreen extends ConsumerWidget {
         onRefresh: () async {
           await refreshHomepage(ref);
         },
-        child: SingleChildScrollView(
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HomeBannerStrip(bannersAsync: bannersAsync),
-              if (showProminentGuide) ...[
-                const InteractiveFeaturesSheet(prominent: true),
-                const SizedBox(height: 8),
-              ] else
-                const SizedBox(height: 16),
-
-              const _AuthorSpotlight(),
-              const SizedBox(height: 16),
-
-              const _HeroBanner(),
-              const SizedBox(height: 28),
-              const _ContinueReadingSection(),
-              const _SavedBooksSection(),
-
-              BookshelfSection(
-                title: l10n.booksWithLeaves,
-                booksAsync: leavesAsync,
-                sectionId: 'books-with-leaves',
-                onRetry: () => ref.invalidate(booksWithLeavesProvider),
-                onSeeAll: () => _openCategory(
-                  context,
-                  'books-with-leaves',
-                  l10n.booksWithLeaves,
-                ),
-              ),
-
-              BookshelfSection(
-                title: l10n.contentOnAgaazTopics,
-                booksAsync: ref.watch(contentOnAgaazTopicsProvider),
-                sectionId: 'content-on-agaaz-topics',
-                onRetry: () => ref.invalidate(contentOnAgaazTopicsProvider),
-                onSeeAll: () => _openCategory(
-                  context,
-                  'content-on-agaaz-topics',
-                  l10n.contentOnAgaazTopics,
-                ),
-              ),
-
-              BookshelfSection(
-                title: _HomeShelfDestination.originals.getLocalizedCategory(
-                  l10n,
-                ),
-                booksAsync: originalsAsync,
-                sectionId: _HomeShelfDestination.originals.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.originals,
-                  l10n,
-                ),
-              ),
-
-              BookshelfSection(
-                title: _HomeShelfDestination.trending.getLocalizedCategory(
-                  l10n,
-                ),
-                booksAsync: trendingAsync,
-                sectionId: _HomeShelfDestination.trending.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.trending,
-                  l10n,
-                ),
-              ),
-
-              const _AudioPostsSection(),
-
-              const HomeSeriesSection(),
-
-              BookshelfSection(
-                title: _HomeShelfDestination.popular.getLocalizedCategory(l10n),
-                booksAsync: popularAsync,
-                sectionId: _HomeShelfDestination.popular.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.popular,
-                  l10n,
-                ),
-              ),
-
-              BookshelfSection(
-                title: _HomeShelfDestination.recent.getLocalizedCategory(l10n),
-                booksAsync: recentAsync,
-                sectionId: _HomeShelfDestination.recent.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.recent,
-                  l10n,
-                ),
-              ),
-
-              const _AuthorsSection(),
-
-              _LazyGenreSection(
-                title: l10n.genreMystery,
-                providerKey: 'mystery',
-                sectionId: 'mystery',
-              ),
-              _LazyGenreSection(
-                title: l10n.genrePoetry,
-                providerKey: 'poetry',
-                sectionId: 'poetry',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreClassic,
-                providerKey: 'classic',
-                sectionId: 'classic',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreRomance,
-                providerKey: 'romance',
-                sectionId: 'romance',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreSocial,
-                providerKey: 'social',
-                sectionId: 'social',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreHistory,
-                providerKey: 'history',
-                sectionId: 'history',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreStories,
-                providerKey: 'stories',
-                sectionId: 'stories',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreCompetition,
-                providerKey: 'Wreadom Competition #1',
-                sectionId: 'wreadom-competition-1',
-              ),
-              _LazyGenreSection(
-                title: l10n.genreOther,
-                providerKey: 'other',
-                sectionId: 'other',
-              ),
-              BookshelfSection(
-                title: _HomeShelfDestination.communityClassics
-                    .getLocalizedCategory(l10n),
-                booksAsync: iaAsync,
-                sectionId: _HomeShelfDestination.communityClassics.sectionId,
-                onRetry: () => refreshHomepage(ref),
-                onSeeAll: () => _openShelfDestination(
-                  context,
-                  _HomeShelfDestination.communityClassics,
-                  l10n,
-                ),
-              ),
-              if (!showProminentGuide) ...[
-                const InteractiveFeaturesSheet(),
-                const SizedBox(height: 16),
-              ],
-              SizedBox(height: bottomPadding),
-            ],
-          ),
+          itemCount: sections.length,
+          itemBuilder: (context, index) => sections[index],
         ),
       ),
+    );
+  }
+}
+
+class _DeferredBookshelfSection extends ConsumerWidget {
+  const _DeferredBookshelfSection({
+    required this.title,
+    required this.provider,
+    required this.sectionId,
+    required this.onSeeAll,
+  });
+
+  final String title;
+  final FutureProvider<List<Book>> provider;
+  final String sectionId;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return BookshelfSection(
+      title: title,
+      booksAsync: ref.watch(provider),
+      sectionId: sectionId,
+      onRetry: () => ref.invalidate(provider),
+      onSeeAll: onSeeAll,
     );
   }
 }

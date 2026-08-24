@@ -165,9 +165,18 @@ void main() {
     expect(source, contains('final photoUrl = other?.photoURL?.trim();'));
     expect(
       source,
-      contains('CachedNetworkImageProvider(optimizedAvatarUrl(photoUrl)!)'),
+      contains(
+        RegExp(
+          r'CachedNetworkImageProvider\(\s*optimizedAvatarUrl\(photoUrl\)!',
+        ),
+      ),
     );
-    expect(source, contains('title.characters.first.toUpperCase()'));
+    expect(
+      source,
+      contains(
+        RegExp(r'title\s*\.\s*characters\s*\.\s*first\s*\.\s*toUpperCase\(\)'),
+      ),
+    );
   });
 
   test(
@@ -586,14 +595,18 @@ void main() {
       final source = File(
         'lib/src/presentation/screens/book_detail_screen.dart',
       ).readAsStringSync();
+      final metaSource = File(
+        'lib/src/presentation/components/book/book_detail_meta_section.dart',
+      ).readAsStringSync();
 
       expect(source, contains('reportBook'));
       expect(source, contains('if (!canEdit)'));
       expect(source, isNot(contains('PopupMenuButton<String>')));
-      expect(source, contains('_RatingStat'));
+      expect(source, contains('BookDetailMetaSection(book: book)'));
+      expect(metaSource, contains('_RatingMetric'));
       expect(source, contains('liveBookCommentsProvider(book.id)'));
-      expect(source, contains('comment.rating'));
-      expect(source, contains('l10n.noRatings'));
+      expect(metaSource, contains('comment.rating'));
+      expect(metaSource, contains('l10n.noRatings'));
     },
   );
 
@@ -1148,7 +1161,8 @@ void main() {
     expect(readerSettingsSource, isNot(contains('reader_font_index')));
     expect(readerSettingsSource, contains('reader_font_family'));
     expect(readerSettingsSource, contains('ReaderFont.tiroDevanagariHindi'));
-    expect(readerSource, contains('_ReaderFontOption'));
+    expect(readerSource, contains('DropdownButtonFormField<ReaderFont>'));
+    expect(readerSource, contains('_readerFontLabel'));
     expect(writerTaxonomySource, contains('WriterTaxonomy'));
     expect(writerTaxonomySource, isNot(contains('Arabic')));
 
@@ -1345,9 +1359,14 @@ void main() {
     expect(bookDetailSource, contains('l10n.shareToFeed'));
     expect(bookDetailSource, contains('l10n.defaultShareMessage'));
     expect(bookDetailSource, contains('collabBookInfo'));
-    expect(bookDetailSource, contains('_localizedContentType'));
-    expect(bookDetailSource, contains('contentTypeStory'));
-    expect(bookDetailSource, contains('chapterCount > 1'));
+    final bookDetailMetaSource = File(
+      'lib/src/presentation/components/book/book_detail_meta_section.dart',
+    ).readAsStringSync();
+    expect(bookDetailSource, contains('BookDetailMetaSection(book: book)'));
+    expect(bookDetailMetaSource, contains('_localizedContentType'));
+    expect(bookDetailMetaSource, contains('contentTypeStory'));
+    expect(bookDetailMetaSource, contains('chapterCount == 1'));
+    expect(bookDetailMetaSource, contains('l10n.chaptersStat'));
     expect(bookDetailSource, isNot(contains('_CollabChip')));
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
@@ -1792,7 +1811,7 @@ void main() {
     final enArb = englishL10n();
 
     expect(mainSource, contains('OnboardingGate'));
-    expect(mainSource, contains('userId: user.uid'));
+    expect(mainSource, contains('userId: firebaseUser.uid'));
     expect(gateSource, contains("onboarding_seen_\${widget.userId}_v2"));
     expect(gateSource, contains('setBool(_prefsKey, true)'));
     for (final key in [
@@ -1886,7 +1905,7 @@ void main() {
 
     expect(modelSource, contains('String? bookAuthorName'));
     expect(cardSource, contains('post.bookAuthorName'));
-    expect(cardSource, contains('bookDetailProvider(bookIdText)'));
+    expect(cardSource, contains('feedBookEnrichmentProvider'));
     expect(cardSource, contains('resolvedBookAuthorName'));
     expect(cardSource, contains('resolvedBookTitle'));
     expect(
@@ -2122,6 +2141,6 @@ void main() {
       isNot(contains('await _fetchRemoteTopics()')),
     );
     expect(loginSource, contains('warmPublicHomepageCache(ref)'));
-    expect(mainSource, contains('warmUserHomepageCache(ref)'));
+    expect(mainSource, contains(RegExp(r'warmUserHomepageCache\s*\(\s*ref')));
   });
 }

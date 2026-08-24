@@ -8,6 +8,7 @@ import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
 import '../../data/utils/firestore_utils.dart';
+import '../../data/utils/firestore_cache_first.dart';
 import '../../utils/map_utils.dart';
 import 'auth_providers.dart';
 import '../../data/services/offline_service.dart';
@@ -36,10 +37,14 @@ final rawBooksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
 
 final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
   try {
-    final doc = await FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_compiled')
-        .get();
+    final result = await FirestoreCacheFirst.document(
+      FirebaseFirestore.instance
+          .collection('settings')
+          .doc('homepage_compiled'),
+      operation: 'homepage_books_with_leaves',
+    );
+    final doc = result.cacheAvailable ? result.cached : await result.refresh;
+    if (doc == null) throw StateError('Compiled homepage unavailable');
     final data = doc.data();
     if (doc.exists && data != null) {
       final compiled = CompiledHomepage.fromJson(data);
@@ -108,7 +113,26 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
   ref,
   bookId,
 ) async* {
-  final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
+  Book? initial;
+  if (_isFirebaseBookId(bookId)) {
+    final reference = FirebaseFirestore.instance
+        .collection('books')
+        .doc(bookId);
+    final cached = await FirestoreCacheFirst.cachedDocument(
+      reference,
+      operation: 'live_book_cache',
+    );
+    initial = _bookFromSnapshot(cached);
+    if (initial == null) {
+      final refreshed = await FirestoreCacheFirst.refreshDocument(
+        reference,
+        operation: 'live_book_initial_refresh',
+      );
+      initial = _bookFromSnapshot(refreshed);
+    }
+  } else {
+    initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
+  }
   if (initial != null) yield initial;
 
   if (!_shouldWatchFirebaseBook(bookId, initial)) {
@@ -122,14 +146,7 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
           .collection('books')
           .doc(bookId)
           .snapshots()
-          .map((doc) {
-            if (!doc.exists || doc.data() == null) return null;
-            final data = normalizeBookMapForModel(
-              asStringMap(doc.data()),
-              doc.id,
-            );
-            return Book.fromJson(data);
-          })) {
+          .map(_bookFromSnapshot)) {
     if (!_sameBookSnapshot(previous, next)) {
       previous = next;
       yield next;
@@ -225,57 +242,136 @@ final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
   ref,
   bookId,
 ) async* {
-  final initial = await ref.watch(bookRepositoryProvider).getChapters(bookId);
-  yield _publicChapters(initial);
-
-  final book = await ref.read(bookRepositoryProvider).getBook(bookId);
-  if (!_shouldWatchFirebaseBook(bookId, book)) return;
+  final query = FirebaseFirestore.instance
+      .collection('books')
+      .doc(bookId)
+      .collection('chapters')
+      .orderBy('order');
+  List<Chapter> initial;
+  if (!_isFirebaseBookId(bookId)) {
+    initial = await ref.watch(bookRepositoryProvider).getChapters(bookId);
+    yield _publicChapters(initial);
+    final book = await ref.read(bookRepositoryProvider).getBook(bookId);
+    if (!_shouldWatchFirebaseBook(bookId, book)) return;
+  } else {
+    final initialStopwatch = Stopwatch()..start();
+    var snapshot = await FirestoreCacheFirst.cachedQuery(
+      query,
+      operation: 'live_chapters_cache',
+    );
+    var remaining =
+        FirestoreCacheFirst.defaultServerTimeout - initialStopwatch.elapsed;
+    if (snapshot == null && remaining > Duration.zero) {
+      snapshot = await FirestoreCacheFirst.refreshQuery(
+        query,
+        operation: 'live_chapters_initial_refresh',
+        serverTimeout: remaining,
+      );
+    }
+    initial = snapshot == null
+        ? const <Chapter>[]
+        : _chaptersFromSnapshot(snapshot);
+    if (snapshot != null && snapshot.docs.isNotEmpty && initial.isEmpty) {
+      remaining =
+          FirestoreCacheFirst.defaultServerTimeout - initialStopwatch.elapsed;
+      final refreshed = remaining <= Duration.zero
+          ? null
+          : await FirestoreCacheFirst.refreshQuery(
+              query,
+              operation: 'live_chapters_repair_refresh',
+              serverTimeout: remaining,
+            );
+      if (refreshed != null) initial = _chaptersFromSnapshot(refreshed);
+    }
+    if (initial.isEmpty) {
+      remaining =
+          FirestoreCacheFirst.defaultServerTimeout - initialStopwatch.elapsed;
+      initial = await _initialEmbeddedChapters(bookId, remaining);
+    }
+    yield _publicChapters(initial);
+  }
 
   var previous = _publicChapters(initial);
-  await for (final next
-      in FirebaseFirestore.instance
-          .collection('books')
-          .doc(bookId)
-          .collection('chapters')
-          .orderBy('order')
-          .snapshots()
-          .asyncMap((snapshot) async {
-            if (snapshot.docs.isEmpty) {
-              final book = await ref
-                  .read(bookRepositoryProvider)
-                  .getBook(bookId);
-              return _publicChapters(book?.chapters ?? const <Chapter>[]);
-            }
-            return snapshot.docs
-                .map((doc) {
-                  final data = asStringMap(doc.data());
-                  data['id'] = doc.id;
-                  data['title'] = data['title']?.toString() ?? 'Chapter';
-                  data['content'] = data['content']?.toString() ?? '';
-                  data['index'] = data['index'] is num
-                      ? (data['index'] as num).toInt()
-                      : data['order'] is num
-                      ? (data['order'] as num).toInt()
-                      : int.tryParse(data['index']?.toString() ?? '') ??
-                            int.tryParse(data['order']?.toString() ?? '') ??
-                            0;
-                  if (data['lastSavedAt'] is Timestamp) {
-                    data['lastSavedAt'] = (data['lastSavedAt'] as Timestamp)
-                        .millisecondsSinceEpoch;
-                  }
-                  return Chapter.fromJson(data);
-                })
-                .where(
-                  (chapter) => !chapter.isHidden && chapter.status != 'draft',
-                )
-                .toList();
-          })) {
+  await for (final next in query.snapshots().asyncMap((snapshot) async {
+    if (snapshot.docs.isEmpty) {
+      return _publicChapters(await _cachedEmbeddedChapters(bookId));
+    }
+    return _publicChapters(_chaptersFromSnapshot(snapshot));
+  })) {
     if (!_sameChapterSnapshots(previous, next)) {
       previous = next;
       yield next;
     }
   }
 });
+
+Book? _bookFromSnapshot(DocumentSnapshot<Map<String, dynamic>>? doc) {
+  if (doc == null || !doc.exists || doc.data() == null) return null;
+  try {
+    final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+    return Book.fromJson(data);
+  } catch (_) {
+    return null;
+  }
+}
+
+List<Chapter> _chaptersFromSnapshot(
+  QuerySnapshot<Map<String, dynamic>> snapshot,
+) {
+  final chapters = <Chapter>[];
+  for (final doc in snapshot.docs) {
+    try {
+      final data = asStringMap(doc.data());
+      data['id'] = doc.id;
+      data['title'] = data['title']?.toString() ?? 'Chapter';
+      data['content'] = data['content']?.toString() ?? '';
+      data['index'] = data['index'] is num
+          ? (data['index'] as num).toInt()
+          : data['order'] is num
+          ? (data['order'] as num).toInt()
+          : int.tryParse(data['index']?.toString() ?? '') ??
+                int.tryParse(data['order']?.toString() ?? '') ??
+                0;
+      if (data['lastSavedAt'] is Timestamp) {
+        data['lastSavedAt'] =
+            (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
+      }
+      chapters.add(Chapter.fromJson(data));
+    } catch (_) {
+      // Keep other cached/live chapters usable if one document is malformed.
+    }
+  }
+  return chapters;
+}
+
+Future<List<Chapter>> _cachedEmbeddedChapters(String bookId) async {
+  final cached = await FirestoreCacheFirst.cachedDocument(
+    FirebaseFirestore.instance.collection('books').doc(bookId),
+    operation: 'live_embedded_chapters_cache',
+  );
+  return _bookFromSnapshot(cached)?.chapters ?? const <Chapter>[];
+}
+
+Future<List<Chapter>> _initialEmbeddedChapters(
+  String bookId,
+  Duration serverBudget,
+) async {
+  final reference = FirebaseFirestore.instance.collection('books').doc(bookId);
+  final cached = await FirestoreCacheFirst.cachedDocument(
+    reference,
+    operation: 'live_embedded_chapters_initial_cache',
+  );
+  final snapshot =
+      cached ??
+      (serverBudget <= Duration.zero
+          ? null
+          : await FirestoreCacheFirst.refreshDocument(
+              reference,
+              operation: 'live_embedded_chapters_initial_refresh',
+              serverTimeout: serverBudget,
+            ));
+  return _bookFromSnapshot(snapshot)?.chapters ?? const <Chapter>[];
+}
 
 bool _sameBookSnapshot(Book? first, Book? second) {
   if (identical(first, second)) return true;
@@ -292,6 +388,10 @@ bool _sameChapterSnapshots(List<Chapter> first, List<Chapter> second) {
     final a = first[index];
     final b = second[index];
     if (a.id != b.id ||
+        a.title != b.title ||
+        a.index != b.index ||
+        a.status != b.status ||
+        a.isHidden != b.isHidden ||
         a.lastSavedAt != b.lastSavedAt ||
         a.revision != b.revision ||
         a.content != b.content) {

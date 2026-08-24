@@ -259,7 +259,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       if (notificationsState.isInitialLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      if (notificationsState.error != null) {
+                      if (notificationsState.error != null &&
+                          notificationsState.items.isEmpty) {
                         logUiError(
                           'Notifications load failed',
                           notificationsState.error!,
@@ -271,6 +272,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
                       return Column(
                         children: [
+                          if (notificationsState.isRefreshing)
+                            const LinearProgressIndicator(minHeight: 2),
+                          if (notificationsState.error != null)
+                            MaterialBanner(
+                              content: Text(
+                                l10n.somethingWentWrong,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: notificationsController.refresh,
+                                  child: Text(l10n.tryAgain),
+                                ),
+                              ],
+                            ),
                           _NotificationFilterBar(
                             selected: _filter,
                             onSelected: _selectFilter,
@@ -480,31 +497,36 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                           ),
                                                         AppRoutes
                                                             .questionAnswers =>
-                                                          (target.payload.isNotEmpty &&
+                                                          (target
+                                                                      .payload
+                                                                      .isNotEmpty &&
                                                                   target.leafId !=
                                                                       null &&
-                                                                  target.leafId!
+                                                                  target
+                                                                      .leafId!
                                                                       .isNotEmpty)
                                                               ? QuestionAnswersLinkArguments(
-                                                                  bookId:
-                                                                      target.payload,
-                                                                  leafId:
-                                                                      target.leafId!,
+                                                                  bookId: target
+                                                                      .payload,
+                                                                  leafId: target
+                                                                      .leafId!,
                                                                 )
                                                               : (target.question !=
-                                                                          null &&
-                                                                      target.question!
-                                                                          .isNotEmpty)
-                                                                  ? QuestionLeafAnswersQuery(
-                                                                      bookId:
-                                                                          target.payload,
-                                                                      leafId:
-                                                                          target.leafId ??
-                                                                              '',
-                                                                      question:
-                                                                          target.question!,
-                                                                    )
-                                                                  : target.payload,
+                                                                        null &&
+                                                                    target
+                                                                        .question!
+                                                                        .isNotEmpty)
+                                                              ? QuestionLeafAnswersQuery(
+                                                                  bookId: target
+                                                                      .payload,
+                                                                  leafId:
+                                                                      target
+                                                                          .leafId ??
+                                                                      '',
+                                                                  question: target
+                                                                      .question!,
+                                                                )
+                                                              : target.payload,
                                                         _ => target.payload,
                                                       };
                                                       Navigator.of(

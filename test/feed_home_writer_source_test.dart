@@ -32,7 +32,7 @@ void main() {
       'lib/src/presentation/screens/home_books_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('const shelfHeight = 248.0'));
+    expect(source, contains('const shelfHeight = 264.0'));
     expect(source, contains('height: 180'));
     expect(source, contains('height: 54'));
     expect(source, contains('overflow: TextOverflow.ellipsis'));

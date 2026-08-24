@@ -22,6 +22,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'src/presentation/providers/auth_providers.dart';
 import 'src/presentation/providers/homepage_providers.dart';
 import 'src/presentation/providers/notification_providers.dart';
+import 'src/presentation/providers/writer_providers.dart';
 import 'src/presentation/providers/theme_provider.dart';
 import 'src/presentation/providers/animation_settings_provider.dart';
 import 'src/presentation/providers/tier_progress_provider.dart';
@@ -50,6 +51,8 @@ import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/data/services/splash_preferences_service.dart';
+import 'src/data/services/startup_data_cache.dart';
+import 'src/data/services/startup_performance.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
 import 'src/utils/custom_license_registry.dart';
@@ -69,6 +72,7 @@ bool _licensesRegistered = false;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  StartupPerformance.mark('app_start', once: true);
   AppLogCollector.init();
   _installGlobalErrorHandlers();
 
@@ -185,7 +189,7 @@ Future<void> _launchApplication() async {
     _MyAppState._startupTimeout,
   );
   final firebaseBootstrap = await _bootstrapFirebaseBeforeRunApp();
-  await _initializeCrashReporting(firebaseBootstrap);
+  unawaited(_initializeCrashReporting(firebaseBootstrap));
   final sharedPreferences = await sharedPreferencesFuture;
   final startupEntry = await _resolveStartupEntry(
     appLinks,
@@ -217,6 +221,9 @@ Future<void> _launchApplication() async {
       ),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    StartupPerformance.mark('flutter_first_frame', once: true);
+  });
 }
 
 Future<void> _initializeCrashReporting(
@@ -334,16 +341,16 @@ class _BootstrapFailureAppState extends State<BootstrapFailureApp> {
   }
 }
 
-Future<({
-  bool hasInitialShare,
-  Uri? initialAppLink,
-  bool hasInitialNotification,
-  RouteSettings? initialNotificationTarget,
-  Map<String, dynamic>? initialNotificationData,
-})> _resolveStartupEntry(
-  AppLinks appLinks, {
-  required bool firebaseReady,
-}) async {
+Future<
+  ({
+    bool hasInitialShare,
+    Uri? initialAppLink,
+    bool hasInitialNotification,
+    RouteSettings? initialNotificationTarget,
+    Map<String, dynamic>? initialNotificationData,
+  })
+>
+_resolveStartupEntry(AppLinks appLinks, {required bool firebaseReady}) async {
   final initialLinkFuture = () async {
     try {
       return await appLinks.getInitialLink().timeout(
@@ -368,7 +375,12 @@ Future<({
     if (!firebaseReady) {
       return const StartupNotificationLaunch(hasInitialNotification: false);
     }
-    return StartupNotificationResolver.inspectInitialNotification();
+    try {
+      return await StartupNotificationResolver.inspectInitialNotification()
+          .timeout(const Duration(seconds: 1));
+    } catch (_) {
+      return const StartupNotificationLaunch(hasInitialNotification: false);
+    }
   }();
 
   final link = await initialLinkFuture;
@@ -411,10 +423,6 @@ Future<FirebaseBootstrapResult> _bootstrapFirebaseBeforeRunApp() async {
     emulatorsConfigured = await _guardedBootstrapStep(
       'Firebase emulators',
       _configureFirebaseEmulators,
-    );
-    appCheckConfigured = await _guardedBootstrapStep(
-      'Firebase App Check',
-      _activateFirebaseAppCheckIfNeeded,
     );
     cacheConfigured = await _guardedBootstrapStep(
       'Firestore cache',
@@ -652,10 +660,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
       NotificationService.instance.attachNavigator(_navigatorKey);
       unawaited(
-        _guardedStartupStep(
-          'Notifications',
-          NotificationService.instance.init,
-        ),
+        _guardedStartupStep('Notifications', NotificationService.instance.init),
       );
       if (!_appCheckConfigured) {
         unawaited(
@@ -1023,6 +1028,10 @@ class AuthWrapper extends ConsumerWidget {
       }
       final previousId = previous?.asData?.value?.uid;
       final nextId = next.asData?.value?.uid;
+      final startupCache = StartupDataCache(
+        ref.read(sharedPreferencesProvider),
+      );
+      if (nextId != null) startupCache.activateUser(nextId);
       if (previousId != nextId) {
         ref.invalidate(currentUserProvider);
         ref.invalidate(notificationsProvider);
@@ -1038,6 +1047,11 @@ class AuthWrapper extends ConsumerWidget {
             ref.read(localeControllerProvider.notifier).syncPreferredLanguage(),
           );
         }
+      }
+      if (previousId != null && previousId != nextId) {
+        clearWriterOverviewMemory(previousId);
+        clearUserHomepageWarmState(previousId);
+        unawaited(startupCache.clearUser(previousId));
       }
       if (previousId != null && nextId == null) {
         onSignedOut();
@@ -1064,43 +1078,20 @@ class AuthWrapper extends ConsumerWidget {
     });
     final authState = ref.watch(authStateProvider);
     final isSigningOut = ref.watch(isSigningOutProvider);
+    final restoredFirebaseUser =
+        authState.asData?.value ??
+        (authState.isLoading ? FirebaseAuth.instance.currentUser : null);
 
-    if (isSigningOut && authState.value != null) {
+    if (isSigningOut && restoredFirebaseUser != null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (restoredFirebaseUser != null) {
+      return _buildAuthenticated(context, ref, restoredFirebaseUser);
+    }
+
     return authState.when(
-      data: (user) {
-        if (user != null) {
-          final isVerified = ref.watch(emailVerifiedProvider(user.uid));
-          if (!isVerified) {
-            _notifyReadiness(
-              authenticated: true,
-              emailVerified: false,
-              onboardingReady: false,
-            );
-            return EmailVerificationScreen(userId: user.uid);
-          }
-          return OnboardingGate(
-            userId: user.uid,
-            onReady: () {
-              ref.read(appFullyLoadedProvider.notifier).setLoaded(true);
-              unawaited(
-                warmUserHomepageCache(
-                  ref,
-                  deferDuration: const Duration(seconds: 4),
-                ),
-              );
-              NotificationService.instance.drainPendingNavigation();
-              onReadinessChanged(
-                authenticated: true,
-                emailVerified: true,
-                onboardingReady: true,
-              );
-            },
-            child: const MainNavigationShell(),
-          );
-        }
+      data: (_) {
         _notifyReadiness(
           authenticated: false,
           emailVerified: false,
@@ -1114,6 +1105,38 @@ class AuthWrapper extends ConsumerWidget {
         AppLogCollector.recordZoneError(e, st);
         return const LoginScreen();
       },
+    );
+  }
+
+  Widget _buildAuthenticated(
+    BuildContext context,
+    WidgetRef ref,
+    User firebaseUser,
+  ) {
+    final isVerified = ref.watch(emailVerifiedProvider(firebaseUser.uid));
+    if (!isVerified) {
+      _notifyReadiness(
+        authenticated: true,
+        emailVerified: false,
+        onboardingReady: false,
+      );
+      return EmailVerificationScreen(userId: firebaseUser.uid);
+    }
+    return OnboardingGate(
+      userId: firebaseUser.uid,
+      onReady: () {
+        ref.read(appFullyLoadedProvider.notifier).setLoaded(true);
+        unawaited(
+          warmUserHomepageCache(ref, deferDuration: const Duration(seconds: 4)),
+        );
+        NotificationService.instance.drainPendingNavigation();
+        onReadinessChanged(
+          authenticated: true,
+          emailVerified: true,
+          onboardingReady: true,
+        );
+      },
+      child: const MainNavigationShell(),
     );
   }
 

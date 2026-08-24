@@ -9,7 +9,6 @@ import '../../data/services/analytics_service.dart';
 import '../providers/feed_providers.dart';
 import '../providers/audio_post_providers.dart';
 import '../providers/auth_providers.dart';
-import '../providers/book_providers.dart';
 import '../providers/comment_providers.dart';
 import '../providers/local_comments_notifier.dart';
 import '../widgets/comment_widgets.dart';
@@ -774,34 +773,26 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
         (post.type.toLowerCase() == 'review' && post.rating != null);
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';
-    final fallbackBookAsync =
+    final needsBookEnrichment =
         (storedBookAuthorName.isEmpty || storedBookTitle.isEmpty) &&
-            hasLinkedBook
-        ? ref.watch(bookDetailProvider(bookIdText))
-        : null;
+        hasLinkedBook;
+    final enrichedBooks = needsBookEnrichment
+        ? ref.watch(feedBookEnrichmentProvider)
+        : const <String, Book>{};
+    if (needsBookEnrichment) {
+      ref.read(feedBookEnrichmentProvider.notifier).request(bookIdText);
+    }
+    final fallbackBook = bookIdText == null ? null : enrichedBooks[bookIdText];
     final resolvedBookAuthorName = storedBookAuthorName.isNotEmpty
         ? storedBookAuthorName
-        : fallbackBookAsync?.maybeWhen(
-                data: (book) {
-                  final author = book?.authors
-                      .map((author) => author.name.trim())
-                      .where((name) => name.isNotEmpty)
-                      .join(', ');
-                  return author == null || author.isEmpty ? null : author;
-                },
-                orElse: () => null,
-              ) ??
+        : fallbackBook?.authors
+                  .map((author) => author.name.trim())
+                  .where((name) => name.isNotEmpty)
+                  .join(', ') ??
               '';
     final resolvedBookTitle = storedBookTitle.isNotEmpty
         ? storedBookTitle
-        : fallbackBookAsync?.maybeWhen(
-                data: (book) {
-                  final title = book?.title.trim();
-                  return title == null || title.isEmpty ? null : title;
-                },
-                orElse: () => null,
-              ) ??
-              '';
+        : fallbackBook?.title.trim() ?? '';
     final postLinkPreview = firstSupportedWriterMediaInfoInText(post.text);
 
     final card = GlassSurface(

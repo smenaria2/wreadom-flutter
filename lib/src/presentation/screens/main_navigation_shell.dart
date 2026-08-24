@@ -18,6 +18,7 @@ import 'profile_screen.dart';
 import '../providers/auth_providers.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/low_power_notice_service.dart';
+import '../../data/services/startup_performance.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -33,15 +34,24 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   final Set<int> _checkedUpdateNoticeBuilds = <int>{};
   bool _loadedWorkScheduled = false;
   int _notificationSetupGeneration = 0;
+  late final List<Widget> _screens;
 
   static const String _updateNoticePrefix = 'wreadom_update_notice_shown_';
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    _screens = const [
+      HomeBooksScreen(),
+      HomeFeedScreen(),
+      WriterDashboardScreen(),
+      MessagesScreen(),
+      ProfileScreen(),
+    ];
+    ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(selectedTabProvider.notifier).setTab(widget.initialIndex);
+      StartupPerformance.mark('navigation_shell_ready', once: true);
     });
   }
 
@@ -160,14 +170,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     super.dispose();
   }
 
-  List<Widget> get _screens => [
-    const HomeBooksScreen(),
-    HomeFeedScreen(),
-    const WriterDashboardScreen(),
-    const MessagesScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final appFullyLoaded = ref.watch(appFullyLoadedProvider);
@@ -191,7 +193,15 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       body: Stack(
         children: [
           const Positioned.fill(child: AppBackground()),
-          IndexedStack(index: selectedIndex, children: _screens),
+          LazyStatePreservingTabStack(
+            index: selectedIndex,
+            children: _screens,
+            onFirstMount: (index) => StartupPerformance.mark(
+              'tab_mounted',
+              page: _tabName(index),
+              once: true,
+            ),
+          ),
           const AudioPostMiniPlayer(),
         ],
       ),
@@ -248,6 +258,15 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       ),
     );
   }
+
+  String _tabName(int index) => switch (index) {
+    0 => 'home',
+    1 => 'feed',
+    2 => 'writer',
+    3 => 'messages',
+    4 => 'profile',
+    _ => 'unknown',
+  };
 
   Widget _buildNavItem(
     int index,
@@ -382,6 +401,60 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         SnackBar(content: Text(l10n.couldNotOpenUpdateLink)),
       );
     }
+  }
+}
+
+/// Mounts a tab only when first selected, then keeps it alive in an
+/// [IndexedStack] so scroll positions and page-owned providers are preserved.
+class LazyStatePreservingTabStack extends StatefulWidget {
+  const LazyStatePreservingTabStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.onFirstMount,
+  });
+
+  final int index;
+  final List<Widget> children;
+  final ValueChanged<int>? onFirstMount;
+
+  @override
+  State<LazyStatePreservingTabStack> createState() =>
+      _LazyStatePreservingTabStackState();
+}
+
+class _LazyStatePreservingTabStackState
+    extends State<LazyStatePreservingTabStack> {
+  final Set<int> _mounted = <int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _mount(widget.index);
+  }
+
+  @override
+  void didUpdateWidget(covariant LazyStatePreservingTabStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _mount(widget.index);
+  }
+
+  void _mount(int index) {
+    if (index < 0 || index >= widget.children.length) return;
+    if (_mounted.add(index)) widget.onFirstMount?.call(index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: widget.index,
+      children: List<Widget>.generate(
+        widget.children.length,
+        (index) => _mounted.contains(index)
+            ? widget.children[index]
+            : const SizedBox.shrink(),
+      ),
+    );
   }
 }
 
