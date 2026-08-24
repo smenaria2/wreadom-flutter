@@ -13,6 +13,7 @@ import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/compiled_homepage.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
 import '../../data/utils/firestore_utils.dart';
+import '../../data/utils/firestore_cache_first.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
 import 'book_providers.dart';
@@ -33,7 +34,7 @@ const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageGenreBooksCacheKeyPrefix = 'homepage_genre_books_cache_v1_';
-const _homepageRequestTimeout = Duration(seconds: 20);
+const _homepageRequestTimeout = Duration(seconds: 4);
 const _homepageCacheTtl = Duration(hours: 6);
 const _compiledHomepageCacheTtl = Duration(hours: 1);
 bool _homepageBackgroundRefreshQueued = false;
@@ -51,25 +52,9 @@ class HomepageRefreshCounter extends Notifier<int> {
 }
 
 Future<void> refreshHomepage(WidgetRef ref) async {
-  final prefs = ref.read(sharedPreferencesProvider);
-  final genreCacheKeys = prefs.getKeys().where(
-    (key) => key.startsWith(_homepageGenreBooksCacheKeyPrefix),
-  );
-  await Future.wait([
-    prefs.remove(_homepageMetadataCacheKey),
-    prefs.remove(_homepageMetadataCacheUpdatedAtKey),
-    prefs.remove(_compiledHomepageCacheKey),
-    prefs.remove(_compiledHomepageCacheUpdatedAtKey),
-    prefs.remove(_homepageBooksCacheKey),
-    prefs.remove(_homepageAuthorWorksCacheKey),
-    prefs.remove(_homepageIABooksCacheKey),
-    prefs.remove(_homepageBannersCacheKey),
-    prefs.remove(homepageFeaturedAuthorCacheKey),
-    prefs.remove(homepageFeaturedAuthorCacheUpdatedAtKey),
-    ...genreCacheKeys.map(prefs.remove),
-  ]);
-  // Clear the in-memory session author so the next run picks a fresh one.
-  ref.read(sessionFeaturedAuthorProvider.notifier).set(null);
+  // Preserve the last good payload while the forced refresh is in flight.
+  // This avoids turning a manual refresh into a full-screen loading state when
+  // the server is slow or unavailable.
   ref.read(homepageRefreshCounterProvider.notifier).bump();
   ref.invalidate(compiledHomepageProvider);
   ref.invalidate(homepageMetadataProvider);
@@ -212,14 +197,41 @@ Future<List<Book>> _safeBookList(
   }
 }
 
-Future<T> _withHomepageTimeout<T>(Future<T> request, String label) {
-  return request.timeout(
-    _homepageRequestTimeout,
-    onTimeout: () => throw TimeoutException(
-      '$label did not complete',
+Future<T> _withHomepageTimeout<T>(Future<T> request, String label) async {
+  final stopwatch = Stopwatch()..start();
+  try {
+    final value = await request.timeout(
       _homepageRequestTimeout,
-    ),
-  );
+      onTimeout: () => throw TimeoutException(
+        '$label did not complete',
+        _homepageRequestTimeout,
+      ),
+    );
+    FirestoreCacheFirst.logDiagnostic(
+      label,
+      'server_success',
+      stopwatch.elapsed,
+    );
+    return value;
+  } on TimeoutException {
+    FirestoreCacheFirst.logDiagnostic(
+      label,
+      'server_timeout',
+      stopwatch.elapsed,
+    );
+    rethrow;
+  } on FirebaseException catch (error) {
+    FirestoreCacheFirst.logDiagnostic(
+      label,
+      'server_error',
+      stopwatch.elapsed,
+      error.code,
+    );
+    rethrow;
+  } catch (_) {
+    FirestoreCacheFirst.logDiagnostic(label, 'server_error', stopwatch.elapsed);
+    rethrow;
+  }
 }
 
 Future<CompiledHomepage?> _fetchAndCacheCompiledHomepage(
@@ -261,9 +273,10 @@ final compiledHomepageProvider = FutureProvider<CompiledHomepage?>((ref) async {
     (json) => CompiledHomepage.fromJson(asStringMap(json)),
   );
 
-  if (_hasCompiledHomepageContent(cached) &&
-      !_isCompiledHomepageCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (_hasCompiledHomepageContent(cached)) {
+    if (refreshTick > 0 || _isCompiledHomepageCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -673,10 +686,10 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (cached != null &&
-      _hasHomepageMetadataContent(cached) &&
-      !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && _hasHomepageMetadataContent(cached)) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -703,8 +716,10 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
         .map((raw) => HomeBanner.fromJson(asStringMap(raw)))
         .toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -769,8 +784,10 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -804,8 +821,10 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -840,7 +859,9 @@ final homepageAuthorBooksProvider = FutureProvider.family<List<Book>, String>((
 
   if (books.isEmpty) {
     try {
-      final userBooks = await ref.watch(userBooksProvider(normalizedAuthorId).future);
+      final userBooks = await ref.watch(
+        userBooksProvider(normalizedAuthorId).future,
+      );
       books = userBooks.where(_isPublishedOriginal).toList();
     } catch (e, stack) {
       debugPrint(
@@ -1068,8 +1089,10 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -1185,8 +1208,10 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (refreshTick > 0 || _isCacheStale(prefs)) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 

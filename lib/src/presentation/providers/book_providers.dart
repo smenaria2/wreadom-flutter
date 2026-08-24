@@ -108,19 +108,6 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
   ref,
   bookId,
 ) async* {
-  if (_isFirebaseBookId(bookId)) {
-    yield* FirebaseFirestore.instance
-        .collection('books')
-        .doc(bookId)
-        .snapshots()
-        .map((doc) {
-          if (!doc.exists || doc.data() == null) return null;
-          final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
-          return Book.fromJson(data);
-        });
-    return;
-  }
-
   final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
   if (initial != null) yield initial;
 
@@ -129,15 +116,25 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
     return;
   }
 
-  yield* FirebaseFirestore.instance
-      .collection('books')
-      .doc(bookId)
-      .snapshots()
-      .map((doc) {
-        if (!doc.exists || doc.data() == null) return null;
-        final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
-        return Book.fromJson(data);
-      });
+  var previous = initial;
+  await for (final next
+      in FirebaseFirestore.instance
+          .collection('books')
+          .doc(bookId)
+          .snapshots()
+          .map((doc) {
+            if (!doc.exists || doc.data() == null) return null;
+            final data = normalizeBookMapForModel(
+              asStringMap(doc.data()),
+              doc.id,
+            );
+            return Book.fromJson(data);
+          })) {
+    if (!_sameBookSnapshot(previous, next)) {
+      previous = next;
+      yield next;
+    }
+  }
 });
 
 final booksByBookshelfProvider = FutureProvider.family<List<Book>, String>((
@@ -234,40 +231,75 @@ final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
   final book = await ref.read(bookRepositoryProvider).getBook(bookId);
   if (!_shouldWatchFirebaseBook(bookId, book)) return;
 
-  yield* FirebaseFirestore.instance
-      .collection('books')
-      .doc(bookId)
-      .collection('chapters')
-      .orderBy('order')
-      .snapshots()
-      .asyncMap((snapshot) async {
-        if (snapshot.docs.isEmpty) {
-          final book = await ref.read(bookRepositoryProvider).getBook(bookId);
-          return _publicChapters(book?.chapters ?? const <Chapter>[]);
-        }
-        return snapshot.docs
-            .map((doc) {
-              final data = asStringMap(doc.data());
-              data['id'] = doc.id;
-              data['title'] = data['title']?.toString() ?? 'Chapter';
-              data['content'] = data['content']?.toString() ?? '';
-              data['index'] = data['index'] is num
-                  ? (data['index'] as num).toInt()
-                  : data['order'] is num
-                  ? (data['order'] as num).toInt()
-                  : int.tryParse(data['index']?.toString() ?? '') ??
-                        int.tryParse(data['order']?.toString() ?? '') ??
-                        0;
-              if (data['lastSavedAt'] is Timestamp) {
-                data['lastSavedAt'] =
-                    (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
-              }
-              return Chapter.fromJson(data);
-            })
-            .where((chapter) => !chapter.isHidden && chapter.status != 'draft')
-            .toList();
-      });
+  var previous = _publicChapters(initial);
+  await for (final next
+      in FirebaseFirestore.instance
+          .collection('books')
+          .doc(bookId)
+          .collection('chapters')
+          .orderBy('order')
+          .snapshots()
+          .asyncMap((snapshot) async {
+            if (snapshot.docs.isEmpty) {
+              final book = await ref
+                  .read(bookRepositoryProvider)
+                  .getBook(bookId);
+              return _publicChapters(book?.chapters ?? const <Chapter>[]);
+            }
+            return snapshot.docs
+                .map((doc) {
+                  final data = asStringMap(doc.data());
+                  data['id'] = doc.id;
+                  data['title'] = data['title']?.toString() ?? 'Chapter';
+                  data['content'] = data['content']?.toString() ?? '';
+                  data['index'] = data['index'] is num
+                      ? (data['index'] as num).toInt()
+                      : data['order'] is num
+                      ? (data['order'] as num).toInt()
+                      : int.tryParse(data['index']?.toString() ?? '') ??
+                            int.tryParse(data['order']?.toString() ?? '') ??
+                            0;
+                  if (data['lastSavedAt'] is Timestamp) {
+                    data['lastSavedAt'] = (data['lastSavedAt'] as Timestamp)
+                        .millisecondsSinceEpoch;
+                  }
+                  return Chapter.fromJson(data);
+                })
+                .where(
+                  (chapter) => !chapter.isHidden && chapter.status != 'draft',
+                )
+                .toList();
+          })) {
+    if (!_sameChapterSnapshots(previous, next)) {
+      previous = next;
+      yield next;
+    }
+  }
 });
+
+bool _sameBookSnapshot(Book? first, Book? second) {
+  if (identical(first, second)) return true;
+  if (first == null || second == null) return false;
+  return first.id == second.id &&
+      first.updatedAt == second.updatedAt &&
+      first.chapterCount == second.chapterCount &&
+      first.viewCount == second.viewCount;
+}
+
+bool _sameChapterSnapshots(List<Chapter> first, List<Chapter> second) {
+  if (first.length != second.length) return false;
+  for (var index = 0; index < first.length; index++) {
+    final a = first[index];
+    final b = second[index];
+    if (a.id != b.id ||
+        a.lastSavedAt != b.lastSavedAt ||
+        a.revision != b.revision ||
+        a.content != b.content) {
+      return false;
+    }
+  }
+  return true;
+}
 
 bool _isFirebaseBookId(String bookId) {
   return bookId.length == 20 && RegExp(r'^[a-zA-Z0-9]{20}$').hasMatch(bookId);

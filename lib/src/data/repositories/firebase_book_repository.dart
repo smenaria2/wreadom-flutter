@@ -7,6 +7,7 @@ import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
+import '../utils/firestore_cache_first.dart';
 import '../../utils/map_utils.dart';
 
 class FirebaseBookRepository implements BookRepository {
@@ -239,7 +240,12 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<Book?> getBook(String bookId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(bookId).get();
+      final result = await FirestoreCacheFirst.document(
+        _firestore.collection(_collection).doc(bookId),
+        operation: 'book_detail',
+      );
+      final doc = result.cacheAvailable ? result.cached : await result.refresh;
+      if (doc == null) return null;
       if (!doc.exists) return null;
       final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
       return Book.fromJson(data);
@@ -476,13 +482,24 @@ class FirebaseBookRepository implements BookRepository {
       if (firebaseIds.isNotEmpty) {
         final chunks = <List<String>>[];
         for (var i = 0; i < firebaseIds.length; i += 10) {
-          chunks.add(firebaseIds.sublist(i, i + 10 > firebaseIds.length ? firebaseIds.length : i + 10));
+          chunks.add(
+            firebaseIds.sublist(
+              i,
+              i + 10 > firebaseIds.length ? firebaseIds.length : i + 10,
+            ),
+          );
         }
         for (final chunk in chunks) {
-          final snapshot = await _firestore
-              .collection(_collection)
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
+          final result = await FirestoreCacheFirst.query(
+            _firestore
+                .collection(_collection)
+                .where(FieldPath.documentId, whereIn: chunk),
+            operation: 'book_ids',
+          );
+          final snapshot = result.cacheAvailable
+              ? result.cached
+              : await result.refresh;
+          if (snapshot == null) continue;
           books.addAll(
             snapshot.docs.map((doc) {
               try {
@@ -503,13 +520,24 @@ class FirebaseBookRepository implements BookRepository {
       if (archiveIds.isNotEmpty) {
         final chunks = <List<String>>[];
         for (var i = 0; i < archiveIds.length; i += 10) {
-          chunks.add(archiveIds.sublist(i, i + 10 > archiveIds.length ? archiveIds.length : i + 10));
+          chunks.add(
+            archiveIds.sublist(
+              i,
+              i + 10 > archiveIds.length ? archiveIds.length : i + 10,
+            ),
+          );
         }
         for (final chunk in chunks) {
-          final snapshot = await _firestore
-              .collection('books_metadata')
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
+          final result = await FirestoreCacheFirst.query(
+            _firestore
+                .collection('books_metadata')
+                .where(FieldPath.documentId, whereIn: chunk),
+            operation: 'book_metadata_ids',
+          );
+          final snapshot = result.cacheAvailable
+              ? result.cached
+              : await result.refresh;
+          if (snapshot == null) continue;
           books.addAll(
             snapshot.docs.map((doc) {
               try {
