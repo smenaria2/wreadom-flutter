@@ -1183,6 +1183,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 quote: post.quote ?? post.text,
                 bookTitle: resolvedBookTitle,
                 bookCover: post.bookCover,
+                bookAuthorName: resolvedBookAuthorName,
                 chapterTitle: post.chapterTitle,
                 onBookTap: () {
                   if (bookIdText != null) {
@@ -1207,6 +1208,7 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                 bookTitle: resolvedBookTitle,
                 bookCover: post.bookCover,
                 bookAuthorName: resolvedBookAuthorName,
+                chapterTitle: post.chapterTitle,
                 onBookTap: () {
                   Navigator.of(context).pushNamed(
                     AppRoutes.bookDetail,

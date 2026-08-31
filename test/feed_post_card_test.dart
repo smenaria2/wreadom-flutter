@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/domain/models/feed_post.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
+import 'package:librebook_flutter/src/presentation/components/book/gradient_book_card.dart';
 import 'package:librebook_flutter/src/presentation/components/feed_post_card.dart';
 import 'package:librebook_flutter/src/presentation/widgets/feed_media_playable_card.dart';
 import 'package:librebook_flutter/src/presentation/providers/auth_providers.dart';
@@ -78,12 +79,12 @@ void main() {
       await tester.pumpWidget(testApp(post));
       await tester.pump();
 
-      expect(find.text('Read Now'), findsNothing);
+      expect(find.byType(GradientBookCard), findsNothing);
       expect(find.text(post.question!), findsOneWidget);
     }
   });
 
-  testWidgets('shows Read Now for a valid linked book', (tester) async {
+  testWidgets('shows linked book card for a valid linked book', (tester) async {
     const post = FeedPost(
       id: 'linked-question',
       userId: 'user-1',
@@ -103,7 +104,7 @@ void main() {
     await tester.pumpWidget(testApp(post));
     await tester.pump();
 
-    expect(find.text('Read Now'), findsOneWidget);
-    expect(find.text('The Linked Book'), findsOneWidget);
+    expect(find.byType(GradientBookCard), findsOneWidget);
+    expect(find.text('The Linked Book'), findsNWidgets(2));
   });
 }

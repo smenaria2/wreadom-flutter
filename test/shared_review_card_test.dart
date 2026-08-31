@@ -42,7 +42,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alice Critic'), findsOneWidget);
-    expect(find.text('@top_reviewer'), findsOneWidget);
     expect(
       find.text('This book completely changed my perspectives on state management.'),
       findsOneWidget,

@@ -5,6 +5,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 
 import '../../../domain/models/feed_post.dart';
 import '../../../utils/image_proxy_utils.dart';
+import '../../widgets/glass_surface.dart';
 import '../generated_book_cover.dart';
 
 /// A card displaying a shared book review with reviewer attribution,
@@ -50,23 +51,8 @@ class SharedReviewCard extends StatelessWidget {
     final quoteText = (post.quote ?? post.text).trim();
     final chapterTitle = post.chapterTitle?.trim();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.amber.withValues(alpha: 0.28),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -77,10 +63,10 @@ class SharedReviewCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.07),
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.amber.withValues(alpha: 0.15),
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
                     width: 1,
                   ),
                 ),
@@ -89,7 +75,7 @@ class SharedReviewCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 16,
-                    backgroundColor: Colors.amber.withValues(alpha: 0.2),
+                    backgroundColor: colorScheme.primaryContainer,
                     backgroundImage: reviewerPhoto != null && reviewerPhoto.isNotEmpty
                         ? CachedNetworkImageProvider(
                             optimizedImageUrl(
@@ -108,7 +94,7 @@ class SharedReviewCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Colors.amber[900] ?? Colors.amber,
+                              color: colorScheme.onPrimaryContainer,
                             ),
                           )
                         : null,
@@ -148,10 +134,10 @@ class SharedReviewCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.16),
+                        color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.35),
+                          color: colorScheme.secondary.withValues(alpha: 0.35),
                         ),
                       ),
                       child: Row(
@@ -166,7 +152,7 @@ class SharedReviewCard extends StatelessWidget {
                           Text(
                             rating.toDouble().toStringAsFixed(1),
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: Colors.amber[900] ?? Colors.amber,
+                              color: colorScheme.onSecondaryContainer,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -192,7 +178,7 @@ class SharedReviewCard extends StatelessWidget {
                       fontSize: 32,
                       height: 0.8,
                       fontWeight: FontWeight.bold,
-                      color: Colors.amber.withValues(alpha: 0.6),
+                      color: colorScheme.primary.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -217,10 +203,10 @@ class SharedReviewCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
                 border: Border(
                   top: BorderSide(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
                     width: 0.8,
                   ),
                 ),
