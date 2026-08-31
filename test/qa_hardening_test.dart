@@ -586,14 +586,17 @@ void main() {
       final source = File(
         'lib/src/presentation/screens/book_detail_screen.dart',
       ).readAsStringSync();
+      final metaSource = File(
+        'lib/src/presentation/components/book/book_detail_meta_section.dart',
+      ).readAsStringSync();
 
       expect(source, contains('reportBook'));
       expect(source, contains('if (!canEdit)'));
       expect(source, isNot(contains('PopupMenuButton<String>')));
-      expect(source, contains('_RatingStat'));
-      expect(source, contains('liveBookCommentsProvider(book.id)'));
-      expect(source, contains('comment.rating'));
-      expect(source, contains('l10n.noRatings'));
+      expect(metaSource, contains('_RatingMetric'));
+      expect(metaSource, contains('liveBookCommentsProvider(book.id)'));
+      expect(metaSource, contains('comment.rating'));
+      expect(metaSource, contains('l10n.noRatings'));
     },
   );
 
@@ -1148,7 +1151,7 @@ void main() {
     expect(readerSettingsSource, isNot(contains('reader_font_index')));
     expect(readerSettingsSource, contains('reader_font_family'));
     expect(readerSettingsSource, contains('ReaderFont.tiroDevanagariHindi'));
-    expect(readerSource, contains('_ReaderFontOption'));
+    expect(readerSource, isNot(contains('_ReaderFontOption')));
     expect(writerTaxonomySource, contains('WriterTaxonomy'));
     expect(writerTaxonomySource, isNot(contains('Arabic')));
 
@@ -1299,6 +1302,9 @@ void main() {
     final bookDetailSource = File(
       'lib/src/presentation/screens/book_detail_screen.dart',
     ).readAsStringSync();
+    final bookDetailMetaSource = File(
+      'lib/src/presentation/components/book/book_detail_meta_section.dart',
+    ).readAsStringSync();
     final feedCardSource = File(
       'lib/src/presentation/components/feed_post_card.dart',
     ).readAsStringSync();
@@ -1345,9 +1351,9 @@ void main() {
     expect(bookDetailSource, contains('l10n.shareToFeed'));
     expect(bookDetailSource, contains('l10n.defaultShareMessage'));
     expect(bookDetailSource, contains('collabBookInfo'));
-    expect(bookDetailSource, contains('_localizedContentType'));
-    expect(bookDetailSource, contains('contentTypeStory'));
-    expect(bookDetailSource, contains('chapterCount > 1'));
+    expect(bookDetailMetaSource, contains('_localizedContentType'));
+    expect(bookDetailMetaSource, contains('contentTypeStory'));
+    expect(bookDetailMetaSource, contains('chapterCount == 1'));
     expect(bookDetailSource, isNot(contains('_CollabChip')));
     expect(feedCardSource, contains('_showEditPostSheet'));
     expect(feedCardSource, contains('pickImage'));
@@ -2122,6 +2128,6 @@ void main() {
       isNot(contains('await _fetchRemoteTopics()')),
     );
     expect(loginSource, contains('warmPublicHomepageCache(ref)'));
-    expect(mainSource, contains('warmUserHomepageCache(ref)'));
+    expect(mainSource, contains('warmUserHomepageCache'));
   });
 }

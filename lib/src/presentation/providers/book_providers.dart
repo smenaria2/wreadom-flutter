@@ -108,6 +108,9 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
   ref,
   bookId,
 ) async* {
+  final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
+  if (initial != null) yield initial;
+
   if (_isFirebaseBookId(bookId)) {
     yield* FirebaseFirestore.instance
         .collection('books')
@@ -120,9 +123,6 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
         });
     return;
   }
-
-  final initial = await ref.watch(bookRepositoryProvider).getBook(bookId);
-  if (initial != null) yield initial;
 
   if (!_shouldWatchFirebaseBook(bookId, initial)) {
     if (initial == null) yield null;

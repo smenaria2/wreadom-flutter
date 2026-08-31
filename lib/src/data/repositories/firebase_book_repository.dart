@@ -7,6 +7,7 @@ import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../utils/firestore_utils.dart';
+import '../utils/firestore_resilience_helper.dart';
 import '../../utils/map_utils.dart';
 
 class FirebaseBookRepository implements BookRepository {
@@ -27,7 +28,7 @@ class FirebaseBookRepository implements BookRepository {
         query = query.startAfterDocument(lastDoc);
       }
 
-      final snapshot = await query.get();
+      final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
       return snapshot.docs
           .map((doc) {
             try {
@@ -55,7 +56,7 @@ class FirebaseBookRepository implements BookRepository {
     dynamic lastDoc,
   }) async {
     try {
-      Query query = _firestore
+      Query<Map<String, dynamic>> query = _firestore
           .collection(_collection)
           .where('bookshelves', arrayContains: bookshelf)
           .where('status', isEqualTo: 'published')
@@ -65,7 +66,7 @@ class FirebaseBookRepository implements BookRepository {
         query = query.startAfterDocument(lastDoc);
       }
 
-      final snapshot = await query.get();
+      final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
       return snapshot.docs
           .map((doc) {
             try {
@@ -89,13 +90,14 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Book>> getOriginalBooks({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('isOriginal', isEqualTo: true)
-          .where('status', isEqualTo: 'published')
-          .orderBy('createdAt', descending: true)
-          .limit(limit)
-          .get();
+      final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+        _firestore
+            .collection(_collection)
+            .where('isOriginal', isEqualTo: true)
+            .where('status', isEqualTo: 'published')
+            .orderBy('createdAt', descending: true)
+            .limit(limit),
+      );
 
       return snapshot.docs
           .map((doc) {
@@ -120,11 +122,12 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Book>> getBooksWithLeaves({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'published')
-          .where('hasLeaves', isEqualTo: true)
-          .get();
+      final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+        _firestore
+            .collection(_collection)
+            .where('status', isEqualTo: 'published')
+            .where('hasLeaves', isEqualTo: true),
+      );
 
       final books = _booksFromDocs(snapshot.docs);
       books.sort((a, b) {
@@ -192,8 +195,8 @@ class FirebaseBookRepository implements BookRepository {
     try {
       final byId = <String, Book>{};
 
-      Future<void> addBooksFrom(Query query) async {
-        final snapshot = await query.get();
+      Future<void> addBooksFrom(Query<Map<String, dynamic>> query) async {
+        final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
         for (final doc in snapshot.docs) {
           try {
             final data = normalizeBookMapForModel(
@@ -239,8 +242,10 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<Book?> getBook(String bookId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(bookId).get();
-      if (!doc.exists) return null;
+      final doc = await FirestoreResilienceHelper.getDocWithFastCacheFallback(
+        _firestore.collection(_collection).doc(bookId),
+      );
+      if (!doc.exists || doc.data() == null) return null;
       final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
       return Book.fromJson(data);
     } catch (e, stack) {
@@ -479,10 +484,11 @@ class FirebaseBookRepository implements BookRepository {
           chunks.add(firebaseIds.sublist(i, i + 10 > firebaseIds.length ? firebaseIds.length : i + 10));
         }
         for (final chunk in chunks) {
-          final snapshot = await _firestore
-              .collection(_collection)
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
+          final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+            _firestore
+                .collection(_collection)
+                .where(FieldPath.documentId, whereIn: chunk),
+          );
           books.addAll(
             snapshot.docs.map((doc) {
               try {
@@ -506,10 +512,11 @@ class FirebaseBookRepository implements BookRepository {
           chunks.add(archiveIds.sublist(i, i + 10 > archiveIds.length ? archiveIds.length : i + 10));
         }
         for (final chunk in chunks) {
-          final snapshot = await _firestore
-              .collection('books_metadata')
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
+          final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+            _firestore
+                .collection('books_metadata')
+                .where(FieldPath.documentId, whereIn: chunk),
+          );
           books.addAll(
             snapshot.docs.map((doc) {
               try {
@@ -629,7 +636,7 @@ class FirebaseBookRepository implements BookRepository {
         'bookshelves',
       ]) {
         for (final value in values) {
-          Query query = _firestore
+          Query<Map<String, dynamic>> query = _firestore
               .collection(_collection)
               .where(field, arrayContains: value)
               .where('status', isEqualTo: 'published')
@@ -640,7 +647,7 @@ class FirebaseBookRepository implements BookRepository {
           }
 
           try {
-            final snapshot = await query.get();
+            final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
             for (final book in _booksFromDocs(snapshot.docs)) {
               byId[book.id] = book;
             }
@@ -762,12 +769,13 @@ class FirebaseBookRepository implements BookRepository {
   @override
   Future<List<Chapter>> getChapters(String bookId) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .doc(bookId)
-          .collection('chapters')
-          .orderBy('order')
-          .get();
+      final snapshot = await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+        _firestore
+            .collection(_collection)
+            .doc(bookId)
+            .collection('chapters')
+            .orderBy('order'),
+      );
 
       if (snapshot.docs.isEmpty) {
         // Fallback: check if they are embedded in the book document

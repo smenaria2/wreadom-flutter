@@ -33,7 +33,7 @@ const _homepageAuthorWorksCacheKey = 'homepage_author_works_cache_v1';
 const _homepageIABooksCacheKey = 'homepage_ia_books_cache_v3';
 const _homepageBannersCacheKey = 'homepage_banners_cache_v1';
 const _homepageGenreBooksCacheKeyPrefix = 'homepage_genre_books_cache_v1_';
-const _homepageRequestTimeout = Duration(seconds: 20);
+const _homepageRequestTimeout = Duration(seconds: 5);
 const _homepageCacheTtl = Duration(hours: 6);
 const _compiledHomepageCacheTtl = Duration(hours: 1);
 bool _homepageBackgroundRefreshQueued = false;
@@ -261,9 +261,11 @@ final compiledHomepageProvider = FutureProvider<CompiledHomepage?>((ref) async {
     (json) => CompiledHomepage.fromJson(asStringMap(json)),
   );
 
-  if (_hasCompiledHomepageContent(cached) &&
-      !_isCompiledHomepageCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  // Stale-While-Revalidate: Return cached content immediately (0ms)
+  if (_hasCompiledHomepageContent(cached)) {
+    if (_isCompiledHomepageCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
@@ -673,18 +675,18 @@ final homepageMetadataProvider = FutureProvider<HomepageMetadata>((ref) async {
     (json) => HomepageMetadata.fromJson(asStringMap(json)),
   );
 
-  if (cached != null &&
-      _hasHomepageMetadataContent(cached) &&
-      !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && _hasHomepageMetadataContent(cached)) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
   try {
-    return _fetchAndCacheHomepageMetadata(prefs);
+    return await _fetchAndCacheHomepageMetadata(prefs);
   } catch (e, stack) {
     debugPrint('[homepageMetadataProvider] Error: $e\n$stack');
-    return const HomepageMetadata();
+    return cached ?? const HomepageMetadata();
   }
 });
 
@@ -703,16 +705,18 @@ final homeBannersProvider = FutureProvider<List<HomeBanner>>((ref) async {
         .map((raw) => HomeBanner.fromJson(asStringMap(raw)))
         .toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
   try {
-    return _fetchAndCacheHomeBanners(prefs);
+    return await _fetchAndCacheHomeBanners(prefs);
   } catch (e, stack) {
     debugPrint('[homeBannersProvider] Error: $e\n$stack');
-    return const <HomeBanner>[];
+    return cached ?? const <HomeBanner>[];
   }
 });
 
@@ -769,17 +773,19 @@ final homepageBooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
   try {
     final metadata = await ref.watch(homepageMetadataProvider.future);
-    return _fetchAndCacheHomepageBooks(ref, prefs, metadata);
+    return await _fetchAndCacheHomepageBooks(ref, prefs, metadata);
   } catch (e, stack) {
     debugPrint('[homepageBooksProvider] Error: $e\n$stack');
-    return const <Book>[];
+    return cached ?? const <Book>[];
   }
 });
 
@@ -804,16 +810,18 @@ final homepageAuthorWorksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
   try {
-    return _fetchAndCacheHomepageAuthorWorks(ref, prefs);
+    return await _fetchAndCacheHomepageAuthorWorks(ref, prefs);
   } catch (e, stack) {
     debugPrint('[homepageAuthorWorksProvider] Error: $e\n$stack');
-    return const <Book>[];
+    return cached ?? const <Book>[];
   }
 });
 
@@ -1068,17 +1076,19 @@ final homepageIABooksProvider = FutureProvider<List<Book>>((ref) async {
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 
   try {
     final books = await ref.watch(homepageRecommendedBooksProvider.future);
-    return _fetchAndCacheHomepageIABooks(prefs, books);
+    return await _fetchAndCacheHomepageIABooks(prefs, books);
   } catch (e, stack) {
     debugPrint('[homepageIABooksProvider] Error: $e\n$stack');
-    return const <Book>[];
+    return cached ?? const <Book>[];
   }
 });
 
@@ -1185,8 +1195,10 @@ final homepageGenreProvider = FutureProvider.family<List<Book>, String>((
     (json) =>
         (json as List).map((raw) => Book.fromJson(asStringMap(raw))).toList(),
   );
-  if (cached != null && cached.isNotEmpty && !_isCacheStale(prefs)) {
-    if (refreshTick == 0) _queueHomepageBackgroundRefresh(ref);
+  if (cached != null && cached.isNotEmpty) {
+    if (_isCacheStale(prefs) || refreshTick > 0) {
+      _queueHomepageBackgroundRefresh(ref);
+    }
     return cached;
   }
 

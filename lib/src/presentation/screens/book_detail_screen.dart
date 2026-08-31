@@ -133,7 +133,7 @@ class _BookDetailScreenState extends ConsumerState<BookDetailScreen> {
           );
         },
         loading: () =>
-            widget.preloadedBook?.source == 'archive' &&
+            widget.preloadedBook != null &&
                 canViewBook(widget.preloadedBook!, currentUserId)
             ? _BookDetailBody(
                 book: widget.preloadedBook!,
