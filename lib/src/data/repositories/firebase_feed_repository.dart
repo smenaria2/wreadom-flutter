@@ -6,6 +6,7 @@ import '../../domain/models/feed_post.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../services/image_upload_service.dart';
+import '../utils/firestore_resilience_helper.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 
@@ -42,7 +43,8 @@ class FirebaseFeedRepository implements FeedRepository {
       }
 
       debugPrint('[FirebaseFeedRepository] Running query...');
-      final snapshot = await query.get();
+      final snapshot =
+          await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
       debugPrint(
         '[FirebaseFeedRepository] Received ${snapshot.docs.length} documents.',
       );
@@ -156,7 +158,8 @@ class FirebaseFeedRepository implements FeedRepository {
 
     query = query.orderBy('timestamp', descending: true).limit(limit + 1);
 
-    final snapshot = await query.get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
     return snapshot.docs
         .map((doc) {
           try {
@@ -213,7 +216,8 @@ class FirebaseFeedRepository implements FeedRepository {
           .orderBy('timestamp', descending: true)
           .limit(limit * 4);
 
-      final snapshot = await query.get();
+      final snapshot =
+          await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
       final posts = snapshot.docs
           .map((doc) {
             try {
@@ -273,7 +277,8 @@ class FirebaseFeedRepository implements FeedRepository {
       query = query.startAfterDocument(cursor);
     }
 
-    final snapshot = await query.get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
     final docs = snapshot.docs;
     final pageDocs = docs.take(limit).toList();
     final posts = pageDocs
@@ -318,7 +323,10 @@ class FirebaseFeedRepository implements FeedRepository {
       query = query.where('question', isEqualTo: normalizedQuestion);
     }
 
-    final snapshot = await query.limit(limit * 4).get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          query.limit(limit * 4),
+        );
     final posts =
         snapshot.docs
             .map((doc) {
@@ -365,13 +373,15 @@ class FirebaseFeedRepository implements FeedRepository {
     required String bookId,
     String? chapterId,
   }) async {
-    final snapshot = await _firestore
-        .collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .where('type', isEqualTo: 'review')
-        .orderBy('timestamp', descending: true)
-        .limit(25)
-        .get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _firestore
+              .collection(_collection)
+              .where('userId', isEqualTo: userId)
+              .where('type', isEqualTo: 'review')
+              .orderBy('timestamp', descending: true)
+              .limit(25),
+        );
 
     for (final doc in snapshot.docs) {
       final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
@@ -547,7 +557,9 @@ class FirebaseFeedRepository implements FeedRepository {
   @override
   Future<FeedPost?> getFeedPost(String postId) async {
     try {
-      final doc = await _firestore.collection(_collection).doc(postId).get();
+      final doc = await FirestoreResilienceHelper.getDocWithFastCacheFallback(
+        _firestore.collection(_collection).doc(postId),
+      );
       if (!doc.exists) return null;
       final data = mapFirestoreData(asStringMap(doc.data()), doc.id);
       return FeedPost.fromJson(data);
@@ -708,10 +720,12 @@ class FirebaseFeedRepository implements FeedRepository {
   @override
   Future<List<String>> getActiveQuestions() async {
     try {
-      final snapshot = await _firestore
-          .collection('feed-questions')
-          .where('isEnabled', isEqualTo: true)
-          .get();
+      final snapshot =
+          await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+            _firestore
+                .collection('feed-questions')
+                .where('isEnabled', isEqualTo: true),
+          );
       return snapshot.docs
           .map((doc) => doc.data()['text'] as String? ?? '')
           .where((text) => text.isNotEmpty)

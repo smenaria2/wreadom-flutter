@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../domain/models/comment.dart';
 import '../../domain/repositories/comment_repository.dart';
+import '../utils/firestore_resilience_helper.dart';
 import '../utils/firestore_utils.dart';
 
 class FirebaseCommentRepository implements CommentRepository {
@@ -129,10 +130,10 @@ class FirebaseCommentRepository implements CommentRepository {
   Future<List<Comment>> getBookComments(String bookId) async {
     final idAsInt = int.tryParse(bookId);
     final ids = [bookId, ?idAsInt];
-    final snapshot = await _firestore
-        .collection('comments')
-        .where('bookId', whereIn: ids)
-        .get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _firestore.collection('comments').where('bookId', whereIn: ids),
+        );
     final items = snapshot.docs.map((doc) {
       final data = mapFirestoreData(doc.data(), doc.id);
       return Comment.fromJson(data);
@@ -148,9 +149,10 @@ class FirebaseCommentRepository implements CommentRepository {
     String? chapterId,
     required int chapterIndex,
   }) async {
-    final snapshot = await _bookCommentsQuery(
-      bookId,
-    ).where('userId', isEqualTo: userId).get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _bookCommentsQuery(bookId).where('userId', isEqualTo: userId),
+        );
     if (snapshot.docs.isEmpty) return null;
     for (final doc in snapshot.docs) {
       final comment = Comment.fromJson(mapFirestoreData(doc.data(), doc.id));
@@ -223,10 +225,10 @@ class FirebaseCommentRepository implements CommentRepository {
 
     final idAsInt = int.tryParse(postId);
     final ids = [postId, ?idAsInt];
-    final snapshot = await _firestore
-        .collection('comments')
-        .where('feedPostId', whereIn: ids)
-        .get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _firestore.collection('comments').where('feedPostId', whereIn: ids),
+        );
     for (final doc in snapshot.docs) {
       final data = mapFirestoreData(doc.data(), doc.id);
       final comment = Comment.fromJson(data);

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/follow_repository.dart';
+import '../utils/firestore_resilience_helper.dart';
 
 class FirebaseFollowRepository implements FollowRepository {
   FirebaseFollowRepository({FirebaseFirestore? firestore})
@@ -62,10 +63,13 @@ class FirebaseFollowRepository implements FollowRepository {
   @override
   Future<List<String>> getFollowingList(String followerId) async {
     debugPrint('[FirebaseFollowRepository] Fetching following list...');
-    final snapshot = await _firestore
-        .collection('follows')
-        .where('followerId', isEqualTo: followerId)
-        .get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _firestore.collection('follows').where(
+            'followerId',
+            isEqualTo: followerId,
+          ),
+        );
     final ids = _uniqueIds(snapshot.docs, 'followingId');
     debugPrint(
       '[FirebaseFollowRepository] Received ${ids.length} following ids.',
@@ -91,10 +95,13 @@ class FirebaseFollowRepository implements FollowRepository {
   @override
   Future<List<String>> getFollowersList(String followingId) async {
     debugPrint('[FirebaseFollowRepository] Fetching followers list...');
-    final snapshot = await _firestore
-        .collection('follows')
-        .where('followingId', isEqualTo: followingId)
-        .get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+          _firestore.collection('follows').where(
+            'followingId',
+            isEqualTo: followingId,
+          ),
+        );
     final ids = _uniqueIds(snapshot.docs, 'followerId');
     debugPrint(
       '[FirebaseFollowRepository] Received ${ids.length} follower ids.',
@@ -133,7 +140,8 @@ class FirebaseFollowRepository implements FollowRepository {
       query = query.startAfterDocument(cursor);
     }
 
-    final snapshot = await query.get();
+    final snapshot =
+        await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query);
     final docs = snapshot.docs;
     final pageDocs = docs.take(limit).toList();
     return PagedResult(
