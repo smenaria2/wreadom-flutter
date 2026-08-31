@@ -39,7 +39,20 @@ class CommentSharePreviewSheet extends ConsumerStatefulWidget {
 
 class _CommentSharePreviewSheetState
     extends ConsumerState<CommentSharePreviewSheet> {
+  late final TextEditingController _captionController;
   bool _isSharingToFeed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _captionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _captionController.dispose();
+    super.dispose();
+  }
 
   Future<void> _shareExternally() async {
     final l10n = AppLocalizations.of(context)!;
@@ -86,23 +99,32 @@ class _CommentSharePreviewSheetState
     setState(() => _isSharingToFeed = true);
 
     try {
+      final customNote = _captionController.text.trim();
       final post = FeedPost(
         userId: user.id,
         username: user.username,
         displayName: user.displayName,
+        penName: user.penName,
         userPhotoURL: user.photoURL,
         type: widget.comment.rating != null ? 'review' : 'comment',
         bookId: widget.bookId,
         bookTitle: widget.bookTitle,
         bookAuthorName: widget.bookAuthorName,
         bookCover: widget.bookCover,
-        text: widget.comment.text,
+        text: customNote.isNotEmpty ? customNote : widget.comment.text,
+        quote: widget.comment.text,
         rating: widget.comment.rating,
         chapterTitle: widget.comment.chapterTitle,
         chapterId: widget.comment.chapterId,
+        targetUserId: widget.comment.userId,
+        targetUsername: widget.comment.username,
+        targetUserDisplayName: widget.comment.displayName,
+        targetUserPenName: widget.comment.penName,
+        targetUserPhotoURL: widget.comment.userPhotoURL,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         likes: const [],
         visibility: 'public',
+        privacy: 'public',
       );
 
       await ref.read(feedRepositoryProvider).createFeedPost(post);
@@ -133,14 +155,19 @@ class _CommentSharePreviewSheetState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final isReview = widget.comment.rating != null;
 
     return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
-        child: Padding(
+        top: false,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -150,9 +177,7 @@ class _CommentSharePreviewSheetState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.comment.rating != null
-                        ? 'Share Review'
-                        : 'Share Comment',
+                    isReview ? 'Share Review' : 'Share Comment',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -163,12 +188,12 @@ class _CommentSharePreviewSheetState
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               // Comment image card preview
               Center(
                 child: Container(
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.45,
+                    maxHeight: MediaQuery.of(context).size.height * 0.38,
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
@@ -186,7 +211,24 @@ class _CommentSharePreviewSheetState
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              // Optional Custom Caption
+              TextField(
+                controller: _captionController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'Add your thoughts (optional)',
+                  hintText: 'Share what you think about this review...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   // Share Externally

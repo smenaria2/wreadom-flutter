@@ -29,6 +29,7 @@ import 'package:librebook_flutter/src/localization/generated/app_localizations.d
 import 'book/gradient_quote_card.dart';
 import 'book/gradient_book_card.dart';
 import 'book/gradient_review_card.dart';
+import 'book/shared_review_card.dart';
 import '../widgets/audio_post_player.dart';
 import 'audio_post_creator.dart';
 import '../widgets/feed_media_playable_card.dart';
@@ -771,7 +772,17 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
     final isPremiumCard =
         post.type.toLowerCase() == 'quote' ||
         (post.type.toLowerCase() == 'post' && hasLinkedBook) ||
-        (post.type.toLowerCase() == 'review' && post.rating != null);
+        post.type.toLowerCase() == 'review';
+    final isSharedReview =
+        post.type.toLowerCase() == 'review' &&
+        ((post.targetUserId != null &&
+                post.targetUserId!.isNotEmpty &&
+                post.targetUserId != post.userId) ||
+            (post.targetUserDisplayName != null &&
+                post.targetUserDisplayName!.trim().isNotEmpty) ||
+            (post.targetUsername != null &&
+                post.targetUsername!.trim().isNotEmpty &&
+                post.targetUsername != post.username));
     final storedBookAuthorName = post.bookAuthorName?.trim() ?? '';
     final storedBookTitle = post.bookTitle?.trim() ?? '';
     final fallbackBookAsync =
@@ -1203,41 +1214,79 @@ class _FeedPostCardState extends ConsumerState<FeedPostCard> {
                   );
                 },
               ),
-            ] else if (post.type.toLowerCase() == 'review' &&
-                post.rating != null) ...[
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < post.rating!
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    color: Colors.amber,
-                    size: 20,
-                  );
-                }),
-              ),
-              const SizedBox(height: 8),
-              if (post.text.isNotEmpty) ...[
-                _PostTextWithLinkPreview(
-                  text: post.text,
-                  previewInfo: postLinkPreview,
+            ] else if (post.type.toLowerCase() == 'review') ...[
+              if (isSharedReview) ...[
+                if (post.text.trim().isNotEmpty &&
+                    post.text.trim() != (post.quote ?? '').trim()) ...[
+                  _PostTextWithLinkPreview(
+                    text: post.text,
+                    previewInfo: postLinkPreview,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                SharedReviewCard(
+                  post: post,
+                  bookTitle: resolvedBookTitle,
+                  bookAuthorName: resolvedBookAuthorName,
+                  bookCover: post.bookCover,
+                  onBookTap: () {
+                    if (bookIdText != null) {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.bookDetail,
+                        arguments: BookDetailArguments(bookId: bookIdText),
+                      );
+                    }
+                  },
+                  onReviewerTap:
+                      post.targetUserId != null && post.targetUserId!.isNotEmpty
+                          ? () {
+                              Navigator.of(context).pushNamed(
+                                AppRoutes.publicProfile,
+                                arguments: PublicProfileArguments(
+                                  userId: post.targetUserId!,
+                                ),
+                              );
+                            }
+                          : null,
                 ),
-                const SizedBox(height: 10),
+              ] else ...[
+                if (post.rating != null) ...[
+                  Row(
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < post.rating!
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: Colors.amber,
+                        size: 20,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (post.text.isNotEmpty) ...[
+                  _PostTextWithLinkPreview(
+                    text: post.text,
+                    previewInfo: postLinkPreview,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (post.rating != null)
+                  GradientReviewCard(
+                    rating: post.rating!,
+                    bookTitle: resolvedBookTitle,
+                    bookCover: post.bookCover,
+                    bookAuthorName: resolvedBookAuthorName,
+                    onBookTap: () {
+                      if (bookIdText != null) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.bookDetail,
+                          arguments: BookDetailArguments(bookId: bookIdText),
+                        );
+                      }
+                    },
+                  ),
               ],
-              GradientReviewCard(
-                rating: post.rating!,
-                bookTitle: resolvedBookTitle,
-                bookCover: post.bookCover,
-                bookAuthorName: resolvedBookAuthorName,
-                onBookTap: () {
-                  if (bookIdText != null) {
-                    Navigator.of(context).pushNamed(
-                      AppRoutes.bookDetail,
-                      arguments: BookDetailArguments(bookId: bookIdText),
-                    );
-                  }
-                },
-              ),
             ] else ...[
               _PostTextWithLinkPreview(
                 text: post.text,

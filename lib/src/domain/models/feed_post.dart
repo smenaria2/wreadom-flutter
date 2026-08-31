@@ -45,6 +45,7 @@ abstract class FeedPost with _$FeedPost {
     String? targetUsername,
     String? targetUserDisplayName,
     String? targetUserPenName,
+    String? targetUserPhotoURL,
     String? privacy,
     required String visibility,
     String? imageUrl,

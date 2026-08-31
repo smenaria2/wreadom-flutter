@@ -57,6 +57,7 @@ import '../../utils/clipboard_writer.dart';
 import '../components/book/comment_reply_sheet.dart';
 import '../components/book/quote_share_preview_sheet.dart';
 import '../components/book/leaf_components.dart';
+import '../components/reader/chapter_review_teaser_card.dart';
 import '../components/reader/dictionary_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
@@ -1311,6 +1312,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               chapters,
                               commentCounts,
                               contentPadding: readerContentPadding,
+                              allComments: commentsAsync.asData?.value,
                             )
                           : SelectionArea(
                               onSelectionChanged: (content) {
@@ -1403,6 +1405,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 chapters,
                                 commentCounts,
                                 contentPadding: readerContentPadding,
+                                allComments: commentsAsync.asData?.value,
                               ),
                             ),
                     ), // GestureDetector
@@ -1549,8 +1552,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     List<Chapter> chapters,
     Map<int, int> commentCounts, {
     required EdgeInsets contentPadding,
+    List<Comment>? allComments,
   }) {
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
+    final topReview = findTopChapterReview(
+      allComments,
+      chapterId: chapter?.id,
+      chapterIndex: _chapterIndex,
+      chapters: chapters,
+    );
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -1677,6 +1687,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
               book: widget.book,
               chromeTheme: _getReaderChromeTheme(),
+              topReview: topReview,
             ),
           ),
           const SizedBox(height: 20),
@@ -1695,9 +1706,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     List<Chapter> chapters,
     Map<int, int> commentCounts, {
     required EdgeInsets contentPadding,
+    List<Comment>? allComments,
   }) {
     final isPoem = widget.book.contentType?.toLowerCase() == 'poem';
     final blocks = _readerBlocksForChapter(chapter);
+    final topReview = findTopChapterReview(
+      allComments,
+      chapterId: chapter?.id,
+      chapterIndex: _chapterIndex,
+      chapters: chapters,
+    );
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -1740,6 +1758,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
               book: widget.book,
               chromeTheme: _getReaderChromeTheme(),
+              topReview: topReview,
             ),
           ),
           const SizedBox(height: 20),
@@ -4956,6 +4975,7 @@ class _ChapterEndActions extends StatelessWidget {
     required this.onReaction,
     required this.book,
     required this.chromeTheme,
+    this.topReview,
   });
 
   final bool hasNextChapter;
@@ -4967,10 +4987,11 @@ class _ChapterEndActions extends StatelessWidget {
   final ValueChanged<String> onReaction;
   final Book book;
   final ThemeData chromeTheme;
+  final Comment? topReview;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = chromeTheme;
     final l10n = AppLocalizations.of(context)!;
     final actionForeground =
         ThemeData.estimateBrightnessForColor(actionColor) == Brightness.dark
@@ -4978,7 +4999,9 @@ class _ChapterEndActions extends StatelessWidget {
         : Colors.black87;
 
     if (hasNextChapter) {
-      return Column(
+      return Theme(
+        data: chromeTheme,
+        child: Column(
         children: [
           GlassSurface(
             borderRadius: BorderRadius.circular(16),
@@ -5088,15 +5111,29 @@ class _ChapterEndActions extends StatelessWidget {
               ),
             ],
           ),
+          if (topReview != null) ...[
+            const SizedBox(height: 12),
+            ChapterReviewTeaserCard(
+              review: topReview,
+              onTap: () {
+                unawaited(AppHaptics.selection());
+                onViewComments();
+              },
+              actionColor: actionColor,
+            ),
+          ],
         ],
+        ),
       );
     } else {
       final showLeaves =
           book.isOriginal == true &&
           book.leaves != null &&
           book.leaves!.isNotEmpty;
-      return Column(
-        children: [
+      return Theme(
+        data: chromeTheme,
+        child: Column(
+          children: [
           _ChapterReactionRow(actionColor: actionColor, onReaction: onReaction),
           const SizedBox(height: 12),
           GlassSurface(
@@ -5155,19 +5192,28 @@ class _ChapterEndActions extends StatelessWidget {
               ),
             ),
           ),
+          if (topReview != null) ...[
+            const SizedBox(height: 12),
+            ChapterReviewTeaserCard(
+              review: topReview,
+              onTap: () {
+                unawaited(AppHaptics.selection());
+                onViewComments();
+              },
+              actionColor: actionColor,
+            ),
+          ],
           if (showLeaves) ...[
             const SizedBox(height: 28),
-            Theme(
-              data: chromeTheme,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: LeafStrip(book: book, canManage: false),
-                ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: LeafStrip(book: book, canManage: false),
               ),
             ),
           ],
         ],
+        ),
       );
     }
   }

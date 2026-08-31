@@ -254,11 +254,53 @@ class _ReviewContent extends StatelessWidget {
   final VoidCallback onDoubleTap;
   final VoidCallback? onBookTap;
 
+  String _resolveReviewerName() {
+    for (final value in [
+      post.targetUserDisplayName,
+      post.targetUserPenName,
+      post.targetUsername,
+    ]) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isSharedReview = post.targetUserId != null &&
+        post.targetUserId!.isNotEmpty &&
+        post.targetUserId != post.userId;
+    final reviewerName = isSharedReview ? _resolveReviewerName() : '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Reviewer attribution for shared reviews
+        if (isSharedReview && reviewerName.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.format_quote_rounded,
+                color: Colors.amber,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Reviewed by $reviewerName',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.amber,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
