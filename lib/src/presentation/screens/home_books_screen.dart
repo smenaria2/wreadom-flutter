@@ -1859,24 +1859,6 @@ class _FogLine extends StatelessWidget {
   }
 }
 
-class _FogCircle extends StatelessWidget {
-  const _FogCircle({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: _FogBlock(
-        width: size,
-        height: size,
-        radius: size / 2,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-    );
-  }
-}
-
 class _FogBlock extends StatelessWidget {
   const _FogBlock({
     required this.width,
@@ -2165,54 +2147,10 @@ class _AuthorSpotlight extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const _AuthorSpotlightFog(),
+      // Don't reserve space while loading: if no author resolves the section
+      // would otherwise collapse and shift everything below it.
+      loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _AuthorSpotlightFog extends StatelessWidget {
-  const _AuthorSpotlightFog();
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassSurface(
-      strong: true,
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      borderRadius: BorderRadius.circular(18),
-      child: FogReveal(
-        revealed: false,
-        strong: true,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Row(
-                children: [
-                  _FogCircle(size: 60),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _FogLine(width: 116, height: 12),
-                        SizedBox(height: 8),
-                        _FogLine(width: double.infinity, height: 14),
-                        SizedBox(height: 6),
-                        _FogLine(width: 180, height: 14),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              _SpotlightBooksFog(),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

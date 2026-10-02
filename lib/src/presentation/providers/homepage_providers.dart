@@ -12,6 +12,7 @@ import '../../domain/models/home_banner.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/models/homepage/compiled_homepage.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
+import '../../data/utils/firestore_resilience_helper.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
@@ -235,11 +236,13 @@ Future<T> _withHomepageTimeout<T>(
 Future<CompiledHomepage?> _fetchAndCacheCompiledHomepage(
   SharedPreferences prefs,
 ) async {
+  // Firestore's persistent cache answers instantly when it has the doc and
+  // refreshes it in the background; otherwise this waits on the server.
   final doc = await _withHomepageTimeout(
-    FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_compiled')
-        .get(),
+    FirestoreResilienceHelper.getDocWithFastCacheFallback(
+      FirebaseFirestore.instance.collection('settings').doc('homepage_compiled'),
+      serverTimeout: _compiledHomepageTimeout,
+    ),
     'settings/homepage_compiled',
     timeout: _compiledHomepageTimeout,
   );
@@ -310,12 +313,14 @@ Future<bool> _refreshHomepageCachesInBackground(Ref ref) async {
     if (_hasCompiledHomepageContent(compiled)) return true;
 
     final metadata = await _fetchAndCacheHomepageMetadata(prefs);
-    final recommendedBooks = await _fetchRecommendedBooks(ref, metadata);
-    await _fetchAndCacheHomepageBooks(ref, prefs, metadata);
-    await Future.wait([
+    await Future.wait<Object?>([
+      _fetchAndCacheHomepageBooks(ref, prefs, metadata),
       _fetchAndCacheHomeBanners(prefs),
       _fetchAndCacheHomepageAuthorWorks(ref, prefs),
-      _fetchAndCacheHomepageIABooks(prefs, recommendedBooks),
+      _fetchRecommendedBooks(ref, metadata).then(
+        (recommendedBooks) =>
+            _fetchAndCacheHomepageIABooks(prefs, recommendedBooks),
+      ),
     ]);
     return true;
   } catch (e, stack) {
@@ -383,13 +388,21 @@ bool _hasHomepageMetadataContent(HomepageMetadata metadata) {
 Future<HomepageMetadata> _fetchAndCacheHomepageMetadata(
   SharedPreferences prefs,
 ) async {
-  final doc = await _withHomepageTimeout(
-    FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_metadata')
-        .get(),
-    'settings/homepage_metadata',
-  );
+  // Fetch the metadata doc and live stats concurrently.
+  final liveStatsFuture = _fetchLiveRecommendationStats();
+  final DocumentSnapshot<Map<String, dynamic>> doc;
+  try {
+    doc = await _withHomepageTimeout(
+      FirebaseFirestore.instance
+          .collection('settings')
+          .doc('homepage_metadata')
+          .get(),
+      'settings/homepage_metadata',
+    );
+  } catch (_) {
+    unawaited(liveStatsFuture);
+    rethrow;
+  }
 
   final data = asStringMap(doc.data());
   final authors = data['authors'];
@@ -402,7 +415,7 @@ Future<HomepageMetadata> _fetchAndCacheHomepageMetadata(
   }
 
   final metadata = HomepageMetadata.fromJson(data);
-  final liveStats = await _fetchLiveRecommendationStats();
+  final liveStats = await liveStatsFuture;
   final mergedMetadata = metadata.copyWith(
     recommendationStats: _mergeRecommendationStats(
       metadata.recommendationStats,
@@ -946,23 +959,50 @@ final homepageRankedAuthorsProvider =
       ranking,
     ) async {
       final metadata = await ref.watch(homepageMetadataProvider.future);
-      final metricsEntries = await Future.wait(
-        metadata.authors.map((author) async {
-          try {
-            final books = await ref.watch(userBooksProvider(author.id).future);
-            return MapEntry(author.id, homeAuthorMetricsFor(author.id, books));
-          } catch (error, stack) {
-            debugPrint(
-              '[homepageRankedAuthorsProvider:${author.id}] Error: '
-              '$error\n$stack',
-            );
-            return MapEntry(author.id, _emptyHomeAuthorMetrics);
-          }
-        }),
-      );
-      final metricsByAuthorId = Map<String, HomeAuthorMetrics>.fromEntries(
-        metricsEntries,
-      );
+
+      // Derive metrics from the home works pool that is already loaded
+      // instead of issuing two Firestore queries per author.
+      List<Book> works = const <Book>[];
+      try {
+        works = await ref.watch(homepageAuthorWorksProvider.future);
+      } catch (error, stack) {
+        debugPrint('[homepageRankedAuthorsProvider] works pool error: '
+            '$error\n$stack');
+      }
+      final metricsByAuthorId = <String, HomeAuthorMetrics>{
+        for (final author in metadata.authors)
+          author.id: homeAuthorMetricsFor(author.id, works),
+      };
+
+      // Authors missing from the pool (e.g. older works) get a bounded,
+      // parallel per-author lookup. A failed lookup is logged and the
+      // author is kept out only because no works could be verified.
+      final missing = metadata.authors
+          .where((author) => metricsByAuthorId[author.id]!.works < 1)
+          .take(8)
+          .toList();
+      if (missing.isNotEmpty) {
+        final fallback = await Future.wait(
+          missing.map((author) async {
+            try {
+              final books = await ref.watch(
+                userBooksProvider(author.id).future,
+              );
+              return MapEntry(
+                author.id,
+                homeAuthorMetricsFor(author.id, books),
+              );
+            } catch (error, stack) {
+              debugPrint(
+                '[homepageRankedAuthorsProvider:${author.id}] Error: '
+                '$error\n$stack',
+              );
+              return MapEntry(author.id, _emptyHomeAuthorMetrics);
+            }
+          }),
+        );
+        metricsByAuthorId.addEntries(fallback);
+      }
 
       final authors = metadata.authors.where((author) {
         return (metricsByAuthorId[author.id]?.works ?? 0) >= 1;

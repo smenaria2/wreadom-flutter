@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/app_notification.dart';
 import '../../domain/models/paged_result.dart';
 import '../../domain/repositories/notification_repository.dart';
+import '../utils/firestore_resilience_helper.dart';
 import '../utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 
@@ -89,7 +90,10 @@ class FirebaseNotificationRepository implements NotificationRepository {
       query = query.startAfterDocument(cursor);
     }
 
-    final snapshot = await query.get();
+    // First page: cache-first (the live stream keeps the cache warm).
+    final snapshot = cursor == null
+        ? await FirestoreResilienceHelper.getQueryWithFastCacheFallback(query)
+        : await query.get();
     final pageDocs = snapshot.docs.take(limit).toList();
     final items = pageDocs.map((doc) {
       final data = mapFirestoreData(asStringMap(doc.data()), doc.id);

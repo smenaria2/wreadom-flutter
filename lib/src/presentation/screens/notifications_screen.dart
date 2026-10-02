@@ -157,8 +157,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final notificationsController = ref.read(
       pagedNotificationsProvider.notifier,
     );
-    final currentUserAsync = ref.watch(currentUserProvider);
-    final currentUser = currentUserAsync.asData?.value;
+    // Auth uid is enough here; don't block on the profile document.
+    final authAsync = ref.watch(authStateProvider);
+    final currentUser = authAsync.asData?.value;
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -206,7 +207,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       try {
                         await ref
                             .read(notificationRepositoryProvider)
-                            .markAllAsRead(currentUser.id);
+                            .markAllAsRead(currentUser.uid);
                         await notificationsController.refresh();
                       } finally {
                         if (mounted) {
@@ -248,7 +249,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       body: Stack(
         children: [
           const Positioned.fill(child: AppBackground()),
-          currentUserAsync.isLoading
+          authAsync.isLoading
               ? const Center(child: CircularProgressIndicator())
               : currentUser == null
               ? const AuthRequiredView(icon: Icons.notifications_none_rounded)

@@ -20,12 +20,13 @@ final notificationEventProvider = StreamProvider<String>((ref) {
 final notificationsProvider = StreamProvider<List<AppNotification>>((
   ref,
 ) async* {
-  final user = await ref.watch(currentUserProvider.future);
+  // Only the uid is needed; avoid waiting on the profile document.
+  final user = await ref.watch(authStateProvider.future);
   if (user == null) {
     yield const [];
     return;
   }
-  yield* ref.watch(notificationRepositoryProvider).watchNotifications(user.id);
+  yield* ref.watch(notificationRepositoryProvider).watchNotifications(user.uid);
 });
 
 final pagedNotificationsProvider =
@@ -41,9 +42,9 @@ class PagedNotificationsController
 
   @override
   PagedListState<AppNotification> build() {
-    ref.listen(currentUserProvider, (previous, next) {
-      final previousUserId = previous?.asData?.value?.id;
-      final nextUserId = next.asData?.value?.id;
+    ref.listen(authStateProvider, (previous, next) {
+      final previousUserId = previous?.asData?.value?.uid;
+      final nextUserId = next.asData?.value?.uid;
       if (previousUserId != nextUserId) {
         _cursor = null;
         _loadedUserId = nextUserId;
@@ -57,7 +58,11 @@ class PagedNotificationsController
 
   Future<void> refresh() async {
     _cursor = null;
-    state = const PagedListState(isInitialLoading: true);
+    // Keep the current items on screen while refreshing; only show the
+    // full-screen spinner when there is nothing to show yet.
+    state = state.items.isEmpty
+        ? const PagedListState(isInitialLoading: true)
+        : state.copyWith(clearError: true);
     await _load(reset: true);
   }
 
@@ -71,21 +76,21 @@ class PagedNotificationsController
     }
 
     try {
-      final user = await ref.read(currentUserProvider.future);
+      final user = await ref.read(authStateProvider.future);
       if (user == null) {
         _loadedUserId = null;
         state = const PagedListState(hasMore: false);
         return;
       }
-      if (_loadedUserId != null && _loadedUserId != user.id) {
+      if (_loadedUserId != null && _loadedUserId != user.uid) {
         _cursor = null;
         reset = true;
       }
-      _loadedUserId = user.id;
+      _loadedUserId = user.uid;
       final page = await ref
           .read(notificationRepositoryProvider)
           .getNotificationsPage(
-            user.id,
+            user.uid,
             limit: notificationPageSize,
             cursor: _cursor,
           );

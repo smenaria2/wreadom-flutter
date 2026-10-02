@@ -497,13 +497,16 @@ class FirebaseBookRepository implements BookRepository {
             ),
           );
         }
-        for (final chunk in chunks) {
-          final snapshot =
-              await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
-                _firestore
-                    .collection(_collection)
-                    .where(FieldPath.documentId, whereIn: chunk),
-              );
+        final snapshots = await Future.wait(
+          chunks.map(
+            (chunk) => FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+              _firestore
+                  .collection(_collection)
+                  .where(FieldPath.documentId, whereIn: chunk),
+            ),
+          ),
+        );
+        for (final snapshot in snapshots) {
           books.addAll(
             snapshot.docs.map((doc) {
               try {
@@ -531,13 +534,16 @@ class FirebaseBookRepository implements BookRepository {
             ),
           );
         }
-        for (final chunk in chunks) {
-          final snapshot =
-              await FirestoreResilienceHelper.getQueryWithFastCacheFallback(
-                _firestore
-                    .collection('books_metadata')
-                    .where(FieldPath.documentId, whereIn: chunk),
-              );
+        final snapshots = await Future.wait(
+          chunks.map(
+            (chunk) => FirestoreResilienceHelper.getQueryWithFastCacheFallback(
+              _firestore
+                  .collection('books_metadata')
+                  .where(FieldPath.documentId, whereIn: chunk),
+            ),
+          ),
+        );
+        for (final snapshot in snapshots) {
           books.addAll(
             snapshot.docs.map((doc) {
               try {

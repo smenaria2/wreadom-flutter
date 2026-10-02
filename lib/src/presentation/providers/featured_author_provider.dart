@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -12,6 +13,8 @@ import 'theme_provider.dart';
 const homepageFeaturedAuthorCacheKey = 'homepage_featured_author_cache_v1';
 const homepageFeaturedAuthorCacheUpdatedAtKey =
     'homepage_featured_author_cache_updated_at_v1';
+
+const _featuredAuthorCacheTtl = Duration(hours: 24);
 
 /// Notifier that holds the in-memory session featured author.
 /// Cleared only on explicit homepage refresh.
@@ -49,7 +52,17 @@ final homepageFeaturedAuthorProvider = FutureProvider<UserModel?>((ref) async {
     }
   }
 
+  final cachedAtMs = prefs.getInt(homepageFeaturedAuthorCacheUpdatedAtKey);
+  final cacheExpired =
+      cachedAtMs == null ||
+      DateTime.now().millisecondsSinceEpoch - cachedAtMs >
+          _featuredAuthorCacheTtl.inMilliseconds;
+
   if (cachedAuthor != null) {
+    if (cacheExpired) {
+      // Show the cached author now, rotate on the next cold start.
+      unawaited(prefs.remove(homepageFeaturedAuthorCacheKey));
+    }
     // Pin this author for the remainder of the session.
     ref.read(sessionFeaturedAuthorProvider.notifier).set(cachedAuthor);
     return cachedAuthor;
