@@ -2044,5 +2044,9 @@
   "readerFontNotoSerifDevanagari": "Noto Serif Devanagari",
   "readerFontEczar": "Eczar",
   "readerFontMartel": "Martel",
-  "readerFontLaila": "Laila"
+  "readerFontLaila": "Laila",
+  "maintenanceTitle": "Wreadom is being updated",
+  "maintenanceDefaultMessage": "We are making improvements. Saving is paused for a short while. Please check back soon.",
+  "updateRequiredMessage": "This version of Wreadom is no longer supported. Please update to continue.",
+  "reloadAction": "Reload"
 }

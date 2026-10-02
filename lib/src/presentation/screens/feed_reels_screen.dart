@@ -81,7 +81,11 @@ class _FeedReelsScreenState extends ConsumerState<FeedReelsScreen>
   }
 
   void _stopPlayback() {
-    _audioNotifier.setActiveUrl(null);
+    Future.microtask(() {
+      if (mounted) {
+        _audioNotifier.setActiveUrl(null);
+      }
+    });
   }
 
   void _syncSwipeGuideFor(String sessionKey) {

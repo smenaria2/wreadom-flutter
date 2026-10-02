@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/homepage/homepage_metadata.dart';
@@ -17,12 +18,39 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
 
   @override
   FutureOr<List<DailyTopic>> build() async {
-    final metadata = await ref.watch(homepageMetadataProvider.future);
+    final metadataFuture = ref.watch(homepageMetadataProvider.future);
+    final cachedTopics = _readCachedTopics();
+
+    // Show cached topics at once instead of waiting for the homepage
+    // documents, which can take many seconds on Android.
+    if (cachedTopics.isNotEmpty) {
+      _allTopics = cachedTopics;
+      unawaited(
+        metadataFuture
+            .then((metadata) {
+              final metadataTopics = metadata.dailyTopics
+                  .where((t) => t.isEnabled)
+                  .toList();
+              _allTopics = _mergeTopics(_allTopics, metadataTopics);
+              if (ref.mounted && state.hasValue) {
+                state = AsyncValue.data(_allTopics.take(_limit).toList());
+              }
+              _queueBackgroundRefresh(metadataTopics);
+            })
+            .catchError((Object e) {
+              debugPrint('[DailyTopicsNotifier] metadata error: $e');
+              _queueBackgroundRefresh(const []);
+            }),
+      );
+      return _allTopics.take(_limit).toList();
+    }
+
+    final metadata = await metadataFuture;
     final metadataTopics = metadata.dailyTopics
         .where((t) => t.isEnabled)
         .toList();
-    final cachedTopics = _readCachedTopics();
-    _allTopics = _mergeTopics(cachedTopics, metadataTopics);
+    _allTopics = metadataTopics;
+    // Fills the banner from daily-topics when the homepage documents timed out.
     _queueBackgroundRefresh(metadataTopics);
 
     return _allTopics.take(_limit).toList();
@@ -142,13 +170,15 @@ class DailyTopicsNotifier extends AsyncNotifier<List<DailyTopic>> {
           .where('isEnabled', isEqualTo: true)
           .orderBy('timestamp', descending: true)
           .limit(30)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 15));
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
         return DailyTopic.fromJson(data);
       }).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DailyTopicsNotifier] daily-topics query failed: $e');
       return null;
     }
   }

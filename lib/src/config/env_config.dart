@@ -19,6 +19,11 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  static const String firebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+    defaultValue: 'studio-8109133561-1eb90',
+  );
+
   static const bool useFirebaseEmulators = bool.fromEnvironment(
     'USE_FIREBASE_EMULATORS',
     defaultValue: false,
@@ -31,7 +36,7 @@ class EnvConfig {
 
   static const int firebaseFirestoreEmulatorPort = int.fromEnvironment(
     'FIREBASE_FIRESTORE_EMULATOR_PORT',
-    defaultValue: 8080,
+    defaultValue: 8180,
   );
 
   static const int firebaseAuthEmulatorPort = int.fromEnvironment(

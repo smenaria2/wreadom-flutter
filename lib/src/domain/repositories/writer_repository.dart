@@ -18,6 +18,7 @@ abstract class WriterRepository {
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
     bool changedChapterIdsAreAuthoritative = false,
+    String? publication,
   });
   Future<List<Chapter>> getAuthoringChapters(String bookId);
   Stream<List<ChapterEditLock>> watchChapterLocks(String bookId);

@@ -1,4 +1,5 @@
 import '../presentation/routing/app_routes.dart';
+import '../config/env_config.dart';
 
 class AppLinkHelper {
   static const host = 'wreadom.in';
@@ -148,7 +149,13 @@ class AppLinkHelper {
 
     try {
       final isWebLink = uri.scheme == 'http' || uri.scheme == 'https';
-      if (isWebLink && uri.host != host && uri.host != wwwHost) return null;
+      // Local hosts are accepted only in emulator builds, for testing links.
+      final isAllowedHost =
+          uri.host == host ||
+          uri.host == wwwHost ||
+          (EnvConfig.useFirebaseEmulators &&
+              (uri.host == 'localhost' || uri.host == '127.0.0.1'));
+      if (isWebLink && !isAllowedHost) return null;
 
       final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
       final queryBookId = uri.queryParameters['book'];
@@ -214,15 +221,17 @@ class AppLinkHelper {
       switch (type) {
         case 'book':
         case 'b':
+        case 'read':
           id ??= queryBookId ?? queryTopicId;
           if (_hasValue(id)) {
             if (queryMode == 'pdf') {
               return ResolvedAppLink(AppRoutes.archiveReader, id!);
             }
+            final defaultChapterIndex = type == 'read' ? 0 : null;
             return ResolvedAppLink(
               AppRoutes.bookDetail,
               id!,
-              chapterIndex: _chapterIndexFromQuery(uri),
+              chapterIndex: _chapterIndexFromQuery(uri) ?? defaultChapterIndex,
               leafId: _hasValue(queryLeafId) ? queryLeafId : null,
               commentId: _hasValue(queryCommentId) ? queryCommentId : null,
               replyId: _hasValue(queryReplyId) ? queryReplyId : null,
@@ -310,7 +319,8 @@ class AppLinkHelper {
         case 'question-answers':
           final bookId = queryBookId ?? uri.queryParameters['bookId'];
           final leafId = queryLeafId ?? uri.queryParameters['leafId'];
-          final question = queryQuestion ??
+          final question =
+              queryQuestion ??
               uri.queryParameters['questionId'] ??
               uri.queryParameters['q'];
           if (_hasValue(bookId) && _hasValue(leafId)) {
@@ -389,10 +399,11 @@ class AppLinkHelper {
 
   static int? _chapterIndexFromQuery(Uri uri) {
     final mode = uri.queryParameters['mode']?.trim().toLowerCase();
-    if (mode != 'read') return null;
+    final chapterRaw = uri.queryParameters['chapter'];
+    if (mode != 'read' && chapterRaw == null) return null;
 
-    final chapterNumber = int.tryParse(uri.queryParameters['chapter'] ?? '');
-    if (chapterNumber == null) return null;
+    final chapterNumber = int.tryParse(chapterRaw ?? '');
+    if (chapterNumber == null) return 0;
     return chapterNumber <= 1 ? 0 : chapterNumber - 1;
   }
 }

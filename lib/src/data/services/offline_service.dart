@@ -27,14 +27,52 @@ class OfflineService {
   static final OfflineService _instance = OfflineService._();
   static const String _booksBoxName = 'offline_books';
   static const String _chaptersBoxName = 'offline_chapters';
-  static const int _schemaVersion = 1;
+  static const int _schemaVersion = 2;
 
   bool _initialized = false;
 
   Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized &&
+        Hive.isBoxOpen(_booksBoxName) &&
+        Hive.isBoxOpen(_chaptersBoxName)) {
+      return;
+    }
     await Hive.openBox(_booksBoxName);
     await Hive.openBox(_chaptersBoxName);
+    // Convert old packages once, promoting the complete package with one Hive write.
+    for (final key in _booksBox.keys.toList()) {
+      final raw = asStringMap(_booksBox.get(key));
+      if (raw['schemaVersion'] == _schemaVersion) continue;
+      final chapters = _chaptersBox.get(key);
+      if (chapters is! List) {
+        continue; // Preserve broken originals for recovery.
+      }
+      final publicChapters = chapters
+          .map((value) => asStringMap(value)..remove('versions'))
+          .where(
+            (value) =>
+                value['content'] is String &&
+                value['isHidden'] != true &&
+                value['status'] != 'draft',
+          )
+          .toList();
+      // Old packages could include hidden or draft chapters; keep the public
+      // ones. A package with none left cannot be read offline.
+      if (publicChapters.isEmpty) {
+        await _booksBox.delete(key);
+        await _chaptersBox.delete(key);
+        continue;
+      }
+      final metadata = asStringMap(raw['book'] ?? raw)..remove('chapters');
+      await _booksBox.put(key, {
+        ...raw,
+        'book': metadata,
+        'schemaVersion': _schemaVersion,
+        'chapters': publicChapters,
+        'complete': true,
+      });
+      await _chaptersBox.delete(key);
+    }
     _initialized = true;
   }
 
@@ -43,26 +81,34 @@ class OfflineService {
 
   Future<bool> isBookDownloaded(String bookId) async {
     await init();
-    return _booksBox.containsKey(bookId);
+    final record = asStringMap(_booksBox.get(bookId));
+    return record['schemaVersion'] == _schemaVersion &&
+        record['complete'] == true;
   }
 
   Future<void> downloadBook(Book book, List<Chapter> chapters) async {
     try {
       await init();
-      // 1. Save metadata
+      if (chapters.isEmpty ||
+          chapters.any((ch) => ch.isHidden || ch.status == 'draft')) {
+        throw StateError(
+          'A complete public book is required for offline download.',
+        );
+      }
+      final metadata = asStringMap(_hiveSafeValue(book))..remove('chapters');
+      final publicChapters = chapters
+          .map(
+            (chapter) =>
+                asStringMap(_hiveSafeValue(chapter))..remove('versions'),
+          )
+          .toList();
       await _booksBox.put(book.id, {
         'schemaVersion': _schemaVersion,
+        'complete': true,
         'downloadedAt': DateTime.now().millisecondsSinceEpoch,
-        'book': _hiveSafeValue(book),
+        'book': metadata,
+        'chapters': publicChapters,
       });
-
-      // 2. Save chapters
-      final chaptersJson = _hiveSafeValue(chapters);
-      await _chaptersBox.put(book.id, chaptersJson);
-
-      // 3. Download related files if any (e.g. cover or epub for local storage)
-      // For now, we mainly cache the text content in Hive for simplicity
-      // but we could also download the physical file.
 
       debugPrint(
         '[OfflineService] Book ${book.title} downloaded successfully.',
@@ -86,12 +132,15 @@ class OfflineService {
     return _booksBox.keys
         .map((key) {
           try {
-            final bookId = key.toString();
             final rawBook = _booksBox.get(key);
             final map = asStringMap(rawBook);
-            final bookJson = map['book'] is Map ? map['book'] : map;
+            if (map['schemaVersion'] != _schemaVersion ||
+                map['complete'] != true) {
+              return null;
+            }
+            final bookJson = map['book'];
             final downloadedAtMs = (map['downloadedAt'] as num?)?.toInt();
-            final rawChapters = _chaptersBox.get(bookId);
+            final rawChapters = map['chapters'];
             return OfflineBookEntry(
               book: Book.fromJson(asStringMap(bookJson)),
               downloadedAt: downloadedAtMs == null
@@ -114,7 +163,12 @@ class OfflineService {
 
   Future<List<Chapter>> getDownloadedChapters(String bookId) async {
     await init();
-    final chaptersJson = _chaptersBox.get(bookId);
+    final record = asStringMap(_booksBox.get(bookId));
+    if (record['schemaVersion'] != _schemaVersion ||
+        record['complete'] != true) {
+      return [];
+    }
+    final chaptersJson = record['chapters'];
     if (chaptersJson is! List) return [];
 
     return chaptersJson

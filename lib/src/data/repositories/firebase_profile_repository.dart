@@ -5,6 +5,7 @@ import '../../domain/models/user_model.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../utils/firestore_utils.dart';
 import '../utils/profile_search_utils.dart';
+import '../services/user_private_account_service.dart';
 
 class FirebaseProfileRepository implements ProfileRepository {
   FirebaseProfileRepository({FirebaseFirestore? firestore})
@@ -56,10 +57,18 @@ class FirebaseProfileRepository implements ProfileRepository {
     final snapshot = await _firestore.collection('users').doc(userId).get();
     if (!snapshot.exists || snapshot.data() == null) return null;
 
-    final normalized = normalizeUserMapForModel(snapshot.data()!, snapshot.id);
+    final isSelf = viewerUserId != null && viewerUserId == userId;
+    var raw = snapshot.data()!;
+    if (isSelf) {
+      final privateData = await UserPrivateAccountService(
+        firestore: _firestore,
+      ).getPrivateAccount(userId);
+      raw = UserPrivateAccountService.mergeUserWithPrivate(raw, privateData);
+    }
+
+    final normalized = normalizeUserMapForModel(raw, snapshot.id);
     final user = UserModel.fromJson(normalized);
 
-    final isSelf = viewerUserId != null && viewerUserId == userId;
     if (user.isDeactivated == true && !isSelf) {
       return null;
     }
@@ -253,9 +262,12 @@ class FirebaseProfileRepository implements ProfileRepository {
     String userId,
     NotificationSettings settings,
   ) async {
-    await _firestore.collection('users').doc(userId).update({
-      'notificationSettings': _notificationSettingsToFirestore(settings),
-    });
+    await UserPrivateAccountService(firestore: _firestore).updatePrivateAccount(
+      userId,
+      {
+        'notificationSettings': _notificationSettingsToFirestore(settings),
+      },
+    );
   }
 
   @override
@@ -303,7 +315,7 @@ class FirebaseProfileRepository implements ProfileRepository {
         currentDisplayName != nextDisplayName) {
       updates['searchTerms'] = buildProfileSearchTerms(
         username: currentData['username']?.toString() ?? '',
-        email: currentData['email']?.toString() ?? '',
+        email: '',
         displayName: nextDisplayName,
         penName: nextPenName,
       );

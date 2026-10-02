@@ -34,6 +34,7 @@ _Chapter _$ChapterFromJson(Map<String, dynamic> json) => _Chapter(
   originalBookId: json['originalBookId'] as String?,
   isHidden: json['isHidden'] as bool? ?? false,
   revision: (json['revision'] as num?)?.toInt() ?? 0,
+  wordCount: (json['wordCount'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$ChapterToJson(_Chapter instance) => <String, dynamic>{
@@ -48,4 +49,5 @@ Map<String, dynamic> _$ChapterToJson(_Chapter instance) => <String, dynamic>{
   'originalBookId': instance.originalBookId,
   'isHidden': instance.isHidden,
   'revision': instance.revision,
+  'wordCount': instance.wordCount,
 };

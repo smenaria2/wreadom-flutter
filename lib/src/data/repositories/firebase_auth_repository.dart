@@ -6,7 +6,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'
     hide NotificationSettings;
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb, debugPrint;
+    show
+        TargetPlatform,
+        defaultTargetPlatform,
+        kIsWeb,
+        debugPrint,
+        visibleForTesting;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -14,12 +19,21 @@ import '../services/analytics_service.dart';
 import '../services/google_sign_in_initializer.dart';
 import '../utils/firestore_utils.dart';
 import '../utils/profile_search_utils.dart';
+import '../services/user_private_account_service.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
+  FirebaseAuthRepository({FirebaseFirestore? firestore})
+    : _injectedFirestore = firestore;
+
+  final FirebaseFirestore? _injectedFirestore;
+
   firebase.FirebaseAuth get _auth => firebase.FirebaseAuth.instance;
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
-  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore =>
+      _injectedFirestore ?? FirebaseFirestore.instance;
   FirebaseFunctions get _functions => FirebaseFunctions.instance;
+  UserPrivateAccountService get _privateAccountService =>
+      UserPrivateAccountService(firestore: _firestore);
   static const Duration _profileWriteTimeout = Duration(seconds: 8);
 
   @override
@@ -79,19 +93,34 @@ class FirebaseAuthRepository implements AuthRepository {
       );
 
       final json = userModel.toJson();
-      if (userModel.notificationSettings != null) {
-        json['notificationSettings'] = _notificationSettingsToMap(
-          userModel.notificationSettings!,
-        );
-      }
+      json.remove('email');
+      json.remove('readingHistory');
+      json.remove('savedBooks');
+      json.remove('bookmarks');
+      json.remove('notificationSettings');
+      json.remove('readingProgress');
+      json.remove('fcmTokens');
+
       json['searchTerms'] = buildProfileSearchTerms(
         username: userModel.username,
-        email: userModel.email,
+        email: '',
         displayName: userModel.displayName,
         penName: userModel.penName,
       );
 
       await _firestore.collection('users').doc(fbUser.uid).set(json);
+
+      await _privateAccountService.setPrivateAccount(fbUser.uid, {
+        'email': email,
+        'readingHistory': [],
+        'savedBooks': [],
+        'bookmarks': [],
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'lastLogin': DateTime.now().millisecondsSinceEpoch,
+        'notificationSettings': _notificationSettingsToMap(
+          _defaultNotificationSettings,
+        ),
+      });
 
       AnalyticsService.logSignUp(method: 'email');
       return userModel;
@@ -131,57 +160,16 @@ class FirebaseAuthRepository implements AuthRepository {
       }
 
       if (userDoc.exists) {
-        final raw = userDoc.data()!;
-        final hadNotificationSettings = raw['notificationSettings'] != null;
-        final needsHeal = raw['username'] == null || raw['email'] == null;
-        final patch = <String, dynamic>{
-          'lastLogin': DateTime.now().millisecondsSinceEpoch,
-        };
-        if (needsHeal) {
-          patch['username'] =
-              raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
-          patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
-          patch['createdAt'] =
-              raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-          patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
-          patch['readingHistory'] = raw['readingHistory'] ?? [];
-          patch['savedBooks'] = raw['savedBooks'] ?? [];
-          patch['bookmarks'] = raw['bookmarks'] ?? [];
-        }
-        if (!hadNotificationSettings) {
-          patch['notificationSettings'] = defaultNotificationSettingsMap();
-        }
-        if (raw['searchTerms'] is! List || needsHeal) {
-          patch['searchTerms'] = buildProfileSearchTerms(
-            username:
-                patch['username']?.toString() ??
-                raw['username']?.toString() ??
-                fallbackUser.username,
-            email:
-                patch['email']?.toString() ??
-                raw['email']?.toString() ??
-                fallbackUser.email,
-            displayName: raw['displayName']?.toString() ?? fbUser.displayName,
-            penName: raw['penName']?.toString(),
-          );
-        }
-        try {
-          await _firestore
-              .collection('users')
-              .doc(fbUser.uid)
-              .update(patch)
-              .timeout(_profileWriteTimeout);
-        } catch (e) {
-          debugPrint('Signed in, but user profile update failed: $e');
-        }
-
-        final data = normalizeUserMapForModel({
-          ...raw,
-          ...patch,
-          'id': fbUser.uid,
-        }, fbUser.uid);
+        final user = await completeSignIn(
+          uid: fbUser.uid,
+          displayName: fbUser.displayName,
+          authEmail: fbUser.email,
+          raw: userDoc.data()!,
+          fallbackUser: fallbackUser,
+          fallbackEmail: email,
+        );
         AnalyticsService.logLogin(method: 'email');
-        return UserModel.fromJson(data);
+        return user;
       } else {
         // Handle legacy or missing doc
         await _setUserProfileIfPossible(fallbackUser);
@@ -275,6 +263,83 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Finishes a sign-in for a user whose public profile already exists.
+  ///
+  /// Only public fields are healed on users/{id}. Email, reading data,
+  /// bookmarks and notification settings live in users/{id}/private/account and
+  /// are seeded there (from any legacy root values) when that document is
+  /// missing. Nothing private is ever written back to the public document.
+  @visibleForTesting
+  Future<UserModel> completeSignIn({
+    required String uid,
+    String? displayName,
+    String? authEmail,
+    required Map<String, dynamic> raw,
+    required UserModel fallbackUser,
+    String? fallbackEmail,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final needsHeal = raw['username'] == null;
+    final patch = <String, dynamic>{'lastLogin': now};
+    if (needsHeal) {
+      patch['username'] =
+          raw['username'] ?? displayName ?? fallbackUser.username;
+      patch['createdAt'] = raw['createdAt'] ?? now;
+      patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
+    }
+    if (raw['searchTerms'] is! List || needsHeal) {
+      patch['searchTerms'] = buildProfileSearchTerms(
+        username:
+            patch['username']?.toString() ??
+            raw['username']?.toString() ??
+            fallbackUser.username,
+        email: '',
+        displayName: raw['displayName']?.toString() ?? displayName,
+        penName: raw['penName']?.toString(),
+      );
+    }
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .update(patch)
+          .timeout(_profileWriteTimeout);
+    } catch (e) {
+      debugPrint('Signed in, but user profile update failed: $e');
+    }
+
+    var privateData = await _privateAccountService.getPrivateAccount(uid);
+    if (privateData == null) {
+      privateData = {
+        'email':
+            raw['email'] ?? authEmail ?? fallbackEmail ?? fallbackUser.email,
+        'readingHistory': raw['readingHistory'] ?? [],
+        'savedBooks': raw['savedBooks'] ?? [],
+        'bookmarks': raw['bookmarks'] ?? [],
+        'notificationSettings':
+            raw['notificationSettings'] ?? defaultNotificationSettingsMap(),
+        'readingProgress': raw['readingProgress'] ?? {},
+        'fcmTokens': raw['fcmTokens'] ?? [],
+        'lastLogin': now,
+      };
+      await _privateAccountService.setPrivateAccount(uid, privateData);
+    } else {
+      final update = <String, dynamic>{'lastLogin': now};
+      if (privateData['notificationSettings'] == null) {
+        update['notificationSettings'] = defaultNotificationSettingsMap();
+      }
+      await _privateAccountService.updatePrivateAccount(uid, update);
+      privateData = {...privateData, ...update};
+    }
+
+    final merged = UserPrivateAccountService.mergeUserWithPrivate({
+      ...raw,
+      ...patch,
+      'id': uid,
+    }, privateData);
+    return UserModel.fromJson(normalizeUserMapForModel(merged, uid));
+  }
+
   Future<UserModel> _processGoogleUser(firebase.User fbUser) async {
     final fallbackUser = _userModelFromFirebaseUser(fbUser);
     DocumentSnapshot<Map<String, dynamic>> userDoc;
@@ -291,57 +356,15 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     if (userDoc.exists) {
-      final raw = userDoc.data()!;
-      final hadNotificationSettings = raw['notificationSettings'] != null;
-      final needsHeal = raw['username'] == null || raw['email'] == null;
-      final patch = <String, dynamic>{
-        'lastLogin': DateTime.now().millisecondsSinceEpoch,
-      };
-      if (needsHeal) {
-        patch['username'] =
-            raw['username'] ?? fbUser.displayName ?? fallbackUser.username;
-        patch['email'] = raw['email'] ?? fbUser.email ?? fallbackUser.email;
-        patch['createdAt'] =
-            raw['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-        patch['privacyLevel'] = raw['privacyLevel'] ?? 'public';
-        patch['readingHistory'] = raw['readingHistory'] ?? [];
-        patch['savedBooks'] = raw['savedBooks'] ?? [];
-        patch['bookmarks'] = raw['bookmarks'] ?? [];
-      }
-      if (!hadNotificationSettings) {
-        patch['notificationSettings'] = defaultNotificationSettingsMap();
-      }
-      if (raw['searchTerms'] is! List || needsHeal) {
-        patch['searchTerms'] = buildProfileSearchTerms(
-          username:
-              patch['username']?.toString() ??
-              raw['username']?.toString() ??
-              fallbackUser.username,
-          email:
-              patch['email']?.toString() ??
-              raw['email']?.toString() ??
-              fallbackUser.email,
-          displayName: raw['displayName']?.toString() ?? fbUser.displayName,
-          penName: raw['penName']?.toString(),
-        );
-      }
-      try {
-        await _firestore
-            .collection('users')
-            .doc(fbUser.uid)
-            .update(patch)
-            .timeout(_profileWriteTimeout);
-      } catch (e) {
-        debugPrint('Signed in with Google, but profile update failed: $e');
-      }
-
-      final data = normalizeUserMapForModel({
-        ...raw,
-        ...patch,
-        'id': fbUser.uid,
-      }, fbUser.uid);
+      final user = await completeSignIn(
+        uid: fbUser.uid,
+        displayName: fbUser.displayName,
+        authEmail: fbUser.email,
+        raw: userDoc.data()!,
+        fallbackUser: fallbackUser,
+      );
       AnalyticsService.logLogin(method: 'google');
-      return UserModel.fromJson(data);
+      return user;
     } else {
       await _setUserProfileIfPossible(fallbackUser);
 
@@ -376,13 +399,29 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<UserModel?> getUser(String userId) async {
     try {
-      final doc = await _firestore
+      final isSelf = _auth.currentUser?.uid == userId;
+      final docFuture = _firestore
           .collection('users')
           .doc(userId)
           .get()
           .timeout(_profileWriteTimeout);
-      if (doc.exists) {
-        final data = normalizeUserMapForModel(doc.data()!, doc.id);
+      final privateFuture = isSelf
+          ? _privateAccountService.getPrivateAccount(userId)
+          : Future<Map<String, dynamic>?>.value(null);
+
+      final results = await Future.wait([docFuture, privateFuture]);
+      final doc = results[0] as DocumentSnapshot<Map<String, dynamic>>;
+      final privateData = results[1] as Map<String, dynamic>?;
+
+      if (doc.exists && doc.data() != null) {
+        var raw = doc.data()!;
+        if (isSelf) {
+          raw = UserPrivateAccountService.mergeUserWithPrivate(
+            raw,
+            privateData,
+          );
+        }
+        final data = normalizeUserMapForModel(raw, doc.id);
         return UserModel.fromJson(data);
       }
     } catch (e) {
@@ -441,14 +480,17 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> _setUserProfileIfPossible(UserModel userModel) async {
     try {
       final json = userModel.toJson();
-      if (userModel.notificationSettings != null) {
-        json['notificationSettings'] = _notificationSettingsToMap(
-          userModel.notificationSettings!,
-        );
-      }
+      json.remove('email');
+      json.remove('readingHistory');
+      json.remove('savedBooks');
+      json.remove('bookmarks');
+      json.remove('notificationSettings');
+      json.remove('readingProgress');
+      json.remove('fcmTokens');
+
       json['searchTerms'] = buildProfileSearchTerms(
         username: userModel.username,
-        email: userModel.email,
+        email: '',
         displayName: userModel.displayName,
         penName: userModel.penName,
       );
@@ -457,6 +499,20 @@ class FirebaseAuthRepository implements AuthRepository {
           .doc(userModel.id)
           .set(json)
           .timeout(_profileWriteTimeout);
+
+      await _privateAccountService.setPrivateAccount(userModel.id, {
+        'email': userModel.email,
+        'readingHistory': userModel.readingHistory,
+        'savedBooks': userModel.savedBooks,
+        'bookmarks': userModel.bookmarks,
+        'createdAt':
+            userModel.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+        'lastLogin': DateTime.now().millisecondsSinceEpoch,
+        if (userModel.notificationSettings != null)
+          'notificationSettings': _notificationSettingsToMap(
+            userModel.notificationSettings!,
+          ),
+      });
     } catch (e) {
       debugPrint('Signed in, but user profile creation failed: $e');
     }
@@ -470,11 +526,24 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Stream<UserModel?> watchUser(String userId) async* {
+    final isSelf = _auth.currentUser?.uid == userId;
     try {
+      Map<String, dynamic>? privateData;
+      if (isSelf) {
+        privateData = await _privateAccountService.getPrivateAccount(userId);
+      }
+
       await for (final doc
           in _firestore.collection('users').doc(userId).snapshots()) {
-        if (doc.exists) {
-          final data = normalizeUserMapForModel(doc.data()!, doc.id);
+        if (doc.exists && doc.data() != null) {
+          var raw = doc.data()!;
+          if (isSelf) {
+            raw = UserPrivateAccountService.mergeUserWithPrivate(
+              raw,
+              privateData,
+            );
+          }
+          final data = normalizeUserMapForModel(raw, doc.id);
           yield UserModel.fromJson(data);
           continue;
         }
@@ -512,7 +581,7 @@ class FirebaseAuthRepository implements AuthRepository {
       final data = current.data() ?? const <String, dynamic>{};
       updates['searchTerms'] = buildProfileSearchTerms(
         username: data['username']?.toString() ?? '',
-        email: data['email']?.toString() ?? '',
+        email: '',
         displayName: displayName,
         penName: data['penName']?.toString(),
       );
@@ -525,7 +594,7 @@ class FirebaseAuthRepository implements AuthRepository {
     String userId,
     List<dynamic> savedBooks,
   ) async {
-    await _firestore.collection('users').doc(userId).update({
+    await _privateAccountService.updatePrivateAccount(userId, {
       'savedBooks': savedBooks,
     });
   }
@@ -535,7 +604,7 @@ class FirebaseAuthRepository implements AuthRepository {
     String userId,
     List<dynamic> readingHistory,
   ) async {
-    await _firestore.collection('users').doc(userId).update({
+    await _privateAccountService.updatePrivateAccount(userId, {
       'readingHistory': readingHistory,
     });
   }

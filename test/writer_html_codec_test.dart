@@ -54,6 +54,31 @@ void main() {
       expect(html, contains('YouTube'));
     });
 
+    test('keeps ordinary links through an edit round trip', () {
+      const input =
+          '<p>Welcome to <a href="https://example.test/guide">the test guide</a>.</p>';
+
+      final html = htmlFromDocument(documentFromHtml(input));
+
+      expect(html, contains('href="https://example.test/guide"'));
+      expect(html, contains('>the test guide</a>'));
+      expect(
+        sanitizeWriterHtml(input),
+        contains('href="https://example.test/guide"'),
+      );
+      // A second pass does not change it, so unedited chapters stay identical.
+      expect(htmlFromDocument(documentFromHtml(html)), html);
+    });
+
+    test('drops links with unsafe schemes but keeps their text', () {
+      final html = htmlFromDocument(
+        documentFromHtml('<p><a href="javascript:x">bad</a></p>'),
+      );
+
+      expect(html, contains('bad'));
+      expect(html, isNot(contains('href')));
+    });
+
     test('removes unsafe markup', () {
       final html = sanitizeWriterHtml(
         '<p>Safe</p><script>alert("x")</script><a href="javascript:x">bad</a>',

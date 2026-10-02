@@ -532,7 +532,12 @@ class _HeroBannerState extends ConsumerState<_HeroBanner> {
   Widget build(BuildContext context) {
     final topicsAsync = ref.watch(dailyTopicsProvider);
 
+    // Keep showing the current topics while the homepage refreshes in the
+    // background, instead of flashing the placeholder and resetting the page.
     return topicsAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
+      skipError: true,
       data: (topics) {
         if (topics.isEmpty) return _buildDefaultBanner(context);
 

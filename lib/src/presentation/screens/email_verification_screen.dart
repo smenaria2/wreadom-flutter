@@ -143,6 +143,15 @@ class _EmailVerificationScreenState
         if (updatedUser != null && updatedUser.emailVerified) {
           _autoCheckTimer?.cancel();
           _cooldownTimer?.cancel();
+          // The rules read email_verified from the ID token, which keeps the
+          // old value for up to an hour unless refreshed. Without this, the
+          // first publish after verifying is refused.
+          try {
+            await updatedUser.getIdToken(true);
+          } catch (error) {
+            debugPrint('[EmailVerification] token refresh failed: $error');
+          }
+          if (!mounted) return;
           ref
               .read(emailVerifiedProvider(widget.userId).notifier)
               .setVerified(true);

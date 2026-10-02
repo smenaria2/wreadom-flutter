@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -37,8 +38,41 @@ import '../../widgets/see_more_content_button.dart';
 import 'certificate_leaf_viewer.dart';
 
 const int maxBookLeaves = 4;
-const int maxNoteLeafCharacters = 1500;
+// Match the createBookLeaf function, which counts words.
+const int maxNoteLeafWords = 250;
+const int maxQuestionLeafWords = 80;
 const int maxQuestionLeafCharacters = 500;
+
+/// Counts words the same way as the createBookLeaf function.
+int leafWordCount(String text) =>
+    text.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
+
+/// The server accepts Wreadom book links only as `/book/<id>`, `/b/<id>` or
+/// `?book=<id>`, so other forms the app understands are rewritten.
+String normalizeLeafLinkUrl(String url) {
+  final resolved = AppLinkHelper.resolve(url);
+  final bookId = resolved?.payload;
+  if (resolved?.route != AppRoutes.bookDetail ||
+      bookId == null ||
+      bookId.trim().isEmpty) {
+    return url;
+  }
+  return 'https://wreadom.in/book/${Uri.encodeComponent(bookId.trim())}';
+}
+
+/// A readable message for a failed Leaf submission.
+String leafSubmitErrorMessage(Object error) {
+  if (error is LeafInputException) return error.message;
+  if (error is FirebaseFunctionsException) {
+    final message = error.message?.trim();
+    if (error.code == 'permission-denied' || error.code == 'unauthenticated') {
+      return 'You cannot add Leaves to this book. Sign out and in again if you were just made an admin.';
+    }
+    if (message != null && message.isNotEmpty) return message;
+  }
+  return 'The Leaf could not be added. Please retry.';
+}
+
 const List<LeafType> manualLeafTypes = [
   LeafType.text,
   LeafType.question,
@@ -462,7 +496,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   }
 
   void _handleNoteChanged() {
-    final count = _notePlainText.length;
+    final count = leafWordCount(_notePlainText);
     if (count != _noteCharacterCount.value) _noteCharacterCount.value = count;
   }
 
@@ -480,7 +514,10 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
   Future<void> _submit() async {
     if (_isSubmitting) return;
     final user = await ref.read(currentUserProvider.future);
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => _submitError = 'Sign in to add a Leaf.');
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -502,7 +539,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _submitError = e.toString();
+        _submitError = leafSubmitErrorMessage(e);
       });
     }
   }
@@ -515,9 +552,9 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
         if (plain.isEmpty) {
           throw const LeafInputException('Write a note first.');
         }
-        if (plain.length > maxNoteLeafCharacters) {
+        if (leafWordCount(plain) > maxNoteLeafWords) {
           throw const LeafInputException(
-            'Note Leaf must be 1500 characters or fewer.',
+            'Note Leaf must be 250 words or fewer.',
           );
         }
         return {'type': 'text', 'textHtml': html, 'textPlain': plain};
@@ -526,9 +563,9 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
         if (question.isEmpty) {
           throw const LeafInputException('Write a question first.');
         }
-        if (question.length > maxQuestionLeafCharacters) {
+        if (leafWordCount(question) > maxQuestionLeafWords) {
           throw const LeafInputException(
-            'Question Leaf must be 500 characters or fewer.',
+            'Question Leaf must be 80 words or fewer.',
           );
         }
         return {'type': 'question', 'question': question};
@@ -569,7 +606,7 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
         }
         return {
           'type': 'link',
-          'url': info.originalUrl,
+          'url': normalizeLeafLinkUrl(info.originalUrl),
           'linkType': info.type.name,
           'title': title,
           'imageUrl': ?coverUrl,
@@ -810,9 +847,9 @@ class _AddLeafSheetState extends ConsumerState<_AddLeafSheet> {
                   child: ValueListenableBuilder<int>(
                     valueListenable: _noteCharacterCount,
                     builder: (context, count, _) {
-                      final isOverLimit = count > maxNoteLeafCharacters;
+                      final isOverLimit = count > maxNoteLeafWords;
                       return Text(
-                        '$count/$maxNoteLeafCharacters',
+                        '$count/$maxNoteLeafWords words',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: isOverLimit
                               ? theme.colorScheme.error
@@ -1288,10 +1325,9 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pushNamed(
-                    AppRoutes.questionAnswers,
-                    arguments: _query,
-                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamed(AppRoutes.questionAnswers, arguments: _query);
                 },
                 child: Text(
                   l10n.viewAllAnswersInFeed,

@@ -45,9 +45,9 @@ class DefaultFirebaseOptions {
     apiKey: EnvConfig.firebaseWebApiKey,
     appId: '1:601247128838:web:1bd0d3f4e026297d025287',
     messagingSenderId: '601247128838',
-    projectId: 'studio-8109133561-1eb90',
-    authDomain: 'studio-8109133561-1eb90.firebaseapp.com',
-    storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
+    projectId: EnvConfig.firebaseProjectId,
+    authDomain: '${EnvConfig.firebaseProjectId}.firebaseapp.com',
+    storageBucket: '${EnvConfig.firebaseProjectId}.firebasestorage.app',
     measurementId: 'G-HN4J52XZMW',
   );
 
@@ -55,16 +55,16 @@ class DefaultFirebaseOptions {
     apiKey: EnvConfig.firebaseAndroidApiKey,
     appId: '1:601247128838:android:084601a6f2c27000025287',
     messagingSenderId: '601247128838',
-    projectId: 'studio-8109133561-1eb90',
-    storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
+    projectId: EnvConfig.firebaseProjectId,
+    storageBucket: '${EnvConfig.firebaseProjectId}.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: EnvConfig.firebaseIosApiKey,
     appId: '1:601247128838:ios:893b6e08739de61e025287',
     messagingSenderId: '601247128838',
-    projectId: 'studio-8109133561-1eb90',
-    storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
+    projectId: EnvConfig.firebaseProjectId,
+    storageBucket: '${EnvConfig.firebaseProjectId}.firebasestorage.app',
     androidClientId:
         '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
     iosClientId:
@@ -76,8 +76,8 @@ class DefaultFirebaseOptions {
     apiKey: EnvConfig.firebaseIosApiKey,
     appId: '1:601247128838:ios:893b6e08739de61e025287',
     messagingSenderId: '601247128838',
-    projectId: 'studio-8109133561-1eb90',
-    storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
+    projectId: EnvConfig.firebaseProjectId,
+    storageBucket: '${EnvConfig.firebaseProjectId}.firebasestorage.app',
     androidClientId:
         '601247128838-qkfo2gp0e7icjr441mginpute3tm69ug.apps.googleusercontent.com',
     iosClientId:
@@ -89,9 +89,9 @@ class DefaultFirebaseOptions {
     apiKey: EnvConfig.firebaseWindowsApiKey,
     appId: '1:601247128838:web:ab6e74e35064f216025287',
     messagingSenderId: '601247128838',
-    projectId: 'studio-8109133561-1eb90',
-    authDomain: 'studio-8109133561-1eb90.firebaseapp.com',
-    storageBucket: 'studio-8109133561-1eb90.firebasestorage.app',
+    projectId: EnvConfig.firebaseProjectId,
+    authDomain: '${EnvConfig.firebaseProjectId}.firebaseapp.com',
+    storageBucket: '${EnvConfig.firebaseProjectId}.firebasestorage.app',
     measurementId: 'G-1VZNP1KDKD',
   );
 }

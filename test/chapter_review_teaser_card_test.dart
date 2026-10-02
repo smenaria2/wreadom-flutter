@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/domain/models/comment.dart';
 import 'package:librebook_flutter/src/presentation/components/reader/chapter_review_teaser_card.dart';

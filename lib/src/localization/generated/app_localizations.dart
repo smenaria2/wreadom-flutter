@@ -6294,6 +6294,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Laila'**
   String get readerFontLaila;
+
+  /// No description provided for @maintenanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wreadom is being updated'**
+  String get maintenanceTitle;
+
+  /// No description provided for @maintenanceDefaultMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We are making improvements. Saving is paused for a short while. Please check back soon.'**
+  String get maintenanceDefaultMessage;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of Wreadom is no longer supported. Please update to continue.'**
+  String get updateRequiredMessage;
+
+  /// No description provided for @reloadAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get reloadAction;
 }
 
 class _AppLocalizationsDelegate

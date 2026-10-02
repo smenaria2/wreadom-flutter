@@ -879,7 +879,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
 
     final latestBookAsync = ref.watch(liveBookDetailProvider(widget.book.id));
-    final chaptersAsync = ref.watch(liveBookChaptersProvider(widget.book.id));
+    final chaptersAsync = widget.book.isOriginal == true
+        ? ref.watch(liveChapterDirectoryProvider(widget.book.id))
+        : ref.watch(liveBookChaptersProvider(widget.book.id));
     final offlineChaptersAsync = ref.watch(
       offlineChaptersProvider(widget.book.id),
     );
@@ -1043,6 +1045,63 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           'No readable public-domain text was found.',
         ),
       );
+    }
+    final bodyIndex = chapters.isEmpty
+        ? 0
+        : _chapterIndex.clamp(0, chapters.length - 1).toInt();
+    // Public directory entries arrive without text; author drafts include it.
+    if (widget.book.isOriginal == true &&
+        !isOffline &&
+        chapters.isNotEmpty &&
+        chapters[bodyIndex].content.isEmpty) {
+      final index = bodyIndex;
+      final chapter = chapters[index];
+      final key = (
+        bookId: widget.book.id,
+        chapterId: chapter.id,
+        revision: chapter.revision,
+      );
+      return ref
+          .watch(publicChapterBodyProvider(key))
+          .when(
+            data: (content) => _buildReader(
+              context,
+              [
+                for (var i = 0; i < chapters.length; i++)
+                  i == index
+                      ? chapters[i].copyWith(content: content)
+                      : chapters[i],
+              ],
+              commentsAsync,
+              userAsync,
+              isOffline: false,
+              isAdmin: isAdmin,
+            ),
+            loading: () => Scaffold(
+              appBar: AppBar(title: Text(widget.book.title)),
+              body: _buildLoadingBody(),
+            ),
+            error: (error, stack) => Scaffold(
+              appBar: AppBar(title: Text(widget.book.title)),
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Unable to load this chapter.'),
+                    TextButton(
+                      onPressed: () {
+                        ref.invalidate(publicChapterBodyProvider(key));
+                        ref.invalidate(
+                          liveChapterDirectoryProvider(widget.book.id),
+                        );
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
     }
     return _buildReader(
       context,
@@ -4767,6 +4826,7 @@ class _ChapterDrawer extends StatelessWidget {
                         ),
                         subtitle: ReaderChapterWordCount(
                           content: chapters[index].content,
+                          wordCount: chapters[index].wordCount,
                           color: secondaryTextColor,
                         ),
                         trailing: commentCount > 0
@@ -5002,127 +5062,132 @@ class _ChapterEndActions extends StatelessWidget {
       return Theme(
         data: chromeTheme,
         child: Column(
-        children: [
-          GlassSurface(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onNextChapter == null
-                ? null
-                : () {
-                    unawaited(AppHaptics.selection());
-                    onNextChapter!();
-                  },
-            semanticButton: true,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [actionColor, actionColor.withValues(alpha: 0.78)],
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.navigate_next_rounded, color: actionForeground),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.nextChapter,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: actionForeground,
-                      fontWeight: FontWeight.w700,
-                    ),
+          children: [
+            GlassSurface(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onNextChapter == null
+                  ? null
+                  : () {
+                      unawaited(AppHaptics.selection());
+                      onNextChapter!();
+                    },
+              semanticButton: true,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [actionColor, actionColor.withValues(alpha: 0.78)],
                   ),
-                ],
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.navigate_next_rounded, color: actionForeground),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.nextChapter,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: actionForeground,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          _ChapterReactionRow(actionColor: actionColor, onReaction: onReaction),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: GlassSurface(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    unawaited(AppHaptics.selection());
-                    onViewComments();
-                  },
-                  semanticButton: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          hasComments
-                              ? Icons.chat_bubble_outline_rounded
-                              : Icons.rate_review_outlined,
-                          color: actionColor,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            hasComments ? l10n.viewComments : l10n.writeReview,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: actionColor,
-                              fontWeight: FontWeight.w700,
+            const SizedBox(height: 12),
+            _ChapterReactionRow(
+              actionColor: actionColor,
+              onReaction: onReaction,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GlassSurface(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      unawaited(AppHaptics.selection());
+                      onViewComments();
+                    },
+                    semanticButton: true,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            hasComments
+                                ? Icons.chat_bubble_outline_rounded
+                                : Icons.rate_review_outlined,
+                            color: actionColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              hasComments
+                                  ? l10n.viewComments
+                                  : l10n.writeReview,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: actionColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GlassSurface(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    unawaited(AppHaptics.selection());
-                    onShare();
-                  },
-                  semanticButton: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.share_rounded, color: actionColor),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            l10n.shareChapter,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: actionColor,
-                              fontWeight: FontWeight.w700,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GlassSurface(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      unawaited(AppHaptics.selection());
+                      onShare();
+                    },
+                    semanticButton: true,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.share_rounded, color: actionColor),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.shareChapter,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: actionColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
+              ],
+            ),
+            if (topReview != null) ...[
+              const SizedBox(height: 12),
+              ChapterReviewTeaserCard(
+                review: topReview,
+                onTap: () {
+                  unawaited(AppHaptics.selection());
+                  onViewComments();
+                },
+                actionColor: actionColor,
               ),
             ],
-          ),
-          if (topReview != null) ...[
-            const SizedBox(height: 12),
-            ChapterReviewTeaserCard(
-              review: topReview,
-              onTap: () {
-                unawaited(AppHaptics.selection());
-                onViewComments();
-              },
-              actionColor: actionColor,
-            ),
           ],
-        ],
         ),
       );
     } else {
@@ -5134,85 +5199,88 @@ class _ChapterEndActions extends StatelessWidget {
         data: chromeTheme,
         child: Column(
           children: [
-          _ChapterReactionRow(actionColor: actionColor, onReaction: onReaction),
-          const SizedBox(height: 12),
-          GlassSurface(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              unawaited(AppHaptics.selection());
-              onViewComments();
-            },
-            semanticButton: true,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    hasComments
-                        ? Icons.chat_bubble_outline_rounded
-                        : Icons.rate_review_outlined,
-                    color: actionColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    hasComments ? l10n.viewComments : l10n.writeReview,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: actionColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
+            _ChapterReactionRow(
+              actionColor: actionColor,
+              onReaction: onReaction,
             ),
-          ),
-          const SizedBox(height: 12),
-          GlassSurface(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              unawaited(AppHaptics.selection());
-              onShare();
-            },
-            semanticButton: true,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.share_rounded, color: actionColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.shareChapter,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: actionColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (topReview != null) ...[
             const SizedBox(height: 12),
-            ChapterReviewTeaserCard(
-              review: topReview,
+            GlassSurface(
+              borderRadius: BorderRadius.circular(16),
               onTap: () {
                 unawaited(AppHaptics.selection());
                 onViewComments();
               },
-              actionColor: actionColor,
-            ),
-          ],
-          if (showLeaves) ...[
-            const SizedBox(height: 28),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: LeafStrip(book: book, canManage: false),
+              semanticButton: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      hasComments
+                          ? Icons.chat_bubble_outline_rounded
+                          : Icons.rate_review_outlined,
+                      color: actionColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      hasComments ? l10n.viewComments : l10n.writeReview,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: actionColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(height: 12),
+            GlassSurface(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                unawaited(AppHaptics.selection());
+                onShare();
+              },
+              semanticButton: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.share_rounded, color: actionColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.shareChapter,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: actionColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (topReview != null) ...[
+              const SizedBox(height: 12),
+              ChapterReviewTeaserCard(
+                review: topReview,
+                onTap: () {
+                  unawaited(AppHaptics.selection());
+                  onViewComments();
+                },
+                actionColor: actionColor,
+              ),
+            ],
+            if (showLeaves) ...[
+              const SizedBox(height: 28),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: LeafStrip(book: book, canManage: false),
+                ),
+              ),
+            ],
           ],
-        ],
         ),
       );
     }
@@ -5770,15 +5838,22 @@ class ReaderChapterWordCount extends StatelessWidget {
     super.key,
     required this.content,
     required this.color,
+    this.wordCount,
   });
 
   final String content;
   final Color color;
 
+  /// Stored count for chapters whose body has not been loaded.
+  final int? wordCount;
+
   @override
   Widget build(BuildContext context) {
+    final count = content.isEmpty && wordCount != null
+        ? wordCount!
+        : wordCountFromHtml(content);
     return Text(
-      AppLocalizations.of(context)!.wordCountLabel(wordCountFromHtml(content)),
+      AppLocalizations.of(context)!.wordCountLabel(count),
       key: const ValueKey('reader-chapter-word-count'),
       style: TextStyle(color: color, fontSize: 11),
     );

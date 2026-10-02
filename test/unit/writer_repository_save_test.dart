@@ -1,3 +1,6 @@
+import 'package:librebook_flutter/src/data/services/chapter_command_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:librebook_flutter/src/data/repositories/chapter_save_merge.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:librebook_flutter/src/data/repositories/chapter_save_write_plan.dart';
@@ -159,176 +162,213 @@ void main() {
   });
 
   test(
-    'repository transaction preserves unchanged bodies and writes new chapters',
+    'new client sends explicit commands and never writes canonical documents directly',
     () async {
       final firestore = FakeFirebaseFirestore();
-      final bookRef = firestore.collection('books').doc('book-transaction');
-      await bookRef.set({
-        'title': 'Transaction Book',
-        'authors': [const Author(name: 'Writer').toJson()],
-        'subjects': <String>[],
-        'languages': ['en'],
-        'formats': <String, String>{},
-        'downloadCount': 0,
-        'mediaType': 'text',
-        'bookshelves': <String>[],
-        'source': 'firestore',
-        'isOriginal': true,
-        'contentType': 'story',
-        'authorId': 'user-1',
-        'chapters': <Map<String, dynamic>>[],
-        'status': 'draft',
-        'createdAt': 1,
-        'updatedAt': 1,
-      });
-      await bookRef.collection('authorChapters').doc('chapter-1').set({
-        'title': 'One',
-        'content': '<p>Remote one</p>',
-        'index': 0,
-        'order': 0,
-        'status': 'draft',
-        'revision': 4,
-      });
-      await bookRef.collection('authorChapters').doc('chapter-2').set({
-        'title': 'Two',
-        'content': '<p>Remote two</p>',
-        'index': 1,
-        'order': 1,
-        'status': 'draft',
-        'revision': 2,
-      });
-
-      final chapters = <Chapter>[
-        const Chapter(
-          id: 'chapter-2',
-          title: 'Two',
-          content: '<p>Updated two</p>',
-          index: 0,
-          status: 'published',
-          revision: 2,
-        ),
-        const Chapter(
-          id: 'chapter-1',
-          title: 'One',
-          content: '<p>Stale local one</p>',
-          index: 1,
-          status: 'published',
-          revision: 4,
-        ),
-        const Chapter(
-          id: 'chapter-3-new',
-          title: 'Three',
-          content: '<p>New three</p>',
-          index: 2,
-          status: 'published',
-        ),
-      ];
-      final book = Book(
-        id: 'book-transaction',
-        title: 'Transaction Book',
-        authors: const [Author(name: 'Writer')],
-        subjects: const [],
-        languages: const ['en'],
-        formats: const {},
-        downloadCount: 0,
-        mediaType: 'text',
-        bookshelves: const [],
-        source: 'firestore',
-        isOriginal: true,
-        contentType: 'story',
-        authorId: 'user-1',
-        chapters: chapters,
-        status: 'published',
-        createdAt: 1,
-        updatedAt: 2,
-        chapterCount: 3,
+      final commands = RecordingChapterCommands();
+      final repository = FirebaseWriterRepository(
+        firestore: firestore,
+        commands: commands,
       );
-
-      final saved = await FirebaseWriterRepository(firestore: firestore)
-          .updateBook(
-            book.id,
-            book,
-            baseChapterRevisions: const {'chapter-2': 2},
-            changedChapterIds: const {'chapter-2', 'chapter-3-new'},
-            changedChapterIdsAreAuthoritative: true,
-          );
-
-      expect(saved.map((chapter) => chapter.id), [
-        'chapter-2',
-        'chapter-1',
-        'chapter-3-new',
-      ]);
-      final chapterOne = await bookRef
-          .collection('authorChapters')
-          .doc('chapter-1')
-          .get();
-      final chapterTwo = await bookRef
-          .collection('authorChapters')
-          .doc('chapter-2')
-          .get();
-      final chapterThree = await bookRef
-          .collection('authorChapters')
-          .doc('chapter-3-new')
-          .get();
-
-      expect(chapterOne.data()?['content'], '<p>Remote one</p>');
-      expect(chapterOne.data()?['revision'], 4);
-      expect(chapterOne.data()?['index'], 1);
-      expect(chapterOne.data()?['order'], 1);
-      expect(chapterOne.data()?['status'], 'published');
-      expect(chapterTwo.data()?['content'], '<p>Updated two</p>');
-      expect(chapterTwo.data()?['revision'], 3);
-      expect(chapterThree.data()?['content'], '<p>New three</p>');
-      expect(chapterThree.data()?['revision'], 1);
-
-      final updatedBookDoc = await bookRef.get();
-      expect(updatedBookDoc.data()?['wordCount'], greaterThan(0));
-      expect(updatedBookDoc.data()?['readingTimeMinutes'], greaterThan(0));
+      final book = chapterTestBook();
+      final saved = await repository.updateBook(
+        book.id,
+        book,
+        baseChapterRevisions: const {'c1': 3},
+      );
+      final request = commands.requests.single;
+      expect(request['operation'], 'saveBook');
+      expect((request['metadata'] as Map).containsKey('chapters'), false);
+      expect((request['metadata'] as Map).containsKey('status'), false);
+      expect(request['publication'], null);
+      expect((request['chapters'] as List).single['versions'], null);
+      expect(saved.single.revision, 4);
+      expect(
+        (await firestore.collection('books').doc(book.id).get()).exists,
+        false,
+      );
+      expect(
+        (await firestore
+                .collection('books')
+                .doc(book.id)
+                .collection('authorChapters')
+                .get())
+            .docs,
+        isEmpty,
+      );
     },
   );
 
-  test('updateBook projects exact word count and reading time on book doc', () async {
+  test(
+    'publication is explicit and acknowledgement skips unchanged bodies on next save',
+    () async {
+      final commands = RecordingChapterCommands();
+      final repository = FirebaseWriterRepository(
+        firestore: FakeFirebaseFirestore(),
+        commands: commands,
+      );
+      final book = chapterTestBook();
+      final saved = await repository.updateBook(
+        book.id,
+        book,
+        publication: 'published',
+      );
+      expect((commands.requests.first['publication'] as Map)['chapterIds'], [
+        'c1',
+      ]);
+      await repository.updateBook(book.id, book.copyWith(chapters: saved));
+      expect(commands.requests.last['chapters'], isEmpty);
+      expect(commands.requests.last['publication'], null);
+    },
+  );
+
+  test(
+    'conflict is reported without fetching a newer baseline and overwriting',
+    () async {
+      final commands = RecordingChapterCommands()..fail = true;
+      final repository = FirebaseWriterRepository(
+        firestore: FakeFirebaseFirestore(),
+        commands: commands,
+      );
+      final book = chapterTestBook();
+      await expectLater(
+        repository.updateBook(
+          book.id,
+          book,
+          baseChapterRevisions: const {'c1': 3},
+        ),
+        throwsA(isA<ChapterSaveConflictException>()),
+      );
+      expect(commands.requests, hasLength(1));
+      expect(commands.requests.single['baseChapterRevisions'], {'c1': 3});
+      expect(book.chapters!.single.content, '<p>Local candidate</p>');
+    },
+  );
+  test(
+    'chapter transfer sends one command and never deletes the source directly',
+    () async {
+      final firestore = FakeFirebaseFirestore();
+      final commands = RecordingChapterCommands();
+      final repository = FirebaseWriterRepository(
+        firestore: firestore,
+        commands: commands,
+      );
+      final book = chapterTestBook();
+      await firestore.collection('books').doc(book.id).set({'title': 'Source'});
+      final target = await repository.moveChapterToStandaloneDraft(
+        sourceBook: book,
+        chapter: book.chapters!.single,
+        remainingChapters: [],
+        ownerUserId: 'owner',
+      );
+      expect(target, 'standalone-draft');
+      expect(commands.requests.single['operation'], 'exportChapter');
+      expect(commands.requests.single['baseChapterRevision'], 3);
+      expect((await firestore.collection('books').doc(book.id).get()).data(), {
+        'title': 'Source',
+      });
+    },
+  );
+
+  test('saves are checked against the book root structure revision', () async {
     final firestore = FakeFirebaseFirestore();
-    final bookRef = firestore.collection('books').doc('book-reading-test');
-    final chapters = [
-      Chapter(
-        id: 'c1',
-        title: 'Ch 1',
-        content: List.generate(400, (i) => 'word$i').join(' '),
-        index: 0,
-        status: 'published',
-      ),
-      Chapter(
-        id: 'c2',
-        title: 'Ch 2',
-        content: List.generate(600, (i) => 'word$i').join(' '),
-        index: 1,
-        status: 'published',
-      ),
-    ];
-    final book = Book(
-      id: 'book-reading-test',
-      title: 'Word Test Book',
-      authors: const [Author(name: 'Author')],
-      subjects: const [],
-      languages: const ['en'],
-      formats: const {},
-      downloadCount: 0,
-      mediaType: 'text',
-      bookshelves: const [],
-      chapters: chapters,
-      status: 'published',
+    final commands = RecordingChapterCommands();
+    final repository = FirebaseWriterRepository(
+      firestore: firestore,
+      commands: commands,
     );
-
-    await FirebaseWriterRepository(firestore: firestore).updateBook(
-      book.id,
-      book,
-      changedChapterIds: {'c1', 'c2'},
-    );
-
-    final savedDoc = await bookRef.get();
-    // 400 + 600 = 1000 words -> 1000 / 200 = 5 mins
-    expect(savedDoc.data()?['wordCount'], 1000);
-    expect(savedDoc.data()?['readingTimeMinutes'], 5);
+    final book = chapterTestBook();
+    final root = firestore.collection('books').doc(book.id);
+    await root.set({'chapterStorageVersion': 2, 'structureRevision': 7});
+    // Written once at export and never updated; must not be used.
+    await root.collection('authorState').doc('current').set({
+      'structureRevision': 1,
+    });
+    await root.collection('authorChapters').doc('c1').set({
+      'title': 'One',
+      'content': '<p>Saved</p>',
+      'orderKey': '000000000000',
+      'revision': 3,
+    });
+    await repository.getAuthoringChapters(book.id);
+    await repository.updateBook(book.id, book);
+    expect(commands.requests.single['baseStructureRevision'], 7);
   });
+
+  test('failed import leaves source and destination untouched', () async {
+    final firestore = FakeFirebaseFirestore();
+    final commands = RecordingChapterCommands()..fail = true;
+    final repository = FirebaseWriterRepository(
+      firestore: firestore,
+      commands: commands,
+    );
+    final book = chapterTestBook();
+    await firestore.collection('books').doc('single').set({
+      'title': 'Original',
+    });
+    await expectLater(
+      repository.importSingleDraftsToBook(
+        targetBook: book,
+        sourceDrafts: [book.copyWith(id: 'single')],
+      ),
+      throwsA(isA<FirebaseFunctionsException>()),
+    );
+    expect(commands.requests.single['operation'], 'importSingles');
+    expect((await firestore.collection('books').doc('single').get()).data(), {
+      'title': 'Original',
+    });
+    expect(
+      (await firestore.collection('books').doc(book.id).get()).exists,
+      false,
+    );
+  });
+}
+
+Book chapterTestBook() => Book(
+  id: 'book-command',
+  title: 'Command book',
+  authors: const [Author(name: 'Writer')],
+  subjects: const [],
+  languages: const ['en'],
+  formats: const {},
+  downloadCount: 0,
+  mediaType: 'text',
+  bookshelves: const [],
+  status: 'published',
+  chapters: const [
+    Chapter(
+      id: 'c1',
+      title: 'One',
+      content: '<p>Local candidate</p>',
+      index: 0,
+      revision: 3,
+      status: 'published',
+      versions: [
+        ChapterVersion(content: 'private history', timestamp: 1, wordCount: 2),
+      ],
+    ),
+  ],
+);
+
+class RecordingChapterCommands extends ChapterCommandService {
+  final requests = <Map<String, dynamic>>[];
+  bool fail = false;
+  @override
+  Future<Map<String, dynamic>> send(
+    Map<String, dynamic> command, {
+    String? mutationId,
+  }) async {
+    requests.add(command);
+    if (fail) {
+      throw FirebaseFunctionsException(
+        code: 'aborted',
+        message: 'Revision conflict',
+      );
+    }
+    return {
+      'revisions': {'c1': 4},
+      'structureRevision': 1,
+      'targetBookId': 'standalone-draft',
+    };
+  }
 }

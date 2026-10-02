@@ -99,8 +99,12 @@ void main() {
         bookRepositoryProvider.overrideWithValue(
           bookRepository ?? _FakeBookRepository(book: book),
         ),
-        if (writerRepository != null)
-          writerRepositoryProvider.overrideWithValue(writerRepository),
+        writerRepositoryProvider.overrideWithValue(
+          writerRepository ??
+              _FakeWriterRepository(
+                authoringChapters: book.chapters ?? const [],
+              ),
+        ),
         writerDraftServiceProvider.overrideWithValue(
           writerDraftStore ?? _FakeWriterDraftStore(),
         ),
@@ -1252,6 +1256,7 @@ class _FakeWriterRepository implements WriterRepository {
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
     bool changedChapterIdsAreAuthoritative = false,
+    String? publication,
   }) async {
     updateAttempts += 1;
     this.changedChapterIds = Set<String>.from(changedChapterIds);

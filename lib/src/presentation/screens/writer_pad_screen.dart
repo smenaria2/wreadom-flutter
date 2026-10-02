@@ -1,3 +1,5 @@
+import '../../data/services/chapter_command_service.dart';
+import '../../data/repositories/firebase_writer_repository.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -156,6 +158,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _syncingBookTitleFromChapter = false;
   int _localChangeRevision = 0;
   int _chapterChangeRevision = 0;
+  // An existing book shows a placeholder chapter until its chapters load;
+  // saving before then would store the placeholder as a new chapter.
+  late bool _chaptersReady =
+      (widget.book?.id ?? '').trim().isEmpty ||
+      (widget.book?.chapters?.isNotEmpty ?? false);
   Future<void> _localCheckpointQueue = Future<void>.value();
   String _saveStatus = 'Not saved yet';
   String _contentType = 'story';
@@ -513,12 +520,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       final chapters = await ref
           .read(writerRepositoryProvider)
           .getAuthoringChapters(bookId);
-      if (!mounted || chapters.isEmpty) return;
+      if (!mounted) return;
+      if (chapters.isEmpty) {
+        _chaptersReady = true;
+        return;
+      }
       if (expectedChapterChangeRevision != null &&
-          _chapterChangeRevision != expectedChapterChangeRevision) {
+          _chapterChangeRevision != expectedChapterChangeRevision &&
+          _chaptersReady) {
         return;
       }
       final hydrated = _normalizeHydratedChapters(chapters);
+      _chaptersReady = true;
       setState(() {
         for (final chapter in _chapters) {
           chapter.dispose();
@@ -674,11 +687,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   bool get _canUseChapterLocks {
     final bookId = _bookId ?? widget.book?.id;
-    final book = _baselineBook;
-    return bookId != null &&
-        bookId.trim().isNotEmpty &&
-        book != null &&
-        isAcceptedCollaboration(book);
+    return bookId != null && bookId.trim().isNotEmpty;
   }
 
   WriterRepository _writerRepositoryForChapterLocks() {
@@ -700,7 +709,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   bool _isChapterLockedByOther(_ChapterDraft chapter, UserModel? user) {
     final lock = _activeLockFor(chapter.id);
     if (lock == null || user == null) return false;
-    return lock.holderId.trim() != user.id.trim();
+    return !lock.isCurrentSession;
   }
 
   bool _isCurrentChapterLockedByOther(UserModel? user) {
@@ -779,7 +788,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final user = await _currentUserOrNull();
     if (!mounted || user == null) return;
     final activeLock = _activeLockFor(chapterId);
-    if (activeLock != null && activeLock.holderId != user.id) {
+    if (activeLock != null && !activeLock.isCurrentSession) {
       await _releaseHeldChapterLock();
       return;
     }
@@ -826,6 +835,13 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       if (repository == null) return;
       await repository.renewChapterLock(bookId, chapterId);
     } catch (error) {
+      _heldChapterLockId = null;
+      _chapterLockRenewTimer?.cancel();
+      if (mounted) {
+        _showSnack(
+          'Editing session expired. Your local changes are preserved.',
+        );
+      }
       debugPrint('[WriterPad] chapter lock renewal failed: $error');
     }
   }
@@ -1160,7 +1176,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         await _confirmAndDeleteBook();
         return;
       case _WriterMenuAction.convertToDraft:
-        await _save(status: 'draft');
+        await _save(status: 'draft', publication: 'draft');
         return;
       case _WriterMenuAction.printBook:
         await _openPrintPage();
@@ -1899,7 +1915,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                     : _pickInlineImage,
                 isUploadingInlineImage: _isUploadingInlineImage,
                 onInsertVideo: _showMediaInsertDialog,
-                onVersionHistory: _currentChapter.versions.isEmpty
+                onVersionHistory: _currentChapter.id == null
                     ? null
                     : () => _showVersionHistory(_currentChapterIndex),
                 onAiEdit: _openChatGptEditor,
@@ -2179,7 +2195,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                   modalSetState(() {});
                                 }
                               },
-                              onHistory: chapter.versions.isEmpty
+                              onHistory: chapter.id == null
                                   ? null
                                   : () {
                                       setState(
@@ -2615,6 +2631,42 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Future<void> _showVersionHistory(int chapterIndex) async {
     if (chapterIndex < 0 || chapterIndex >= _chapters.length) return;
+    String? nextHistoryCursor;
+    bool loadingOlderHistory = false;
+    final repository = ref.read(writerRepositoryProvider);
+    final bookId = _bookId ?? widget.book?.id;
+    final chapterId = _chapters[chapterIndex].id;
+    if (repository is FirebaseWriterRepository &&
+        bookId != null &&
+        chapterId != null) {
+      try {
+        final history = await repository.getChapterHistoryPage(
+          bookId,
+          chapterId,
+        );
+        nextHistoryCursor = history.cursor;
+        if (!mounted) return;
+        // Keep device-only backups (for example text replaced after a save
+        // conflict) after the account's revisions.
+        final versions = _chapters[chapterIndex].versions;
+        final localOnly = versions
+            .where(
+              (local) => !history.versions.any(
+                (saved) => saved.content == local.content,
+              ),
+            )
+            .toList();
+        versions
+          ..clear()
+          ..addAll(history.versions)
+          ..addAll(localOnly);
+      } catch (error) {
+        if (mounted) {
+          _showSnack('Unable to load history. Your draft is unchanged.');
+        }
+        return;
+      }
+    }
     final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet<void>(
       context: context,
@@ -2695,6 +2747,50 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                           textColor: textColor,
                         ),
                         const SizedBox(height: 10),
+                        if (nextHistoryCursor != null &&
+                            repository is FirebaseWriterRepository)
+                          TextButton(
+                            onPressed: loadingOlderHistory
+                                ? null
+                                : () async {
+                                    modalSetState(
+                                      () => loadingOlderHistory = true,
+                                    );
+                                    try {
+                                      final page = await repository
+                                          .getChapterHistoryPage(
+                                            bookId!,
+                                            chapterId!,
+                                            cursor: nextHistoryCursor,
+                                          );
+                                      if (!context.mounted) return;
+                                      modalSetState(() {
+                                        chapter.versions.insertAll(
+                                          0,
+                                          page.versions,
+                                        );
+                                        nextHistoryCursor = page.cursor;
+                                      });
+                                    } catch (_) {
+                                      if (mounted) {
+                                        _showSnack(
+                                          'Unable to load older history. Please retry.',
+                                        );
+                                      }
+                                    } finally {
+                                      if (context.mounted) {
+                                        modalSetState(
+                                          () => loadingOlderHistory = false,
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: Text(
+                              loadingOlderHistory
+                                  ? 'Loading history…'
+                                  : 'Load older revisions',
+                            ),
+                          ),
                         if (versions.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -3243,12 +3339,18 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
       return;
     }
-    final info = classifyWriterMediaUrl(result);
+    final trimmed = result.trim();
+    if (isTrustedWriterImageUrl(trimmed)) {
+      _insertEmbed(BlockEmbed.image(trimmed));
+      _showSnack(l10n.imageInserted);
+      return;
+    }
+    final info = classifyWriterMediaUrl(trimmed);
     if (info.isSupported) {
       _insertEmbed(BlockEmbed.video(info.originalUrl));
       return;
     }
-    _insertText(result.trim());
+    _insertText(trimmed);
     _showSnack(l10n.unsupportedLinksInsertedAsPlainText);
   }
 
@@ -3319,10 +3421,101 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     await _saveLocalDraft();
   }
 
+  bool _isResolvingSaveConflict = false;
+
+  /// Asks the author how to resolve a save refused because the account has
+  /// newer changes to this book.
+  Future<void> _resolveSaveConflict(String status) async {
+    if (_isResolvingSaveConflict || !mounted) return;
+    _isResolvingSaveConflict = true;
+    try {
+      final keepMine = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('This book changed elsewhere'),
+          content: const Text(
+            'It was edited on another device or by a co-author, so your latest '
+            'edits are not saved to your account yet. They are kept on this device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Decide later'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Load latest version'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Keep my version'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || keepMine == null) return;
+      if (keepMine) {
+        await _keepMyVersionAfterConflict(status);
+      } else {
+        // Local edits stay available as backup entries in version history.
+        await _hydrateAuthoringChapters(
+          localBackupVersions: _localBackupVersionsForChangedChapters(),
+        );
+        if (mounted) {
+          _showSnack(
+            'Loaded the latest version. Your replaced text is in version history.',
+          );
+        }
+      }
+    } finally {
+      _isResolvingSaveConflict = false;
+    }
+  }
+
+  /// Saves local edits over the account's version of the changed chapters.
+  Future<void> _keepMyVersionAfterConflict(String status) async {
+    final bookId = _bookId ?? widget.book?.id;
+    if (bookId == null || bookId.trim().isEmpty) return;
+    try {
+      // Also refreshes the repository's baseline and structure revision.
+      final serverChapters = await ref
+          .read(writerRepositoryProvider)
+          .getAuthoringChapters(bookId);
+      if (!mounted) return;
+      final localIds = _chapters.map((draft) => draft.id).toSet();
+      setState(() {
+        for (final draft in _chapters) {
+          final server = serverChapters
+              .where((chapter) => chapter.id == draft.id)
+              .firstOrNull;
+          if (server != null) draft.revision = server.revision;
+        }
+        // Keep chapters a co-author added. Chapters deleted here were
+        // persisted before and stay deleted.
+        for (final server in serverChapters) {
+          if (!localIds.contains(server.id) &&
+              !_persistedChapterIds.contains(server.id)) {
+            _chapters.add(_ChapterDraft.fromChapter(server, _markDirty));
+            _persistedChapterIds.add(server.id);
+          }
+        }
+      });
+      await _save(status: status);
+    } catch (error) {
+      debugPrint('[WriterPad] keep-my-version failed: $error');
+      if (mounted) {
+        _showSnack(
+          'Your version was not saved. Your writing is still on this device.',
+        );
+      }
+    }
+  }
+
   Future<bool> _save({
     required String status,
     bool closeAfterSave = false,
     bool allowUntitled = false,
+    String? publication,
     bool showSnack = true,
   }) async {
     if (_isSaving) return false;
@@ -3342,8 +3535,24 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       return false;
     }
 
+    if (!_chaptersReady) {
+      _showSnack(
+        'This book is still loading. Your writing is kept; try again in a moment.',
+      );
+      unawaited(_hydrateAuthoringChapters());
+      return false;
+    }
+
     final user = await _currentUserOrNull();
-    if (user == null) return false;
+    if (user == null) {
+      // Previously a silent no-op: the Publish tap appeared to do nothing.
+      if (mounted) {
+        _showSnack(
+          'Your account could not be loaded. Check your connection, or sign in again. Your writing is kept on this device.',
+        );
+      }
+      return false;
+    }
     if (_isCurrentChapterLockedByOther(user)) {
       final lock = _activeLockFor(_currentChapter.id);
       _showSnack('${lock?.holderName ?? 'Co-author'} is editing this chapter.');
@@ -3386,6 +3595,9 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
       if ((_bookId ?? widget.book?.id ?? '').isEmpty) {
         _bookId = await ref.read(writerRepositoryProvider).createBook(book);
+        savedChapters = await ref
+            .read(writerRepositoryProvider)
+            .getAuthoringChapters(_bookId!);
       } else {
         savedChapters = await ref
             .read(writerRepositoryProvider)
@@ -3395,6 +3607,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
               baseChapterRevisions: baseChapterRevisions,
               changedChapterIds: changedChapterIds,
               changedChapterIdsAreAuthoritative: true,
+              publication: publication ?? (closeAfterSave ? status : null),
             );
       }
       _persistedChapterIds
@@ -3476,13 +3689,11 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
         _isSaving = false;
         _saveStatus = l10n.writerSaveFailed;
       });
-      if (showSnack) {
-        _showSnack(
-          'This chapter changed on another device. Your draft was kept on this device. Review before saving again.',
-        );
-      }
+      // Every later save would fail the same way, so the author has to choose.
+      unawaited(_resolveSaveConflict(status));
       return false;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('[WriterPadSave] Save/Publish error: $error\n$stackTrace');
       _logWriterSave(
         status: status,
         outcome: _saveErrorKind(error),
@@ -3565,7 +3776,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
     if (value.contains('network') ||
         value.contains('unavailable') ||
-        value.contains('timeout')) {
+        value.contains('timeout') ||
+        value.contains('deadline')) {
       return '${prefix}Check your connection and retry.';
     }
     if (error is ChapterSaveConflictException) {
@@ -3581,7 +3793,8 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     }
     if (value.contains('network') ||
         value.contains('unavailable') ||
-        value.contains('timeout')) {
+        value.contains('timeout') ||
+        value.contains('deadline')) {
       return 'network';
     }
     return 'unexpected';
@@ -3613,15 +3826,29 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
     final chapters = <Chapter>[];
     for (var i = 0; i < _chapters.length; i++) {
       final draft = _chapters[i];
-      final content = htmlFromDocument(draft.controller.document);
+      final title = draft.title.text.trim().isEmpty
+          ? AppLocalizations.of(context)!.chapterNumber(i + 1)
+          : draft.title.text.trim();
+      final editorContent = htmlFromDocument(draft.controller.document);
+      // A chapter the author did not change is sent exactly as it was stored.
+      // Re-serialising it (added link attributes, a title lock derived from an
+      // unset value) would look like an edit and bump its revision.
+      final source = draft.original;
+      final untouched =
+          source != null &&
+          title == source.title &&
+          draft.isHidden == source.isHidden &&
+          editorContent == htmlFromDocument(documentFromHtml(source.content));
+      if (untouched && source.isTitleLocked != null) {
+        draft.isTitleLocked = source.isTitleLocked!;
+      }
+      final content = untouched ? source.content : editorContent;
       draft.lastSavedAt = now;
       draft.id ??= _newChapterId(user.id, i);
       chapters.add(
         Chapter(
           id: draft.id!,
-          title: draft.title.text.trim().isEmpty
-              ? AppLocalizations.of(context)!.chapterNumber(i + 1)
-              : draft.title.text.trim(),
+          title: title,
           content: content,
           index: i,
           status: status == 'published' ? 'published' : 'draft',
@@ -3769,8 +3996,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   }
 
   String _newChapterId(String userId, int index) {
-    final safeUserId = userId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
-    return 'chapter_${safeUserId}_${DateTime.now().microsecondsSinceEpoch}_$index';
+    return newChapterMutationId();
   }
 
   Map<String, int> _baseChapterRevisionsForSave() {

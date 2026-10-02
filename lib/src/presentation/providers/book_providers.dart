@@ -1,15 +1,19 @@
+import '../../data/services/chapter_content_service.dart';
+import '../../domain/models/chapter_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
-import '../../domain/models/homepage/compiled_homepage.dart';
 import '../../domain/models/leaf_attachment.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../../data/repositories/composite_book_repository.dart';
 import '../../data/utils/firestore_utils.dart';
 import '../../utils/map_utils.dart';
 import 'auth_providers.dart';
+import 'homepage_providers.dart';
+import 'writer_providers.dart';
 import '../../data/services/offline_service.dart';
 
 final bookRepositoryProvider = Provider<BookRepository>((ref) {
@@ -36,13 +40,10 @@ final rawBooksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
 
 final booksWithLeavesProvider = FutureProvider<List<Book>>((ref) async {
   try {
-    final doc = await FirebaseFirestore.instance
-        .collection('settings')
-        .doc('homepage_compiled')
-        .get();
-    final data = doc.data();
-    if (doc.exists && data != null) {
-      final compiled = CompiledHomepage.fromJson(data);
+    // Reuse the cached compiled homepage instead of downloading the large
+    // document a second time.
+    final compiled = await ref.watch(compiledHomepageProvider.future);
+    if (compiled != null) {
       final compiledBooks = compiled.shelves.booksWithLeaves
           .where(_hasContentLeaf)
           .take(_leafShelfDisplayLimit)
@@ -79,14 +80,28 @@ bool _hasOnlyCertificateLeaves(Book book) {
   return leaves.every((leaf) => leaf.type == LeafType.certificate);
 }
 
-final currentUserAdminClaimProvider = FutureProvider<bool>((ref) async {
-  final authState = ref.watch(authStateProvider);
-  final user =
-      authState.asData?.value ??
-      firebase_auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return false;
-  final token = await user.getIdTokenResult();
-  return token.claims?['admin'] == true;
+/// Whether the signed-in user has the `admin` claim.
+///
+/// Follows token changes, and forces one refresh so a claim granted after the
+/// current token was issued is seen without signing out.
+final currentUserAdminClaimProvider = StreamProvider<bool>((ref) async* {
+  final auth = firebase_auth.FirebaseAuth.instance;
+  var refreshed = false;
+  await for (final user in auth.idTokenChanges()) {
+    if (user == null) {
+      yield false;
+      continue;
+    }
+    try {
+      final token = await user.getIdTokenResult(!refreshed);
+      refreshed = true;
+      yield token.claims?['admin'] == true;
+    } catch (error) {
+      debugPrint('[currentUserAdminClaimProvider] token read failed: $error');
+      final token = await user.getIdTokenResult();
+      yield token.claims?['admin'] == true;
+    }
+  }
 });
 
 final popularBooksProvider = FutureProvider<List<Book>>((ref) async {
@@ -118,7 +133,10 @@ final liveBookDetailProvider = StreamProvider.family<Book?, String>((
         .snapshots()
         .map((doc) {
           if (!doc.exists || doc.data() == null) return null;
-          final data = normalizeBookMapForModel(asStringMap(doc.data()), doc.id);
+          final data = normalizeBookMapForModel(
+            asStringMap(doc.data()),
+            doc.id,
+          );
           return Book.fromJson(data);
         });
     return;
@@ -237,36 +255,10 @@ final liveBookChaptersProvider = StreamProvider.family<List<Chapter>, String>((
   yield* FirebaseFirestore.instance
       .collection('books')
       .doc(bookId)
-      .collection('chapters')
-      .orderBy('order')
       .snapshots()
-      .asyncMap((snapshot) async {
-        if (snapshot.docs.isEmpty) {
-          final book = await ref.read(bookRepositoryProvider).getBook(bookId);
-          return _publicChapters(book?.chapters ?? const <Chapter>[]);
-        }
-        return snapshot.docs
-            .map((doc) {
-              final data = asStringMap(doc.data());
-              data['id'] = doc.id;
-              data['title'] = data['title']?.toString() ?? 'Chapter';
-              data['content'] = data['content']?.toString() ?? '';
-              data['index'] = data['index'] is num
-                  ? (data['index'] as num).toInt()
-                  : data['order'] is num
-                  ? (data['order'] as num).toInt()
-                  : int.tryParse(data['index']?.toString() ?? '') ??
-                        int.tryParse(data['order']?.toString() ?? '') ??
-                        0;
-              if (data['lastSavedAt'] is Timestamp) {
-                data['lastSavedAt'] =
-                    (data['lastSavedAt'] as Timestamp).millisecondsSinceEpoch;
-              }
-              return Chapter.fromJson(data);
-            })
-            .where((chapter) => !chapter.isHidden && chapter.status != 'draft')
-            .toList();
-      });
+      .map((snapshot) => snapshot.data()?['manifestRevision'])
+      .distinct()
+      .asyncMap((_) => ref.read(bookRepositoryProvider).getChapters(bookId));
 });
 
 bool _isFirebaseBookId(String bookId) {
@@ -404,3 +396,69 @@ class BookVoteController {
     _ref.invalidate(bookVoteStatsProvider(bookId));
   }
 }
+
+final chapterContentServiceProvider = Provider<ChapterContentService>(
+  (ref) => ChapterContentService(FirebaseFirestore.instance),
+);
+
+/// Navigation never downloads chapter bodies. Whole-book exports use bookChaptersProvider.
+final liveChapterDirectoryProvider = StreamProvider.autoDispose
+    .family<List<Chapter>, String>((ref, bookId) {
+      final service = ref.watch(chapterContentServiceProvider);
+      return FirebaseFirestore.instance
+          .collection('books')
+          .doc(bookId)
+          .snapshots()
+          .map(
+            (snapshot) => (
+              snapshot.data()?['manifestRevision'],
+              snapshot.data()?['status'],
+            ),
+          )
+          .distinct()
+          .asyncMap((key) async {
+            // Only a published book has a public directory. The reader lets
+            // authors open their own unpublished books, so read their drafts.
+            if (key.$2 != 'published') {
+              final drafts = await ref
+                  .read(writerRepositoryProvider)
+                  .getAuthoringChapters(bookId);
+              final visible = drafts.where((ch) => !ch.isHidden).toList();
+              return [
+                for (var i = 0; i < visible.length; i++)
+                  visible[i].copyWith(index: i),
+              ];
+            }
+            final manifest = await service.getManifest(bookId);
+            return [
+              for (var i = 0; i < manifest.entries.length; i++)
+                Chapter(
+                  id: manifest.entries[i].id,
+                  title: manifest.entries[i].title,
+                  content: '',
+                  index: i,
+                  status: 'published',
+                  revision: manifest.entries[i].publishedRevision,
+                  wordCount: manifest.entries[i].wordCount,
+                ),
+            ];
+          });
+    });
+
+final publicChapterBodyProvider = FutureProvider.autoDispose
+    .family<String, ({String bookId, String chapterId, int revision})>((
+      ref,
+      key,
+    ) {
+      return ref
+          .watch(chapterContentServiceProvider)
+          .getContent(
+            key.bookId,
+            ChapterDirectoryEntry(
+              id: key.chapterId,
+              title: '',
+              orderKey: '',
+              publishedRevision: key.revision,
+            ),
+          );
+    });

@@ -121,20 +121,18 @@ void main() {
     },
   );
 
-  test('writer chapter draft moves migrate comments and feed metadata', () {
+  test('writer chapter draft moves delegate to chapter command export', () {
     final source = File(
       'lib/src/data/repositories/firebase_writer_repository.dart',
     ).readAsStringSync();
 
-    expect(source, contains('_restoreEngagementDataToStandalone'));
-    expect(source, contains('_migrateEngagementDataToChapter'));
-    expect(source, contains(".collection('comments')"));
-    expect(source, contains(".collection('feed')"));
-    expect(source, contains("'chapterIndex': 0"));
-    expect(source, contains("'chapterId': null"));
-    expect(source, contains("'chapterId': newChapterId"));
-    expect(source, contains("'chapterIndex': newChapterIndex"));
-    expect(source, contains('static const int _batchChunkSize = 450'));
+    expect(source, contains('moveChapterToStandaloneDraft'));
+    expect(source, contains("'operation': 'exportChapter'"));
+    expect(source, contains("'bookId': sourceBook.id"));
+    expect(source, contains("'chapterId': chapter.id"));
+    expect(source, contains("'baseChapterRevision': chapter.revision"));
+    expect(source, contains("'baseStructureRevision': _structureRevisions[sourceBook.id]"));
+    expect(source, contains("result['targetBookId']"));
   });
 
   test('writer chapter sheet exposes move and import draft actions', () {
@@ -221,11 +219,10 @@ void main() {
     final mainSource = File('lib/main.dart').readAsStringSync();
 
     expect(repositorySource, contains('required String ownerUserId'));
-    expect(repositorySource, contains('authorId: draftOwnerId'));
-    expect(repositorySource, contains('authorIds: [draftOwnerId]'));
-    expect(repositorySource, contains('collaborationStatus: null'));
-    expect(repositorySource, contains('if (book.authorId?.trim() != userId)'));
-    expect(repositorySource, contains('if (isAcceptedCollaboration(book))'));
+    expect(repositorySource, contains("'operation': 'exportChapter'"));
+    expect(repositorySource, contains("'operation': 'importSingles'"));
+    expect(repositorySource, contains('book.authorId?.trim() != userId'));
+    expect(repositorySource, contains('isAcceptedCollaboration(book)'));
     expect(writerSource, contains('ownerUserId: user.id'));
     expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
     expect(mainSource, contains("error.code == 'duplicate-app'"));

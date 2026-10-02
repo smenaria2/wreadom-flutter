@@ -3573,4 +3573,18 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get readerFontLaila => 'लैला';
+
+  @override
+  String get maintenanceTitle => 'Wreadom अपडेट हो रहा है';
+
+  @override
+  String get maintenanceDefaultMessage =>
+      'हम कुछ सुधार कर रहे हैं। कुछ समय के लिए सेव करना रुका हुआ है। कृपया थोड़ी देर बाद देखें।';
+
+  @override
+  String get updateRequiredMessage =>
+      'Wreadom का यह संस्करण अब समर्थित नहीं है। जारी रखने के लिए कृपया अपडेट करें।';
+
+  @override
+  String get reloadAction => 'फिर से लोड करें';
 }

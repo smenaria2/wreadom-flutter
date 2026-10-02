@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'package:cloud_functions/cloud_functions.dart';
+import '../services/chapter_command_service.dart';
+import '../../domain/models/chapter_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
@@ -8,19 +12,20 @@ import '../../domain/models/chapter_edit_lock.dart';
 import '../../domain/repositories/writer_repository.dart';
 import '../../utils/book_collaboration_utils.dart';
 import '../../utils/map_utils.dart';
-import '../../utils/reading_time_utils.dart';
 import '../utils/firestore_utils.dart';
-import 'chapter_save_write_plan.dart';
 import 'chapter_save_merge.dart';
 
 class FirebaseWriterRepository implements WriterRepository {
   FirebaseWriterRepository({
     FirebaseFirestore? firestore,
     firebase_auth.FirebaseAuth? auth,
+    ChapterCommandService? commands,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _auth = auth;
+       _auth = auth,
+       _injectedCommands = commands;
 
   final FirebaseFirestore _firestore;
+  final ChapterCommandService? _injectedCommands;
   final firebase_auth.FirebaseAuth? _auth;
 
   firebase_auth.FirebaseAuth? get _resolvedAuth {
@@ -32,8 +37,11 @@ class FirebaseWriterRepository implements WriterRepository {
     }
   }
 
-  static const int _batchChunkSize = 450;
-  static const Duration _chapterLockTimeout = Duration(seconds: 90);
+  late final ChapterCommandService _commands =
+      _injectedCommands ?? ChapterCommandService(auth: _resolvedAuth);
+  final Map<String, List<Chapter>> _baselines = {};
+  final Map<String, int> _structureRevisions = {};
+  String get editorSessionId => _commands.editorSessionId;
 
   @override
   Future<String> createBook(Book book) async {
@@ -50,27 +58,63 @@ class FirebaseWriterRepository implements WriterRepository {
       chapters: book.chapters ?? const <Chapter>[],
       mergeBook: false,
       readExistingChapters: false,
+      publication: book.status == 'published' ? 'published' : null,
     );
     return bookRef.id;
   }
 
   @override
   Future<List<Chapter>> getAuthoringChapters(String bookId) async {
-    final snapshot = await _firestore
+    final parent = _firestore.collection('books').doc(bookId);
+    final book = await parent.get();
+    requireChapterSchema(book.data()?['chapterStorageVersion']);
+    final snapshot = await parent
+        .collection('authorChapters')
+        .orderBy('orderKey')
+        .get();
+    final chapters = snapshot.docs
+        .where((doc) => doc.data()['deletedAt'] == null)
+        .map(_chapterFromFirestore)
+        .toList();
+    final ordered = [
+      for (var i = 0; i < chapters.length; i++) chapters[i].copyWith(index: i),
+    ];
+    _baselines[bookId] = ordered;
+    // Saves are checked against the book root's live structure revision.
+    _structureRevisions[bookId] =
+        (book.data()?['structureRevision'] as num?)?.toInt() ?? 0;
+    return ordered;
+  }
+
+  Future<({List<ChapterVersion> versions, String? cursor})>
+  getChapterHistoryPage(
+    String bookId,
+    String chapterId, {
+    String? cursor,
+  }) async {
+    Query<Map<String, dynamic>> query = _firestore
         .collection('books')
         .doc(bookId)
         .collection('authorChapters')
-        .orderBy('index')
-        .get();
-    if (snapshot.docs.isEmpty) {
-      final book = await _firestore.collection('books').doc(bookId).get();
-      if (!book.exists) return const <Chapter>[];
-      final parsed = Book.fromJson(
-        normalizeBookMapForModel(book.data(), book.id),
-      );
-      return parsed.chapters ?? const <Chapter>[];
-    }
-    return snapshot.docs.map((doc) => _chapterFromFirestore(doc)).toList();
+        .doc(chapterId)
+        .collection('revisions')
+        .orderBy('timestamp', descending: true)
+        .orderBy(FieldPath.documentId, descending: true)
+        .limit(51);
+    if (cursor != null) query = query.startAfter(jsonDecode(cursor) as List);
+    final snapshot = await query.get();
+    final documents = snapshot.docs.take(50).toList();
+    final next = snapshot.docs.length > 50
+        ? jsonEncode([documents.last.data()['timestamp'], documents.last.id])
+        : null;
+    return (
+      versions: documents
+          .map((doc) => ChapterVersion.fromJson(doc.data()))
+          .toList()
+          .reversed
+          .toList(),
+      cursor: next,
+    );
   }
 
   @override
@@ -93,90 +137,44 @@ class FirebaseWriterRepository implements WriterRepository {
     String chapterId,
     ChapterLockHolder holder,
   ) async {
-    final normalizedBookId = bookId.trim();
-    final normalizedChapterId = chapterId.trim();
-    final holderId = holder.id.trim();
-    if (normalizedBookId.isEmpty ||
-        normalizedChapterId.isEmpty ||
-        holderId.isEmpty) {
-      return false;
-    }
-    final lockRef = _firestore
-        .collection('books')
-        .doc(normalizedBookId)
-        .collection('chapterLocks')
-        .doc(normalizedChapterId);
-    return _firestore.runTransaction<bool>((transaction) async {
-      final snapshot = await transaction.get(lockRef);
-      final now = DateTime.now().millisecondsSinceEpoch;
-      if (snapshot.exists) {
-        final existing = _chapterLockFromFirestore(
-          normalizedChapterId,
-          snapshot.data() ?? const <String, dynamic>{},
-        );
-        if (existing.holderId != holderId && !existing.isExpiredAt(now)) {
-          return false;
-        }
-      }
-      transaction.set(
-        lockRef,
-        ChapterEditLock(
-          chapterId: normalizedChapterId,
-          holderId: holderId,
-          holderName: holder.name.trim().isEmpty
-              ? 'Co-author'
-              : holder.name.trim(),
-          acquiredAt: now,
-          heartbeatAt: now,
-          expiresAt: now + _chapterLockTimeout.inMilliseconds,
-        ).toJson(),
-      );
-      return true;
+    final result = await _commands.send({
+      'operation': 'acquireLease',
+      'bookId': bookId,
+      'chapterId': chapterId,
+      'holderName': holder.name,
     });
+    if (result['acquired'] == true && result['leaseToken'] is String) {
+      _commands.leaseTokens['$bookId/$chapterId'] =
+          result['leaseToken'] as String;
+    }
+    return result['acquired'] == true;
   }
 
   @override
   Future<void> renewChapterLock(String bookId, String chapterId) async {
-    final userId = _resolvedAuth?.currentUser?.uid.trim();
-    if (userId == null || userId.isEmpty) return;
-    final lockRef = _firestore
-        .collection('books')
-        .doc(bookId)
-        .collection('chapterLocks')
-        .doc(chapterId);
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(lockRef);
-      if (!snapshot.exists) return;
-      final existing = _chapterLockFromFirestore(
-        chapterId,
-        snapshot.data() ?? const <String, dynamic>{},
+    final token = _commands.leaseTokens['$bookId/$chapterId'];
+    if (token == null) {
+      throw StateError(
+        'Editing session expired. Your local draft is preserved.',
       );
-      if (existing.holderId != userId) return;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      transaction.set(lockRef, <String, dynamic>{
-        'heartbeatAt': now,
-        'expiresAt': now + _chapterLockTimeout.inMilliseconds,
-      }, SetOptions(merge: true));
+    }
+    await _commands.send({
+      'operation': 'renewLease',
+      'bookId': bookId,
+      'chapterId': chapterId,
+      'leaseToken': token,
     });
   }
 
   @override
   Future<void> releaseChapterLock(String bookId, String chapterId) async {
-    final userId = _resolvedAuth?.currentUser?.uid.trim();
-    if (userId == null || userId.isEmpty) return;
-    final lockRef = _firestore
-        .collection('books')
-        .doc(bookId)
-        .collection('chapterLocks')
-        .doc(chapterId);
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(lockRef);
-      if (!snapshot.exists) return;
-      final existing = _chapterLockFromFirestore(
-        chapterId,
-        snapshot.data() ?? const <String, dynamic>{},
-      );
-      if (existing.holderId == userId) transaction.delete(lockRef);
+    final token = _commands.leaseTokens.remove('$bookId/$chapterId');
+    if (token == null) return;
+    await _commands.send({
+      'operation': 'releaseLease',
+      'bookId': bookId,
+      'chapterId': chapterId,
+      'leaseToken': token,
     });
   }
 
@@ -185,6 +183,8 @@ class FirebaseWriterRepository implements WriterRepository {
     Map<String, dynamic> data,
   ) {
     final normalized = asStringMap(data);
+    normalized['isCurrentSession'] =
+        normalized['editorSessionId'] == editorSessionId;
     normalized['chapterId'] = normalized['chapterId']?.toString() ?? docId;
     return ChapterEditLock.fromJson(normalized);
   }
@@ -195,21 +195,23 @@ class FirebaseWriterRepository implements WriterRepository {
     String? excludeBookId,
   }) async {
     final books = await getUserBooks(userId, status: 'draft');
-    return books.where((book) {
-      if (book.id == excludeBookId) return false;
-      if (book.status == 'deleted') return false;
-      if (book.authorId?.trim() != userId) return false;
-      if (isAcceptedCollaboration(book)) return false;
-      return (book.chapters ?? const <Chapter>[]).length == 1;
-    }).toList();
+    final result = <Book>[];
+    for (final book in books) {
+      if (book.id == excludeBookId ||
+          book.status == 'deleted' ||
+          book.authorId?.trim() != userId ||
+          isAcceptedCollaboration(book)) {
+        continue;
+      }
+      final chapters = await getAuthoringChapters(book.id);
+      if (chapters.length == 1) result.add(book.copyWith(chapters: chapters));
+    }
+    return result;
   }
 
   @override
   Future<void> deleteBook(String bookId) async {
-    await _firestore.collection('books').doc(bookId).update({
-      'status': 'deleted',
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    await _commands.send({'operation': 'deleteBook', 'bookId': bookId});
   }
 
   @override
@@ -219,66 +221,33 @@ class FirebaseWriterRepository implements WriterRepository {
     required List<Chapter> remainingChapters,
     required String ownerUserId,
   }) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final sourceBookId = sourceBook.id.trim();
-    final draftOwnerId = ownerUserId.trim();
-    if (sourceBookId.isEmpty) {
-      throw StateError('Source book must be saved before moving a chapter.');
+    if (sourceBook.id.trim().isEmpty || ownerUserId.trim().isEmpty) {
+      throw StateError('Save this book before moving a chapter.');
     }
-    if (draftOwnerId.isEmpty) {
-      throw StateError('Draft owner is required.');
+    final result = await _commands.send({
+      'operation': 'exportChapter',
+      'bookId': sourceBook.id,
+      'chapterId': chapter.id,
+      'baseChapterRevision': chapter.revision,
+      'baseStructureRevision': _structureRevisions[sourceBook.id] ?? 0,
+      'leaseToken': _commands.leaseTokens['${sourceBook.id}/${chapter.id}'],
+    });
+    final targetBookId = result['targetBookId'];
+    if (targetBookId is! String || targetBookId.isEmpty) {
+      throw StateError(
+        'The move needs verification. Your local draft is preserved.',
+      );
     }
-
-    final movedTitle = chapter.title.trim().isEmpty
-        ? sourceBook.title
-        : chapter.title.trim();
-    final standalone = sourceBook.copyWith(
-      id: '',
-      title: movedTitle,
-      description: sourceBook.title.trim().isEmpty
-          ? 'Draft exported from content'
-          : 'Draft exported from ${sourceBook.title}',
-      status: 'draft',
-      source: 'firestore',
-      isOriginal: true,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: null,
-      authorId: draftOwnerId,
-      authorIds: [draftOwnerId],
-      collaborationStatus: null,
-      collaboratorId: null,
-      collaboratorName: null,
-      collaboratorPhotoURL: null,
-      collaborationRequestedBy: null,
-      collaborationRequestedAt: null,
-      collaborationRespondedAt: null,
-      recommendationCount: null,
-      weightedScore: null,
-      averageRating: null,
-      viewCount: null,
-      ratingsCount: null,
-      chapterCount: 1,
-      chapters: [chapter.copyWith(index: 0, status: 'draft', lastSavedAt: now)],
-    );
-
-    final newBookId = await createBook(standalone);
-    await _restoreEngagementDataToStandalone(
-      sourceBookId: sourceBookId,
-      newBookId: newBookId,
-      newBookTitle: movedTitle,
-      chapterId: chapter.id,
-    );
-    await updateBook(
-      sourceBookId,
-      sourceBook.copyWith(
-        chapters: remainingChapters,
-        chapterCount: remainingChapters.where((item) => !item.isHidden).length,
-        updatedAt: now,
-      ),
-      deletedChapterIds: {chapter.id},
-    );
-    return newBookId;
+    // The move changed the source book's structure; refresh the baseline so
+    // the next save is not refused. The move itself already succeeded.
+    try {
+      await getAuthoringChapters(sourceBook.id);
+    } catch (error) {
+      debugPrint(
+        '[FirebaseWriterRepository] refresh after move failed: $error',
+      );
+    }
+    return targetBookId;
   }
 
   @override
@@ -286,59 +255,23 @@ class FirebaseWriterRepository implements WriterRepository {
     required Book targetBook,
     required List<Book> sourceDrafts,
   }) async {
-    final targetBookId = targetBook.id.trim();
-    if (targetBookId.isEmpty) {
-      throw StateError('Target book must be saved before importing drafts.');
+    if (targetBook.id.trim().isEmpty) {
+      throw StateError('Save this book before importing drafts.');
     }
-
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final currentChapters = List<Chapter>.from(
-      targetBook.chapters ?? const <Chapter>[],
-    );
-    final imported = <Chapter>[];
-    var nextIndex = currentChapters.length;
-
-    for (final sourceDraft in sourceDrafts) {
-      final sourceBookId = sourceDraft.id.trim();
-      final sourceChapter = sourceDraft.chapters?.firstOrNull;
-      if (sourceBookId.isEmpty || sourceChapter == null) continue;
-
-      final importedChapter = sourceChapter.copyWith(
-        id: sourceBookId,
-        title: sourceDraft.title.trim().isEmpty
-            ? sourceChapter.title
-            : sourceDraft.title.trim(),
-        index: nextIndex++,
-        status: 'draft',
-        lastSavedAt: now,
-        originalBookId: sourceBookId,
-      );
-      currentChapters.add(importedChapter);
-      imported.add(importedChapter);
-
-      await _migrateEngagementDataToChapter(
-        sourceBookId: sourceBookId,
-        targetBookId: targetBookId,
-        targetBookTitle: targetBook.title,
-        newChapterId: importedChapter.id,
-        newChapterTitle: importedChapter.title,
-        newChapterIndex: importedChapter.index,
-      );
-      await deleteBook(sourceBookId);
-    }
-
-    if (imported.isNotEmpty) {
-      await updateBook(
-        targetBookId,
-        targetBook.copyWith(
-          chapters: currentChapters,
-          chapterCount: currentChapters.where((item) => !item.isHidden).length,
-          updatedAt: now,
-        ),
-      );
-    }
-
-    return imported;
+    if (sourceDrafts.isEmpty) return [];
+    final existingIds = (targetBook.chapters ?? <Chapter>[])
+        .map((chapter) => chapter.id)
+        .toSet();
+    await _commands.send({
+      'operation': 'importSingles',
+      'bookId': targetBook.id,
+      'sourceBookIds': sourceDrafts.map((book) => book.id).toList(),
+      'baseStructureRevision': _structureRevisions[targetBook.id] ?? 0,
+    });
+    final refreshed = await getAuthoringChapters(targetBook.id);
+    return refreshed
+        .where((chapter) => !existingIds.contains(chapter.id))
+        .toList();
   }
 
   @override
@@ -394,6 +327,7 @@ class FirebaseWriterRepository implements WriterRepository {
     Map<String, int> baseChapterRevisions = const <String, int>{},
     Set<String> changedChapterIds = const <String>{},
     bool changedChapterIdsAreAuthoritative = false,
+    String? publication,
   }) async {
     final data = _bookToFirestoreJson(book)..remove('id');
     data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
@@ -430,6 +364,7 @@ class FirebaseWriterRepository implements WriterRepository {
       baseChapterRevisions: baseChapterRevisions,
       changedChapterIds: changedChapterIds,
       changedChapterIdsAreAuthoritative: changedChapterIdsAreAuthoritative,
+      publication: publication,
     );
   }
 
@@ -439,35 +374,26 @@ class FirebaseWriterRepository implements WriterRepository {
     required String userId,
     required bool accept,
   }) async {
-    final bookRef = _firestore.collection('books').doc(bookId);
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(bookRef);
-      if (!snapshot.exists) {
-        throw StateError('Book not found.');
-      }
-      final book = Book.fromJson(
-        normalizeBookMapForModel(snapshot.data(), snapshot.id),
-      );
-      if (book.collaboratorId?.trim() != userId ||
-          book.collaborationStatus != collaborationStatusPending) {
-        throw StateError('This collaboration request is no longer available.');
-      }
-
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final primaryId = book.authorId?.trim();
-      final collaboratorId = book.collaboratorId?.trim();
-      final update = <String, dynamic>{
-        'collaborationStatus': accept
-            ? collaborationStatusAccepted
-            : collaborationStatusDeclined,
-        'collaborationRespondedAt': now,
-        'updatedAt': now,
-      };
-      if (accept && primaryId != null && collaboratorId != null) {
-        update['authorIds'] = <String>[primaryId, collaboratorId];
-      }
-      transaction.set(bookRef, update, SetOptions(merge: true));
+    await _commands.send({
+      'operation': 'respondToCollaboration',
+      'bookId': bookId,
+      'accept': accept,
     });
+  }
+
+  Map<String, dynamic> _draftPayload(Chapter chapter) {
+    final data = <String, dynamic>{
+      'id': chapter.id,
+      'title': chapter.title,
+      'content': chapter.content,
+      'orderKey': chapterOrderKey(chapter.index),
+      'isHidden': chapter.isHidden,
+      'isTitleLocked': chapter.isTitleLocked == true,
+      'originalBookId': chapter.originalBookId,
+      'status': chapter.status == 'published' ? 'published' : 'draft',
+    };
+    assertChapterBudget(data);
+    return data;
   }
 
   Future<List<Chapter>> _writeBookAndAuthorChapters({
@@ -476,197 +402,78 @@ class FirebaseWriterRepository implements WriterRepository {
     required List<Chapter> chapters,
     required bool mergeBook,
     required bool readExistingChapters,
-    Set<String> deletedChapterIds = const <String>{},
-    Map<String, int> baseChapterRevisions = const <String, int>{},
-    Set<String> changedChapterIds = const <String>{},
+    Set<String> deletedChapterIds = const {},
+    Map<String, int> baseChapterRevisions = const {},
+    Set<String> changedChapterIds = const {},
     bool changedChapterIdsAreAuthoritative = false,
+    String? publication,
   }) async {
-    if (chapters.length > _batchChunkSize) {
-      throw StateError(
-        'A book cannot contain more than $_batchChunkSize chapters.',
-      );
-    }
-
-    final incoming = <Chapter>[
-      for (var i = 0; i < chapters.length; i++) chapters[i].copyWith(index: i),
-    ];
-
-    if (!readExistingChapters) {
-      _applyBookChapterProjection(data, incoming);
-      final batch = _firestore.batch();
-      batch.set(bookRef, data, SetOptions(merge: mergeBook));
-      for (final chapter in incoming) {
-        batch.set(
-          bookRef.collection('authorChapters').doc(chapter.id),
-          _chapterToFirestore(chapter),
-        );
-      }
-      await batch.commit();
-      return incoming;
-    }
-
-    // A normal edit should not download every chapter before it can save. The
-    // editor sends the chapters that changed since the last successful save;
-    // legacy callers retain the previous all-chapters behaviour by omitting
-    // [changedChapterIds].
-    final writePlan = buildChapterSaveWritePlan(
-      incomingChapterIds: incoming.map((chapter) => chapter.id),
-      changedChapterIds: changedChapterIds,
-      changedChapterIdsAreAuthoritative: changedChapterIdsAreAuthoritative,
-    );
-    final changedIds = writePlan.fullChapterIds;
-    final writeCount = writePlan.writeCount(
-      deletedChapterCount: deletedChapterIds.length,
-    );
-    if (writeCount > 500) {
-      throw StateError(
-        'This book has too many chapter changes for one atomic save.',
-      );
-    }
-
-    var savedChapters = incoming;
-    try {
-      await _firestore.runTransaction((transaction) async {
-        await transaction.get(bookRef);
-        final chapterReads =
-            <
-              ({
-                String id,
-                DocumentReference<Map<String, dynamic>> ref,
-                DocumentSnapshot<Map<String, dynamic>> snapshot,
-              })
-            >[];
-        for (final id in changedIds) {
-          final ref = bookRef.collection('authorChapters').doc(id);
-          final snapshot = await transaction.get(ref);
-          chapterReads.add((id: id, ref: ref, snapshot: snapshot));
-        }
-
-        final existingChapters = <Chapter>[];
-        final existingDocRefs =
-            <String, DocumentReference<Map<String, dynamic>>>{};
-        for (final read in chapterReads) {
-          if (!read.snapshot.exists) continue;
-          final chapter = _chapterFromSnapshot(read.snapshot);
-          existingChapters.add(chapter);
-          existingDocRefs[chapter.id] = read.ref;
-        }
-
-        final existingById = <String, Chapter>{
-          for (final chapter in existingChapters) chapter.id: chapter,
-        };
-        final deletedIds = deletedChapterIds.map((id) => id.trim()).toSet();
-        final conflicts = <String>[];
-        final canonical = <Chapter>[];
-        for (final incomingChapter in incoming) {
-          final id = incomingChapter.id.trim();
-          if (id.isEmpty || deletedIds.contains(id)) continue;
-          if (!changedIds.contains(id)) {
-            canonical.add(incomingChapter);
-            continue;
-          }
-          final existing = existingById[id];
-          final baseRevision = baseChapterRevisions[id];
-          if (existing != null &&
-              baseRevision != null &&
-              existing.revision != baseRevision) {
-            conflicts.add(id);
-            continue;
-          }
-          final nextRevision = existing == null
-              ? incomingChapter.revision + 1
-              : existing.revision + 1;
-          canonical.add(incomingChapter.copyWith(revision: nextRevision));
-        }
-        if (conflicts.isNotEmpty) throw ChapterSaveConflictException(conflicts);
-        savedChapters = canonical;
-        _applyBookChapterProjection(data, canonical);
-        transaction.set(bookRef, data, SetOptions(merge: mergeBook));
-        for (final chapter in canonical) {
-          final chapterRef = bookRef
-              .collection('authorChapters')
-              .doc(chapter.id);
-          if (changedIds.contains(chapter.id)) {
-            transaction.set(chapterRef, _chapterToFirestore(chapter));
-          } else if (writePlan.metadataOnlyChapterIds.contains(chapter.id)) {
-            // Update canonical metadata without replacing the remote body. If a
-            // legacy author-chapter document is absent, retry all chapters as
-            // full writes after this transaction aborts.
-            transaction.update(chapterRef, <String, dynamic>{
-              'status': chapter.status,
-              'index': chapter.index,
-              'order': chapter.index,
-            });
-          }
-        }
-        for (final deletedId in deletedChapterIds) {
-          final id = deletedId.trim();
-          if (id.isEmpty) continue;
-          final ref =
-              existingDocRefs[id] ??
-              bookRef.collection('authorChapters').doc(id);
-          transaction.delete(ref);
-        }
-      });
-    } on FirebaseException catch (error) {
-      if (error.code != 'not-found' ||
-          writePlan.metadataOnlyChapterIds.isEmpty) {
-        rethrow;
-      }
-      return _writeBookAndAuthorChapters(
-        bookRef: bookRef,
-        data: data,
-        chapters: incoming,
-        mergeBook: mergeBook,
-        readExistingChapters: true,
-        deletedChapterIds: deletedChapterIds,
-        baseChapterRevisions: baseChapterRevisions,
-        changedChapterIds: incoming.map((chapter) => chapter.id).toSet(),
-        changedChapterIdsAreAuthoritative: true,
-      );
-    }
-    return savedChapters;
-  }
-
-  void _applyBookChapterProjection(
-    Map<String, dynamic> data,
-    List<Chapter> chapters,
-  ) {
-    final visible = visibleChaptersForBookProjection(chapters);
-    data['chapters'] = <Map<String, dynamic>>[
-      for (final chapter in visible) _chapterToFirestore(chapter),
-    ];
-    data['chapterCount'] = visible.length;
-
-    int totalWords = 0;
-    for (final chapter in visible) {
-      if (chapter.content.trim().isNotEmpty) {
-        totalWords += countWords(chapter.content);
-      }
-    }
-    data['wordCount'] = totalWords;
-    if (totalWords > 0) {
-      final calculated = (totalWords / 200).ceil();
-      data['readingTimeMinutes'] = calculated < 1 ? 1 : calculated;
-    } else {
-      final defaultMinsPerChapter =
-          switch (data['contentType']?.toString().trim().toLowerCase()) {
-            'poem' => 2,
-            'article' => 4,
-            _ => 3,
-          };
-      data['readingTimeMinutes'] =
-          (visible.length * defaultMinsPerChapter).clamp(1, 99999);
-    }
-  }
-
-  Map<String, dynamic> _chapterToFirestore(Chapter chapter) {
-    final data = chapter.toJson();
-    data['versions'] = chapter.versions
-        ?.map((version) => version.toJson())
+    final previous = {
+      for (final ch in _baselines[bookRef.id] ?? <Chapter>[]) ch.id: ch,
+    };
+    final changed = chapters
+        .where(
+          (ch) =>
+              previous[ch.id] == null ||
+              jsonEncode(_draftPayload(ch)) !=
+                  jsonEncode(_draftPayload(previous[ch.id]!)),
+        )
         .toList();
-    data['order'] = chapter.index;
-    return data;
+    final metadata = Map<String, dynamic>.from(data)
+      ..remove('chapters')
+      ..remove('chapterCount')
+      ..remove('wordCount')
+      ..remove('readingTimeMinutes')
+      ..remove('id');
+    if (readExistingChapters && publication == null) metadata.remove('status');
+    try {
+      final result = await _commands.send({
+        'operation': 'saveBook',
+        'bookId': bookRef.id,
+        'isNew': !readExistingChapters,
+        'metadata': metadata,
+        'chapters': changed.map(_draftPayload).toList(),
+        'baseChapterRevisions': baseChapterRevisions.isNotEmpty
+            ? baseChapterRevisions
+            : {for (final ch in previous.values) ch.id: ch.revision},
+        'baseStructureRevision': _structureRevisions[bookRef.id] ?? 0,
+        'deletedChapterIds': deletedChapterIds.toList(),
+        'leaseTokens': {
+          for (final ch in changed)
+            ch.id: _commands.leaseTokens['${bookRef.id}/${ch.id}'],
+        },
+        'publication': publication == null
+            ? null
+            : {
+                'status': publication,
+                'chapterIds': chapters
+                    .where((ch) => !ch.isHidden && ch.status == 'published')
+                    .map((ch) => ch.id)
+                    .toList(),
+              },
+      });
+      final revisions = Map<String, dynamic>.from(
+        result['revisions'] as Map? ?? {},
+      );
+      final saved = chapters
+          .map(
+            (ch) => ch.copyWith(
+              revision: (revisions[ch.id] as num?)?.toInt() ?? ch.revision,
+            ),
+          )
+          .toList();
+      _baselines[bookRef.id] = saved;
+      _structureRevisions[bookRef.id] =
+          (result['structureRevision'] as num?)?.toInt() ??
+          _structureRevisions[bookRef.id] ??
+          0;
+      return saved;
+    } on FirebaseFunctionsException catch (error) {
+      if (error.code == 'aborted') {
+        throw ChapterSaveConflictException(changed.map((ch) => ch.id).toList());
+      }
+      rethrow;
+    }
   }
 
   Chapter _chapterFromFirestore(
@@ -698,107 +505,8 @@ class FirebaseWriterRepository implements WriterRepository {
   Map<String, dynamic> _bookToFirestoreJson(Book book) {
     final data = book.toJson();
     data['authors'] = book.authors.map((author) => author.toJson()).toList();
-    data['chapters'] = book.chapters?.map((chapter) {
-      final chapterData = chapter.toJson();
-      chapterData['versions'] = chapter.versions
-          ?.map((version) => version.toJson())
-          .toList();
-      return chapterData;
-    }).toList();
+    data.remove('chapters');
     data['leaves'] = book.leaves?.map((leaf) => leaf.toJson()).toList();
     return data;
-  }
-
-  Future<void> _migrateEngagementDataToChapter({
-    required String sourceBookId,
-    required String targetBookId,
-    required String targetBookTitle,
-    required String newChapterId,
-    required String newChapterTitle,
-    required int newChapterIndex,
-  }) async {
-    final comments = await _firestore
-        .collection('comments')
-        .where('bookId', isEqualTo: sourceBookId)
-        .get();
-    final feedPosts = await _firestore
-        .collection('feed')
-        .where('bookId', isEqualTo: sourceBookId)
-        .get();
-
-    await _commitQueryDocUpdates(
-      docs: comments.docs,
-      dataFor: (_) => {
-        'bookId': targetBookId,
-        'bookTitle': targetBookTitle,
-        'chapterId': newChapterId,
-        'chapterTitle': newChapterTitle,
-        'chapterIndex': newChapterIndex,
-      },
-    );
-    await _commitQueryDocUpdates(
-      docs: feedPosts.docs,
-      dataFor: (_) => {
-        'bookId': targetBookId,
-        'bookTitle': targetBookTitle,
-        'chapterId': newChapterId,
-        'chapterTitle': newChapterTitle,
-      },
-    );
-  }
-
-  Future<void> _restoreEngagementDataToStandalone({
-    required String sourceBookId,
-    required String newBookId,
-    required String newBookTitle,
-    required String chapterId,
-  }) async {
-    final comments = await _firestore
-        .collection('comments')
-        .where('bookId', isEqualTo: sourceBookId)
-        .where('chapterId', isEqualTo: chapterId)
-        .get();
-    final feedPosts = await _firestore
-        .collection('feed')
-        .where('bookId', isEqualTo: sourceBookId)
-        .where('chapterId', isEqualTo: chapterId)
-        .get();
-
-    await _commitQueryDocUpdates(
-      docs: comments.docs,
-      dataFor: (_) => {
-        'bookId': newBookId,
-        'bookTitle': newBookTitle,
-        'chapterId': null,
-        'chapterTitle': null,
-        'chapterIndex': 0,
-      },
-    );
-    await _commitQueryDocUpdates(
-      docs: feedPosts.docs,
-      dataFor: (_) => {
-        'bookId': newBookId,
-        'bookTitle': newBookTitle,
-        'chapterId': null,
-        'chapterTitle': null,
-      },
-    );
-  }
-
-  Future<void> _commitQueryDocUpdates({
-    required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-    required Map<String, dynamic> Function(
-      QueryDocumentSnapshot<Map<String, dynamic>> doc,
-    )
-    dataFor,
-  }) async {
-    for (var i = 0; i < docs.length; i += _batchChunkSize) {
-      final batch = _firestore.batch();
-      final chunk = docs.skip(i).take(_batchChunkSize);
-      for (final doc in chunk) {
-        batch.update(doc.reference, dataFor(doc));
-      }
-      await batch.commit();
-    }
   }
 }

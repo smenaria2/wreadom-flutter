@@ -3543,4 +3543,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerFontLaila => 'Laila';
+
+  @override
+  String get maintenanceTitle => 'Wreadom is being updated';
+
+  @override
+  String get maintenanceDefaultMessage =>
+      'We are making improvements. Saving is paused for a short while. Please check back soon.';
+
+  @override
+  String get updateRequiredMessage =>
+      'This version of Wreadom is no longer supported. Please update to continue.';
+
+  @override
+  String get reloadAction => 'Reload';
 }

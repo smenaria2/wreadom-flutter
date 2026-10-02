@@ -39,6 +39,7 @@ import 'src/presentation/screens/onboarding_gate.dart';
 import 'src/presentation/screens/email_verification_screen.dart';
 import 'src/presentation/screens/startup_splash_screen.dart';
 import 'src/presentation/screens/compulsory_update_gate.dart';
+import 'src/presentation/widgets/app_runtime_gate.dart';
 import 'src/presentation/theme/app_theme.dart';
 import 'src/presentation/routing/startup_entry_policy.dart';
 import 'src/presentation/routing/startup_notification_resolver.dart';
@@ -55,6 +56,7 @@ import 'src/utils/app_haptics.dart';
 import 'src/utils/custom_license_registry.dart';
 import 'src/presentation/providers/locale_provider.dart';
 import 'src/config/env_config.dart';
+import 'src/config/emulator_host_resolver.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'src/utils/sharing_intent_handler.dart';
 
@@ -334,16 +336,16 @@ class _BootstrapFailureAppState extends State<BootstrapFailureApp> {
   }
 }
 
-Future<({
-  bool hasInitialShare,
-  Uri? initialAppLink,
-  bool hasInitialNotification,
-  RouteSettings? initialNotificationTarget,
-  Map<String, dynamic>? initialNotificationData,
-})> _resolveStartupEntry(
-  AppLinks appLinks, {
-  required bool firebaseReady,
-}) async {
+Future<
+  ({
+    bool hasInitialShare,
+    Uri? initialAppLink,
+    bool hasInitialNotification,
+    RouteSettings? initialNotificationTarget,
+    Map<String, dynamic>? initialNotificationData,
+  })
+>
+_resolveStartupEntry(AppLinks appLinks, {required bool firebaseReady}) async {
   final initialLinkFuture = () async {
     try {
       return await appLinks.getInitialLink().timeout(
@@ -444,6 +446,13 @@ Future<bool> _guardedBootstrapStep(
 }
 
 Future<void> _initializeFirebaseIfNeeded() async {
+  if (EnvConfig.useFirebaseEmulators &&
+      !EnvConfig.firebaseProjectId.startsWith('demo-')) {
+    throw StateError(
+      'USE_FIREBASE_EMULATORS requires a demo-* FIREBASE_PROJECT_ID, got '
+      '"${EnvConfig.firebaseProjectId}".',
+    );
+  }
   if (Firebase.apps.isNotEmpty) return;
   try {
     await Firebase.initializeApp(
@@ -465,11 +474,11 @@ Future<void> _configureFirestoreCache() async {
 Future<void> _configureFirebaseEmulators() async {
   debugPrint('--- Configuring Firebase Emulators ---');
   debugPrint('useFirebaseEmulators: ${EnvConfig.useFirebaseEmulators}');
-  debugPrint('firebaseEmulatorHost Env: ${EnvConfig.firebaseEmulatorHost}');
   if (!EnvConfig.useFirebaseEmulators) return;
-  final host = EnvConfig.firebaseEmulatorHost.trim().isEmpty
-      ? '127.0.0.1'
-      : EnvConfig.firebaseEmulatorHost.trim();
+  final host = await EmulatorHostResolver.resolve(
+    configuredHost: EnvConfig.firebaseEmulatorHost,
+    testPort: EnvConfig.firebaseFirestoreEmulatorPort,
+  );
   debugPrint('Using emulator host: $host');
   await FirebaseAuth.instance.useAuthEmulator(
     host,
@@ -483,6 +492,11 @@ Future<void> _configureFirebaseEmulators() async {
     host,
     EnvConfig.firebaseFunctionsEmulatorPort,
   );
+  try {
+    FirebaseFunctions.instanceFor(
+      region: 'us-central1',
+    ).useFunctionsEmulator(host, EnvConfig.firebaseFunctionsEmulatorPort);
+  } catch (_) {}
 }
 
 bool _shouldActivateAppCheck() {
@@ -652,10 +666,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     if (firebaseReady && !EnvConfig.useFirebaseEmulators) {
       NotificationService.instance.attachNavigator(_navigatorKey);
       unawaited(
-        _guardedStartupStep(
-          'Notifications',
-          NotificationService.instance.init,
-        ),
+        _guardedStartupStep('Notifications', NotificationService.instance.init),
       );
       if (!_appCheckConfigured) {
         unawaited(
@@ -913,7 +924,12 @@ class _MyAppState extends ConsumerState<MyApp> {
                 data: mediaQuery.copyWith(
                   disableAnimations: effectiveDisableAnimations,
                 ),
-                child: materialAppChild ?? const SizedBox.shrink(),
+                // Maintenance and minimum-version blocks cover every route.
+                child: _firebaseReady
+                    ? AppRuntimeGate(
+                        child: materialAppChild ?? const SizedBox.shrink(),
+                      )
+                    : materialAppChild ?? const SizedBox.shrink(),
               );
             },
             home: _showStartupSplash

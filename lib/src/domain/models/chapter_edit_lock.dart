@@ -6,6 +6,8 @@ class ChapterEditLock {
     required this.acquiredAt,
     required this.heartbeatAt,
     required this.expiresAt,
+    this.editorSessionId = '',
+    this.isCurrentSession = false,
   });
 
   factory ChapterEditLock.fromJson(Map<String, dynamic> json) {
@@ -16,6 +18,8 @@ class ChapterEditLock {
       acquiredAt: _readMillis(json['acquiredAt']),
       heartbeatAt: _readMillis(json['heartbeatAt']),
       expiresAt: _readMillis(json['expiresAt']),
+      editorSessionId: json['editorSessionId']?.toString() ?? '',
+      isCurrentSession: json['isCurrentSession'] == true,
     );
   }
 
@@ -25,6 +29,8 @@ class ChapterEditLock {
   final int acquiredAt;
   final int heartbeatAt;
   final int expiresAt;
+  final String editorSessionId;
+  final bool isCurrentSession;
 
   bool isExpiredAt(int now) => expiresAt <= now;
 
@@ -36,6 +42,7 @@ class ChapterEditLock {
       'acquiredAt': acquiredAt,
       'heartbeatAt': heartbeatAt,
       'expiresAt': expiresAt,
+      'editorSessionId': editorSessionId,
     };
   }
 

@@ -126,6 +126,7 @@ void _appendNode(
       state.isEmpty = false;
       return;
     }
+    if (isSafeWriterHyperlink(href)) nextInline['link'] = href!.trim();
   }
 
   if (tag == 'img') {
@@ -227,7 +228,7 @@ String _formatInline(String text, Map<String, dynamic> attributes) {
   if (attributes['bold'] == true) value = '<strong>$value</strong>';
   if (attributes['italic'] == true) value = '<em>$value</em>';
   if (attributes['underline'] == true) value = '<u>$value</u>';
-  if (link is String && isAllowedWriterLink(link)) {
+  if (link is String && isSafeWriterHyperlink(link)) {
     value = '<a href="${_escapeAttribute(link)}">$value</a>';
   }
   return value;
@@ -280,8 +281,8 @@ String _sanitizeNode(dom.Node node) {
 
   final attrs = <String>[];
   if (tag == 'a') {
-    final href = node.attributes['href'];
-    if (isAllowedWriterLink(href)) {
+    final href = node.attributes['href']?.trim();
+    if (isSafeWriterHyperlink(href)) {
       attrs.add('href="${_escapeAttribute(href!)}"');
       attrs.add('target="_blank"');
       attrs.add('rel="noopener noreferrer"');
@@ -306,6 +307,16 @@ String _sanitizeNode(dom.Node node) {
   final attrText = attrs.isEmpty ? '' : ' ${attrs.join(' ')}';
   if (tag == 'img') return '<img$attrText>';
   return '<$tag$attrText>$children</$tag>';
+}
+
+/// Any ordinary web or mail link an author may put in text. Media links that
+/// become embeds are a subset of these.
+bool isSafeWriterHyperlink(String? value) {
+  final uri = Uri.tryParse(value?.trim() ?? '');
+  if (uri == null) return false;
+  final scheme = uri.scheme.toLowerCase();
+  if (scheme == 'mailto') return uri.path.isNotEmpty;
+  return (scheme == 'http' || scheme == 'https') && uri.host.isNotEmpty;
 }
 
 String _escapeHtml(String value) {

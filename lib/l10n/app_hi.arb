@@ -1549,5 +1549,9 @@
   "readerFontNotoSerifDevanagari": "नोटो सेरिफ़ देवनागरी",
   "readerFontEczar": "एक्ज़ार",
   "readerFontMartel": "मार्टेल",
-  "readerFontLaila": "लैला"
+  "readerFontLaila": "लैला",
+  "maintenanceTitle": "Wreadom अपडेट हो रहा है",
+  "maintenanceDefaultMessage": "हम कुछ सुधार कर रहे हैं। कुछ समय के लिए सेव करना रुका हुआ है। कृपया थोड़ी देर बाद देखें।",
+  "updateRequiredMessage": "Wreadom का यह संस्करण अब समर्थित नहीं है। जारी रखने के लिए कृपया अपडेट करें।",
+  "reloadAction": "फिर से लोड करें"
 }

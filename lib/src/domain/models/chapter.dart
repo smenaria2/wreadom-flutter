@@ -29,6 +29,7 @@ abstract class Chapter with _$Chapter {
     String? originalBookId,
     @Default(false) bool isHidden,
     @Default(0) int revision,
+    int? wordCount,
   }) = _Chapter;
 
   factory Chapter.fromJson(Map<String, dynamic> json) =>

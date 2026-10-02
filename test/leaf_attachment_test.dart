@@ -82,4 +82,35 @@ void main() {
       expect(manualLeafTypes, isNot(contains(LeafType.certificate)));
     });
   });
+
+  group('Leaf input matches the createBookLeaf limits', () {
+    test('counts words like the server', () {
+      expect(leafWordCount('  one two\n three  '), 3);
+      expect(leafWordCount(''), 0);
+      expect(maxNoteLeafWords, 250);
+      expect(maxQuestionLeafWords, 80);
+    });
+
+    test('book links are sent in a form the server accepts', () {
+      expect(
+        normalizeLeafLinkUrl('https://wreadom.in/book?book=abc'),
+        'https://wreadom.in/book/abc',
+      );
+      expect(
+        normalizeLeafLinkUrl('https://www.youtube.com/watch?v=x'),
+        'https://www.youtube.com/watch?v=x',
+      );
+    });
+
+    test('errors are shown as readable messages', () {
+      expect(
+        leafSubmitErrorMessage(const LeafInputException('Write a note first.')),
+        'Write a note first.',
+      );
+      expect(
+        leafSubmitErrorMessage(StateError('boom')),
+        'The Leaf could not be added. Please retry.',
+      );
+    });
+  });
 }

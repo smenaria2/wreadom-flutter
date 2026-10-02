@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/env_config.dart';
 import '../../data/services/image_upload_service.dart';
 import '../../data/services/writer_draft_service.dart';
 import '../../data/repositories/firebase_writer_repository.dart';
@@ -12,6 +13,17 @@ final writerRepositoryProvider = Provider<WriterRepository>((ref) {
 });
 
 final imageUploadServiceProvider = Provider<ImageUploadService>((ref) {
+  if (EnvConfig.useFirebaseEmulators) {
+    return ImageUploadService(
+      createUploadTarget: (data) async => {
+        'uploadUrl': 'http://127.0.0.1:8180/emulator/upload',
+        'objectKey': 'images/${data['folder'] ?? 'inline'}/emulator_sample.jpg',
+        'imageUrl': 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        'headers': {'content-type': data['mimeType'] ?? 'image/jpeg'},
+      },
+      putClient: (uploadUrl, bytes, headers, mimeType) async {},
+    );
+  }
   return ImageUploadService();
 });
 
