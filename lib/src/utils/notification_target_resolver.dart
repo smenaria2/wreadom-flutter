@@ -312,6 +312,11 @@ class NotificationTargetResolver {
       return NotificationTarget(AppRoutes.publicProfile, targetId);
     }
 
+    // Parameter-less links (settings, saved books, ...) carry no payload.
+    if (linkTarget != null) {
+      return NotificationTarget(linkTarget.route, '');
+    }
+
     return null;
   }
 

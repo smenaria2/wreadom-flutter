@@ -39,6 +39,22 @@ void main() {
     expect(target?.payload, 'book1');
   });
 
+  test('parameter-less links resolve to their route with empty payload', () {
+    final cases = {
+      'https://wreadom.in/settings/profile': AppRoutes.profileSettings,
+      'https://wreadom.in/settings/language': AppRoutes.languageSettings,
+      'https://wreadom.in/saved-books': AppRoutes.savedBooks,
+      'https://wreadom.in/notifications': AppRoutes.notifications,
+    };
+    cases.forEach((link, route) {
+      final target = NotificationTargetResolver.resolve(
+        notification(type: 'custom', link: link),
+      );
+      expect(target?.route, route, reason: link);
+      expect(target?.payload, '', reason: link);
+    });
+  });
+
   test('post notification opens post detail', () {
     final target = NotificationTargetResolver.resolve(
       notification(type: 'post', link: 'https://wreadom.in/posts/post1'),

@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/app_notification.dart';
@@ -186,26 +187,77 @@ class NotificationService {
     RemoteMessage message,
     AndroidNotificationChannel channel,
   ) async {
-    RemoteNotification? notification = message.notification;
-    AndroidNotification? android = message.notification?.android;
+    final notification = message.notification;
+    if (notification == null) return;
+    final android = notification.android;
 
-    if (notification != null && android != null) {
-      await _localNotifications.show(
-        id: notification.hashCode,
-        title: notification.title,
-        body: notification.body,
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            channel.id,
-            channel.name,
-            channelDescription: channel.description,
-            icon: android.smallIcon,
-            importance: channel.importance,
-            priority: Priority.high,
-          ),
+    final imageBytes = await _downloadNotificationImage(
+      notificationImageUrl(message),
+    );
+    final bitmap = imageBytes == null ? null : ByteArrayAndroidBitmap(imageBytes);
+
+    await _localNotifications.show(
+      id: notification.hashCode,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          icon: android?.smallIcon,
+          importance: channel.importance,
+          priority: Priority.high,
+          largeIcon: bitmap,
+          styleInformation: bitmap == null
+              ? null
+              : BigPictureStyleInformation(
+                  bitmap,
+                  hideExpandedLargeIcon: true,
+                  contentTitle: notification.title,
+                  summaryText: notification.body,
+                ),
         ),
-        payload: jsonEncode(message.data),
-      );
+      ),
+      payload: jsonEncode(message.data),
+    );
+  }
+
+  /// The http(s) image URL a push carries, or null.
+  @visibleForTesting
+  static String? notificationImageUrl(RemoteMessage message) {
+    for (final candidate in [
+      message.notification?.android?.imageUrl,
+      message.data['imageUrl']?.toString(),
+      message.data['coverUrl']?.toString(),
+    ]) {
+      final url = candidate?.trim();
+      if (url == null || url.isEmpty) continue;
+      final uri = Uri.tryParse(url);
+      if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) {
+        return url;
+      }
+    }
+    return null;
+  }
+
+  Future<Uint8List?> _downloadNotificationImage(String? url) async {
+    if (url == null) return null;
+    try {
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
+      final bytes = response.bodyBytes;
+      // FCM itself caps notification images at 1 MB.
+      if (response.statusCode != 200 ||
+          bytes.isEmpty ||
+          bytes.length > 1024 * 1024) {
+        return null;
+      }
+      return bytes;
+    } catch (error) {
+      debugPrint('[NotificationService] image download failed: $error');
+      return null;
     }
   }
 
@@ -439,7 +491,10 @@ class NotificationService {
         }
         return;
       default:
-        navigator.pushNamed(target.route, arguments: target.payload);
+        navigator.pushNamed(
+          target.route,
+          arguments: target.payload.isEmpty ? null : target.payload,
+        );
     }
   }
 

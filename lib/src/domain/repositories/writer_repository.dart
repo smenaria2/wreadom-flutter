@@ -8,6 +8,16 @@ abstract class WriterRepository {
     String userId, {
     String? excludeBookId,
   });
+
+  /// One page of single-chapter drafts. Call with `offset: 0` first; pass
+  /// the returned `nextOffset` for the next page (null when exhausted).
+  Future<({List<Book> drafts, int? nextOffset})>
+  getImportableSingleChapterDraftsPage(
+    String userId, {
+    String? excludeBookId,
+    int offset = 0,
+    int pageSize = 10,
+  });
   Future<String> createBook(Book book);
 
   /// Returns the canonical chapter revisions committed by the server.

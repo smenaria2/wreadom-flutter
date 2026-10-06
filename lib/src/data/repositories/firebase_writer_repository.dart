@@ -189,24 +189,92 @@ class FirebaseWriterRepository implements WriterRepository {
     return ChapterEditLock.fromJson(normalized);
   }
 
+  // Candidate drafts for the import picker, loaded once per picker session
+  // (offset 0) and validated lazily one page at a time.
+  List<Book> _importCandidates = const [];
+
   @override
   Future<List<Book>> getImportableSingleChapterDrafts(
     String userId, {
     String? excludeBookId,
   }) async {
-    final books = await getUserBooks(userId, status: 'draft');
     final result = <Book>[];
-    for (final book in books) {
-      if (book.id == excludeBookId ||
-          book.status == 'deleted' ||
-          book.authorId?.trim() != userId ||
-          isAcceptedCollaboration(book)) {
-        continue;
-      }
-      final chapters = await getAuthoringChapters(book.id);
-      if (chapters.length == 1) result.add(book.copyWith(chapters: chapters));
+    var offset = 0;
+    while (true) {
+      final page = await getImportableSingleChapterDraftsPage(
+        userId,
+        excludeBookId: excludeBookId,
+        offset: offset,
+      );
+      result.addAll(page.drafts);
+      final next = page.nextOffset;
+      if (next == null) return result;
+      offset = next;
     }
-    return result;
+  }
+
+  @override
+  Future<({List<Book> drafts, int? nextOffset})>
+  getImportableSingleChapterDraftsPage(
+    String userId, {
+    String? excludeBookId,
+    int offset = 0,
+    int pageSize = 10,
+  }) async {
+    if (offset == 0) {
+      final books = await getUserBooks(userId, status: 'draft');
+      _importCandidates = [
+        for (final book in books)
+          if (book.id != excludeBookId &&
+              book.status != 'deleted' &&
+              book.authorId?.trim() == userId &&
+              !isAcceptedCollaboration(book))
+            book,
+      ];
+    }
+    final drafts = <Book>[];
+    var cursor = offset;
+    // Drafts with other than one chapter are dropped, so keep scanning until
+    // the page is full or the candidates run out.
+    while (drafts.length < pageSize && cursor < _importCandidates.length) {
+      final end = (cursor + pageSize).clamp(0, _importCandidates.length);
+      final batch = _importCandidates.sublist(cursor, end);
+      final validated = await Future.wait(batch.map(_singleChapterDraftOrNull));
+      for (final book in validated) {
+        if (book != null) drafts.add(book);
+      }
+      cursor = end;
+    }
+    return (
+      drafts: drafts,
+      nextOffset: cursor < _importCandidates.length ? cursor : null,
+    );
+  }
+
+  /// Returns [book] with its only chapter, or null when it has none or
+  /// several. Drafts not yet on chapter schema 2 have no `authorChapters`, so
+  /// they are excluded without a separate read of the book root. Unlike
+  /// [getAuthoringChapters] this does not touch the save baselines.
+  Future<Book?> _singleChapterDraftOrNull(Book book) async {
+    try {
+      final snapshot = await _firestore
+          .collection('books')
+          .doc(book.id)
+          .collection('authorChapters')
+          .orderBy('orderKey')
+          .get();
+      final chapters = snapshot.docs
+          .where((doc) => doc.data()['deletedAt'] == null)
+          .map(_chapterFromFirestore)
+          .toList();
+      if (chapters.length != 1) return null;
+      return book.copyWith(chapters: [chapters.first.copyWith(index: 0)]);
+    } catch (error) {
+      debugPrint(
+        '[FirebaseWriterRepository] skipping draft ${book.id} in import: $error',
+      );
+      return null;
+    }
   }
 
   @override

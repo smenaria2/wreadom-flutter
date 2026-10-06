@@ -1314,6 +1314,17 @@ class _FakeWriterRepository implements WriterRepository {
   }
 
   @override
+  Future<({List<Book> drafts, int? nextOffset})>
+  getImportableSingleChapterDraftsPage(
+    String userId, {
+    String? excludeBookId,
+    int offset = 0,
+    int pageSize = 10,
+  }) async {
+    return (drafts: const <Book>[], nextOffset: null);
+  }
+
+  @override
   Future<List<Chapter>> importSingleDraftsToBook({
     required Book targetBook,
     required List<Book> sourceDrafts,

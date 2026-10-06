@@ -32,6 +32,7 @@ import '../providers/writer_providers.dart';
 import '../providers/book_providers.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
+import '../components/writer/import_drafts_sheet.dart';
 import '../components/writer_topic_input.dart';
 import '../providers/topic_tag_providers.dart';
 import '../routing/writer_pad_mode.dart';
@@ -145,6 +146,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
   int _step = 0;
   int _currentChapterIndex = 0;
   bool _isSaving = false;
+  bool _isOpeningImportPicker = false;
   bool _isUploadingInlineImage = false;
   bool _isUploadingCover = false;
   bool _isDirty = false;
@@ -2251,18 +2253,35 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 strong: true,
                                 borderRadius: BorderRadius.circular(18),
                                 onTap: () async {
-                                  final imported =
-                                      await _showImportDraftsPicker();
-                                  if (imported && context.mounted) {
+                                  if (_isOpeningImportPicker) return;
+                                  modalSetState(
+                                    () => _isOpeningImportPicker = true,
+                                  );
+                                  try {
+                                    await _showImportDraftsPicker();
+                                  } finally {
+                                    _isOpeningImportPicker = false;
+                                  }
+                                  if (context.mounted) {
                                     modalSetState(() {});
                                   }
                                 },
                                 semanticButton: true,
                                 padding: const EdgeInsets.all(16),
-                                child: Icon(
-                                  Icons.file_download_outlined,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                                child: _isOpeningImportPicker
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.file_download_outlined,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
                               ),
                             ),
                           ],
@@ -2428,142 +2447,43 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
 
   Future<bool> _showImportDraftsPicker() async {
     final l10n = AppLocalizations.of(context)!;
+    // The chapter sheet is still open, so a snackbar would render behind it;
+    // report through a dialog instead.
+    Future<void> notify(String message) => showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.importFromDrafts),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
     final user = await _currentUserOrNull();
-    if (user == null) return false;
-    final excludeBookId = _bookId ?? widget.book?.id;
-    final drafts = await ref
-        .read(writerRepositoryProvider)
-        .getImportableSingleChapterDrafts(
-          user.id,
-          excludeBookId: excludeBookId,
-        );
     if (!mounted) return false;
-    if (drafts.isEmpty) {
-      _showSnack(l10n.noSingleChapterDraftsToImport);
+    if (user == null) {
+      await notify(l10n.couldNotImportDrafts('Not signed in'));
       return false;
     }
-
-    final selected = <String>{};
+    final excludeBookId = _bookId ?? widget.book?.id;
+    final repository = ref.read(writerRepositoryProvider);
     final chosen = await showModalBottomSheet<List<Book>>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final sheetColor = _writerSurfaceColor(sheetContext);
-        final textColor = _onWriterSurfaceColor(sheetContext);
-        return StatefulBuilder(
-          builder: (context, modalSetState) {
-            final selectedDrafts = drafts
-                .where((draft) => selected.contains(draft.id))
-                .toList();
-            return Container(
-              height: MediaQuery.sizeOf(context).height * 0.75,
-              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              decoration: BoxDecoration(
-                color: sheetColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 10, 10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.importFromDrafts,
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: l10n.close,
-                          color: textColor,
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                      itemCount: drafts.length,
-                      itemBuilder: (context, i) {
-                        final draft = drafts[i];
-                        final chapter = draft.chapters!.first;
-                        final checked = selected.contains(draft.id);
-                        final preview = plainTextFromHtml(chapter.content);
-                        return CheckboxListTile(
-                          value: checked,
-                          onChanged: (value) {
-                            modalSetState(() {
-                              if (value == true) {
-                                selected.add(draft.id);
-                              } else {
-                                selected.remove(draft.id);
-                              }
-                            });
-                          },
-                          activeColor: Theme.of(context).colorScheme.primary,
-                          checkColor: Theme.of(context).colorScheme.onPrimary,
-                          title: Text(
-                            draft.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: textColor,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          subtitle: Text(
-                            preview.isEmpty
-                                ? l10n.noContentYet
-                                : preview.length > 96
-                                ? '${preview.substring(0, 96).trim()}...'
-                                : preview,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.66),
-                            ),
-                          ),
-                          secondary: Icon(
-                            Icons.description_outlined,
-                            color: textColor.withValues(alpha: 0.7),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: selectedDrafts.isEmpty
-                            ? null
-                            : () => Navigator.of(context).pop(selectedDrafts),
-                        icon: const Icon(Icons.download_done_rounded),
-                        label: Text(
-                          l10n.importSelectedDrafts(selectedDrafts.length),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (sheetContext) => ImportDraftsSheet(
+        surfaceColor: _writerSurfaceColor(sheetContext),
+        onSurfaceColor: _onWriterSurfaceColor(sheetContext),
+        loadPage: (offset) => repository.getImportableSingleChapterDraftsPage(
+          user.id,
+          excludeBookId: excludeBookId,
+          offset: offset,
+        ),
+      ),
     );
     if (chosen == null || chosen.isEmpty || !mounted) return false;
 
@@ -2601,7 +2521,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       _showSnack(l10n.draftsImportedAsChapters(imported.length));
       return true;
     } catch (error) {
-      if (mounted) _showSnack(l10n.couldNotImportDrafts('$error'));
+      if (mounted) await notify(l10n.couldNotImportDrafts('$error'));
       return false;
     }
   }
