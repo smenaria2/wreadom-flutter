@@ -19,6 +19,7 @@ class MainRouteGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final container = ProviderScope.containerOf(context, listen: false);
 
     return authState.when(
       data: (user) {
@@ -33,7 +34,7 @@ class MainRouteGate extends ConsumerWidget {
             onReady: () {
               unawaited(
                 warmUserHomepageCache(
-                  ref,
+                  container,
                   deferDuration: const Duration(seconds: 4),
                 ),
               );

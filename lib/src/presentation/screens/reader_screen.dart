@@ -3994,15 +3994,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                 : () async {
                                                     if (_isRecordingAudioReview) {
                                                       await _stopAudioReviewRecording(
-                                                        () => setModalState(
-                                                          () {},
-                                                        ),
+                                                        () {
+                                                          if (context.mounted) {
+                                                            setModalState(() {});
+                                                          }
+                                                        },
                                                       );
                                                     } else {
                                                       await _startAudioReviewRecording(
-                                                        () => setModalState(
-                                                          () {},
-                                                        ),
+                                                        () {
+                                                          if (context.mounted) {
+                                                            setModalState(() {});
+                                                          }
+                                                        },
                                                         feedbackContext:
                                                             context,
                                                       );
@@ -4039,6 +4043,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                 chapterIndex: chapterIndex,
                                                 feedbackContext: context,
                                               );
+                                              if (!context.mounted) return;
                                               setModalState(() {});
                                             },
                                       semanticButton: true,

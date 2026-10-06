@@ -10,6 +10,7 @@ class ModalFeedbackScope extends StatefulWidget {
   final Widget child;
 
   static void show(BuildContext context, SnackBar snackBar) {
+    if (!context.mounted) return;
     final host = context
         .dependOnInheritedWidgetOfExactType<_ModalFeedbackHost>()
         ?.state;
@@ -17,7 +18,7 @@ class ModalFeedbackScope extends StatefulWidget {
       host.show(snackBar);
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(snackBar);
   }
 
   @override

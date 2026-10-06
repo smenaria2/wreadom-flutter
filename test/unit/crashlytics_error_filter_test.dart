@@ -72,6 +72,42 @@ void main() {
       );
     });
 
+    test('classifies image CDN lookup failure with empty stack as nonFatal', () {
+      final details = FlutterErrorDetails(
+        exception: Exception(
+          "ClientException with SocketException: Failed host lookup: 'wreadom-images.smenaria2.workers.dev' (OS Error: No address associated with hostname, errno = 7), uri=https://wreadom-images.smenaria2.workers.dev/images/daily_topics/x_1",
+        ),
+        stack: StackTrace.fromString(''),
+      );
+      expect(
+        CrashlyticsErrorFilter.classifyFlutterError(details),
+        ErrorSeverity.nonFatal,
+      );
+    });
+
+    test('classifies image resource service network errors as nonFatal', () {
+      final details = FlutterErrorDetails(
+        exception: const SocketException('Failed host lookup'),
+        library: 'image resource service',
+      );
+      expect(
+        CrashlyticsErrorFilter.classifyFlutterError(details),
+        ErrorSeverity.nonFatal,
+      );
+    });
+
+    test('classifies firestore unavailable as nonFatal', () {
+      final details = FlutterErrorDetails(
+        exception: Exception(
+          '[cloud_firestore/unavailable] Failed to get document from server.',
+        ),
+      );
+      expect(
+        CrashlyticsErrorFilter.classifyFlutterError(details),
+        ErrorSeverity.nonFatal,
+      );
+    });
+
     test('keeps network failures fatal outside optional asset loading', () {
       final error = const SocketException('Connection failed during startup');
       final stack = StackTrace.fromString(

@@ -137,10 +137,21 @@ class ChapterContentService {
         }
       }),
     );
-    final after = await firestore
-        .collection('books')
-        .doc(bookId)
-        .get(const GetOptions(source: Source.server));
+    final DocumentSnapshot<Map<String, dynamic>> after;
+    try {
+      after = await firestore
+          .collection('books')
+          .doc(bookId)
+          .get(const GetOptions(source: Source.server));
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable') {
+        throw const ChapterStorageException(
+          'unavailable',
+          'Could not reach the server. Check your connection and retry.',
+        );
+      }
+      rethrow;
+    }
     if (after.data()?['manifestRevision'] != manifest.revision) {
       throw const ChapterStorageException(
         'revision-mismatch',

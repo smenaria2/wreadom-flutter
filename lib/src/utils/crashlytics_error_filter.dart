@@ -31,10 +31,12 @@ class CrashlyticsErrorFilter {
     }
 
     if (_isTransientNetworkOrAssetError(
-      exception,
-      exceptionString,
-      stackString,
-    )) {
+          exception,
+          exceptionString,
+          stackString,
+          library: details.library,
+        ) ||
+        _isTransientFirestoreUnavailable(exceptionString)) {
       return ErrorSeverity.nonFatal;
     }
 
@@ -53,11 +55,17 @@ class CrashlyticsErrorFilter {
       return ErrorSeverity.ignore;
     }
 
-    if (_isTransientNetworkOrAssetError(error, errorString, stackString)) {
+    if (_isTransientNetworkOrAssetError(error, errorString, stackString) ||
+        _isTransientFirestoreUnavailable(errorString)) {
       return ErrorSeverity.nonFatal;
     }
 
     return ErrorSeverity.fatal;
+  }
+
+  /// Firestore reports offline/server-unreachable reads as `unavailable`.
+  static bool _isTransientFirestoreUnavailable(String errorStr) {
+    return errorStr.contains('cloud_firestore/unavailable');
   }
 
   /// Detects known benign platform channel teardown race conditions.
@@ -100,9 +108,12 @@ class CrashlyticsErrorFilter {
   static bool _isTransientNetworkOrAssetError(
     Object error,
     String errorStr,
-    String stackStr,
-  ) {
+    String stackStr, {
+    String? library,
+  }) {
     final isImageLoad =
+        library == 'image resource service' ||
+        errorStr.contains('wreadom-images.') ||
         stackStr.contains('ImageStreamCompleter') ||
         stackStr.contains('MultiFrameImageStreamCompleter') ||
         stackStr.contains('NetworkImage') ||

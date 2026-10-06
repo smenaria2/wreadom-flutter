@@ -163,6 +163,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
 
     setState(() => _submitting = true);
     String? localId;
+    final container = ProviderScope.containerOf(context, listen: false);
+    final commentId = widget.comment.id;
+    FailedCommentsNotifier? failedComments;
     try {
       if (_isRecording) {
         await _stopRecording();
@@ -198,6 +201,9 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
         audioSizeBytes: uploadedAudio?.audioSizeBytes,
       );
       final localComments = ref.read(failedCommentsProvider.notifier);
+      failedComments = localComments;
+      // Capture everything that needs `ref` before the sheet is popped.
+      final commentRepo = ref.read(commentRepositoryProvider);
       localId = localComments.addPendingComment(
         targetId: widget.bookId,
         target: FailedCommentTarget.book,
@@ -210,17 +216,15 @@ class _CommentReplySheetState extends ConsumerState<CommentReplySheet>
       if (mounted) Navigator.pop(context);
 
       await runOptimisticMutation(
-        ref.read(commentRepositoryProvider).addReply(widget.comment.id!, reply),
+        commentRepo.addReply(commentId!, reply),
       );
       localComments.removeFailedComment(localId);
       await AppHaptics.light();
-      ref.invalidate(liveBookCommentsProvider(widget.bookId));
-      ref.invalidate(bookCommentsProvider(widget.bookId));
+      container.invalidate(liveBookCommentsProvider(widget.bookId));
+      container.invalidate(bookCommentsProvider(widget.bookId));
     } catch (error) {
       if (localId != null) {
-        ref
-            .read(failedCommentsProvider.notifier)
-            .markFailed(localId, error.toString());
+        failedComments?.markFailed(localId, error.toString());
       }
       if (mounted) {
         ModalFeedbackScope.show(

@@ -1025,6 +1025,7 @@ class AuthWrapper extends ConsumerWidget {
       );
     }
 
+    final container = ProviderScope.containerOf(context, listen: false);
     ref.listen(authStateProvider, (previous, next) {
       if (next.hasError) {
         debugPrint(
@@ -1046,7 +1047,7 @@ class AuthWrapper extends ConsumerWidget {
         if (nextId != null) {
           unawaited(
             warmUserHomepageCache(
-              ref,
+              container,
               deferDuration: const Duration(seconds: 4),
             ),
           );
@@ -1103,7 +1104,7 @@ class AuthWrapper extends ConsumerWidget {
               ref.read(appFullyLoadedProvider.notifier).setLoaded(true);
               unawaited(
                 warmUserHomepageCache(
-                  ref,
+                  container,
                   deferDuration: const Duration(seconds: 4),
                 ),
               );

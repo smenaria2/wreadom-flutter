@@ -111,8 +111,10 @@ void warmPublicHomepageCache(WidgetRef ref) {
   );
 }
 
+/// Takes a [ProviderContainer] (not a [WidgetRef]) because it awaits a delay
+/// and the calling widget may be disposed by then.
 Future<void> warmUserHomepageCache(
-  WidgetRef ref, {
+  ProviderContainer container, {
   Duration? deferDuration,
 }) async {
   if (_userHomepageWarmQueued) return;
@@ -120,11 +122,19 @@ Future<void> warmUserHomepageCache(
   if (deferDuration != null && deferDuration > Duration.zero) {
     await Future.delayed(deferDuration);
   }
-  await Future.wait(<Future<Object?>>[
-    ref.read(readingHistoryBooksProvider(5).future).then<Object?>((_) => null),
-    ref.read(savedBooksProvider.future).then<Object?>((_) => null),
-    ref.read(homepageDownloadedBooksProvider.future).then<Object?>((_) => null),
-  ]).catchError((_) => <Object?>[]);
+  try {
+    await Future.wait(<Future<Object?>>[
+      container
+          .read(readingHistoryBooksProvider(5).future)
+          .then<Object?>((_) => null),
+      container.read(savedBooksProvider.future).then<Object?>((_) => null),
+      container
+          .read(homepageDownloadedBooksProvider.future)
+          .then<Object?>((_) => null),
+    ]);
+  } catch (_) {
+    // Best-effort warmup; the screens load these providers themselves.
+  }
 }
 
 void _queueHomepageBackgroundRefresh(Ref ref) {

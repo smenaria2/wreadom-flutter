@@ -105,17 +105,18 @@ class _UserHistoryTabState extends ConsumerState<UserHistoryTab> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
 
-    final user = await ref.read(currentUserProvider.future);
+    // Capture before the awaits: the tab may be disposed while they run.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final authRepo = ref.read(authRepositoryProvider);
+    final user = await container.read(currentUserProvider.future);
     if (user == null) return;
     final next = List<dynamic>.from(user.readingHistory)
       ..removeWhere((id) => id?.toString() == bookId);
-    await ref
-        .read(authRepositoryProvider)
-        .updateUserReadingHistory(user.id, next);
-    ref.invalidate(currentUserProvider);
-    ref.invalidate(readingHistoryBooksProvider);
+    await authRepo.updateUserReadingHistory(user.id, next);
+    container.invalidate(currentUserProvider);
+    container.invalidate(readingHistoryBooksProvider);
   }
 }
 
