@@ -33,9 +33,11 @@ import '../../utils/writer_html_codec.dart';
 import '../../utils/writer_media_utils.dart';
 import '../../widgets/glass_surface.dart';
 import '../../widgets/in_app_media_web_view.dart';
+import '../../widgets/section_error.dart';
 import '../../widgets/secure_audio_player.dart';
 import '../../widgets/see_more_content_button.dart';
 import 'certificate_leaf_viewer.dart';
+import '../../../utils/app_snackbar.dart';
 
 const int maxBookLeaves = 4;
 // Match the createBookLeaf function, which counts words.
@@ -1051,8 +1053,10 @@ Future<void> _confirmDeleteLeaf(
     ).showSnackBar(SnackBar(content: Text(l10n.leafDeleted)));
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+    showAppSnackBar(
+      context,
+      AppLocalizations.of(context)!.somethingWentWrong,
+      isError: true,
     );
   }
 }
@@ -1205,7 +1209,7 @@ Future<void> _showLinkLeaf(BuildContext context, LeafAttachment leaf) async {
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
-                child: IconButton(
+                child: IconButton(tooltip: AppLocalizations.of(context)!.close,
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
                 ),
@@ -1377,7 +1381,11 @@ class _QuestionLeafSheetState extends ConsumerState<_QuestionLeafSheet> {
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                error: (_, _) => const SizedBox.shrink(),
+                error: (_, _) => SectionError(
+                  title: AppLocalizations.of(context)!.answers,
+                  onRetry: () =>
+                      ref.invalidate(questionLeafAnswersProvider(_query)),
+                ),
               ),
               const SizedBox(height: 10),
               Align(

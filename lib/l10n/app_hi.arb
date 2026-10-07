@@ -1553,5 +1553,22 @@
   "maintenanceTitle": "Wreadom अपडेट हो रहा है",
   "maintenanceDefaultMessage": "हम कुछ सुधार कर रहे हैं। कुछ समय के लिए सेव करना रुका हुआ है। कृपया थोड़ी देर बाद देखें।",
   "updateRequiredMessage": "Wreadom का यह संस्करण अब समर्थित नहीं है। जारी रखने के लिए कृपया अपडेट करें।",
-  "reloadAction": "फिर से लोड करें"
+  "reloadAction": "फिर से लोड करें",
+  "watchVideoAdTitle": "वीडियो विज्ञापन देखें",
+  "videoAdStillLoading": "वीडियो विज्ञापन अभी लोड हो रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।",
+  "okLabel": "ठीक है",
+  "unableToLoadChapter": "यह अध्याय लोड नहीं हो सका।",
+  "backToBook": "पुस्तक पर वापस जाएँ",
+  "tryAnotherImage": "दूसरी छवि आज़माएँ",
+  "findCover": "कवर खोजें",
+  "bookChangedElsewhereTitle": "यह पुस्तक कहीं और बदली गई है",
+  "bookChangedElsewhereBody": "इसे किसी अन्य डिवाइस पर या सह-लेखक द्वारा संपादित किया गया था, इसलिए आपके नवीनतम संपादन अभी आपके खाते में सहेजे नहीं गए हैं। वे इस डिवाइस पर रखे गए हैं।",
+  "decideLater": "बाद में तय करें",
+  "loadLatestVersion": "नवीनतम संस्करण लोड करें",
+  "keepMyVersion": "मेरा संस्करण रखें",
+  "bannerDetails": "बैनर विवरण",
+  "bannerNotFound": "बैनर नहीं मिला",
+  "couldNotOpenLink": "लिंक नहीं खुल सका: {url}",
+  "@couldNotOpenLink": {"placeholders": {"url": {"type": "String"}}},
+  "errorOpeningLink": "लिंक खोलने में त्रुटि"
 }

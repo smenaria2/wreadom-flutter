@@ -3557,4 +3557,56 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reloadAction => 'Reload';
+
+  @override
+  String get watchVideoAdTitle => 'Watch Video Ad';
+
+  @override
+  String get videoAdStillLoading =>
+      'The video ad is still loading. Please try again in a moment.';
+
+  @override
+  String get okLabel => 'OK';
+
+  @override
+  String get unableToLoadChapter => 'Unable to load this chapter.';
+
+  @override
+  String get backToBook => 'Back to book';
+
+  @override
+  String get tryAnotherImage => 'Try Another Image';
+
+  @override
+  String get findCover => 'Find Cover';
+
+  @override
+  String get bookChangedElsewhereTitle => 'This book changed elsewhere';
+
+  @override
+  String get bookChangedElsewhereBody =>
+      'It was edited on another device or by a co-author, so your latest edits are not saved to your account yet. They are kept on this device.';
+
+  @override
+  String get decideLater => 'Decide later';
+
+  @override
+  String get loadLatestVersion => 'Load latest version';
+
+  @override
+  String get keepMyVersion => 'Keep my version';
+
+  @override
+  String get bannerDetails => 'Banner Details';
+
+  @override
+  String get bannerNotFound => 'Banner not found';
+
+  @override
+  String couldNotOpenLink(String url) {
+    return 'Could not open link: $url';
+  }
+
+  @override
+  String get errorOpeningLink => 'Error opening link';
 }

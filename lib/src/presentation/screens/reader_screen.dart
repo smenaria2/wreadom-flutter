@@ -777,14 +777,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         await showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Watch Video Ad'),
-            content: const Text(
-              'The video ad is still loading. Please try again in a moment.',
-            ),
+            title: Text(AppLocalizations.of(context)!.watchVideoAdTitle),
+            content: Text(AppLocalizations.of(context)!.videoAdStillLoading),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+                child: Text(AppLocalizations.of(context)!.okLabel),
               ),
             ],
           ),
@@ -1087,7 +1085,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Unable to load this chapter.'),
+                    Text(AppLocalizations.of(context)!.unableToLoadChapter),
                     TextButton(
                       onPressed: () {
                         ref.invalidate(publicChapterBodyProvider(key));
@@ -1095,7 +1093,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           liveChapterDirectoryProvider(widget.book.id),
                         );
                       },
-                      child: const Text('Retry'),
+                      child: Text(AppLocalizations.of(context)!.retry),
                     ),
                   ],
                 ),
@@ -1164,7 +1162,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ref.invalidate(bookChaptersProvider(widget.book.id));
                   },
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
+                  label: Text(AppLocalizations.of(context)!.retry),
                 ),
                 OutlinedButton.icon(
                   onPressed: _openArchivePdfViewer,
@@ -1180,7 +1178,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ),
                   icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text('Back to book'),
+                  label: Text(AppLocalizations.of(context)!.backToBook),
                 ),
               ],
             ),

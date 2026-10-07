@@ -1645,7 +1645,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 ? null
                                 : _cycleAutoCover,
                             icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Try Another Image'),
+                            label: Text(AppLocalizations.of(context)!.tryAnotherImage),
                           ),
                         if (_autoCoverUrls.isEmpty &&
                             !_isFetchingAutoCover &&
@@ -1655,7 +1655,7 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
                                 ? null
                                 : _retryAutoCoverFetch,
                             icon: const Icon(Icons.image_search_rounded),
-                            label: const Text('Find Cover'),
+                            label: Text(AppLocalizations.of(context)!.findCover),
                           ),
                         OutlinedButton.icon(
                           onPressed:
@@ -3352,23 +3352,20 @@ class _WriterPadScreenState extends ConsumerState<WriterPadScreen>
       final keepMine = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('This book changed elsewhere'),
-          content: const Text(
-            'It was edited on another device or by a co-author, so your latest '
-            'edits are not saved to your account yet. They are kept on this device.',
-          ),
+          title: Text(AppLocalizations.of(dialogContext)!.bookChangedElsewhereTitle),
+          content: Text(AppLocalizations.of(dialogContext)!.bookChangedElsewhereBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Decide later'),
+              child: Text(AppLocalizations.of(dialogContext)!.decideLater),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Load latest version'),
+              child: Text(AppLocalizations.of(dialogContext)!.loadLatestVersion),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Keep my version'),
+              child: Text(AppLocalizations.of(dialogContext)!.keepMyVersion),
             ),
           ],
         ),

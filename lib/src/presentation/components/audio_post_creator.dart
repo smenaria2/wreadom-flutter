@@ -16,6 +16,7 @@ import '../../utils/audio_metadata_reader.dart';
 import '../../localization/generated/app_localizations.dart';
 import '../widgets/book_search_selector.dart';
 import '../widgets/glass_surface.dart';
+import '../../utils/app_snackbar.dart';
 
 class AudioPostCreator extends StatefulWidget {
   const AudioPostCreator({
@@ -233,12 +234,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
       const maxLimit = 10 * 1024 * 1024;
       if (size > maxLimit) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.audioFileTooLarge),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showAppSnackBar(context, l10n.audioFileTooLarge, isError: true);
         }
         return;
       }
@@ -626,7 +622,7 @@ class AudioPostCreatorState extends State<AudioPostCreator> {
                       ],
                     ),
                   ),
-                  IconButton(
+                  IconButton(tooltip: AppLocalizations.of(context)!.close,
                     icon: const Icon(Icons.close_rounded, size: 16),
                     onPressed: _removeCover,
                     visualDensity: VisualDensity.compact,

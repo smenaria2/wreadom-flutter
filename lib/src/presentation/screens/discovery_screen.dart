@@ -141,7 +141,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     hintText: AppLocalizations.of(context)!.searchHint,
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _query.isNotEmpty
-                        ? IconButton(
+                        ? IconButton(tooltip: AppLocalizations.of(context)!.close,
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _debounce?.cancel();

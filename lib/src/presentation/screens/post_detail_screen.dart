@@ -51,7 +51,7 @@ class PostDetailScreen extends ConsumerWidget {
       appBar: glassAppBar(
         title: Text(l10n.post),
         actions: [
-          IconButton(
+          IconButton(tooltip: AppLocalizations.of(context)!.share,
             icon: const Icon(Icons.share_outlined),
             onPressed: () async {
               await AppHaptics.selection();
@@ -225,7 +225,7 @@ class _TargetStoryCard extends StatelessWidget {
                     top: 16,
                     right: 16,
                     child: SafeArea(
-                      child: IconButton.filled(
+                      child: IconButton.filled(tooltip: AppLocalizations.of(context)!.close,
                         onPressed: () => Navigator.of(dialogContext).pop(),
                         icon: const Icon(Icons.close),
                       ),
@@ -597,7 +597,7 @@ class _InlineCommentsState extends ConsumerState<_InlineComments>
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
-                  IconButton(
+                  IconButton(tooltip: AppLocalizations.of(context)!.close,
                     icon: const Icon(Icons.close, size: 16),
                     onPressed: () => setState(() => _replyingTo = null),
                   ),

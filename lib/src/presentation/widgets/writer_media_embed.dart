@@ -8,6 +8,7 @@ import '../routing/app_router.dart';
 import '../utils/writer_media_utils.dart';
 import 'in_app_media_web_view.dart';
 import 'glass_surface.dart';
+import '../../localization/generated/app_localizations.dart';
 
 class WriterImageEmbedBuilder extends EmbedBuilder {
   const WriterImageEmbedBuilder();
@@ -308,7 +309,7 @@ void _openMediaUrl(BuildContext context, WriterMediaInfo info) {
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.only(top: 8, right: 8),
-                child: IconButton(
+                child: IconButton(tooltip: AppLocalizations.of(context)!.close,
                   onPressed: () => Navigator.of(context).pop(),
                   icon: Icon(
                     Icons.close_rounded,

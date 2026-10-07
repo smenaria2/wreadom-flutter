@@ -34,7 +34,9 @@ class ArchiveReaderScreen extends ConsumerWidget {
         if (loadedBook == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Internet Archive Reader')),
-            body: const Center(child: Text('Book not found')),
+            body: Center(
+              child: Text(AppLocalizations.of(context)!.bookNotFound),
+            ),
           );
         }
         return _ArchiveReaderContent(book: loadedBook);
@@ -45,7 +47,9 @@ class ArchiveReaderScreen extends ConsumerWidget {
       ),
       error: (error, stack) => Scaffold(
         appBar: AppBar(title: const Text('Internet Archive Reader')),
-        body: Center(child: Text('Error loading book: $error')),
+        body: Center(
+          child: Text(AppLocalizations.of(context)!.somethingWentWrong),
+        ),
       ),
     );
   }

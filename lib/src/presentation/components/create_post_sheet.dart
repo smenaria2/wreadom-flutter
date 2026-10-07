@@ -21,6 +21,7 @@ import '../providers/feed_providers.dart';
 import '../widgets/auth_required_view.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/hindi_input_wrapper.dart';
+import '../../utils/app_snackbar.dart';
 
 Future<void> showCreatePostSheet(
   BuildContext context, {
@@ -384,13 +385,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.errorWithDetails(e.toString()),
-            ),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.errorWithDetails(e.toString()),
+          isError: true,
         );
       }
     }
@@ -446,11 +444,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isAudioUploading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.audioUploadFailed(e.toString())),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnackBar(
+        context,
+        l10n.audioUploadFailed(e.toString()),
+        isError: true,
       );
     }
   }
@@ -520,9 +517,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
 
     // Main post creation UI
     return Padding(
-        padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxSheetHeight),
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxSheetHeight),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -539,7 +536,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                     icon: const Icon(Icons.close_rounded, size: 20),
                     tooltip: l10n.close,
                     visualDensity: VisualDensity.compact,
-                    onPressed: (_isSubmitting || _isAudioUploading || _isImageUploading)
+                    onPressed:
+                        (_isSubmitting ||
+                            _isAudioUploading ||
+                            _isImageUploading)
                         ? null
                         : () => Navigator.pop(context),
                   ),
@@ -553,8 +553,12 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   const Spacer(),
                   _GlassPostButton(
                     label: l10n.postBtn,
-                    isLoading: _isSubmitting || _isAudioUploading || _isImageUploading,
-                    onPressed: (_isSubmitting || _isAudioUploading || _isImageUploading)
+                    isLoading:
+                        _isSubmitting || _isAudioUploading || _isImageUploading,
+                    onPressed:
+                        (_isSubmitting ||
+                            _isAudioUploading ||
+                            _isImageUploading)
                         ? null
                         : _submit,
                   ),
@@ -697,7 +701,12 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                         autofocus: true,
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.fromLTRB(16, 16, 44, 40),
+                          contentPadding: const EdgeInsets.fromLTRB(
+                            16,
+                            16,
+                            44,
+                            40,
+                          ),
                           hintText: _audioPath != null
                               ? l10n.postAudioHint
                               : _isAnsweringQuestion
@@ -862,7 +871,10 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                       _ActionButton(
                         icon: Icons.image_outlined,
                         label: l10n.addImage,
-                        disabled: _audioPath != null || _isRecording || _isImageUploading,
+                        disabled:
+                            _audioPath != null ||
+                            _isRecording ||
+                            _isImageUploading,
                         onTap: _pickImage,
                       ),
                       _VerticalDivider(),
@@ -1057,7 +1069,7 @@ class _GlassPostButton extends StatelessWidget {
         semanticButton: true,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 52, minHeight: 20),
+          constraints: const BoxConstraints(minWidth: 52, minHeight: 32),
           child: Center(
             child: isLoading
                 ? SizedBox(

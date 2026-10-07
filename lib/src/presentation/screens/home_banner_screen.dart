@@ -13,6 +13,7 @@ import '../routing/app_router.dart';
 import '../routing/app_routes.dart';
 import '../widgets/glass_scaffold.dart';
 import '../widgets/glass_surface.dart';
+import '../../localization/generated/app_localizations.dart';
 
 class HomeBannerArguments {
   const HomeBannerArguments({this.banner, this.bannerId});
@@ -87,7 +88,7 @@ class _HomeBannerScreenState extends ConsumerState<HomeBannerScreen> {
     if (_error != null || _banner == null) {
       return GlassScaffold(
         appBar: glassAppBar(
-          title: const Text('Banner Details'),
+          title: Text(AppLocalizations.of(context)!.bannerDetails),
         ),
         body: Center(
           child: Padding(
@@ -102,7 +103,7 @@ class _HomeBannerScreenState extends ConsumerState<HomeBannerScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _error ?? 'Banner not found',
+                  _error ?? AppLocalizations.of(context)!.bannerNotFound,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium,
                 ),
@@ -110,7 +111,7 @@ class _HomeBannerScreenState extends ConsumerState<HomeBannerScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: _loadBanner,
-                    child: const Text('Retry'),
+                    child: Text(AppLocalizations.of(context)!.retry),
                   ),
                 ],
               ],

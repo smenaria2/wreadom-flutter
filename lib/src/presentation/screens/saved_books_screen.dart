@@ -19,7 +19,7 @@ class SavedBooksScreen extends ConsumerWidget {
       appBar: glassAppBar(
         title: Text(l10n.savedBooksTitle),
         actions: [
-          IconButton(
+          IconButton(tooltip: AppLocalizations.of(context)!.tryAgain,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(savedBooksProvider),
           ),

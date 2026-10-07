@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../widgets/glass_surface.dart';
+import '../../localization/generated/app_localizations.dart';
 
 class InteractiveFeaturesSheet extends StatefulWidget {
   const InteractiveFeaturesSheet({super.key, this.prominent = false});
@@ -268,7 +269,7 @@ class _InteractiveFeaturesSheetState extends State<InteractiveFeaturesSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              IconButton(
+              IconButton(tooltip: AppLocalizations.of(context)!.back,
                 icon: const Icon(Icons.chevron_left_rounded, size: 20),
                 visualDensity: VisualDensity.compact,
                 onPressed: _currentPage == 0

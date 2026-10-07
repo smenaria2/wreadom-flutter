@@ -324,7 +324,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          IconButton.filled(
+                          IconButton.filled(tooltip: AppLocalizations.of(context)!.send,
                             icon: _sending
                                 ? const SizedBox(
                                     width: 20,

@@ -1365,7 +1365,10 @@ class _LatestDiscussionSectionState
         );
       },
       loading: () => const LinearProgressIndicator(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => SectionError(
+        title: AppLocalizations.of(context)!.comments,
+        onRetry: () => ref.invalidate(liveBookCommentsProvider(widget.book.id)),
+      ),
     );
   }
 

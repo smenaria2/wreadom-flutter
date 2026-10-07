@@ -6318,6 +6318,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reload'**
   String get reloadAction;
+
+  /// No description provided for @watchVideoAdTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch Video Ad'**
+  String get watchVideoAdTitle;
+
+  /// No description provided for @videoAdStillLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'The video ad is still loading. Please try again in a moment.'**
+  String get videoAdStillLoading;
+
+  /// No description provided for @okLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get okLabel;
+
+  /// No description provided for @unableToLoadChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load this chapter.'**
+  String get unableToLoadChapter;
+
+  /// No description provided for @backToBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to book'**
+  String get backToBook;
+
+  /// No description provided for @tryAnotherImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Another Image'**
+  String get tryAnotherImage;
+
+  /// No description provided for @findCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Cover'**
+  String get findCover;
+
+  /// No description provided for @bookChangedElsewhereTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This book changed elsewhere'**
+  String get bookChangedElsewhereTitle;
+
+  /// No description provided for @bookChangedElsewhereBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It was edited on another device or by a co-author, so your latest edits are not saved to your account yet. They are kept on this device.'**
+  String get bookChangedElsewhereBody;
+
+  /// No description provided for @decideLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide later'**
+  String get decideLater;
+
+  /// No description provided for @loadLatestVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Load latest version'**
+  String get loadLatestVersion;
+
+  /// No description provided for @keepMyVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep my version'**
+  String get keepMyVersion;
+
+  /// No description provided for @bannerDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner Details'**
+  String get bannerDetails;
+
+  /// No description provided for @bannerNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner not found'**
+  String get bannerNotFound;
+
+  /// No description provided for @couldNotOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open link: {url}'**
+  String couldNotOpenLink(String url);
+
+  /// No description provided for @errorOpeningLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Error opening link'**
+  String get errorOpeningLink;
 }
 
 class _AppLocalizationsDelegate

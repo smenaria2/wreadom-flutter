@@ -1817,7 +1817,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                           ),
                         ),
                       ),
-                      IconButton(
+                      IconButton(tooltip: AppLocalizations.of(context)!.close,
                         icon: const Icon(Icons.close, size: 16),
                         onPressed: () => setState(() => _replyingTo = null),
                       ),
@@ -1861,7 +1861,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
+                    IconButton(tooltip: AppLocalizations.of(context)!.send,
                       icon: const Icon(Icons.send_rounded),
                       onPressed: _submitComment,
                       color: widget.darkReel
@@ -1888,7 +1888,7 @@ void _showZoomableImage(BuildContext context, String url) {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
-          leading: IconButton(
+          leading: IconButton(tooltip: AppLocalizations.of(context)!.back,
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.of(context).pop(),
           ),

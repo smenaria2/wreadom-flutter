@@ -495,8 +495,7 @@ class _ExpandableBioState extends State<_ExpandableBio> {
                 onPressed: () => setState(() => _expanded = !_expanded),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.only(top: 4),
-                  minimumSize: const Size(48, 40),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: const Size(48, 48),
                 ),
                 child: Text(_expanded ? l10n.showLess : l10n.showMore),
               ),

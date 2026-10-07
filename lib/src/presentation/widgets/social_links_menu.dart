@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../localization/generated/app_localizations.dart';
 
 class SocialLinksMenu extends StatelessWidget {
   const SocialLinksMenu({super.key});
@@ -12,16 +13,17 @@ class SocialLinksMenu extends StatelessWidget {
   Future<void> _launch(BuildContext context, String url) async {
     final uri = Uri.parse(url);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         messenger.showSnackBar(
-          SnackBar(content: Text('Could not open link: $url')),
+          SnackBar(content: Text(l10n.couldNotOpenLink(url))),
         );
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Error opening link: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.errorOpeningLink)));
     }
   }
 

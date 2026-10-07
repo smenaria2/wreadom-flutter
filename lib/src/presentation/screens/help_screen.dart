@@ -242,7 +242,7 @@ class _HelpScreenState extends State<HelpScreen> {
           hintText: l10n.helpSearchHint,
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
+              ? IconButton(tooltip: AppLocalizations.of(context)!.close,
                   icon: const Icon(Icons.clear_rounded),
                   onPressed: () {
                     _searchController.clear();

@@ -93,7 +93,7 @@ class _BookSearchSelectorState extends ConsumerState<BookSearchSelector> {
                   ),
                 ),
                 const Spacer(),
-                IconButton(
+                IconButton(tooltip: AppLocalizations.of(context)!.close,
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
                 ),
@@ -111,7 +111,7 @@ class _BookSearchSelectorState extends ConsumerState<BookSearchSelector> {
                 hintText: l10n.searchHint,
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
+                    ? IconButton(tooltip: AppLocalizations.of(context)!.close,
                         icon: const Icon(Icons.clear_rounded),
                         onPressed: () {
                           _searchController.clear();

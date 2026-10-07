@@ -3587,4 +3587,56 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get reloadAction => 'फिर से लोड करें';
+
+  @override
+  String get watchVideoAdTitle => 'वीडियो विज्ञापन देखें';
+
+  @override
+  String get videoAdStillLoading =>
+      'वीडियो विज्ञापन अभी लोड हो रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।';
+
+  @override
+  String get okLabel => 'ठीक है';
+
+  @override
+  String get unableToLoadChapter => 'यह अध्याय लोड नहीं हो सका।';
+
+  @override
+  String get backToBook => 'पुस्तक पर वापस जाएँ';
+
+  @override
+  String get tryAnotherImage => 'दूसरी छवि आज़माएँ';
+
+  @override
+  String get findCover => 'कवर खोजें';
+
+  @override
+  String get bookChangedElsewhereTitle => 'यह पुस्तक कहीं और बदली गई है';
+
+  @override
+  String get bookChangedElsewhereBody =>
+      'इसे किसी अन्य डिवाइस पर या सह-लेखक द्वारा संपादित किया गया था, इसलिए आपके नवीनतम संपादन अभी आपके खाते में सहेजे नहीं गए हैं। वे इस डिवाइस पर रखे गए हैं।';
+
+  @override
+  String get decideLater => 'बाद में तय करें';
+
+  @override
+  String get loadLatestVersion => 'नवीनतम संस्करण लोड करें';
+
+  @override
+  String get keepMyVersion => 'मेरा संस्करण रखें';
+
+  @override
+  String get bannerDetails => 'बैनर विवरण';
+
+  @override
+  String get bannerNotFound => 'बैनर नहीं मिला';
+
+  @override
+  String couldNotOpenLink(String url) {
+    return 'लिंक नहीं खुल सका: $url';
+  }
+
+  @override
+  String get errorOpeningLink => 'लिंक खोलने में त्रुटि';
 }

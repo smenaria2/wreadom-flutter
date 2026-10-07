@@ -65,7 +65,7 @@ class CategoryBooksScreen extends ConsumerWidget {
       appBar: glassAppBar(
         title: Text(getLocalizedCategory(context, displayName ?? category)),
         actions: [
-          IconButton(
+          IconButton(tooltip: AppLocalizations.of(context)!.tryAgain,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: refresh,
           ),

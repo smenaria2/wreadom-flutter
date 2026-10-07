@@ -770,7 +770,7 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
             Positioned(
               left: 8,
               top: 8,
-              child: IconButton.filled(
+              child: IconButton.filled(tooltip: AppLocalizations.of(context)!.close,
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close_rounded),
               ),

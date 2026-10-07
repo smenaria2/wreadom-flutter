@@ -182,7 +182,7 @@ class _CommentSharePreviewSheetState
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  IconButton(
+                  IconButton(tooltip: AppLocalizations.of(context)!.close,
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
                   ),

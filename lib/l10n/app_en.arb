@@ -2048,5 +2048,22 @@
   "maintenanceTitle": "Wreadom is being updated",
   "maintenanceDefaultMessage": "We are making improvements. Saving is paused for a short while. Please check back soon.",
   "updateRequiredMessage": "This version of Wreadom is no longer supported. Please update to continue.",
-  "reloadAction": "Reload"
+  "reloadAction": "Reload",
+  "watchVideoAdTitle": "Watch Video Ad",
+  "videoAdStillLoading": "The video ad is still loading. Please try again in a moment.",
+  "okLabel": "OK",
+  "unableToLoadChapter": "Unable to load this chapter.",
+  "backToBook": "Back to book",
+  "tryAnotherImage": "Try Another Image",
+  "findCover": "Find Cover",
+  "bookChangedElsewhereTitle": "This book changed elsewhere",
+  "bookChangedElsewhereBody": "It was edited on another device or by a co-author, so your latest edits are not saved to your account yet. They are kept on this device.",
+  "decideLater": "Decide later",
+  "loadLatestVersion": "Load latest version",
+  "keepMyVersion": "Keep my version",
+  "bannerDetails": "Banner Details",
+  "bannerNotFound": "Banner not found",
+  "couldNotOpenLink": "Could not open link: {url}",
+  "@couldNotOpenLink": {"placeholders": {"url": {"type": "String"}}},
+  "errorOpeningLink": "Error opening link"
 }

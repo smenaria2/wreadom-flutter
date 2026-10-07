@@ -394,12 +394,11 @@ class _DailyTopicBodyState extends ConsumerState<_DailyTopicBody> {
                           ),
                         ),
                         style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
+                          minimumSize: const Size(48, 48),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 6,
                           ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     ),
