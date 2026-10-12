@@ -72,7 +72,9 @@ import '../widgets/adaptive_banner_ad.dart';
 import 'static_info_screen.dart';
 
 const double _readerBottomBarHeight = 60;
-const Duration _readerChromeAnimationDuration = Duration(milliseconds: 180);
+// Hide/show of the reader chrome is instant: animating the blurred glass bars
+// together with the system bars flickers on device.
+const Duration _readerChromeAnimationDuration = Duration.zero;
 
 String restoreReaderQuoteLineBreaks(String flat, String? sourceContent) {
   if (sourceContent == null || sourceContent.isEmpty) return flat;
@@ -1365,258 +1367,271 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             },
           ),
         ),
-        body: Container(
-          color: _getBackgroundColor(),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Column(
-                children: [
-                  // Removed horizontal chips - now in Drawer
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () {
-                        if (_isDiscussionOpen) {
-                          Navigator.of(context).maybePop();
-                        }
-                      },
-                      onTapUp:
-                          _useLegacyTtsTapSeeking &&
-                              (_isTtsPlaying ||
-                                  _isTtsPreparing ||
-                                  _isTtsPaused) &&
-                              !_isSelectionTtsPlaying
-                          ? (details) {
-                              // TTS is active — seek to the tapped position.
-                              if (chapter == null) return;
-                              if (!_scrollController.hasClients) return;
-                              final position = _scrollController.position;
-                              final tapY =
-                                  details.localPosition.dy +
-                                  _scrollController.offset;
-                              final totalHeight =
-                                  position.viewportDimension +
-                                  position.maxScrollExtent;
-                              final fraction = totalHeight > 0
-                                  ? (tapY / totalHeight).clamp(0.0, 1.0)
-                                  : 0.0;
-                              unawaited(_seekTtsToFraction(chapter, fraction));
-                            }
-                          : null,
-                      child:
-                          (_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
-                              !_isSelectionTtsPlaying
-                          // When TTS is active, disable text selection so
-                          // taps are handled cleanly for seeking.
-                          ? _buildTtsListView(
-                              chapter,
-                              chapters,
-                              commentCounts,
-                              contentPadding: readerContentPadding,
-                              allComments: commentsAsync.asData?.value,
-                            )
-                          : SelectionArea(
-                              onSelectionChanged: (content) {
-                                setState(() {
-                                  _selectedText = content?.plainText ?? "";
-                                });
-                              },
-                              contextMenuBuilder: (context, selectableRegionState) {
-                                final selected = _selectedText.trim();
-                                final selectedWord =
-                                    normalizeSelectedDictionaryWord(selected);
-                                final ctxChapter =
-                                    _chapterIndex >= 0 &&
-                                        _chapterIndex < chapters.length
-                                    ? chapters[_chapterIndex]
-                                    : null;
-                                final buttonItems = <ContextMenuButtonItem>[
-                                  if (selectedWord != null)
-                                    ContextMenuButtonItem(
-                                      label: AppLocalizations.of(
-                                        context,
-                                      )!.defineWord,
-                                      onPressed: () {
-                                        selectableRegionState.hideToolbar();
-                                        showModalBottomSheet<void>(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          useSafeArea: true,
-                                          builder: (_) => DictionarySheet(
-                                            word: selectedWord,
-                                            sourceLanguage:
-                                                normalizeDictionaryLanguageCode(
-                                                  widget.book.languages,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ContextMenuButtonItem(
-                                    label: 'Share Quote',
-                                    onPressed: selected.isEmpty
-                                        ? null
-                                        : () {
-                                            selectableRegionState.hideToolbar();
-                                            _shareSelectedQuote(
-                                              ctxChapter,
-                                              selected,
-                                            );
-                                          },
-                                  ),
-                                  ContextMenuButtonItem(
-                                    label: 'Quote & Comment',
-                                    onPressed: selected.isEmpty
-                                        ? null
-                                        : () {
-                                            final restoredQuote =
-                                                restoreReaderQuoteLineBreaks(
-                                                  selected,
-                                                  ctxChapter?.content,
-                                                );
-                                            setState(() {
-                                              _selectedQuote = restoredQuote;
-                                              _replyingTo = null;
-                                            });
-                                            selectableRegionState.hideToolbar();
-                                            _showDiscussion(
-                                              ctxChapter,
-                                              focusComposer: true,
-                                            );
-                                          },
-                                  ),
-                                  ContextMenuButtonItem(
-                                    label: 'Read aloud',
-                                    onPressed: selected.isEmpty
-                                        ? null
-                                        : () {
-                                            selectableRegionState.hideToolbar();
-                                            _speakSelectedText(selected);
-                                          },
-                                  ),
-                                ];
-                                return AdaptiveTextSelectionToolbar.buttonItems(
-                                  anchors:
-                                      selectableRegionState.contextMenuAnchors,
-                                  buttonItems: buttonItems,
+        body: AnnotatedRegion<SystemUiOverlayStyle>(
+          // Status/navigation icons follow the page color, not the app theme.
+          value: _readerOverlayStyle(),
+          child: Container(
+            color: _getBackgroundColor(),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Column(
+                  children: [
+                    // Removed horizontal chips - now in Drawer
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_isDiscussionOpen) {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
+                        onTapUp:
+                            _useLegacyTtsTapSeeking &&
+                                (_isTtsPlaying ||
+                                    _isTtsPreparing ||
+                                    _isTtsPaused) &&
+                                !_isSelectionTtsPlaying
+                            ? (details) {
+                                // TTS is active — seek to the tapped position.
+                                if (chapter == null) return;
+                                if (!_scrollController.hasClients) return;
+                                final position = _scrollController.position;
+                                final tapY =
+                                    details.localPosition.dy +
+                                    _scrollController.offset;
+                                final totalHeight =
+                                    position.viewportDimension +
+                                    position.maxScrollExtent;
+                                final fraction = totalHeight > 0
+                                    ? (tapY / totalHeight).clamp(0.0, 1.0)
+                                    : 0.0;
+                                unawaited(
+                                  _seekTtsToFraction(chapter, fraction),
                                 );
-                              },
-                              child: _buildListView(
+                              }
+                            : null,
+                        child:
+                            (_isTtsPlaying ||
+                                    _isTtsPreparing ||
+                                    _isTtsPaused) &&
+                                !_isSelectionTtsPlaying
+                            // When TTS is active, disable text selection so
+                            // taps are handled cleanly for seeking.
+                            ? _buildTtsListView(
                                 chapter,
                                 chapters,
                                 commentCounts,
                                 contentPadding: readerContentPadding,
                                 allComments: commentsAsync.asData?.value,
+                              )
+                            : SelectionArea(
+                                onSelectionChanged: (content) {
+                                  setState(() {
+                                    _selectedText = content?.plainText ?? "";
+                                  });
+                                },
+                                contextMenuBuilder: (context, selectableRegionState) {
+                                  final selected = _selectedText.trim();
+                                  final selectedWord =
+                                      normalizeSelectedDictionaryWord(selected);
+                                  final ctxChapter =
+                                      _chapterIndex >= 0 &&
+                                          _chapterIndex < chapters.length
+                                      ? chapters[_chapterIndex]
+                                      : null;
+                                  final buttonItems = <ContextMenuButtonItem>[
+                                    if (selectedWord != null)
+                                      ContextMenuButtonItem(
+                                        label: AppLocalizations.of(
+                                          context,
+                                        )!.defineWord,
+                                        onPressed: () {
+                                          selectableRegionState.hideToolbar();
+                                          showModalBottomSheet<void>(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            useSafeArea: true,
+                                            builder: (_) => DictionarySheet(
+                                              word: selectedWord,
+                                              sourceLanguage:
+                                                  normalizeDictionaryLanguageCode(
+                                                    widget.book.languages,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ContextMenuButtonItem(
+                                      label: 'Share Quote',
+                                      onPressed: selected.isEmpty
+                                          ? null
+                                          : () {
+                                              selectableRegionState
+                                                  .hideToolbar();
+                                              _shareSelectedQuote(
+                                                ctxChapter,
+                                                selected,
+                                              );
+                                            },
+                                    ),
+                                    ContextMenuButtonItem(
+                                      label: 'Quote & Comment',
+                                      onPressed: selected.isEmpty
+                                          ? null
+                                          : () {
+                                              final restoredQuote =
+                                                  restoreReaderQuoteLineBreaks(
+                                                    selected,
+                                                    ctxChapter?.content,
+                                                  );
+                                              setState(() {
+                                                _selectedQuote = restoredQuote;
+                                                _replyingTo = null;
+                                              });
+                                              selectableRegionState
+                                                  .hideToolbar();
+                                              _showDiscussion(
+                                                ctxChapter,
+                                                focusComposer: true,
+                                              );
+                                            },
+                                    ),
+                                    ContextMenuButtonItem(
+                                      label: 'Read aloud',
+                                      onPressed: selected.isEmpty
+                                          ? null
+                                          : () {
+                                              selectableRegionState
+                                                  .hideToolbar();
+                                              _speakSelectedText(selected);
+                                            },
+                                    ),
+                                  ];
+                                  return AdaptiveTextSelectionToolbar.buttonItems(
+                                    anchors: selectableRegionState
+                                        .contextMenuAnchors,
+                                    buttonItems: buttonItems,
+                                  );
+                                },
+                                child: _buildListView(
+                                  chapter,
+                                  chapters,
+                                  commentCounts,
+                                  contentPadding: readerContentPadding,
+                                  allComments: commentsAsync.asData?.value,
+                                ),
                               ),
-                            ),
-                    ), // GestureDetector
-                  ), // Expanded
-                ],
-              ), // Column
-              if (_quoteSharePayload != null)
+                      ), // GestureDetector
+                    ), // Expanded
+                  ],
+                ), // Column
+                if (_quoteSharePayload != null)
+                  Positioned(
+                    left: -2000,
+                    top: 0,
+                    child: RepaintBoundary(
+                      key: _quoteImageKey,
+                      child: _QuoteImage(payload: _quoteSharePayload!),
+                    ),
+                  ),
                 Positioned(
-                  left: -2000,
+                  left: 0,
+                  right: 0,
                   top: 0,
-                  child: RepaintBoundary(
-                    key: _quoteImageKey,
-                    child: _QuoteImage(payload: _quoteSharePayload!),
+                  child: _ReaderTopBar(
+                    visible: _showReaderChrome,
+                    title: widget.book.title,
+                    chromeTheme: chromeTheme,
+                    backgroundColor: _getAppBarBackgroundColor(),
+                    foregroundColor: _getAppBarForegroundColor(),
+                    isOffline: isOffline,
+                    isArchiveBook: isArchiveBook,
+                    isTtsPreparing: _isTtsPreparing,
+                    isTtsPlaying: _isTtsPlaying,
+                    isTtsPaused: _isTtsPaused,
+                    ttsChunkIndex: _ttsChunkIndex,
+                    ttsChunkCount: _ttsChunkList.length,
+                    onOpenArchivePdf: _openArchivePdfViewer,
+                    onToggleTts: chapter == null || _isTtsPreparing
+                        ? null
+                        : () => _toggleTts(chapter),
+                    onCopyContent:
+                        isAdmin &&
+                            widget.book.optOutComplementary != true &&
+                            chapter != null
+                        ? () => _copyCurrentChapterContent(chapter)
+                        : null,
+                    onShowSettings: _showSettings,
                   ),
                 ),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                child: _ReaderTopBar(
-                  visible: _showReaderChrome,
-                  title: widget.book.title,
-                  chromeTheme: chromeTheme,
-                  backgroundColor: _getAppBarBackgroundColor(),
-                  foregroundColor: _getAppBarForegroundColor(),
-                  isOffline: isOffline,
-                  isArchiveBook: isArchiveBook,
-                  isTtsPreparing: _isTtsPreparing,
-                  isTtsPlaying: _isTtsPlaying,
-                  isTtsPaused: _isTtsPaused,
-                  ttsChunkIndex: _ttsChunkIndex,
-                  ttsChunkCount: _ttsChunkList.length,
-                  onOpenArchivePdf: _openArchivePdfViewer,
-                  onToggleTts: chapter == null || _isTtsPreparing
-                      ? null
-                      : () => _toggleTts(chapter),
-                  onCopyContent:
-                      isAdmin &&
-                          widget.book.optOutComplementary != true &&
-                          chapter != null
-                      ? () => _copyCurrentChapterContent(chapter)
-                      : null,
-                  onShowSettings: _showSettings,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child:
+                      ((_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
+                          !_isSelectionTtsPlaying)
+                      ? ReaderTtsBottomBar(
+                          visible: _showReaderChrome,
+                          isPreparing: _isTtsPreparing,
+                          isPlaying: _isTtsPlaying,
+                          isPaused: _isTtsPaused,
+                          currentBlockIndex: _ttsChunkIndex,
+                          totalBlocks: _ttsChunkList.length,
+                          currentSpeed: _ttsSpeechRate,
+                          selectedVoice: _selectedTtsVoice,
+                          availableVoices: _availableTtsVoices,
+                          onPlayPause: () {
+                            if (_isTtsPlaying) {
+                              unawaited(_pauseTtsSpeech());
+                            } else {
+                              unawaited(_resumeTtsSpeech());
+                            }
+                          },
+                          onStop: _stopTts,
+                          onPreviousBlock: _ttsChunkIndex > 0
+                              ? () => _speakTtsChunk(_ttsChunkIndex - 1)
+                              : null,
+                          onNextBlock: _ttsChunkIndex < _ttsChunkList.length - 1
+                              ? () => _speakTtsChunk(_ttsChunkIndex + 1)
+                              : null,
+                          onSpeedChanged: _saveTtsSpeechRate,
+                          onVoiceChanged: _saveTtsVoice,
+                          chromeTheme: chromeTheme,
+                          bookLanguage:
+                              widget.book.languages.firstOrNull ?? 'en',
+                        )
+                      : _ReaderBottomBar(
+                          progress: _scrollProgress,
+                          currentChapterNumber: chapters.isEmpty
+                              ? 0
+                              : _chapterIndex + 1,
+                          totalChapters: chapters.length,
+                          visible: _showReaderChrome,
+                          onSwipeUp: () => _showDiscussion(chapter),
+                          onTap: () => _showDiscussion(chapter),
+                          chromeTheme: chromeTheme,
+                          theme: _getEffectiveTheme(),
+                          hasPrevious: _chapterIndex > 0,
+                          hasNext: _chapterIndex < chapters.length - 1,
+                          onPrevious: () {
+                            unawaited(AppHaptics.selection());
+                            _goToChapter(_chapterIndex - 1);
+                          },
+                          onNext: () {
+                            unawaited(AppHaptics.selection());
+                            unawaited(
+                              _showNextChapterAdAndGoTo(_chapterIndex + 1),
+                            );
+                          },
+                          onClose: () => unawaited(
+                            _handleReaderExit(_popReaderAfterPrompt),
+                          ),
+                        ),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child:
-                    ((_isTtsPlaying || _isTtsPreparing || _isTtsPaused) &&
-                        !_isSelectionTtsPlaying)
-                    ? ReaderTtsBottomBar(
-                        visible: _showReaderChrome,
-                        isPreparing: _isTtsPreparing,
-                        isPlaying: _isTtsPlaying,
-                        isPaused: _isTtsPaused,
-                        currentBlockIndex: _ttsChunkIndex,
-                        totalBlocks: _ttsChunkList.length,
-                        currentSpeed: _ttsSpeechRate,
-                        selectedVoice: _selectedTtsVoice,
-                        availableVoices: _availableTtsVoices,
-                        onPlayPause: () {
-                          if (_isTtsPlaying) {
-                            unawaited(_pauseTtsSpeech());
-                          } else {
-                            unawaited(_resumeTtsSpeech());
-                          }
-                        },
-                        onStop: _stopTts,
-                        onPreviousBlock: _ttsChunkIndex > 0
-                            ? () => _speakTtsChunk(_ttsChunkIndex - 1)
-                            : null,
-                        onNextBlock: _ttsChunkIndex < _ttsChunkList.length - 1
-                            ? () => _speakTtsChunk(_ttsChunkIndex + 1)
-                            : null,
-                        onSpeedChanged: _saveTtsSpeechRate,
-                        onVoiceChanged: _saveTtsVoice,
-                        chromeTheme: chromeTheme,
-                        bookLanguage: widget.book.languages.firstOrNull ?? 'en',
-                      )
-                    : _ReaderBottomBar(
-                        progress: _scrollProgress,
-                        currentChapterNumber: chapters.isEmpty
-                            ? 0
-                            : _chapterIndex + 1,
-                        totalChapters: chapters.length,
-                        visible: _showReaderChrome,
-                        onSwipeUp: () => _showDiscussion(chapter),
-                        onTap: () => _showDiscussion(chapter),
-                        chromeTheme: chromeTheme,
-                        theme: _getEffectiveTheme(),
-                        hasPrevious: _chapterIndex > 0,
-                        hasNext: _chapterIndex < chapters.length - 1,
-                        onPrevious: () {
-                          unawaited(AppHaptics.selection());
-                          _goToChapter(_chapterIndex - 1);
-                        },
-                        onNext: () {
-                          unawaited(AppHaptics.selection());
-                          unawaited(
-                            _showNextChapterAdAndGoTo(_chapterIndex + 1),
-                          );
-                        },
-                        onClose: () =>
-                            unawaited(_handleReaderExit(_popReaderAfterPrompt)),
-                      ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -4562,6 +4577,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   ColorScheme _getReaderChromeColorScheme() {
     return _getReaderChromeTheme().colorScheme;
+  }
+
+  SystemUiOverlayStyle _readerOverlayStyle() {
+    final pageIsDark =
+        ThemeData.estimateBrightnessForColor(_getBackgroundColor()) ==
+        Brightness.dark;
+    final icons = pageIsDark ? Brightness.light : Brightness.dark;
+    return SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: icons,
+      statusBarBrightness: pageIsDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: icons,
+      systemNavigationBarContrastEnforced: false,
+    );
   }
 
   Color _getBackgroundColor() {

@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -86,20 +85,6 @@ class MainActivity : AudioServiceActivity() {
         }
     }
     private fun performNativeHaptic(type: String) {
-        val feedbackConstant = when (type) {
-            "selection" -> HapticFeedbackConstants.CLOCK_TICK
-            "medium" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                HapticFeedbackConstants.CONFIRM
-            } else {
-                HapticFeedbackConstants.LONG_PRESS
-            }
-            else -> HapticFeedbackConstants.VIRTUAL_KEY
-        }
-        // Honors the user's system "touch feedback" setting. Only fall back to
-        // a raw vibration when the platform could not perform the haptic, so
-        // the user never gets a doubled buzz.
-        if (window.decorView.performHapticFeedback(feedbackConstant)) return
-
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
@@ -119,12 +104,23 @@ class MainActivity : AudioServiceActivity() {
             "medium" -> 180
             else -> 120
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMs)
+        when {
+            // Predefined effects are tuned per device and are clearly felt.
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                val effectId = when (type) {
+                    "selection" -> VibrationEffect.EFFECT_TICK
+                    "medium" -> VibrationEffect.EFFECT_HEAVY_CLICK
+                    else -> VibrationEffect.EFFECT_CLICK
+                }
+                vibrator.vibrate(VibrationEffect.createPredefined(effectId))
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(durationMs)
+            }
         }
     }
 }
-

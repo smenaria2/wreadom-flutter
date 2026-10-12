@@ -49,14 +49,14 @@ class ReaderTtsBottomBar extends StatefulWidget {
 
 class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
   static const double _barHeight = 72.0;
-  static const Duration _animationDuration = Duration(milliseconds: 180);
+  static const Duration _animationDuration = Duration.zero;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = widget.chromeTheme.colorScheme;
     final textColor = colorScheme.onSurface;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    
+
     // Progress calculation
     final progress = widget.totalBlocks > 0
         ? (widget.currentBlockIndex + 1) / widget.totalBlocks
@@ -80,7 +80,9 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
                 LinearProgressIndicator(
                   value: progress,
                   backgroundColor: colorScheme.onSurface.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.primary,
+                  ),
                   minHeight: 2,
                 ),
                 Expanded(
@@ -94,19 +96,24 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
                       children: [
                         // Speed Controller Button
                         _buildSpeedButton(context, colorScheme),
-                        
+
                         const Spacer(),
-                        
+
                         // Media Controls: Prev, Play/Pause, Next
                         IconButton(
-                          icon: const Icon(Icons.skip_previous_rounded, size: 28),
+                          icon: const Icon(
+                            Icons.skip_previous_rounded,
+                            size: 28,
+                          ),
                           onPressed: widget.onPreviousBlock != null
                               ? () {
                                   unawaited(AppHaptics.selection());
                                   widget.onPreviousBlock!();
                                 }
                               : null,
-                          color: textColor.withValues(alpha: widget.onPreviousBlock != null ? 0.9 : 0.3),
+                          color: textColor.withValues(
+                            alpha: widget.onPreviousBlock != null ? 0.9 : 0.3,
+                          ),
                           tooltip: 'Previous block',
                         ),
                         const SizedBox(width: 8),
@@ -120,12 +127,14 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
                                   widget.onNextBlock!();
                                 }
                               : null,
-                          color: textColor.withValues(alpha: widget.onNextBlock != null ? 0.9 : 0.3),
+                          color: textColor.withValues(
+                            alpha: widget.onNextBlock != null ? 0.9 : 0.3,
+                          ),
                           tooltip: 'Next block',
                         ),
-                        
+
                         const Spacer(),
-                        
+
                         // Voice Selection Button
                         IconButton(
                           icon: Icon(
@@ -141,7 +150,7 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
                           color: textColor.withValues(alpha: 0.8),
                           tooltip: 'Select voice',
                         ),
-                        
+
                         // Stop Button
                         IconButton(
                           icon: const Icon(Icons.stop_circle_rounded, size: 24),
@@ -180,7 +189,9 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
     final isPlaying = widget.isPlaying;
     return IconButton(
       icon: Icon(
-        isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+        isPlaying
+            ? Icons.pause_circle_filled_rounded
+            : Icons.play_circle_filled_rounded,
         size: 44,
       ),
       onPressed: () {
@@ -200,7 +211,9 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
     if ((widget.currentSpeed - 0.45).abs() < 0.02) {
       displaySpeed = 1.0;
     } else {
-      displaySpeed = double.parse((widget.currentSpeed / 0.45).toStringAsFixed(1));
+      displaySpeed = double.parse(
+        (widget.currentSpeed / 0.45).toStringAsFixed(1),
+      );
     }
 
     return PopupMenuButton<double>(
@@ -215,7 +228,11 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.speed_rounded, size: 14, color: colorScheme.onSurface.withValues(alpha: 0.8)),
+            Icon(
+              Icons.speed_rounded,
+              size: 14,
+              color: colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
             const SizedBox(width: 4),
             Text(
               '${displaySpeed}x',
@@ -245,7 +262,11 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
             child: Row(
               children: [
                 if ((speed - widget.currentSpeed).abs() < 0.01)
-                  Icon(Icons.check_rounded, size: 16, color: colorScheme.primary)
+                  Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: colorScheme.primary,
+                  )
                 else
                   const SizedBox(width: 16),
                 const SizedBox(width: 8),
@@ -355,7 +376,10 @@ class _VoiceSelectorSheetState extends State<_VoiceSelectorSheet> {
               ),
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -393,7 +417,7 @@ class _VoiceSelectorSheetState extends State<_VoiceSelectorSheet> {
                 ),
               ),
               const Divider(height: 1),
-              
+
               // Voice list
               Flexible(
                 child: filteredVoices.isEmpty
@@ -411,25 +435,38 @@ class _VoiceSelectorSheetState extends State<_VoiceSelectorSheet> {
                       )
                     : ListView.builder(
                         shrinkWrap: true,
-                        itemCount: filteredVoices.length + 1, // +1 for "System Default" option
+                        itemCount:
+                            filteredVoices.length +
+                            1, // +1 for "System Default" option
                         itemBuilder: (context, index) {
                           if (index == 0) {
                             final isSelected = widget.selectedVoice == null;
                             return ListTile(
                               leading: Icon(
                                 Icons.settings_suggest_rounded,
-                                color: isSelected ? colorScheme.primary : textColor.withValues(alpha: 0.6),
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : textColor.withValues(alpha: 0.6),
                               ),
                               title: Text(
                                 'System Default',
                                 style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isSelected ? colorScheme.primary : textColor,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : textColor,
                                 ),
                               ),
-                              subtitle: const Text('Let the OS choose the best voice'),
+                              subtitle: const Text(
+                                'Let the OS choose the best voice',
+                              ),
                               trailing: isSelected
-                                  ? Icon(Icons.check_rounded, color: colorScheme.primary)
+                                  ? Icon(
+                                      Icons.check_rounded,
+                                      color: colorScheme.primary,
+                                    )
                                   : null,
                               onTap: () {
                                 unawaited(AppHaptics.selection());
@@ -442,7 +479,8 @@ class _VoiceSelectorSheetState extends State<_VoiceSelectorSheet> {
                           final voice = filteredVoices[index - 1];
                           final voiceName = voice['name'] ?? '';
                           final voiceLocale = voice['locale'] ?? '';
-                          final isSelected = widget.selectedVoice != null &&
+                          final isSelected =
+                              widget.selectedVoice != null &&
                               widget.selectedVoice!['name'] == voiceName;
 
                           // Beautify voice name for display
@@ -458,20 +496,29 @@ class _VoiceSelectorSheetState extends State<_VoiceSelectorSheet> {
                           return ListTile(
                             leading: Icon(
                               Icons.record_voice_over_rounded,
-                              color: isSelected ? colorScheme.primary : textColor.withValues(alpha: 0.6),
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : textColor.withValues(alpha: 0.6),
                             ),
                             title: Text(
                               displayName,
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? colorScheme.primary : textColor,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : textColor,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text('Locale: $voiceLocale'),
                             trailing: isSelected
-                                ? Icon(Icons.check_rounded, color: colorScheme.primary)
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    color: colorScheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               unawaited(AppHaptics.selection());

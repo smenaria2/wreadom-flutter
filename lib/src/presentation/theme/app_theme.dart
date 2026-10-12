@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
@@ -8,8 +9,10 @@ class AppTheme {
 
   static ThemeData get dark => darkTheme();
 
-  static ThemeData lightTheme({bool disableAnimations = false}) =>
-      _build(brightness: Brightness.light, disableAnimations: disableAnimations);
+  static ThemeData lightTheme({bool disableAnimations = false}) => _build(
+    brightness: Brightness.light,
+    disableAnimations: disableAnimations,
+  );
 
   static ThemeData darkTheme({bool disableAnimations = false}) =>
       _build(brightness: Brightness.dark, disableAnimations: disableAnimations);
@@ -60,6 +63,19 @@ class AppTheme {
           alpha: isDark ? 0.55 : 0.62,
         ),
         foregroundColor: scheme.onSurface,
+        // Glass app bars are transparent, so AppBar would otherwise guess a
+        // dark background and force white status-bar icons on the light theme.
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarIconBrightness: isDark
+              ? Brightness.light
+              : Brightness.dark,
+          systemNavigationBarContrastEnforced: false,
+        ),
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge?.copyWith(
