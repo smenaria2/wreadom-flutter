@@ -655,7 +655,7 @@ class _DoubleTapToLikeAnimationState extends State<_DoubleTapToLikeAnimation>
                       return Text(
                         '${_likeCount.value}',
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
                         ),
@@ -879,7 +879,7 @@ class _ShareCommentCardAnimationState extends State<_ShareCommentCardAnimation>
                             ),
                             child: const Text(
                               "External",
-                              style: TextStyle(fontSize: 8),
+                              style: TextStyle(fontSize: 10),
                             ),
                           ),
                         ],
@@ -1262,7 +1262,7 @@ class _AnswerQuestionAnimationState extends State<_AnswerQuestionAnimation>
                       );
                       return Text(
                         currentText,
-                        style: const TextStyle(fontSize: 7),
+                        style: const TextStyle(fontSize: 10),
                       );
                     },
                   ),
@@ -1537,7 +1537,7 @@ class _ImportDraftsAnimationState extends State<_ImportDraftsAnimation>
                             child: Text(
                               "Import Draft",
                               style: TextStyle(
-                                fontSize: 7,
+                                fontSize: 10,
                                 color: active
                                     ? scheme.onPrimary
                                     : scheme.onSurfaceVariant,
@@ -3416,7 +3416,7 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
                               if (_isPrivate.value) const SizedBox(width: 4),
                               Text(
                                 _isPrivate.value ? "Private" : "Public",
-                                style: const TextStyle(fontSize: 8),
+                                style: const TextStyle(fontSize: 10),
                               ),
                             ],
                           );
@@ -3456,7 +3456,7 @@ class _MakePrivateAnimationState extends State<_MakePrivateAnimation>
             child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Public", style: TextStyle(fontSize: 8)),
+                Text("Public", style: TextStyle(fontSize: 10)),
                 Divider(height: 8),
                 Text(
                   "Private",
@@ -3628,7 +3628,7 @@ class _ThemeSelectionAnimationState extends State<_ThemeSelectionAnimation>
                             Text(
                               "Dark Theme",
                               style: TextStyle(
-                                fontSize: 7,
+                                fontSize: 10,
                                 color: fg,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -3745,7 +3745,7 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
                         children: [
                           const Text(
                             "English / English",
-                            style: TextStyle(fontSize: 8),
+                            style: TextStyle(fontSize: 10),
                           ),
                           if (selected)
                             Icon(
@@ -3780,7 +3780,7 @@ class _LanguageSwitcherAnimationState extends State<_LanguageSwitcherAnimation>
                         children: [
                           Text(
                             selected ? "हिंदी / Hindi" : "Hindi / हिंदी",
-                            style: const TextStyle(fontSize: 8),
+                            style: const TextStyle(fontSize: 10),
                           ),
                           if (selected)
                             Icon(
@@ -4119,7 +4119,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
             child: Text(
               "$rank",
               style: const TextStyle(
-                fontSize: 9,
+                fontSize: 10,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -4137,7 +4137,7 @@ class _LeaderboardAnimationState extends State<_LeaderboardAnimation>
           ),
           Text(
             "$points pts",
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ],
       ),

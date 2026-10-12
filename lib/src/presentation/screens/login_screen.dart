@@ -133,11 +133,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               children: [
                                 _LoginMenuButton<ThemeMode>(
                                   tooltip: l10n.theme,
-                                  icon: themeMode == ThemeMode.dark
-                                      ? Icons.dark_mode_outlined
-                                      : Icons.light_mode_outlined,
+                                  icon: switch (themeMode) {
+                                    ThemeMode.dark => Icons.dark_mode_outlined,
+                                    ThemeMode.light =>
+                                      Icons.light_mode_outlined,
+                                    ThemeMode.system =>
+                                      Icons.brightness_auto_outlined,
+                                  },
                                   value: themeMode,
                                   items: [
+                                    PopupMenuItem(
+                                      value: ThemeMode.system,
+                                      child: _MenuChoice(
+                                        icon: Icons.brightness_auto_outlined,
+                                        label: l10n.systemDefault,
+                                        selected: themeMode == ThemeMode.system,
+                                      ),
+                                    ),
                                     PopupMenuItem(
                                       value: ThemeMode.light,
                                       child: _MenuChoice(

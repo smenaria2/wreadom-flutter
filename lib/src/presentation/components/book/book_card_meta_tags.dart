@@ -297,7 +297,7 @@ class BookViewsBadge extends StatelessWidget {
                 FormatUtils.formatNumber(viewCount),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.2,
                 ),
@@ -346,7 +346,7 @@ class BookChapterBadge extends StatelessWidget {
                 '$chapterCount',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.2,
                 ),
@@ -391,7 +391,7 @@ class BookRatingBadge extends StatelessWidget {
                 rating.toStringAsFixed(1),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
               ),

@@ -1682,6 +1682,12 @@ abstract class AppLocalizations {
   /// **'Theme'**
   String get themeDialogTitle;
 
+  /// No description provided for @systemDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemDefault;
+
   /// No description provided for @errorType.
   ///
   /// In en, this message translates to:
@@ -4597,12 +4603,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Font size: {size}'**
   String fontSizeValue(String size);
-
-  /// No description provided for @systemDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'System'**
-  String get systemDefault;
 
   /// No description provided for @sepia.
   ///

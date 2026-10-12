@@ -55,6 +55,8 @@ class BookCard extends ConsumerWidget {
                       child: book.coverUrl != null
                           ? CachedNetworkImage(
                               imageUrl: book.coverUrl!,
+                              // Decode at grid size, not full resolution.
+                              memCacheWidth: 360,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
                                 color: Theme.of(context)
@@ -141,7 +143,7 @@ class _TinyCollabTag extends StatelessWidget {
         'Collab',
         style: TextStyle(
           color: scheme.onSecondaryContainer,
-          fontSize: 8,
+          fontSize: 10,
           fontWeight: FontWeight.w800,
         ),
       ),

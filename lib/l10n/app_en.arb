@@ -519,6 +519,7 @@
   "activity": "Activity",
   "loadMore": "Load more",
   "themeDialogTitle": "Theme",
+  "systemDefault": "System default",
   "errorType": "Issue type",
   "whatWentWrong": "What went wrong?",
   "describeIssueHint": "Describe the issue and what you were doing.",

@@ -92,7 +92,7 @@ class ParticipationCertificate extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFF94A3B8),
                       fontFamily: isHindi ? devanagariFamily : null,
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.5,
                     ),
@@ -350,7 +350,7 @@ class _CertificateSignature extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF94A3B8),
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
             ),

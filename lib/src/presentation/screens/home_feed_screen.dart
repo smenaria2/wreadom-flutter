@@ -60,6 +60,7 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
     final lockScroll = ref.watch(lockScrollProvider);
     final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final fabBottomPadding = bottomOverlayFabPadding(
+      context,
       miniPlayerVisible: miniPlayerVisible,
     );
 
@@ -215,6 +216,7 @@ class _FeedFilterPageState extends ConsumerState<_FeedFilterPage> {
     final l10n = AppLocalizations.of(context)!;
     final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final listBottomPadding = bottomOverlayContentPadding(
+      context,
       miniPlayerVisible: miniPlayerVisible,
     );
     final activeQuestions = widget.filter == FeedFilter.following

@@ -878,6 +878,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeDialogTitle => 'Theme';
 
   @override
+  String get systemDefault => 'System';
+
+  @override
   String get errorType => 'Issue type';
 
   @override
@@ -2603,9 +2606,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String fontSizeValue(String size) {
     return 'Font size: $size';
   }
-
-  @override
-  String get systemDefault => 'System';
 
   @override
   String get sepia => 'Sepia';

@@ -33,6 +33,7 @@ class HistoryBookCard extends StatelessWidget {
               child: book.coverUrl != null && book.coverUrl!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: book.coverUrl!,
+                      memCacheWidth: 360,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
                         color: Theme.of(context)

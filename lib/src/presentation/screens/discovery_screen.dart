@@ -59,7 +59,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final query = args['query']?.toString();
     _searchLanguage = args['language']?.toString();
     if (query == null || query == 'archive:') return;
-    if (query.startsWith('book_') || query.startsWith('post_') || query.startsWith('doc_')) return;
+    if (query.startsWith('book_') ||
+        query.startsWith('post_') ||
+        query.startsWith('doc_'))
+      return;
     if (query.startsWith('subject:')) {
       _activeGenre = query.split(':').last;
     } else {
@@ -97,8 +100,30 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final searchAsync = ref.watch(discoverySearchProvider(queryForProvider));
     final defaultAsync = ref.watch(discoveryDefaultBooksProvider);
 
+    Future<void> refresh() async {
+      try {
+        if (_query.isEmpty && !hasGenre) {
+          ref.invalidate(discoveryDefaultBooksProvider);
+          await ref.read(discoveryDefaultBooksProvider.future);
+        } else if (hasGenre) {
+          ref.invalidate(booksByGenreProvider(_activeGenre!));
+          await ref.read(booksByGenreProvider(_activeGenre!).future);
+        } else {
+          ref.invalidate(discoverySearchProvider(queryForProvider));
+          await ref.read(discoverySearchProvider(queryForProvider).future);
+        }
+      } catch (_) {
+        // Failure is surfaced by the section's own error state.
+      }
+    }
+
     return GlassScaffold(
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: refresh,
+        edgeOffset: 80,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             glassSliverAppBar(
               floating: true,
@@ -118,200 +143,245 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     controller: _searchController,
                     focusNode: _searchFocusNode,
                     centerVertically: true,
-                    rightOffset: _searchController.text.isNotEmpty ? 48.0 : 12.0,
+                    rightOffset: _query.isNotEmpty ? 48.0 : 12.0,
                     child: TextField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
-                  textInputAction: TextInputAction.search,
-                  onChanged: (value) {
-                    _debounce?.cancel();
-                    _debounce = Timer(const Duration(milliseconds: 500), () {
-                      final nextQuery = value.trim();
-                      setState(() {
-                        _query = nextQuery;
-                        _searchLanguage =
-                            null; // Clear tag source language on typing new query
-                        if (_query.isNotEmpty) _activeGenre = null;
-                      });
-                      AnalyticsService.logSearch(nextQuery);
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.searchBooksAuthors,
-                    hintText: AppLocalizations.of(context)!.searchHint,
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _query.isNotEmpty
-                        ? IconButton(tooltip: AppLocalizations.of(context)!.close,
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _debounce?.cancel();
-                              _searchController.clear();
-                              setState(() => _query = '');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.34),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                ),
-              ),
-            ),
-          ),
-          if (_query.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final genre in _genres)
-                      FilterChip(
-                        label: Text(_getLocalizedGenre(context, genre)),
-                        selected: _activeGenre == genre,
-                        showCheckmark: false,
-                        onSelected: (_) {
-                          final nextGenre = _activeGenre == genre
-                              ? null
-                              : genre;
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (value) {
+                        // Run the search immediately and dismiss the keyboard.
+                        _debounce?.cancel();
+                        final nextQuery = value.trim();
+                        setState(() {
+                          _query = nextQuery;
+                          _searchLanguage = null;
+                          if (_query.isNotEmpty) _activeGenre = null;
+                        });
+                        AnalyticsService.logSearch(nextQuery);
+                        _searchFocusNode.unfocus();
+                      },
+                      onChanged: (value) {
+                        _debounce?.cancel();
+                        _debounce = Timer(const Duration(milliseconds: 500), () {
+                          if (!mounted) return;
+                          final nextQuery = value.trim();
                           setState(() {
-                            _activeGenre = nextGenre;
-                            _query = '';
-                            _searchController.clear();
+                            _query = nextQuery;
+                            _searchLanguage =
+                                null; // Clear tag source language on typing new query
+                            if (_query.isNotEmpty) _activeGenre = null;
                           });
-                          if (nextGenre != null) {
-                            AnalyticsService.logGenreSelect(nextGenre);
-                          }
-                        },
+                          AnalyticsService.logSearch(nextQuery);
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.searchBooksAuthors,
+                        hintText: AppLocalizations.of(context)!.searchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _query.isNotEmpty
+                            ? IconButton(
+                                tooltip: AppLocalizations.of(context)!.close,
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _debounce?.cancel();
+                                  _searchController.clear();
+                                  setState(() => _query = '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.34),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.zero,
                       ),
-                  ],
-                ),
-              ),
-            ),
-          if (_query.isEmpty && !hasGenre)
-            defaultAsync.when(
-              data: (books) => _BookListSliver(
-                title: AppLocalizations.of(context)!.suggestedBooks,
-                books: books,
-                emptyText: AppLocalizations.of(context)!.noSuggestedBooks,
-              ),
-              loading: () => const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => SliverFillRemaining(
-                hasScrollBody: false,
-                child: _SearchFailureView(
-                  onRetry: () =>
-                      ref.invalidate(discoverySearchProvider(queryForProvider)),
-                ),
-              ),
-            )
-          else if (hasGenre)
-            genreAsync!.when(
-              data: (books) => _BookListSliver(
-                title: _getLocalizedGenre(context, _activeGenre!),
-                books: books,
-                emptyText: AppLocalizations.of(
-                  context,
-                )!.noBooksFoundIn(_getLocalizedGenre(context, _activeGenre!)),
-              ),
-              loading: () => const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, _) => SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorWithDetails(error.toString()),
+                    ),
                   ),
                 ),
               ),
-            )
-          else
-            searchAsync.when(
-              data: (results) {
-                if (results.allFailed) {
-                  return SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _SearchFailureView(
-                      onRetry: () => ref.invalidate(
-                        discoverySearchProvider(queryForProvider),
-                      ),
-                    ),
-                  );
-                }
-                if (results.isEmpty) {
-                  return SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (results.hasPartialFailure)
-                          _SearchPartialWarning(
-                            onRetry: () => ref.invalidate(
-                              discoverySearchProvider(queryForProvider),
-                            ),
-                          ),
-                        Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.noResultsFor(effectiveQuery),
+            ),
+            if (_query.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final genre in _genres)
+                        FilterChip(
+                          label: Text(_getLocalizedGenre(context, genre)),
+                          selected: _activeGenre == genre,
+                          showCheckmark: false,
+                          onSelected: (_) {
+                            final nextGenre = _activeGenre == genre
+                                ? null
+                                : genre;
+                            setState(() {
+                              _activeGenre = nextGenre;
+                              _query = '';
+                              _searchController.clear();
+                            });
+                            if (nextGenre != null) {
+                              AnalyticsService.logGenreSelect(nextGenre);
+                            }
+                          },
                         ),
-                      ],
-                    ),
-                  );
-                }
-                return SliverList(
-                  delegate: SliverChildListDelegate([
-                    if (results.hasPartialFailure)
-                      _SearchPartialWarning(
+                    ],
+                  ),
+                ),
+              ),
+            if (_query.isEmpty && !hasGenre)
+              defaultAsync.when(
+                data: (books) => _BookListSliver(
+                  title: AppLocalizations.of(context)!.suggestedBooks,
+                  books: books,
+                  emptyText: AppLocalizations.of(context)!.noSuggestedBooks,
+                ),
+                loading: () => const _ResultsSkeletonSliver(),
+                error: (_, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _SearchFailureView(
+                    onRetry: () =>
+                        ref.invalidate(discoveryDefaultBooksProvider),
+                  ),
+                ),
+              )
+            else if (hasGenre)
+              genreAsync!.when(
+                data: (books) => _BookListSliver(
+                  title: _getLocalizedGenre(context, _activeGenre!),
+                  books: books,
+                  emptyText: AppLocalizations.of(
+                    context,
+                  )!.noBooksFoundIn(_getLocalizedGenre(context, _activeGenre!)),
+                ),
+                loading: () => const _ResultsSkeletonSliver(),
+                error: (error, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _SearchFailureView(
+                    onRetry: () =>
+                        ref.invalidate(booksByGenreProvider(_activeGenre!)),
+                  ),
+                ),
+              )
+            else
+              searchAsync.when(
+                data: (results) {
+                  if (results.allFailed) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _SearchFailureView(
                         onRetry: () => ref.invalidate(
                           discoverySearchProvider(queryForProvider),
                         ),
                       ),
-                    if (results.authors.isNotEmpty)
-                      _AuthorResultSection(authors: results.authors),
-                    if (results.originals.isNotEmpty)
-                      _ResultSection(
-                        title: AppLocalizations.of(context)!.originalBooks,
-                        books: results.originals,
+                    );
+                  }
+                  if (results.isEmpty) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (results.hasPartialFailure)
+                            _SearchPartialWarning(
+                              onRetry: () => ref.invalidate(
+                                discoverySearchProvider(queryForProvider),
+                              ),
+                            ),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.noResultsFor(effectiveQuery),
+                          ),
+                        ],
                       ),
-                    if (results.archiveBooks.isNotEmpty)
-                      _ResultSection(
-                        title: AppLocalizations.of(context)!.moreBooks,
-                        books: results.archiveBooks,
-                      ),
-                    const SizedBox(height: 32),
-                  ]),
-                );
-              },
-              loading: () => const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, _) => SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorWithDetails(error.toString()),
+                    );
+                  }
+                  return SliverList(
+                    delegate: SliverChildListDelegate([
+                      if (results.hasPartialFailure)
+                        _SearchPartialWarning(
+                          onRetry: () => ref.invalidate(
+                            discoverySearchProvider(queryForProvider),
+                          ),
+                        ),
+                      if (results.authors.isNotEmpty)
+                        _AuthorResultSection(authors: results.authors),
+                      if (results.originals.isNotEmpty)
+                        _ResultSection(
+                          title: AppLocalizations.of(context)!.originalBooks,
+                          books: results.originals,
+                        ),
+                      if (results.archiveBooks.isNotEmpty)
+                        _ResultSection(
+                          title: AppLocalizations.of(context)!.moreBooks,
+                          books: results.archiveBooks,
+                        ),
+                      const SizedBox(height: 32),
+                    ]),
+                  );
+                },
+                loading: () => const _ResultsSkeletonSliver(),
+                error: (error, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _SearchFailureView(
+                    onRetry: () => ref.invalidate(
+                      discoverySearchProvider(queryForProvider),
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton rows shown while search/genre/suggested results load.
+class _ResultsSkeletonSliver extends StatelessWidget {
+  const _ResultsSkeletonSliver();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    Widget block(double w, double h, double r) => DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(r),
+      ),
+      child: SizedBox(width: w, height: h),
+    );
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      sliver: SliverList.separated(
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: 16),
+        itemBuilder: (_, _) => ExcludeSemantics(
+          child: Row(
+            children: [
+              block(56, 80, 8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    block(double.infinity, 14, 4),
+                    const SizedBox(height: 8),
+                    block(120, 12, 4),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -492,7 +562,9 @@ class _AuthorProfileCard extends StatelessWidget {
                 radius: 24,
                 backgroundImage:
                     author.photoURL != null && author.photoURL!.isNotEmpty
-                    ? CachedNetworkImageProvider(optimizedAvatarUrl(author.photoURL!)!)
+                    ? CachedNetworkImageProvider(
+                        optimizedAvatarUrl(author.photoURL!)!,
+                      )
                     : null,
                 child: author.photoURL == null || author.photoURL!.isEmpty
                     ? Text(initial)
@@ -547,6 +619,7 @@ class _SearchResultTile extends StatelessWidget {
                 child: book.coverUrl != null
                     ? CachedNetworkImage(
                         imageUrl: book.coverUrl!,
+                        memCacheWidth: 168,
                         width: 56,
                         height: 80,
                         fit: BoxFit.cover,

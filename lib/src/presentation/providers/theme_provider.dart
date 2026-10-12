@@ -19,8 +19,6 @@ class AppThemeController extends Notifier<ThemeMode> {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    if (mode != ThemeMode.light && mode != ThemeMode.dark) return;
-
     state = mode;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_themeModeKey, mode.name);
@@ -30,7 +28,7 @@ class AppThemeController extends Notifier<ThemeMode> {
     return switch (value) {
       'dark' => ThemeMode.dark,
       'light' => ThemeMode.light,
-      _ => ThemeMode.light,
+      _ => ThemeMode.system,
     };
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../../domain/models/book.dart';
 import '../../domain/models/chapter.dart';
@@ -256,6 +258,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int _restoreRetries = 0;
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
+  bool? _systemUiImmersive;
   bool _isDiscussionOpen = false;
   StateSetter? _modalStateSetter;
   bool _isReviewEditMode = true;
@@ -342,6 +345,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         .listen(_handleTtsNotificationAction);
     _applyReaderSettings(ref.read(readerSettingsControllerProvider));
     unawaited(_setReaderPrivacyEnabled(true));
+    // Keep the screen awake while reading.
+    unawaited(WakelockPlus.enable().catchError((Object _) {}));
     AnalyticsService.logReaderOpen(widget.book);
     unawaited(_incrementView(chapterIndex: _chapterIndex));
     _saveHistorySilently('initial_history_save');
@@ -395,6 +400,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           _showReaderChrome = shouldShowChrome;
           _lastScrollOffset = currentOffset;
         });
+        _syncReaderSystemUi();
         _scheduleProgressSave();
       }
     }
@@ -843,8 +849,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _saveProgressSilently('chapter_change_after_navigation');
   }
 
+  /// Hides the system bars together with the reader chrome (immersive
+  /// reading) and brings them back when the chrome returns.
+  void _syncReaderSystemUi() {
+    final immersive = !_showReaderChrome;
+    if (_systemUiImmersive == immersive) return;
+    _systemUiImmersive = immersive;
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        immersive ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      ).catchError((Object _) {}),
+    );
+  }
+
   @override
   void dispose() {
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.edgeToEdge,
+      ).catchError((Object _) {}),
+    );
+    unawaited(WakelockPlus.disable().catchError((Object _) {}));
     WidgetsBinding.instance.removeObserver(this);
     _flushProgressSave(
       'dispose',
@@ -1695,11 +1720,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        src!,
+                      child: CachedNetworkImage(
+                        imageUrl: src!,
                         width: double.infinity,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
+                        // Reserve space so text does not jump when the image
+                        // finishes loading.
+                        placeholder: (context, url) => const SizedBox(
+                          height: 180,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) =>
                             const SizedBox.shrink(),
                       ),
                     ),
@@ -3994,7 +4027,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                       await _stopAudioReviewRecording(
                                                         () {
                                                           if (context.mounted) {
-                                                            setModalState(() {});
+                                                            setModalState(
+                                                              () {},
+                                                            );
                                                           }
                                                         },
                                                       );
@@ -4002,7 +4037,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                                       await _startAudioReviewRecording(
                                                         () {
                                                           if (context.mounted) {
-                                                            setModalState(() {});
+                                                            setModalState(
+                                                              () {},
+                                                            );
                                                           }
                                                         },
                                                         feedbackContext:
@@ -4488,7 +4525,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   ReaderTheme _getEffectiveTheme() {
     if (_readerTheme != ReaderTheme.system) return _readerTheme;
     final themeMode = ref.read(appThemeControllerProvider);
-    return themeMode == ThemeMode.dark ? ReaderTheme.dark : ReaderTheme.light;
+    final isDark = switch (themeMode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system =>
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
+    return isDark ? ReaderTheme.dark : ReaderTheme.light;
   }
 
   ThemeData _getReaderChromeTheme() {
@@ -4623,12 +4666,15 @@ class _ReaderTtsBlockView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            url,
+          child: CachedNetworkImage(
+            imageUrl: url,
             width: double.infinity,
             fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) =>
-                const SizedBox.shrink(),
+            placeholder: (context, url) => const SizedBox(
+              height: 180,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            errorWidget: (context, url, error) => const SizedBox.shrink(),
           ),
         ),
       );
@@ -4671,7 +4717,10 @@ class _ReaderTtsBlockView extends StatelessWidget {
                 font,
                 textStyle: TextStyle(
                   color: isQuote ? mutedColor : textColor,
-                  fontSize: isHeading ? 22 : fontSize,
+                  // Headings scale with the reader font size setting.
+                  fontSize: isHeading
+                      ? (fontSize * 1.25 < 22 ? 22 : fontSize * 1.25)
+                      : fontSize,
                   height: isHeading ? 1.35 : 1.8,
                   fontWeight:
                       isHeading && font != ReaderFont.tiroDevanagariHindi

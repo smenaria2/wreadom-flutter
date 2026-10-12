@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_update_provider.dart';
 import '../providers/navigation_providers.dart';
 import '../providers/theme_provider.dart';
+import '../../utils/app_haptics.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/audio_post_mini_player.dart';
@@ -185,63 +186,74 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       _queueUpdateNotice(updateAvailability);
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBody: true,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: AppBackground()),
-          IndexedStack(index: selectedIndex, children: _screens),
-          const AudioPostMiniPlayer(),
-        ],
-      ),
-      bottomNavigationBar: GlassSurface(
-        strong: true,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  0,
-                  Icons.book_outlined,
-                  Icons.book,
-                  l10n.home,
-                  selectedIndex,
+    return PopScope(
+      // Back on a non-Home tab returns to Home instead of exiting the app.
+      canPop: selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) ref.read(selectedTabProvider.notifier).setTab(0);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: AppBackground()),
+            IndexedStack(index: selectedIndex, children: _screens),
+            const AudioPostMiniPlayer(),
+          ],
+        ),
+        bottomNavigationBar: GlassSurface(
+          strong: true,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+              // Keep labels from overflowing at very large system font sizes.
+              child: MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      0,
+                      Icons.book_outlined,
+                      Icons.book,
+                      l10n.home,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      1,
+                      Icons.feed_outlined,
+                      Icons.feed,
+                      l10n.feed,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      2,
+                      Icons.edit_note_outlined,
+                      Icons.edit_note,
+                      l10n.writer,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      3,
+                      Icons.chat_bubble_outline,
+                      Icons.chat_bubble,
+                      l10n.messages,
+                      selectedIndex,
+                    ),
+                    _buildNavItem(
+                      4,
+                      Icons.person_outline,
+                      Icons.person,
+                      l10n.profile,
+                      selectedIndex,
+                      badge: hasUpdate,
+                    ),
+                  ],
                 ),
-                _buildNavItem(
-                  1,
-                  Icons.feed_outlined,
-                  Icons.feed,
-                  l10n.feed,
-                  selectedIndex,
-                ),
-                _buildNavItem(
-                  2,
-                  Icons.edit_note_outlined,
-                  Icons.edit_note,
-                  l10n.writer,
-                  selectedIndex,
-                ),
-                _buildNavItem(
-                  3,
-                  Icons.chat_bubble_outline,
-                  Icons.chat_bubble,
-                  l10n.messages,
-                  selectedIndex,
-                ),
-                _buildNavItem(
-                  4,
-                  Icons.person_outline,
-                  Icons.person,
-                  l10n.profile,
-                  selectedIndex,
-                  badge: hasUpdate,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -263,6 +275,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         ? Duration.zero
         : const Duration(milliseconds: 220);
     void selectTab() {
+      if (!isSelected) unawaited(AppHaptics.selection());
       ref.read(selectedTabProvider.notifier).setTab(index);
       if (index == 4) {
         ref.read(profileTabIndexProvider.notifier).setIndex(0);
@@ -276,60 +289,67 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         label: label,
         onTap: selectTab,
         child: ExcludeSemantics(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: selectTab,
-            child: AnimatedContainer(
-              constraints: const BoxConstraints(minHeight: 52),
-              duration: animDuration,
-              curve: Curves.easeInOut,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                    : Colors.transparent,
-                border: Border.all(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: selectTab,
+              child: AnimatedContainer(
+                constraints: const BoxConstraints(minHeight: 52),
+                duration: animDuration,
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
                   color: isSelected
-                      ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                      ? theme.colorScheme.primary.withValues(alpha: 0.08)
                       : Colors.transparent,
-                  width: 1.5,
+                  border: Border.all(
+                    color: isSelected
+                        ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                        : Colors.transparent,
+                    width: 1.5,
+                  ),
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedScale(
-                    duration: animDuration,
-                    scale: isSelected ? 1.1 : 1.0,
-                    child: _UpdateBadgeIcon(
-                      icon: isSelected ? selectedIcon : icon,
-                      showBadge: badge,
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedScale(
+                      duration: animDuration,
+                      scale: isSelected ? 1.1 : 1.0,
+                      child: _UpdateBadgeIcon(
+                        icon: isSelected ? selectedIcon : icon,
+                        showBadge: badge,
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.65,
+                              ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  AnimatedDefaultTextStyle(
-                    duration: animDuration,
-                    style: theme.textTheme.labelMedium!.copyWith(
-                      fontWeight: isSelected
-                          ? FontWeight.w800
-                          : FontWeight.w500,
-                      fontSize: 12,
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                    const SizedBox(height: 4),
+                    AnimatedDefaultTextStyle(
+                      duration: animDuration,
+                      style: theme.textTheme.labelMedium!.copyWith(
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w500,
+                        fontSize: 12,
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.65,
+                              ),
+                      ),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

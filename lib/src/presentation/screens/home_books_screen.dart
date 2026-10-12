@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
@@ -30,6 +31,7 @@ import '../widgets/fog_reveal.dart';
 import '../widgets/glass_surface.dart';
 import '../widgets/audio_post_player.dart';
 import '../widgets/reel_feed_button.dart';
+import '../widgets/resilient_profile_avatar.dart';
 import '../constants/layout_constants.dart';
 import '../components/animated_shelf_container.dart';
 import '../components/home_series_section.dart';
@@ -130,6 +132,7 @@ class HomeBooksScreen extends ConsumerWidget {
     final bannersAsync = ref.watch(homeBannersProvider);
     final miniPlayerVisible = ref.watch(audioPostMiniPlayerVisibleProvider);
     final bottomPadding = bottomOverlayContentPadding(
+      context,
       miniPlayerVisible: miniPlayerVisible,
     );
 
@@ -1285,22 +1288,21 @@ class _AuthorsSectionState extends ConsumerState<_AuthorsSection> {
                           width: 96,
                           child: Column(
                             children: [
-                              CircleAvatar(
+                              ResilientProfileAvatar(
                                 radius: 30,
-                                backgroundImage:
-                                    author.photoURL != null &&
-                                        author.photoURL!.isNotEmpty
-                                    ? CachedNetworkImageProvider(
-                                        optimizedAvatarUrl(author.photoURL!)!,
-                                      )
-                                    : null,
-                                child:
-                                    (author.photoURL == null ||
-                                        author.photoURL!.isEmpty)
-                                    ? initial != null
-                                          ? Text(initial)
-                                          : const Icon(Icons.person_rounded)
-                                    : null,
+                                initial: initial ?? '',
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                                imageUrl: author.photoURL == null
+                                    ? null
+                                    : optimizedAvatarUrl(author.photoURL!),
+                                fallbackChild: initial != null
+                                    ? null
+                                    : const Icon(Icons.person_rounded),
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -1574,12 +1576,107 @@ class BookshelfSection extends StatelessWidget {
     const shelfHeight = 252.0;
     final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
     final hasData = books.isNotEmpty;
+    final isInitialLoading = !hasData && booksAsync.isLoading;
+    final hasFailed = !hasData && !booksAsync.isLoading && booksAsync.hasError;
 
     return AnimatedShelfContainer(
-      visible: hasData,
+      visible: hasData || isInitialLoading || hasFailed,
       child: hasData
           ? _buildShelf(context, books, shelfHeight)
+          : isInitialLoading
+          ? _buildSkeleton(context, shelfHeight)
+          : hasFailed
+          ? _buildRetryCard(context)
           : const SizedBox.shrink(),
+    );
+  }
+
+  /// Placeholder shelf shown while the first page of books is loading.
+  Widget _buildSkeleton(BuildContext context, double shelfHeight) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return Semantics(
+      label: title,
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: _FogBlock(width: 150, height: 18, radius: 6, color: color),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: shelfHeight,
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                scrollDirection: Axis.horizontal,
+                itemCount: 6,
+                separatorBuilder: (_, _) => const SizedBox(width: 14),
+                itemBuilder: (_, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _FogBlock(
+                      width: 120,
+                      height: 176,
+                      radius: 12,
+                      color: color,
+                    ),
+                    const SizedBox(height: 10),
+                    _FogBlock(width: 100, height: 12, radius: 4, color: color),
+                    const SizedBox(height: 6),
+                    _FogBlock(width: 70, height: 10, radius: 4, color: color),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Inline retry affordance so a failed shelf never silently disappears.
+  Widget _buildRetryCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                color: scheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.couldNotLoad(title),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+              ),
+              if (onRetry != null)
+                TextButton(
+                  onPressed: () {
+                    unawaited(AppHaptics.selection());
+                    onRetry!();
+                  },
+                  child: Text(l10n.tryAgain),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1985,33 +2082,27 @@ class _AuthorSpotlight extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              child: CircleAvatar(
+                              child: ResilientProfileAvatar(
                                 radius: 30,
+                                initial: authorInitial ?? '',
                                 backgroundColor: const Color(0xFF2D2A35),
-                                backgroundImage:
-                                    author.photoURL != null &&
-                                        author.photoURL!.isNotEmpty
-                                    ? CachedNetworkImageProvider(
-                                        optimizedAvatarUrl(author.photoURL!)!,
+                                foregroundColor: const Color(0xFFFFD166),
+                                imageUrl: author.photoURL == null
+                                    ? null
+                                    : optimizedAvatarUrl(author.photoURL!),
+                                fallbackChild: authorInitial != null
+                                    ? Text(
+                                        authorInitial,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFFD166),
+                                        ),
                                       )
-                                    : null,
-                                child:
-                                    (author.photoURL == null ||
-                                        author.photoURL!.isEmpty)
-                                    ? authorInitial != null
-                                          ? Text(
-                                              authorInitial,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFFFFD166),
-                                              ),
-                                            )
-                                          : const Icon(
-                                              Icons.person_rounded,
-                                              color: Color(0xFFFFD166),
-                                            )
-                                    : null,
+                                    : const Icon(
+                                        Icons.person_rounded,
+                                        color: Color(0xFFFFD166),
+                                      ),
                               ),
                             ),
                           ),

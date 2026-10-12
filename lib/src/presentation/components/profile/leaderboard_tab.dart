@@ -943,7 +943,7 @@ class _RankingCard extends StatelessWidget {
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,
-                              fontSize: 8,
+                              fontSize: 10,
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -974,7 +974,7 @@ class _RankingCard extends StatelessWidget {
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                               letterSpacing: 0.8,
-                              fontSize: 9,
+                              fontSize: 10,
                             ),
                           ),
                         ],
@@ -999,7 +999,7 @@ class _RankingCard extends StatelessWidget {
                   l10n.pointsLabel.toUpperCase(),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: scheme.onSurfaceVariant,
-                    fontSize: 8,
+                    fontSize: 10,
                   ),
                 ),
               ],

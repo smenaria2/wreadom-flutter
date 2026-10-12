@@ -46,8 +46,8 @@ class AudioPostMiniPlayer extends ConsumerWidget {
         return Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.only(
-              bottom: kMiniPlayerBottomOffset,
+            padding: EdgeInsets.only(
+              bottom: miniPlayerBottomOffset(context),
             ), // Float directly above the bottom navigation bar
             child: GlassSurface(
               strong: true,

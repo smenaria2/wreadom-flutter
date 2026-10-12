@@ -87,11 +87,18 @@ class MainActivity : AudioServiceActivity() {
     }
     private fun performNativeHaptic(type: String) {
         val feedbackConstant = when (type) {
-            "selection" -> HapticFeedbackConstants.KEYBOARD_TAP
-            "medium" -> HapticFeedbackConstants.LONG_PRESS
+            "selection" -> HapticFeedbackConstants.CLOCK_TICK
+            "medium" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                HapticFeedbackConstants.CONFIRM
+            } else {
+                HapticFeedbackConstants.LONG_PRESS
+            }
             else -> HapticFeedbackConstants.VIRTUAL_KEY
         }
-        window.decorView.performHapticFeedback(feedbackConstant)
+        // Honors the user's system "touch feedback" setting. Only fall back to
+        // a raw vibration when the platform could not perform the haptic, so
+        // the user never gets a doubled buzz.
+        if (window.decorView.performHapticFeedback(feedbackConstant)) return
 
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager

@@ -11,6 +11,7 @@ class ResilientProfileAvatar extends StatelessWidget {
     required this.foregroundColor,
     this.imageUrl,
     this.fontWeight = FontWeight.w700,
+    this.fallbackChild,
   });
 
   final double radius;
@@ -20,19 +21,24 @@ class ResilientProfileAvatar extends StatelessWidget {
   final String? imageUrl;
   final FontWeight fontWeight;
 
+  /// Replaces the [initial] text when the image is missing or fails to load.
+  final Widget? fallbackChild;
+
   @override
   Widget build(BuildContext context) {
     final fallback = ColoredBox(
       color: backgroundColor,
       child: Center(
-        child: Text(
-          initial,
-          style: TextStyle(
-            fontSize: radius * 0.76,
-            fontWeight: fontWeight,
-            color: foregroundColor,
-          ),
-        ),
+        child:
+            fallbackChild ??
+            Text(
+              initial,
+              style: TextStyle(
+                fontSize: radius * 0.76,
+                fontWeight: fontWeight,
+                color: foregroundColor,
+              ),
+            ),
       ),
     );
     final url = imageUrl?.trim();

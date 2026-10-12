@@ -904,6 +904,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get themeDialogTitle => 'थीम';
 
   @override
+  String get systemDefault => 'सिस्टम';
+
+  @override
   String get errorType => 'समस्या का प्रकार';
 
   @override
@@ -2632,9 +2635,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String fontSizeValue(String size) {
     return 'फॉन्ट आकार: $size';
   }
-
-  @override
-  String get systemDefault => 'सिस्टम';
 
   @override
   String get sepia => 'सेपिया';

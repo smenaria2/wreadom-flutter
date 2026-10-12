@@ -641,9 +641,11 @@ class ProfileSideMenu extends ConsumerWidget {
                     _MenuTile(
                       icon: Icons.brightness_6_outlined,
                       title: l10n.theme,
-                      subtitle: themeMode == ThemeMode.dark
-                          ? l10n.dark
-                          : l10n.light,
+                      subtitle: switch (themeMode) {
+                        ThemeMode.dark => l10n.dark,
+                        ThemeMode.light => l10n.light,
+                        ThemeMode.system => l10n.systemDefault,
+                      },
                       onTap: () => _showThemePicker(context, ref),
                     ),
                     _GlassSwitchTile(
@@ -737,6 +739,14 @@ class ProfileSideMenu extends ConsumerWidget {
         return SimpleDialog(
           title: Text(l10n.themeDialogTitle),
           children: [
+            ListTile(
+              leading: const Icon(Icons.brightness_auto_outlined),
+              title: Text(l10n.systemDefault),
+              trailing: current == ThemeMode.system
+                  ? const Icon(Icons.check_rounded)
+                  : null,
+              onTap: () => Navigator.of(context).pop(ThemeMode.system),
+            ),
             ListTile(
               leading: const Icon(Icons.light_mode_outlined),
               title: Text(l10n.light),

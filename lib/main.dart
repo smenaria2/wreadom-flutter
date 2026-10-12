@@ -9,6 +9,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -70,11 +71,12 @@ bool _crashlyticsReady = false;
 bool _licensesRegistered = false;
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
   AppLogCollector.init();
   _installGlobalErrorHandlers();
 
   runZonedGuarded(() async {
+    // The binding must be created in the same zone that later calls runApp.
+    WidgetsFlutterBinding.ensureInitialized();
     try {
       await _launchApplication();
     } catch (error, stackTrace) {
@@ -180,6 +182,16 @@ Future<void> _launchApplication() async {
     }
   } catch (error, stackTrace) {
     AppLogCollector.recordZoneError(error, stackTrace);
+  }
+
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    // Draw behind the status and navigation bars (gesture-nav friendly).
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge).catchError(
+        (Object error) =>
+            AppLogCollector.recordZoneError(error, StackTrace.current),
+      ),
+    );
   }
 
   final appLinks = AppLinks();
@@ -920,16 +932,35 @@ class _MyAppState extends ConsumerState<MyApp> {
               final mediaQuery = MediaQuery.of(context);
               final effectiveDisableAnimations =
                   disableAnimations || mediaQuery.disableAnimations;
-              return MediaQuery(
-                data: mediaQuery.copyWith(
-                  disableAnimations: effectiveDisableAnimations,
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final iconBrightness = isDark
+                  ? Brightness.light
+                  : Brightness.dark;
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                // Transparent system bars with icons matching the app theme.
+                // Screens (e.g. AppBar) may still override this locally.
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: iconBrightness,
+                  statusBarBrightness: isDark
+                      ? Brightness.dark
+                      : Brightness.light,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarDividerColor: Colors.transparent,
+                  systemNavigationBarIconBrightness: iconBrightness,
+                  systemNavigationBarContrastEnforced: false,
                 ),
-                // Maintenance and minimum-version blocks cover every route.
-                child: _firebaseReady
-                    ? AppRuntimeGate(
-                        child: materialAppChild ?? const SizedBox.shrink(),
-                      )
-                    : materialAppChild ?? const SizedBox.shrink(),
+                child: MediaQuery(
+                  data: mediaQuery.copyWith(
+                    disableAnimations: effectiveDisableAnimations,
+                  ),
+                  // Maintenance and minimum-version blocks cover every route.
+                  child: _firebaseReady
+                      ? AppRuntimeGate(
+                          child: materialAppChild ?? const SizedBox.shrink(),
+                        )
+                      : materialAppChild ?? const SizedBox.shrink(),
+                ),
               );
             },
             home: _showStartupSplash

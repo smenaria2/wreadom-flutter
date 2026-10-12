@@ -315,7 +315,7 @@ class _StatusChip extends StatelessWidget {
       label.toUpperCase(),
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 8,
+        fontSize: 10,
         fontWeight: FontWeight.w900,
       ),
     ),

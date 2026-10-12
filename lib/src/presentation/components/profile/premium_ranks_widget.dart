@@ -231,7 +231,7 @@ class _RankStatusFace extends StatelessWidget {
                                 alpha: 0.7,
                               ),
                               letterSpacing: 0.5,
-                              fontSize: 9,
+                              fontSize: 10,
                             ),
                           ),
                         ),
@@ -241,7 +241,7 @@ class _RankStatusFace extends StatelessWidget {
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: scheme.primary,
-                            fontSize: 9,
+                            fontSize: 10,
                           ),
                         ),
                       ],
@@ -289,7 +289,7 @@ class _RankStatusFace extends StatelessWidget {
                               : l10n.ptsToNextTier(tier.pointsToNext!),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: scheme.onSurfaceVariant,
-                            fontSize: 8,
+                            fontSize: 10,
                           ),
                         ),
                       ],
