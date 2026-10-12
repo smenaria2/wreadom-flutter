@@ -1571,7 +1571,7 @@ class BookshelfSection extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    const shelfHeight = 264.0;
+    const shelfHeight = 252.0;
     final books = _currentBooksOrNull(booksAsync) ?? const <Book>[];
     final hasData = books.isNotEmpty;
 
@@ -1627,7 +1627,8 @@ class BookshelfSection extends StatelessWidget {
         SizedBox(
           height: shelfHeight,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            // Top inset keeps the cover glow from being clipped by the list.
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             scrollDirection: Axis.horizontal,
             itemCount: books.length,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
@@ -1689,14 +1690,16 @@ class _BookCardState extends State<_BookCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final typeLabel = resolveBookContentTypeParts(widget.book, l10n).type;
+    final byAuthor = l10n.bookByAuthor(
+      widget.book.title,
+      widget.book.authors.isNotEmpty
+          ? widget.book.authors.first.name
+          : l10n.unknownAuthor,
+    );
     return Semantics(
       button: true,
-      label: l10n.bookByAuthor(
-        widget.book.title,
-        widget.book.authors.isNotEmpty
-            ? widget.book.authors.first.name
-            : l10n.unknownAuthor,
-      ),
+      label: typeLabel == null ? byAuthor : '$byAuthor, $typeLabel',
       child: GestureDetector(
         onTap: () {
           Navigator.of(context).push(
@@ -1715,60 +1718,63 @@ class _BookCardState extends State<_BookCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cover
-              SizedBox(
-                width: 120,
-                height: 180,
-                child: FogReveal(
-                  revealed: _revealed,
-                  borderRadius: BorderRadius.circular(12),
-                  child: ClipRRect(
+              BookCoverAccentFrame(
+                book: widget.book,
+                child: SizedBox(
+                  width: 120,
+                  height: 180,
+                  child: FogReveal(
+                    revealed: _revealed,
                     borderRadius: BorderRadius.circular(12),
-                    child: _hasNetworkCover
-                        ? Hero(
-                            tag: widget.heroTag,
-                            child: _CoverWithLeafBadge(
-                              book: widget.book,
-                              child: CachedNetworkImage(
-                                imageUrl: widget.book.coverUrl!,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                                memCacheWidth: 240,
-                                memCacheHeight: 360,
-                                imageBuilder: (context, imageProvider) {
-                                  _markRevealed();
-                                  return Image(
-                                    image: imageProvider,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  );
-                                },
-                                placeholder: (context, url) => _FogBlock(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _hasNetworkCover
+                          ? Hero(
+                              tag: widget.heroTag,
+                              child: _CoverWithLeafBadge(
+                                book: widget.book,
+                                child: CachedNetworkImage(
+                                  imageUrl: widget.book.coverUrl!,
+                                  fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  radius: 12,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
+                                  memCacheWidth: 240,
+                                  memCacheHeight: 360,
+                                  imageBuilder: (context, imageProvider) {
+                                    _markRevealed();
+                                    return Image(
+                                      image: imageProvider,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    );
+                                  },
+                                  placeholder: (context, url) => _FogBlock(
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    radius: 12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ),
+                                  errorWidget: (context, url, error) {
+                                    _markRevealed();
+                                    return _CoverPlaceholder(book: widget.book);
+                                  },
                                 ),
-                                errorWidget: (context, url, error) {
-                                  _markRevealed();
-                                  return _CoverPlaceholder(book: widget.book);
-                                },
                               ),
+                            )
+                          : _CoverWithLeafBadge(
+                              book: widget.book,
+                              child: _CoverPlaceholder(book: widget.book),
                             ),
-                          )
-                        : _CoverWithLeafBadge(
-                            book: widget.book,
-                            child: _CoverPlaceholder(book: widget.book),
-                          ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               SizedBox(
-                height: 72,
+                height: 58,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1779,12 +1785,10 @@ class _BookCardState extends State<_BookCard> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        height: 1.15,
+                        fontSize: 13,
+                        height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    BookContentTypeLabel(book: widget.book),
                     const SizedBox(height: 2),
                     Text(
                       widget.book.authors.isNotEmpty
@@ -1793,13 +1797,15 @@ class _BookCardState extends State<_BookCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.72),
                         fontSize: 11,
-                        height: 1.15,
+                        height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    BookCardMetricsRow(book: widget.book),
+                    const SizedBox(height: 2),
+                    BookCardMetaLine(book: widget.book),
                   ],
                 ),
               ),

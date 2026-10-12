@@ -44,35 +44,38 @@ class BookCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 2 / 3,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: BookCoverBadgesOverlay(
-                    book: book,
-                    child: book.coverUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: book.coverUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.3),
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+              BookCoverAccentFrame(
+                book: book,
+                child: AspectRatio(
+                  aspectRatio: 2 / 3,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: BookCoverBadgesOverlay(
+                      book: book,
+                      child: book.coverUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: book.coverUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.3),
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            errorWidget: (context, url, error) =>
-                                _GeneratedCover(book: book, borderRadius: 12),
-                          )
-                        : _GeneratedCover(book: book, borderRadius: 12),
+                              errorWidget: (context, url, error) =>
+                                  _GeneratedCover(book: book, borderRadius: 12),
+                            )
+                          : _GeneratedCover(book: book, borderRadius: 12),
+                    ),
                   ),
                 ),
               ),
@@ -84,10 +87,9 @@ class BookCard extends ConsumerWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
+                  height: 1.2,
                 ),
               ),
-              const SizedBox(height: 2),
-              BookContentTypeLabel(book: book),
               const SizedBox(height: 2),
               Row(
                 children: [
@@ -99,8 +101,11 @@ class BookCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.72),
                         fontSize: 11,
+                        height: 1.2,
                       ),
                     ),
                   ),
@@ -110,8 +115,8 @@ class BookCard extends ConsumerWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 3),
-              BookCardMetricsRow(book: book),
+              const SizedBox(height: 2),
+              BookCardMetaLine(book: book),
             ],
           ),
         ),
