@@ -259,6 +259,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _lastScrollOffset = 0.0;
   bool _showReaderChrome = true;
   bool? _systemUiImmersive;
+  double _stableTopInset = 0;
+  double _stableBottomInset = 0;
+  double _chromeToggleAnchorOffset = 0;
   bool _isDiscussionOpen = false;
   StateSetter? _modalStateSetter;
   bool _isReviewEditMode = true;
@@ -385,11 +388,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final position = _scrollController.position;
       final currentOffset = _scrollController.offset;
       final direction = position.userScrollDirection;
-      final shouldShowChrome = direction == ScrollDirection.reverse
+      var shouldShowChrome = direction == ScrollDirection.reverse
           ? false
           : direction == ScrollDirection.forward
           ? true
           : _showReaderChrome;
+      // Hysteresis: ignore tiny reversals so layout jitter cannot flicker the
+      // chrome. A real direction change must travel a few dozen pixels.
+      if (shouldShowChrome != _showReaderChrome &&
+          (currentOffset - _chromeToggleAnchorOffset).abs() < 24) {
+        shouldShowChrome = _showReaderChrome;
+      } else if (shouldShowChrome != _showReaderChrome) {
+        _chromeToggleAnchorOffset = currentOffset;
+      }
       final progress = _currentProgressPosition();
       if ((progress - _scrollProgress).abs() > 0.01 ||
           shouldShowChrome != _showReaderChrome ||
@@ -1280,13 +1291,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     final isArchiveBook = widget.book.source == 'archive';
 
-    final topPadding = MediaQuery.of(context).padding.top;
+    // While the system bars are hidden (immersive reading) the platform
+    // reports zero insets. Using those live values would resize the content
+    // and shift the scroll position, which flips the scroll direction and
+    // re-shows the chrome in a loop. Keep the last non-immersive insets.
+    final insets = MediaQuery.paddingOf(context);
+    if (_systemUiImmersive != true) {
+      _stableTopInset = insets.top;
+      _stableBottomInset = insets.bottom;
+    }
+    final topPadding = _stableTopInset;
     final appBarHeight = kToolbarHeight + topPadding;
     final readerContentPadding = EdgeInsets.fromLTRB(
       20,
       appBarHeight + 20,
       20,
-      _readerBottomBarHeight + MediaQuery.of(context).padding.bottom + 20,
+      _readerBottomBarHeight + _stableBottomInset + 20,
     );
 
     final chromeTheme = _getReaderChromeTheme();
