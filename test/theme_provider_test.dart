@@ -5,7 +5,7 @@ import 'package:librebook_flutter/src/presentation/providers/theme_provider.dart
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('theme provider falls back to light mode', () async {
+  test('theme provider falls back to system mode', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -13,7 +13,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    expect(container.read(appThemeControllerProvider), ThemeMode.light);
+    expect(container.read(appThemeControllerProvider), ThemeMode.system);
   });
 
   test('theme provider restores and persists dark mode', () async {

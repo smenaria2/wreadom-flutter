@@ -264,6 +264,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _stableTopInset = 0;
   double _stableBottomInset = 0;
   double _chromeToggleAnchorOffset = 0;
+  ScrollDirection _chromeScrollDirection = ScrollDirection.idle;
   bool _isDiscussionOpen = false;
   StateSetter? _modalStateSetter;
   bool _isReviewEditMode = true;
@@ -397,12 +398,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           : _showReaderChrome;
       // Hysteresis: ignore tiny reversals so layout jitter cannot flicker the
       // chrome. A real direction change must travel a few dozen pixels.
+      // The anchor is the offset where the user last turned around, so a
+      // direction change is measured from the real turning point rather than
+      // from the last chrome toggle.
+      if (direction != ScrollDirection.idle &&
+          direction != _chromeScrollDirection) {
+        _chromeScrollDirection = direction;
+        _chromeToggleAnchorOffset = _lastScrollOffset;
+      }
       if (shouldShowChrome != _showReaderChrome &&
           (currentOffset - _chromeToggleAnchorOffset).abs() < 24) {
         shouldShowChrome = _showReaderChrome;
-      } else if (shouldShowChrome != _showReaderChrome) {
-        _chromeToggleAnchorOffset = currentOffset;
       }
+      if (currentOffset <= 0) shouldShowChrome = true;
       final progress = _currentProgressPosition();
       if ((progress - _scrollProgress).abs() > 0.01 ||
           shouldShowChrome != _showReaderChrome ||
@@ -1563,6 +1571,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ? () => _copyCurrentChapterContent(chapter)
                         : null,
                     onShowSettings: _showSettings,
+                    topInset: _stableTopInset,
                   ),
                 ),
                 Positioned(
@@ -1601,6 +1610,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           chromeTheme: chromeTheme,
                           bookLanguage:
                               widget.book.languages.firstOrNull ?? 'en',
+                          bottomInset: _stableBottomInset,
                         )
                       : _ReaderBottomBar(
                           progress: _scrollProgress,
@@ -1615,6 +1625,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           theme: _getEffectiveTheme(),
                           hasPrevious: _chapterIndex > 0,
                           hasNext: _chapterIndex < chapters.length - 1,
+                          bottomInset: _stableBottomInset,
                           onPrevious: () {
                             unawaited(AppHaptics.selection());
                             _goToChapter(_chapterIndex - 1);
@@ -5715,8 +5726,10 @@ class _ReaderTopBar extends StatelessWidget {
     required this.onToggleTts,
     required this.onCopyContent,
     required this.onShowSettings,
+    required this.topInset,
   });
 
+  final double topInset;
   final bool visible;
   final String title;
   final ThemeData chromeTheme;
@@ -5766,111 +5779,117 @@ class _ReaderTopBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: backgroundColor.withValues(alpha: 0.32),
                 ),
-                child: SafeArea(
-                  bottom: false,
-                  child: SizedBox(
-                    height: kToolbarHeight,
-                    child: Row(
-                      children: [
-                        Builder(
-                          builder: (context) => IconButton(
-                            icon: const Icon(Icons.menu_rounded),
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).openAppDrawerTooltip,
-                            color: foregroundColor,
-                            onPressed: () {
-                              unawaited(AppHaptics.selection());
-                              Scaffold.of(context).openDrawer();
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                // Use the frozen inset instead of live MediaQuery padding so
+                // the bar does not jump when system bars finish animating.
+                child: Padding(
+                  padding: EdgeInsets.only(top: topInset),
+                  child: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: SizedBox(
+                      height: kToolbarHeight,
+                      child: Row(
+                        children: [
+                          Builder(
+                            builder: (context) => IconButton(
+                              icon: const Icon(Icons.menu_rounded),
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).openAppDrawerTooltip,
                               color: foregroundColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                              onPressed: () {
+                                unawaited(AppHaptics.selection());
+                                Scaffold.of(context).openDrawer();
+                              },
                             ),
                           ),
-                        ),
-                        if (isOffline)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Chip(
-                              label: const Text(
-                                'Offline',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                ),
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: foregroundColor,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
                               ),
-                              backgroundColor: Colors.green.withValues(
-                                alpha: 0.7,
-                              ),
-                              padding: EdgeInsets.zero,
-                              side: BorderSide.none,
                             ),
                           ),
-                        if (isArchiveBook)
-                          IconButton(
-                            icon: const Icon(Icons.picture_as_pdf_outlined),
-                            tooltip: l10n.viewPdf,
-                            color: foregroundColor,
-                            onPressed: () {
-                              unawaited(AppHaptics.selection());
-                              onOpenArchivePdf();
-                            },
-                          ),
-                        IconButton(
-                          icon: isTtsPreparing
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: foregroundColor,
+                          if (isOffline)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Chip(
+                                label: const Text(
+                                  'Offline',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
                                   ),
-                                )
-                              : Icon(
-                                  isTtsPlaying
-                                      ? Icons.stop_circle_outlined
-                                      : isTtsPaused
-                                      ? Icons.play_circle_outline_rounded
-                                      : Icons.volume_up_outlined,
                                 ),
-                          tooltip: ttsTooltip,
-                          color: foregroundColor,
-                          onPressed: onToggleTts == null
-                              ? null
-                              : () {
-                                  unawaited(AppHaptics.selection());
-                                  onToggleTts!();
-                                },
-                        ),
-                        if (onCopyContent != null)
+                                backgroundColor: Colors.green.withValues(
+                                  alpha: 0.7,
+                                ),
+                                padding: EdgeInsets.zero,
+                                side: BorderSide.none,
+                              ),
+                            ),
+                          if (isArchiveBook)
+                            IconButton(
+                              icon: const Icon(Icons.picture_as_pdf_outlined),
+                              tooltip: l10n.viewPdf,
+                              color: foregroundColor,
+                              onPressed: () {
+                                unawaited(AppHaptics.selection());
+                                onOpenArchivePdf();
+                              },
+                            ),
                           IconButton(
-                            icon: const Icon(Icons.copy_all_rounded),
-                            tooltip: l10n.copyContent,
+                            icon: isTtsPreparing
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: foregroundColor,
+                                    ),
+                                  )
+                                : Icon(
+                                    isTtsPlaying
+                                        ? Icons.stop_circle_outlined
+                                        : isTtsPaused
+                                        ? Icons.play_circle_outline_rounded
+                                        : Icons.volume_up_outlined,
+                                  ),
+                            tooltip: ttsTooltip,
+                            color: foregroundColor,
+                            onPressed: onToggleTts == null
+                                ? null
+                                : () {
+                                    unawaited(AppHaptics.selection());
+                                    onToggleTts!();
+                                  },
+                          ),
+                          if (onCopyContent != null)
+                            IconButton(
+                              icon: const Icon(Icons.copy_all_rounded),
+                              tooltip: l10n.copyContent,
+                              color: foregroundColor,
+                              onPressed: () {
+                                unawaited(AppHaptics.selection());
+                                onCopyContent!();
+                              },
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.format_size_rounded),
+                            tooltip: l10n.readerSettings,
                             color: foregroundColor,
                             onPressed: () {
                               unawaited(AppHaptics.selection());
-                              onCopyContent!();
+                              onShowSettings();
                             },
                           ),
-                        IconButton(
-                          icon: const Icon(Icons.format_size_rounded),
-                          tooltip: l10n.readerSettings,
-                          color: foregroundColor,
-                          onPressed: () {
-                            unawaited(AppHaptics.selection());
-                            onShowSettings();
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -5978,8 +5997,10 @@ class _ReaderBottomBar extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onClose,
+    required this.bottomInset,
   });
 
+  final double bottomInset;
   final double progress;
   final int currentChapterNumber;
   final int totalChapters;
@@ -6000,7 +6021,7 @@ class _ReaderBottomBar extends StatelessWidget {
     final textColor = appColorScheme.onSurface;
     final progressColor = appColorScheme.primary;
     final progressBackground = appColorScheme.onSurface.withValues(alpha: 0.1);
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = bottomInset;
     final safeProgress = progress.isFinite
         ? progress.clamp(0.0, 1.0).toDouble()
         : 0.0;
@@ -6016,80 +6037,87 @@ class _ReaderBottomBar extends StatelessWidget {
         curve: Curves.easeOut,
         height: visible ? (_readerBottomBarHeight + bottomPadding) : 0,
         child: ClipRect(
-          child: GestureDetector(
-            onVerticalDragEnd: (details) {
-              if (details.primaryVelocity != null &&
-                  details.primaryVelocity! < -100) {
-                onSwipeUp();
-              }
-            },
-            onTap: onTap,
-            child: GlassSurface(
-              strong: true,
-              borderRadius: BorderRadius.zero,
-              child: Column(
-                children: [
-                  LinearProgressIndicator(
-                    value: safeProgress,
-                    backgroundColor: progressBackground,
-                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                    minHeight: 2,
-                  ),
-                  ReaderChapterProgressDetails(
-                    currentChapterNumber: currentChapterNumber,
-                    totalChapters: totalChapters,
-                    progress: safeProgress,
-                    color: textColor.withValues(alpha: 0.55),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(bottom: bottomPadding),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              hasPrevious
-                                  ? Icons.navigate_before_rounded
-                                  : Icons.close_rounded,
-                            ),
-                            onPressed: hasPrevious ? onPrevious : onClose,
-                            color: textColor.withValues(alpha: 0.5),
-                            tooltip: hasPrevious
-                                ? AppLocalizations.of(context)!.back
-                                : AppLocalizations.of(context)!.closeReader,
-                          ),
-                          const Spacer(),
-                          GestureDetector(
-                            onVerticalDragEnd: (details) {
-                              if (details.primaryVelocity != null &&
-                                  details.primaryVelocity! < -100) {
-                                onSwipeUp();
-                              }
-                            },
-                            onTap: onTap,
-                            child: Icon(
-                              Icons.keyboard_arrow_up_rounded,
-                              size: 24,
-                              color: textColor.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          const Spacer(),
-                          if (hasNext)
+          // Lay content out at full height even while the container animates
+          // to 0, so the Column/Expanded never overflows when hidden.
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            minHeight: _readerBottomBarHeight + bottomPadding,
+            maxHeight: _readerBottomBarHeight + bottomPadding,
+            child: GestureDetector(
+              onVerticalDragEnd: (details) {
+                if (details.primaryVelocity != null &&
+                    details.primaryVelocity! < -100) {
+                  onSwipeUp();
+                }
+              },
+              onTap: onTap,
+              child: GlassSurface(
+                strong: true,
+                borderRadius: BorderRadius.zero,
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: safeProgress,
+                      backgroundColor: progressBackground,
+                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                      minHeight: 2,
+                    ),
+                    ReaderChapterProgressDetails(
+                      currentChapterNumber: currentChapterNumber,
+                      totalChapters: totalChapters,
+                      progress: safeProgress,
+                      color: textColor.withValues(alpha: 0.55),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: bottomPadding),
+                        child: Row(
+                          children: [
                             IconButton(
-                              icon: const Icon(Icons.navigate_next_rounded),
-                              onPressed: onNext,
+                              icon: Icon(
+                                hasPrevious
+                                    ? Icons.navigate_before_rounded
+                                    : Icons.close_rounded,
+                              ),
+                              onPressed: hasPrevious ? onPrevious : onClose,
                               color: textColor.withValues(alpha: 0.5),
-                              tooltip: AppLocalizations.of(
-                                context,
-                              )!.nextChapter,
-                            )
-                          else
-                            const SizedBox(width: 48),
-                        ],
+                              tooltip: hasPrevious
+                                  ? AppLocalizations.of(context)!.back
+                                  : AppLocalizations.of(context)!.closeReader,
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onVerticalDragEnd: (details) {
+                                if (details.primaryVelocity != null &&
+                                    details.primaryVelocity! < -100) {
+                                  onSwipeUp();
+                                }
+                              },
+                              onTap: onTap,
+                              child: Icon(
+                                Icons.keyboard_arrow_up_rounded,
+                                size: 24,
+                                color: textColor.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (hasNext)
+                              IconButton(
+                                icon: const Icon(Icons.navigate_next_rounded),
+                                onPressed: onNext,
+                                color: textColor.withValues(alpha: 0.5),
+                                tooltip: AppLocalizations.of(
+                                  context,
+                                )!.nextChapter,
+                              )
+                            else
+                              const SizedBox(width: 48),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

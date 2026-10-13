@@ -23,7 +23,11 @@ class ReaderTtsBottomBar extends StatefulWidget {
     required this.onVoiceChanged,
     required this.chromeTheme,
     required this.bookLanguage,
+    this.bottomInset,
   });
+
+  /// Frozen bottom safe-area inset; falls back to live MediaQuery padding.
+  final double? bottomInset;
 
   final bool visible;
   final bool isPreparing;
@@ -55,7 +59,8 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
   Widget build(BuildContext context) {
     final colorScheme = widget.chromeTheme.colorScheme;
     final textColor = colorScheme.onSurface;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding =
+        widget.bottomInset ?? MediaQuery.paddingOf(context).bottom;
 
     // Progress calculation
     final progress = widget.totalBlocks > 0
@@ -71,101 +76,111 @@ class _ReaderTtsBottomBarState extends State<ReaderTtsBottomBar> {
         curve: Curves.easeOut,
         height: widget.visible ? (_barHeight + bottomPadding) : 0,
         child: ClipRect(
-          child: GlassSurface(
-            strong: true,
-            borderRadius: BorderRadius.zero,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: colorScheme.onSurface.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colorScheme.primary,
-                  ),
-                  minHeight: 2,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: 12,
-                      right: 12,
-                      bottom: bottomPadding,
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            minHeight: _barHeight + bottomPadding,
+            maxHeight: _barHeight + bottomPadding,
+            child: GlassSurface(
+              strong: true,
+              borderRadius: BorderRadius.zero,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: colorScheme.onSurface.withValues(
+                      alpha: 0.1,
                     ),
-                    child: Row(
-                      children: [
-                        // Speed Controller Button
-                        _buildSpeedButton(context, colorScheme),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.primary,
+                    ),
+                    minHeight: 2,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 12,
+                        right: 12,
+                        bottom: bottomPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          // Speed Controller Button
+                          _buildSpeedButton(context, colorScheme),
 
-                        const Spacer(),
+                          const Spacer(),
 
-                        // Media Controls: Prev, Play/Pause, Next
-                        IconButton(
-                          icon: const Icon(
-                            Icons.skip_previous_rounded,
-                            size: 28,
+                          // Media Controls: Prev, Play/Pause, Next
+                          IconButton(
+                            icon: const Icon(
+                              Icons.skip_previous_rounded,
+                              size: 28,
+                            ),
+                            onPressed: widget.onPreviousBlock != null
+                                ? () {
+                                    unawaited(AppHaptics.selection());
+                                    widget.onPreviousBlock!();
+                                  }
+                                : null,
+                            color: textColor.withValues(
+                              alpha: widget.onPreviousBlock != null ? 0.9 : 0.3,
+                            ),
+                            tooltip: 'Previous block',
                           ),
-                          onPressed: widget.onPreviousBlock != null
-                              ? () {
-                                  unawaited(AppHaptics.selection());
-                                  widget.onPreviousBlock!();
-                                }
-                              : null,
-                          color: textColor.withValues(
-                            alpha: widget.onPreviousBlock != null ? 0.9 : 0.3,
+                          const SizedBox(width: 8),
+                          _buildPlayPauseButton(colorScheme),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.skip_next_rounded, size: 28),
+                            onPressed: widget.onNextBlock != null
+                                ? () {
+                                    unawaited(AppHaptics.selection());
+                                    widget.onNextBlock!();
+                                  }
+                                : null,
+                            color: textColor.withValues(
+                              alpha: widget.onNextBlock != null ? 0.9 : 0.3,
+                            ),
+                            tooltip: 'Next block',
                           ),
-                          tooltip: 'Previous block',
-                        ),
-                        const SizedBox(width: 8),
-                        _buildPlayPauseButton(colorScheme),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.skip_next_rounded, size: 28),
-                          onPressed: widget.onNextBlock != null
-                              ? () {
-                                  unawaited(AppHaptics.selection());
-                                  widget.onNextBlock!();
-                                }
-                              : null,
-                          color: textColor.withValues(
-                            alpha: widget.onNextBlock != null ? 0.9 : 0.3,
+
+                          const Spacer(),
+
+                          // Voice Selection Button
+                          IconButton(
+                            icon: Icon(
+                              widget.selectedVoice != null
+                                  ? Icons.record_voice_over_rounded
+                                  : Icons.voice_over_off_rounded,
+                              size: 24,
+                            ),
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              _showVoiceSelectorBottomSheet(context);
+                            },
+                            color: textColor.withValues(alpha: 0.8),
+                            tooltip: 'Select voice',
                           ),
-                          tooltip: 'Next block',
-                        ),
 
-                        const Spacer(),
-
-                        // Voice Selection Button
-                        IconButton(
-                          icon: Icon(
-                            widget.selectedVoice != null
-                                ? Icons.record_voice_over_rounded
-                                : Icons.voice_over_off_rounded,
-                            size: 24,
+                          // Stop Button
+                          IconButton(
+                            icon: const Icon(
+                              Icons.stop_circle_rounded,
+                              size: 24,
+                            ),
+                            onPressed: () {
+                              unawaited(AppHaptics.selection());
+                              widget.onStop();
+                            },
+                            color: Colors.redAccent.withValues(alpha: 0.8),
+                            tooltip: 'Stop TTS',
                           ),
-                          onPressed: () {
-                            unawaited(AppHaptics.selection());
-                            _showVoiceSelectorBottomSheet(context);
-                          },
-                          color: textColor.withValues(alpha: 0.8),
-                          tooltip: 'Select voice',
-                        ),
-
-                        // Stop Button
-                        IconButton(
-                          icon: const Icon(Icons.stop_circle_rounded, size: 24),
-                          onPressed: () {
-                            unawaited(AppHaptics.selection());
-                            widget.onStop();
-                          },
-                          color: Colors.redAccent.withValues(alpha: 0.8),
-                          tooltip: 'Stop TTS',
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

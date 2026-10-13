@@ -85,13 +85,22 @@ class MainActivity : AudioServiceActivity() {
         }
     }
     private fun performNativeHaptic(type: String) {
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            manager.defaultVibrator
+        try {
+            vibrateForType(type)
+        } catch (_: Exception) {
+            // Haptics are best-effort; some OEM vibrator drivers throw.
+        }
+    }
+
+    private fun vibrateForType(type: String) {
+        val maybeVibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+                ?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
+        val vibrator = maybeVibrator ?: return
 
         if (!vibrator.hasVibrator()) return
         val durationMs = when (type) {

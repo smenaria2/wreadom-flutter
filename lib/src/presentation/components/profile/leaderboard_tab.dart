@@ -965,16 +965,20 @@ class _RankingCard extends StatelessWidget {
                         children: [
                           Text(tier.icon, style: const TextStyle(fontSize: 10)),
                           const SizedBox(width: 4),
-                          Text(
-                            getLocalizedTierTitle(
-                              context,
-                              tier.tier,
-                              category,
-                            ).toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              letterSpacing: 0.8,
-                              fontSize: 10,
+                          Flexible(
+                            child: Text(
+                              getLocalizedTierTitle(
+                                context,
+                                tier.tier,
+                                category,
+                              ).toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                letterSpacing: 0.8,
+                                fontSize: 10,
+                              ),
                             ),
                           ),
                         ],
