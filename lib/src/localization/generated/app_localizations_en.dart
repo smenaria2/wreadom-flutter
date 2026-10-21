@@ -3609,4 +3609,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorOpeningLink => 'Error opening link';
+
+  @override
+  String get readerTapToTurnPages => 'Tap sides to turn pages';
+
+  @override
+  String get readerTapToTurnPagesDescription =>
+      'Tap the left or right edge to move one screen.';
+
+  @override
+  String get readerPreviousScreen => 'Previous screen';
+
+  @override
+  String get readerNextScreen => 'Next screen';
+
+  @override
+  String get readerSwipeToScroll => 'Swipe to scroll';
+
+  @override
+  String get readerGestureDismiss => 'Tap anywhere to start reading';
+
+  @override
+  String get readerGestureSettingsHint =>
+      'You can turn this off in reader settings.';
+
+  @override
+  String get readerTapToToggleControls =>
+      'Tap the center to hide or show controls';
 }

@@ -78,3 +78,10 @@ play_store_key.json
 tmp_dakshina.tar
 
 
+
+# Machine-specific Codex runtime configuration
+/.codex/config.toml
+
+# Rebuildable HTML5 ad exports
+/ads/*_html5/index.html
+/ads/*_html5/*.zip

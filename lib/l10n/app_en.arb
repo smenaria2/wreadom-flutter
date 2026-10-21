@@ -2066,5 +2066,13 @@
   "bannerNotFound": "Banner not found",
   "couldNotOpenLink": "Could not open link: {url}",
   "@couldNotOpenLink": {"placeholders": {"url": {"type": "String"}}},
-  "errorOpeningLink": "Error opening link"
+  "errorOpeningLink": "Error opening link",
+  "readerTapToTurnPages": "Tap sides to turn pages",
+  "readerTapToTurnPagesDescription": "Tap the left or right edge to move one screen.",
+  "readerPreviousScreen": "Previous screen",
+  "readerNextScreen": "Next screen",
+  "readerSwipeToScroll": "Swipe to scroll",
+  "readerGestureDismiss": "Tap anywhere to start reading",
+  "readerGestureSettingsHint": "You can turn this off in reader settings.",
+  "readerTapToToggleControls": "Tap the center to hide or show controls"
 }

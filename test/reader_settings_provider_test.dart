@@ -19,6 +19,35 @@ Future<ProviderContainer> _containerWithPreferences(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('page taps default on and persist disabled across containers', () async {
+    final container = await _containerWithPreferences({});
+    expect(
+      container.read(readerSettingsControllerProvider).tapToTurnPages,
+      isTrue,
+    );
+    await container
+        .read(readerSettingsControllerProvider.notifier)
+        .setTapToTurnPages(false);
+    expect(
+      container.read(readerSettingsControllerProvider).tapToTurnPages,
+      isFalse,
+    );
+    final prefs = container.read(sharedPreferencesProvider);
+    container.dispose();
+    final reopened = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(reopened.dispose);
+    expect(
+      reopened.read(readerSettingsControllerProvider).tapToTurnPages,
+      isFalse,
+    );
+    await reopened
+        .read(readerSettingsControllerProvider.notifier)
+        .setTapToTurnPages(true);
+    expect(prefs.getBool(readerTapToTurnPagesPreferenceKey), isTrue);
+  });
+
   test('reader font defaults to Tiro when no preference is stored', () async {
     final container = await _containerWithPreferences({});
     addTearDown(container.dispose);

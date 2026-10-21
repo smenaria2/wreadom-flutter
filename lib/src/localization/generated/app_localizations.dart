@@ -6414,6 +6414,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error opening link'**
   String get errorOpeningLink;
+
+  /// No description provided for @readerTapToTurnPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap sides to turn pages'**
+  String get readerTapToTurnPages;
+
+  /// No description provided for @readerTapToTurnPagesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the left or right edge to move one screen.'**
+  String get readerTapToTurnPagesDescription;
+
+  /// No description provided for @readerPreviousScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous screen'**
+  String get readerPreviousScreen;
+
+  /// No description provided for @readerNextScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Next screen'**
+  String get readerNextScreen;
+
+  /// No description provided for @readerSwipeToScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to scroll'**
+  String get readerSwipeToScroll;
+
+  /// No description provided for @readerGestureDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere to start reading'**
+  String get readerGestureDismiss;
+
+  /// No description provided for @readerGestureSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can turn this off in reader settings.'**
+  String get readerGestureSettingsHint;
+
+  /// No description provided for @readerTapToToggleControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the center to hide or show controls'**
+  String get readerTapToToggleControls;
 }
 
 class _AppLocalizationsDelegate

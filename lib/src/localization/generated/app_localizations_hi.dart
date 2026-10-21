@@ -3639,4 +3639,31 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get errorOpeningLink => 'लिंक खोलने में त्रुटि';
+
+  @override
+  String get readerTapToTurnPages => 'पन्ना बदलने के लिए किनारों पर टैप करें';
+
+  @override
+  String get readerTapToTurnPagesDescription =>
+      'एक स्क्रीन आगे या पीछे जाने के लिए दाएँ या बाएँ किनारे पर टैप करें।';
+
+  @override
+  String get readerPreviousScreen => 'पिछली स्क्रीन';
+
+  @override
+  String get readerNextScreen => 'अगली स्क्रीन';
+
+  @override
+  String get readerSwipeToScroll => 'स्क्रॉल करने के लिए स्वाइप करें';
+
+  @override
+  String get readerGestureDismiss => 'पढ़ना शुरू करने के लिए कहीं भी टैप करें';
+
+  @override
+  String get readerGestureSettingsHint =>
+      'आप इसे रीडर सेटिंग्स में बंद कर सकते हैं।';
+
+  @override
+  String get readerTapToToggleControls =>
+      'कंट्रोल छिपाने या दिखाने के लिए बीच में टैप करें';
 }

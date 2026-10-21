@@ -37,21 +37,25 @@ class ReaderSettings {
     required this.fontSize,
     required this.theme,
     required this.font,
+    this.tapToTurnPages = true,
   });
 
   final double fontSize;
   final ReaderTheme theme;
   final ReaderFont font;
+  final bool tapToTurnPages;
 
   ReaderSettings copyWith({
     double? fontSize,
     ReaderTheme? theme,
     ReaderFont? font,
+    bool? tapToTurnPages,
   }) {
     return ReaderSettings(
       fontSize: fontSize ?? this.fontSize,
       theme: theme ?? this.theme,
       font: font ?? this.font,
+      tapToTurnPages: tapToTurnPages ?? this.tapToTurnPages,
     );
   }
 }
@@ -59,6 +63,7 @@ class ReaderSettings {
 const _readerFontSizeKey = 'reader_font_size';
 const _readerThemeIndexKey = 'reader_theme_index';
 const readerFontFamilyPreferenceKey = 'reader_font_family';
+const readerTapToTurnPagesPreferenceKey = 'reader_tap_to_turn_pages';
 
 final readerSettingsControllerProvider =
     NotifierProvider<ReaderSettingsController, ReaderSettings>(
@@ -76,6 +81,7 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
       fontSize: prefs.getDouble(_readerFontSizeKey) ?? 18.0,
       theme: _enumAt(ReaderTheme.values, themeIndex) ?? ReaderTheme.system,
       font: _readerFontFromName(savedFont),
+      tapToTurnPages: prefs.getBool(readerTapToTurnPagesPreferenceKey) ?? true,
     );
   }
 
@@ -84,6 +90,13 @@ class ReaderSettingsController extends Notifier<ReaderSettings> {
     await ref
         .read(sharedPreferencesProvider)
         .setDouble(_readerFontSizeKey, value);
+  }
+
+  Future<void> setTapToTurnPages(bool value) async {
+    state = state.copyWith(tapToTurnPages: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(readerTapToTurnPagesPreferenceKey, value);
   }
 
   Future<void> setTheme(ReaderTheme value) async {

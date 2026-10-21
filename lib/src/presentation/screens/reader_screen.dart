@@ -61,6 +61,7 @@ import '../components/book/quote_share_preview_sheet.dart';
 import '../components/book/leaf_components.dart';
 import '../components/reader/chapter_review_teaser_card.dart';
 import '../components/reader/dictionary_sheet.dart';
+import '../components/reader/reader_page_gestures.dart';
 import '../providers/theme_provider.dart';
 import '../routing/app_routes.dart';
 import '../routing/app_router.dart';
@@ -300,6 +301,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isNavigatingToNextChapterWithAd = false;
   Timer? _progressSaveDebounce;
   bool _initialScrollRestored = false;
+  bool _pageTurning = false;
   double? _pendingSavedScrollProgress;
   int? _lastSavedProgressChapterIndex;
   double? _lastSavedProgressPosition;
@@ -385,6 +387,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  void _toggleReaderChrome() {
+    setState(() {
+      _showReaderChrome = !_showReaderChrome;
+      _chromeScrollDirection = ScrollDirection.idle;
+      _chromeToggleAnchorOffset = _scrollController.hasClients
+          ? _scrollController.offset
+          : 0;
+      _lastScrollOffset = _chromeToggleAnchorOffset;
+    });
+    _syncReaderSystemUi();
+  }
+
   void _onScroll() {
     if (!_initialScrollRestored) return;
     if (_scrollController.hasClients) {
@@ -410,7 +424,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           (currentOffset - _chromeToggleAnchorOffset).abs() < 24) {
         shouldShowChrome = _showReaderChrome;
       }
-      if (currentOffset <= 0) shouldShowChrome = true;
+      if (_pageTurning) shouldShowChrome = _showReaderChrome;
+      if (!_pageTurning &&
+          direction != ScrollDirection.idle &&
+          currentOffset <= 0) {
+        shouldShowChrome = true;
+      }
       final progress = _currentProgressPosition();
       if ((progress - _scrollProgress).abs() > 0.01 ||
           shouldShowChrome != _showReaderChrome ||
@@ -618,7 +637,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _markInitialScrollRestored() {
-    _initialScrollRestored = true;
+    if (mounted) setState(() => _initialScrollRestored = true);
   }
 
   void _restorePendingScrollPosition() {
@@ -652,7 +671,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _scrollController.jumpTo(
         (progress * maxScroll).clamp(0.0, maxScroll).toDouble(),
       );
-      _initialScrollRestored = true;
+      setState(() => _initialScrollRestored = true);
       _pendingSavedScrollProgress = null;
       _restoreRetries = 0;
     });
@@ -1387,8 +1406,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   children: [
                     // Removed horizontal chips - now in Drawer
                     Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
+                      child: ReaderPageGestures(
+                        guideTheme: chromeTheme,
+                        controller: _scrollController,
+                        preferences: _sharedPreferences,
+                        enabled: ref
+                            .watch(readerSettingsControllerProvider)
+                            .tapToTurnPages,
+                        ready:
+                            _initialScrollRestored &&
+                            (chapter?.content.trim().isNotEmpty ?? false),
+                        blocked:
+                            _selectedText.isNotEmpty ||
+                            _isDiscussionOpen ||
+                            _isTtsPlaying ||
+                            _isTtsPreparing ||
+                            _isTtsPaused,
+                        obscuredInsets: EdgeInsets.only(
+                          top: _showReaderChrome ? appBarHeight : 0,
+                          bottom: _showReaderChrome
+                              ? _readerBottomBarHeight + _stableBottomInset
+                              : 0,
+                        ),
+                        onTurningChanged: (value) => _pageTurning = value,
+                        onToggleChrome: _toggleReaderChrome,
                         onTap: () {
                           if (_isDiscussionOpen) {
                             Navigator.of(context).maybePop();
@@ -1419,21 +1460,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                 );
                               }
                             : null,
-                        child:
+                        selectionWrapper:
                             (_isTtsPlaying ||
                                     _isTtsPreparing ||
                                     _isTtsPaused) &&
                                 !_isSelectionTtsPlaying
-                            // When TTS is active, disable text selection so
-                            // taps are handled cleanly for seeking.
-                            ? _buildTtsListView(
-                                chapter,
-                                chapters,
-                                commentCounts,
-                                contentPadding: readerContentPadding,
-                                allComments: commentsAsync.asData?.value,
-                              )
-                            : SelectionArea(
+                            ? null
+                            : (content) => SelectionArea(
                                 onSelectionChanged: (content) {
                                   setState(() {
                                     _selectedText = content?.plainText ?? "";
@@ -1522,15 +1555,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     buttonItems: buttonItems,
                                   );
                                 },
-                                child: _buildListView(
-                                  chapter,
-                                  chapters,
-                                  commentCounts,
-                                  contentPadding: readerContentPadding,
-                                  allComments: commentsAsync.asData?.value,
-                                ),
+                                child: content,
                               ),
-                      ), // GestureDetector
+                        child:
+                            (_isTtsPlaying ||
+                                    _isTtsPreparing ||
+                                    _isTtsPaused) &&
+                                !_isSelectionTtsPlaying
+                            // When TTS is active, disable text selection so
+                            // taps are handled cleanly for seeking.
+                            ? _buildTtsListView(
+                                chapter,
+                                chapters,
+                                commentCounts,
+                                contentPadding: readerContentPadding,
+                                allComments: commentsAsync.asData?.value,
+                              )
+                            : _buildListView(
+                                chapter,
+                                chapters,
+                                commentCounts,
+                                contentPadding: readerContentPadding,
+                                allComments: commentsAsync.asData?.value,
+                              ),
+                      ), // ReaderPageGestures
                     ), // Expanded
                   ],
                 ), // Column
@@ -4425,6 +4473,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      key: const Key('reader-page-taps-setting'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.readerTapToTurnPages),
+                      subtitle: Text(l10n.readerTapToTurnPagesDescription),
+                      value: ref
+                          .read(readerSettingsControllerProvider)
+                          .tapToTurnPages,
+                      onChanged: (value) {
+                        unawaited(
+                          ref
+                              .read(readerSettingsControllerProvider.notifier)
+                              .setTapToTurnPages(value),
+                        );
+                        setModalState(() {});
+                      },
+                    ),
                     Text(l10n.fontSizeValue(_fontSize.toStringAsFixed(0))),
                     Slider(
                       value: _fontSize,
