@@ -1,6 +1,8 @@
 ﻿package `in`.wreadom.app
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -59,6 +61,45 @@ class MainActivity : AudioServiceActivity() {
             val path = call.argument<String>("path")
             val durationMs = readAudioDurationMs(path)
             result.success(durationMs)
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "in.wreadom.app/external_browser"
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "open") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+            result.success(openInBrowser(call.argument<String>("url")))
+        }
+    }
+
+    // Opens [url] in a browser app, never in this app (which owns wreadom.in).
+    private fun openInBrowser(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        return try {
+            val uri = Uri.parse(url)
+            val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+                .addCategory(Intent.CATEGORY_BROWSABLE)
+            val browsers = packageManager
+                .queryIntentActivities(probe, PackageManager.MATCH_ALL)
+                .map { it.activityInfo.packageName }
+                .filter { it != packageName }
+                .distinct()
+            if (browsers.isEmpty()) return false
+            val defaultPkg = packageManager
+                .resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)
+                ?.activityInfo?.packageName
+            val target = if (defaultPkg != null && defaultPkg in browsers) defaultPkg else browsers.first()
+            startActivity(
+                Intent(Intent.ACTION_VIEW, uri)
+                    .addCategory(Intent.CATEGORY_BROWSABLE)
+                    .setPackage(target)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 

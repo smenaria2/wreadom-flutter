@@ -6462,6 +6462,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap the center to hide or show controls'**
   String get readerTapToToggleControls;
+
+  /// No description provided for @supportAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Support author'**
+  String get supportAuthor;
+
+  /// No description provided for @supportAuthorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support {name}'**
+  String supportAuthorTitle(String name);
+
+  /// No description provided for @supportDirectNote.
+  ///
+  /// In en, this message translates to:
+  /// **'100% of your support goes directly to the author through UPI. Wreadom takes no fee.'**
+  String get supportDirectNote;
+
+  /// No description provided for @supportChooseAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an amount'**
+  String get supportChooseAmount;
+
+  /// No description provided for @supportCustomAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Other amount (₹)'**
+  String get supportCustomAmount;
+
+  /// No description provided for @supportPayWithUpi.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with UPI app'**
+  String get supportPayWithUpi;
+
+  /// No description provided for @supportShowQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Show QR code'**
+  String get supportShowQr;
+
+  /// No description provided for @supportQrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this QR with any UPI app'**
+  String get supportQrHint;
+
+  /// No description provided for @supportCopyUpiId.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy UPI ID'**
+  String get supportCopyUpiId;
+
+  /// No description provided for @supportUpiIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'UPI ID copied'**
+  String get supportUpiIdCopied;
+
+  /// No description provided for @supportNoUpiApp.
+  ///
+  /// In en, this message translates to:
+  /// **'No UPI app found. Use the QR code or copy the UPI ID.'**
+  String get supportNoUpiApp;
+
+  /// No description provided for @supportIPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve paid'**
+  String get supportIPaid;
+
+  /// No description provided for @supportIPaidHint.
+  ///
+  /// In en, this message translates to:
+  /// **'After paying, tap below so the author is notified and you appear in the supporters list.'**
+  String get supportIPaidHint;
+
+  /// No description provided for @supportUtrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'UPI reference no. (optional)'**
+  String get supportUtrLabel;
+
+  /// No description provided for @supportUtrHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'12 digits. Helps the author confirm your payment.'**
+  String get supportUtrHelper;
+
+  /// No description provided for @supportInvalidUtr.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 12-digit reference number'**
+  String get supportInvalidUtr;
+
+  /// No description provided for @supportClaimSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you! The author has been notified.'**
+  String get supportClaimSent;
+
+  /// No description provided for @supportClaimFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send. Please try again.'**
+  String get supportClaimFailed;
+
+  /// No description provided for @supportSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive support'**
+  String get supportSettingsTitle;
+
+  /// No description provided for @supportSettingsEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Let readers support me via UPI'**
+  String get supportSettingsEnable;
+
+  /// No description provided for @supportUpiIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your UPI ID'**
+  String get supportUpiIdLabel;
+
+  /// No description provided for @supportUpiIdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. name@bank. Readers pay you directly; Wreadom takes no fee.'**
+  String get supportUpiIdHelper;
+
+  /// No description provided for @supportInvalidUpiId.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid UPI ID'**
+  String get supportInvalidUpiId;
+
+  /// No description provided for @supportMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank-you message (optional)'**
+  String get supportMessageLabel;
+
+  /// No description provided for @supportBusinessNote.
+  ///
+  /// In en, this message translates to:
+  /// **'If you receive frequent payments, consider using a business UPI ID.'**
+  String get supportBusinessNote;
+
+  /// No description provided for @supportSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get supportSave;
+
+  /// No description provided for @supportSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Support settings saved'**
+  String get supportSaved;
+
+  /// No description provided for @supportersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Supporters'**
+  String get supportersTitle;
+
+  /// No description provided for @supporterVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed by the author'**
+  String get supporterVerified;
+
+  /// No description provided for @supporterUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting author confirmation'**
+  String get supporterUnverified;
+
+  /// No description provided for @supportConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm received'**
+  String get supportConfirm;
+
+  /// No description provided for @supportHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide from list'**
+  String get supportHide;
+
+  /// No description provided for @supportConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as received'**
+  String get supportConfirmed;
 }
 
 class _AppLocalizationsDelegate

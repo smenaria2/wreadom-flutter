@@ -52,6 +52,8 @@ import 'src/data/services/offline_service.dart';
 import 'firebase_options.dart';
 import 'src/data/services/notification_service.dart';
 import 'src/data/services/splash_preferences_service.dart';
+import 'src/utils/external_browser_launcher.dart';
+import 'src/utils/app_link_helper.dart';
 import 'src/utils/app_log_collector.dart';
 import 'src/utils/app_haptics.dart';
 import 'src/utils/custom_license_registry.dart';
@@ -813,6 +815,11 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _handleUri(Uri uri) {
     if (_isDuplicateDeepLink(uri)) return;
     debugPrint('Handling deep link: $uri');
+
+    if (AppLinkHelper.wantsExternalWeb(uri)) {
+      unawaited(ExternalBrowserLauncher.open(uri));
+      return;
+    }
 
     final target =
         AppRouter.routeSettingsForAppLink(uri.toString()) ??

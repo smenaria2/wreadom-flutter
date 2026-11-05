@@ -114,6 +114,16 @@ class AppLinkHelper {
   static String dailyTopic(String topicId) =>
       _entityLink(['daily-topic', topicId]);
 
+  /// True for wreadom.in web links that explicitly ask to open in a browser
+  /// (`?open=web`) instead of inside the app.
+  static bool wantsExternalWeb(Uri uri) {
+    final isWeb = uri.scheme == 'http' || uri.scheme == 'https';
+    final h = uri.host.toLowerCase();
+    return isWeb &&
+        (h == host || h == wwwHost) &&
+        uri.queryParameters['open']?.toLowerCase() == 'web';
+  }
+
   static String? _safeDecode(String? value) {
     if (value == null) return null;
     try {

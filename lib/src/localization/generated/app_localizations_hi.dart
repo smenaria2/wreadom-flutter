@@ -3666,4 +3666,111 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get readerTapToToggleControls =>
       'कंट्रोल छिपाने या दिखाने के लिए बीच में टैप करें';
+
+  @override
+  String get supportAuthor => 'लेखक को सपोर्ट करें';
+
+  @override
+  String supportAuthorTitle(String name) {
+    return '$name को सपोर्ट करें';
+  }
+
+  @override
+  String get supportDirectNote =>
+      'आपका 100% सपोर्ट UPI के ज़रिए सीधे लेखक को जाता है। रीडम् कोई शुल्क नहीं लेता।';
+
+  @override
+  String get supportChooseAmount => 'राशि चुनें';
+
+  @override
+  String get supportCustomAmount => 'अन्य राशि (₹)';
+
+  @override
+  String get supportPayWithUpi => 'UPI ऐप से भुगतान करें';
+
+  @override
+  String get supportShowQr => 'QR कोड दिखाएँ';
+
+  @override
+  String get supportQrHint => 'किसी भी UPI ऐप से यह QR स्कैन करें';
+
+  @override
+  String get supportCopyUpiId => 'UPI ID कॉपी करें';
+
+  @override
+  String get supportUpiIdCopied => 'UPI ID कॉपी हो गई';
+
+  @override
+  String get supportNoUpiApp =>
+      'कोई UPI ऐप नहीं मिला। QR कोड इस्तेमाल करें या UPI ID कॉपी करें।';
+
+  @override
+  String get supportIPaid => 'मैंने भुगतान कर दिया';
+
+  @override
+  String get supportIPaidHint =>
+      'भुगतान के बाद नीचे टैप करें ताकि लेखक को सूचना मिले और आप सपोर्टर सूची में दिखें।';
+
+  @override
+  String get supportUtrLabel => 'UPI संदर्भ संख्या (वैकल्पिक)';
+
+  @override
+  String get supportUtrHelper =>
+      '12 अंक। लेखक को भुगतान की पुष्टि में मदद मिलती है।';
+
+  @override
+  String get supportInvalidUtr => '12 अंकों की संदर्भ संख्या दर्ज करें';
+
+  @override
+  String get supportClaimSent => 'धन्यवाद! लेखक को सूचित कर दिया गया है।';
+
+  @override
+  String get supportClaimFailed => 'भेजा नहीं जा सका। कृपया फिर कोशिश करें।';
+
+  @override
+  String get supportSettingsTitle => 'सपोर्ट प्राप्त करें';
+
+  @override
+  String get supportSettingsEnable => 'पाठकों को UPI से मुझे सपोर्ट करने दें';
+
+  @override
+  String get supportUpiIdLabel => 'आपकी UPI ID';
+
+  @override
+  String get supportUpiIdHelper =>
+      'जैसे name@bank। पाठक सीधे आपको भुगतान करते हैं; रीडम् कोई शुल्क नहीं लेता।';
+
+  @override
+  String get supportInvalidUpiId => 'सही UPI ID दर्ज करें';
+
+  @override
+  String get supportMessageLabel => 'धन्यवाद संदेश (वैकल्पिक)';
+
+  @override
+  String get supportBusinessNote =>
+      'अगर आपको बार-बार भुगतान मिलते हैं, तो बिज़नेस UPI ID इस्तेमाल करने पर विचार करें।';
+
+  @override
+  String get supportSave => 'सहेजें';
+
+  @override
+  String get supportSaved => 'सपोर्ट सेटिंग्स सहेजी गईं';
+
+  @override
+  String get supportersTitle => 'सपोर्टर';
+
+  @override
+  String get supporterVerified => 'लेखक द्वारा पुष्टि की गई';
+
+  @override
+  String get supporterUnverified => 'लेखक की पुष्टि का इंतज़ार';
+
+  @override
+  String get supportConfirm => 'प्राप्त हुआ, पुष्टि करें';
+
+  @override
+  String get supportHide => 'सूची से छिपाएँ';
+
+  @override
+  String get supportConfirmed => 'प्राप्त के रूप में चिह्नित';
 }

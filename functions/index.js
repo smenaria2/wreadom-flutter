@@ -1739,7 +1739,62 @@ exports.onFollowDeleted = functionsV1.firestore.document("follows/{followId}").o
   return null;
 });
 
-exports.onRecommendationWrite = functionsV1.firestore.document("recommendations/{recommendationId}").onWrite(async (change, context) => {
+// UPI support claims: notify the author when a reader says they supported
+// them, and notify the reader when the author confirms (green tick).
+exports.onSupportClaimWrite = functionsV1.firestore.document("support_claims/{claimId}").onWrite(async (change, context) => {
+  const after = change.after.exists ? change.after.data() : null;
+  if (!after) {
+    return null;
+  }
+  const before = change.before.exists ? change.before.data() : null;
+  const claimId = context.params.claimId;
+  const authorId = normalizeString(after.authorId);
+  const supporterId = normalizeString(after.supporterId);
+  if (!authorId || !supporterId || authorId === supporterId) {
+    return null;
+  }
+
+  if (!before) {
+    const supporterName = normalizeString(after.supporterName) || "A reader";
+    await createNotificationDoc(
+        `support_${claimId}`,
+        buildNotification({
+          userId: authorId,
+          actorId: supporterId,
+          actorName: supporterName,
+          actorPhotoURL: normalizeString(after.supporterPhotoURL) || null,
+          type: "support",
+          text: "says they supported you. Confirm it in your supporters list.",
+          targetId: authorId,
+          metadata: {targetType: "user", userId: authorId, claimId},
+        }),
+    );
+    return null;
+  }
+
+  if (before.status !== "verified" && after.status === "verified") {
+    const authorData = await getUserDoc(authorId);
+    if (!authorData) {
+      return null;
+    }
+    await createNotificationDoc(
+        `support_verified_${claimId}`,
+        buildNotification({
+          userId: supporterId,
+          actorId: authorId,
+          actorName: userDisplayName(authorData),
+          actorPhotoURL: normalizeString(authorData.photoURL) || null,
+          type: "support_verified",
+          text: "confirmed your support. Thank you!",
+          targetId: authorId,
+          metadata: {targetType: "user", userId: authorId, claimId},
+        }),
+    );
+  }
+  return null;
+});
+
+exports.onRecommendationWrite =functionsV1.firestore.document("recommendations/{recommendationId}").onWrite(async (change, context) => {
   const beforeData = change.before.exists ? change.before.data() : null;
   const afterData = change.after.exists ? change.after.data() : null;
   const bookId = normalizeString(afterData?.bookId || beforeData?.bookId);

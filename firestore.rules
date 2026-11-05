@@ -307,6 +307,60 @@ service cloud.firestore {
       allow delete: if (isVerified() && ownsExisting('followerId')) || isAdmin();
     }
 
+    // UPI "support the author": no money moves through the app. Authors store
+    // their UPI ID; readers record an "I supported" claim that the author can
+    // verify. Notifications for claims are written by Cloud Functions.
+    function validUpiId(value) {
+      return value is string &&
+        value.matches('^[a-zA-Z0-9._\\-]{2,64}@[a-zA-Z][a-zA-Z0-9.\\-]{1,31}$');
+    }
+
+    match /author_support/{authorId} {
+      allow read: if signedIn();
+      allow create, update: if isVerified() && authorId == uid() &&
+        request.resource.data.keys().hasOnly(['upiId', 'enabled', 'message', 'updatedAt']) &&
+        validUpiId(request.resource.data.upiId) &&
+        request.resource.data.enabled is bool &&
+        (
+          !('message' in request.resource.data) ||
+          (request.resource.data.message is string && request.resource.data.message.size() <= 140)
+        );
+      allow delete: if signedIn() && authorId == uid();
+    }
+
+    match /support_claims/{claimId} {
+      allow read: if signedIn();
+      allow create: if isVerified() &&
+        ownsIncoming('supporterId') &&
+        request.resource.data.authorId is string &&
+        request.resource.data.authorId != uid() &&
+        claimId == request.resource.data.authorId + '_' + uid() &&
+        request.resource.data.status == 'claimed' &&
+        request.resource.data.supporterName is string &&
+        request.resource.data.supporterName.size() > 0 &&
+        request.resource.data.supporterName.size() <= 80 &&
+        request.resource.data.keys().hasOnly([
+          'authorId', 'supporterId', 'supporterName', 'supporterPhotoURL',
+          'status', 'utr', 'amount', 'createdAt', 'updatedAt'
+        ]);
+      allow update: if isVerified() && (
+        (
+          ownsExisting('supporterId') &&
+          resource.data.status == 'claimed' &&
+          request.resource.data.status == 'claimed' &&
+          onlyChanges(['supporterName', 'supporterPhotoURL', 'utr', 'amount', 'updatedAt'])
+        ) ||
+        (
+          ownsExisting('authorId') &&
+          request.resource.data.status in ['claimed', 'verified', 'hidden'] &&
+          onlyChanges(['status', 'verifiedAt', 'updatedAt'])
+        )
+      );
+      allow delete: if signedIn() && (
+        ownsExisting('supporterId') || ownsExisting('authorId') || isAdmin()
+      );
+    }
+
     // Social feed posts
     match /feed/{postId} {
       allow read: if isPublicFeedPost() || ownsExisting('userId') || isAdmin();

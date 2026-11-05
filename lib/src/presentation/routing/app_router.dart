@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/book.dart';
 import '../../domain/models/feed_post.dart';
@@ -346,11 +345,14 @@ class AppRouter {
       return;
     }
 
-    final uri = Uri.parse(url);
-    final opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-    if (!opened && context.mounted) {
-      await Navigator.of(context).pushNamed(routeName);
-    }
+    // wreadom.in is an app link, so a Custom Tab launch can bounce back into
+    // the app. Use the JS-enabled in-app WebView screen instead.
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LegalDocumentScreen(title: 'Wreadom', url: url),
+      ),
+    );
   }
 
   static RouteSettings? routeSettingsForAppLink(String rawLink) {

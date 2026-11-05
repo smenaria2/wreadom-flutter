@@ -3636,4 +3636,111 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get readerTapToToggleControls =>
       'Tap the center to hide or show controls';
+
+  @override
+  String get supportAuthor => 'Support author';
+
+  @override
+  String supportAuthorTitle(String name) {
+    return 'Support $name';
+  }
+
+  @override
+  String get supportDirectNote =>
+      '100% of your support goes directly to the author through UPI. Wreadom takes no fee.';
+
+  @override
+  String get supportChooseAmount => 'Choose an amount';
+
+  @override
+  String get supportCustomAmount => 'Other amount (₹)';
+
+  @override
+  String get supportPayWithUpi => 'Pay with UPI app';
+
+  @override
+  String get supportShowQr => 'Show QR code';
+
+  @override
+  String get supportQrHint => 'Scan this QR with any UPI app';
+
+  @override
+  String get supportCopyUpiId => 'Copy UPI ID';
+
+  @override
+  String get supportUpiIdCopied => 'UPI ID copied';
+
+  @override
+  String get supportNoUpiApp =>
+      'No UPI app found. Use the QR code or copy the UPI ID.';
+
+  @override
+  String get supportIPaid => 'I\'ve paid';
+
+  @override
+  String get supportIPaidHint =>
+      'After paying, tap below so the author is notified and you appear in the supporters list.';
+
+  @override
+  String get supportUtrLabel => 'UPI reference no. (optional)';
+
+  @override
+  String get supportUtrHelper =>
+      '12 digits. Helps the author confirm your payment.';
+
+  @override
+  String get supportInvalidUtr => 'Enter a 12-digit reference number';
+
+  @override
+  String get supportClaimSent => 'Thank you! The author has been notified.';
+
+  @override
+  String get supportClaimFailed => 'Could not send. Please try again.';
+
+  @override
+  String get supportSettingsTitle => 'Receive support';
+
+  @override
+  String get supportSettingsEnable => 'Let readers support me via UPI';
+
+  @override
+  String get supportUpiIdLabel => 'Your UPI ID';
+
+  @override
+  String get supportUpiIdHelper =>
+      'e.g. name@bank. Readers pay you directly; Wreadom takes no fee.';
+
+  @override
+  String get supportInvalidUpiId => 'Enter a valid UPI ID';
+
+  @override
+  String get supportMessageLabel => 'Thank-you message (optional)';
+
+  @override
+  String get supportBusinessNote =>
+      'If you receive frequent payments, consider using a business UPI ID.';
+
+  @override
+  String get supportSave => 'Save';
+
+  @override
+  String get supportSaved => 'Support settings saved';
+
+  @override
+  String get supportersTitle => 'Supporters';
+
+  @override
+  String get supporterVerified => 'Confirmed by the author';
+
+  @override
+  String get supporterUnverified => 'Awaiting author confirmation';
+
+  @override
+  String get supportConfirm => 'Confirm received';
+
+  @override
+  String get supportHide => 'Hide from list';
+
+  @override
+  String get supportConfirmed => 'Marked as received';
 }

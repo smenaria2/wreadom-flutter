@@ -3,6 +3,7 @@ import 'package:librebook_flutter/src/presentation/routing/app_routes.dart';
 import 'package:librebook_flutter/src/utils/app_link_helper.dart';
 
 void main() {
+  externalWebTests();
   group('AppLinkHelper', () {
     test('exposes canonical web policy URLs', () {
       expect(AppLinkHelper.privacyPolicyUrl, 'https://wreadom.in/privacy');
@@ -329,6 +330,17 @@ void main() {
       expect(relativeAmpersand?.route, AppRoutes.bookDetail);
       expect(relativeAmpersand?.payload, 'X4ptmC0H6Ns1qkA9pS2d');
       expect(relativeAmpersand?.commentId, 'vL35bCJskyfOmL01FyhY');
+    });
+  });
+}
+
+void externalWebTests() {
+  group('wantsExternalWeb', () {
+    test('only wreadom links with open=web', () {
+      expect(AppLinkHelper.wantsExternalWeb(Uri.parse('https://wreadom.in/x?open=web')), isTrue);
+      expect(AppLinkHelper.wantsExternalWeb(Uri.parse('https://www.wreadom.in/?open=WEB')), isTrue);
+      expect(AppLinkHelper.wantsExternalWeb(Uri.parse('https://wreadom.in/x')), isFalse);
+      expect(AppLinkHelper.wantsExternalWeb(Uri.parse('https://other.com/x?open=web')), isFalse);
     });
   });
 }

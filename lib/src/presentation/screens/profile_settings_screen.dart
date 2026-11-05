@@ -5,6 +5,7 @@ import 'package:librebook_flutter/src/data/utils/firestore_utils.dart';
 import 'package:librebook_flutter/src/domain/models/user_model.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import '../../utils/instagram_profile_utils.dart';
+import '../components/support/support_settings_section.dart';
 import '../providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/glass_scaffold.dart';
@@ -149,6 +150,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+              SupportSettingsSection(userId: user.id),
               const SizedBox(height: 20),
               if (notificationSettings != null) ...[
                 _NotificationPreferencesSection(

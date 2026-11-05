@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../localization/generated/app_localizations.dart';
+import 'reader_line_snapper.dart';
 
 const readerPageGestureGuideSeenKey = 'reader_page_gesture_guide_seen_v1';
 
@@ -86,8 +87,17 @@ class _ReaderPageGesturesState extends State<ReaderPageGestures> {
     final position = widget.controller.position;
     final visibleHeight = height - widget.obscuredInsets.vertical;
     if (visibleHeight <= 0) return;
+    final snapped = resumeTarget == null
+        ? snapTurnTarget(
+            scrollContext: context,
+            position: position,
+            forward: forward,
+            insets: widget.obscuredInsets,
+          )
+        : null;
     final target =
         (resumeTarget ??
+                snapped ??
                 (position.pixels + (forward ? 1 : -1) * visibleHeight * .9))
             .clamp(position.minScrollExtent, position.maxScrollExtent)
             .toDouble();

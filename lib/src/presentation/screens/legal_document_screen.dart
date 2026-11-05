@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../data/services/legal_document_service.dart';
@@ -55,7 +56,7 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
       initializeWebViewPlatform();
       final controller = createWebViewController() as WebViewController;
       controller
-        ..setJavaScriptMode(JavaScriptMode.disabled)
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
         ..setNavigationDelegate(
           NavigationDelegate(
@@ -84,7 +85,16 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
             },
             onNavigationRequest: (request) {
               final nextUri = Uri.tryParse(request.url);
-              if (nextUri == null || !_isAllowedLegalUri(nextUri)) {
+              if (nextUri == null) return NavigationDecision.prevent;
+              if (_isAllowedLegalUri(nextUri)) {
+                return NavigationDecision.navigate;
+              }
+              // Non-web schemes (mailto:, tel:, intent:) go to the system.
+              if (nextUri.scheme != 'http' && nextUri.scheme != 'https') {
+                unawaited(
+                  launchUrl(nextUri, mode: LaunchMode.externalApplication)
+                      .catchError((_) => false),
+                );
                 return NavigationDecision.prevent;
               }
               return NavigationDecision.navigate;
@@ -171,9 +181,7 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
 }
 
 bool _isAllowedLegalUri(Uri uri) {
-  if (uri.scheme != 'https') return false;
-  final host = uri.host.toLowerCase();
-  return host == 'wreadom.in' || host == 'www.wreadom.in';
+  return (uri.scheme == 'https' || uri.scheme == 'http') && uri.host.isNotEmpty;
 }
 
 class _LegalFallbackView extends StatelessWidget {

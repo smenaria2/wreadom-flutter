@@ -14,6 +14,7 @@ import '../../presentation/providers/feed_providers.dart';
 import '../../presentation/routing/app_routes.dart';
 import '../../presentation/routing/app_router.dart';
 import '../../utils/app_link_helper.dart';
+import '../../utils/external_browser_launcher.dart';
 import '../../utils/notification_target_resolver.dart';
 
 @pragma('vm:entry-point')
@@ -501,6 +502,10 @@ class NotificationService {
   Future<void> _launchNotificationUri(Uri uri) async {
     final isWreadom =
         uri.host == AppLinkHelper.host || uri.host == AppLinkHelper.wwwHost;
+    if (AppLinkHelper.wantsExternalWeb(uri)) {
+      await ExternalBrowserLauncher.open(uri);
+      return;
+    }
     await launchUrl(
       uri,
       mode: isWreadom
