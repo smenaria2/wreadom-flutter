@@ -3807,4 +3807,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportMarkedNotReceived => 'Marked as not received';
+
+  @override
+  String get supportContinue => 'Continue';
+
+  @override
+  String get supportStepAmountTitle => 'How much would you like to give?';
+
+  @override
+  String supportStepPayTitle(int amount) {
+    return 'Choose how to pay ₹$amount';
+  }
+
+  @override
+  String get supportPaidPrompt => 'Paid? Let the author know';
+
+  @override
+  String get supportOpenedHint =>
+      'Finish the payment in your UPI app, then come back and tap \"I\'ve paid\".';
+
+  @override
+  String get supportMoreSupporters => 'Show all supporters';
 }

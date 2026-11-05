@@ -6,8 +6,9 @@ import '../../../utils/upi_link_builder.dart';
 import '../../providers/support_providers.dart';
 import '../../widgets/glass_surface.dart';
 
-/// Profile-settings card where an author turns on UPI support. It saves on
-/// its own so it does not interfere with the main profile save.
+/// Profile-settings card where an author turns on UPI support. It has no
+/// Save button of its own: the settings screen calls [validate] and [save]
+/// on the state (via a GlobalKey) from its single Save button.
 class SupportSettingsSection extends ConsumerStatefulWidget {
   const SupportSettingsSection({super.key, required this.userId});
 
@@ -15,16 +16,18 @@ class SupportSettingsSection extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<SupportSettingsSection> createState() =>
-      _SupportSettingsSectionState();
+      SupportSettingsSectionState();
 }
 
-class _SupportSettingsSectionState
+class SupportSettingsSectionState
     extends ConsumerState<SupportSettingsSection> {
   final _upiController = TextEditingController();
   final _messageController = TextEditingController();
   bool _enabled = false;
   bool _loaded = false;
-  bool _saving = false;
+  String _initialUpi = '';
+  String _initialMessage = '';
+  bool _initialEnabled = false;
 
   @override
   void initState() {
@@ -49,6 +52,9 @@ class _SupportSettingsSectionState
         _upiController.text = support?.upiId ?? '';
         _messageController.text = support?.message ?? '';
         _enabled = support?.enabled ?? false;
+        _initialUpi = _upiController.text.trim();
+        _initialMessage = _messageController.text.trim();
+        _initialEnabled = _enabled;
         _loaded = true;
       });
     } catch (_) {
@@ -56,41 +62,42 @@ class _SupportSettingsSectionState
     }
   }
 
-  Future<void> _save() async {
+  bool get _dirty =>
+      _loaded &&
+      (_upiController.text.trim() != _initialUpi ||
+          _messageController.text.trim() != _initialMessage ||
+          _enabled != _initialEnabled);
+
+  /// Returns an error message when the current input cannot be saved.
+  String? validate() {
+    if (!_loaded || !_dirty) return null;
     final l10n = AppLocalizations.of(context)!;
-    final messenger = ScaffoldMessenger.of(context);
-    final repository = ref.read(supportRepositoryProvider);
     final input = _upiController.text.trim();
     final vpa = UpiLinkBuilder.normalizeVpa(input);
+    if (input.isNotEmpty && vpa == null) return l10n.supportInvalidUpiId;
+    if (_enabled && vpa == null) return l10n.supportInvalidUpiId;
+    return null;
+  }
 
-    if (input.isNotEmpty && vpa == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.supportInvalidUpiId)));
-      return;
+  /// Saves the support settings if they changed. Throws on failure.
+  Future<void> save() async {
+    if (!_dirty) return;
+    final repository = ref.read(supportRepositoryProvider);
+    final vpa = UpiLinkBuilder.normalizeVpa(_upiController.text);
+    if (vpa == null) {
+      await repository.clearAuthorSupport(widget.userId);
+    } else {
+      await repository.saveAuthorSupport(
+        authorId: widget.userId,
+        upiId: vpa,
+        enabled: _enabled,
+        message: _messageController.text,
+      );
     }
-    if (_enabled && vpa == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.supportInvalidUpiId)));
-      return;
-    }
-
-    setState(() => _saving = true);
-    try {
-      if (vpa == null) {
-        await repository.clearAuthorSupport(widget.userId);
-      } else {
-        await repository.saveAuthorSupport(
-          authorId: widget.userId,
-          upiId: vpa,
-          enabled: _enabled,
-          message: _messageController.text,
-        );
-      }
-      ref.invalidate(authorSupportProvider(widget.userId));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.supportSaved)));
-    } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.supportClaimFailed)));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+    ref.invalidate(authorSupportProvider(widget.userId));
+    _initialUpi = _upiController.text.trim();
+    _initialMessage = _messageController.text.trim();
+    _initialEnabled = _enabled;
   }
 
   @override
@@ -141,19 +148,6 @@ class _SupportSettingsSectionState
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.tonal(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.supportSave),
-                  ),
-                ),
               ],
             ),
     );

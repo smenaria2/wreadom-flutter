@@ -732,7 +732,9 @@ void main() {
     expect(rulesSource, contains("ownsIncoming('followerId')"));
     expect(rulesSource, contains("ownsIncoming('userId')"));
     expect(rulesSource, contains("onlyChanges(['commentCount'])"));
-    expect(firebaseConfig, isNot(contains('"rules": "firestore.rules"')));
+    // firebase.json must point at firestore.rules so
+    // `firebase deploy --only firestore:rules` actually deploys them.
+    expect(firebaseConfig, contains('"rules": "firestore.rules"'));
   });
 
   test('localized feed labels and Hindi app wording stay wired', () {

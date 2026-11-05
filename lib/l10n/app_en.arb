@@ -2128,5 +2128,12 @@
   "supportRemoveFromList": "Remove from list",
   "supportActionFailed": "Could not update: {error}",
   "@supportActionFailed": {"placeholders": {"error": {"type": "String"}}},
-  "supportMarkedNotReceived": "Marked as not received"
+  "supportMarkedNotReceived": "Marked as not received",
+  "supportContinue": "Continue",
+  "supportStepAmountTitle": "How much would you like to give?",
+  "supportStepPayTitle": "Choose how to pay ₹{amount}",
+  "@supportStepPayTitle": {"placeholders": {"amount": {"type": "int"}}},
+  "supportPaidPrompt": "Paid? Let the author know",
+  "supportOpenedHint": "Finish the payment in your UPI app, then come back and tap \"I've paid\".",
+  "supportMoreSupporters": "Show all supporters"
 }

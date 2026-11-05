@@ -1,5 +1,6 @@
 ﻿package `in`.wreadom.app
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -84,19 +85,49 @@ class MainActivity : AudioServiceActivity() {
         }
     }
 
-    // Shows the system chooser of UPI apps for a upi://pay link. Returns false
-    // when no installed app can handle it.
-    private fun openUpiChooser(uri: String?): Boolean {
-        if (uri.isNullOrBlank()) return false
-        return try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-            val handlers = packageManager.queryIntentActivities(intent, 0)
-            if (handlers.isEmpty()) return false
-            startActivity(Intent.createChooser(intent, "Pay with"))
-            true
-        } catch (_: Exception) {
-            false
+    // Opens the system chooser of UPI apps for a upi://pay link. Returns "ok",
+    // "no_app" when nothing can handle it, or "error:<message>". We do not
+    // pre-check with queryIntentActivities: package-visibility filtering can
+    // make it return an empty list even when apps are installed.
+    private fun openUpiChooser(uri: String?): String {
+        if (uri.isNullOrBlank()) return "error:empty_uri"
+        val data = Uri.parse(uri)
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, data)
+            startActivity(
+                Intent.createChooser(intent, "Pay with")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            return "ok"
+        } catch (_: ActivityNotFoundException) {
+            // Fall through to explicit packages below.
+        } catch (e: Exception) {
+            return "error:${e.javaClass.simpleName}"
         }
+        for (pkg in UPI_PACKAGES) {
+            try {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, data)
+                        .setPackage(pkg)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                return "ok"
+            } catch (_: Exception) {
+                // Try the next app.
+            }
+        }
+        return "no_app"
+    }
+
+    companion object {
+        private val UPI_PACKAGES = listOf(
+            "com.google.android.apps.nbu.paisa.user", // Google Pay
+            "com.phonepe.app", // PhonePe
+            "net.one97.paytm", // Paytm
+            "in.org.npci.upiapp", // BHIM
+            "com.dreamplug.androidapp", // CRED
+            "in.amazon.mShop.android.shopping", // Amazon Pay
+        )
     }
 
     // Opens [url] in a browser app, never in this app (which owns wreadom.in).

@@ -55,6 +55,13 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
   bool _showQr = false;
   bool _submitting = false;
 
+  /// 0 = choose amount, 1 = choose how to pay.
+  int _step = 0;
+
+  /// "I've paid" only appears once the reader has used a payment option.
+  bool _triedPayment = false;
+  bool _openedHint = false;
+
   @override
   void dispose() {
     _customController.dispose();
@@ -75,17 +82,35 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
 
   Future<void> _payWithUpiApp() async {
     final l10n = AppLocalizations.of(context)!;
-    final launched = await UpiLauncher.pay(_upiLink);
-    if (!mounted || launched) return;
-    setState(() => _showQr = true);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.supportNoUpiApp)));
+    final messenger = ScaffoldMessenger.of(context);
+    // Called first, with no await before it, so web keeps the tap gesture.
+    final result = await UpiLauncher.pay(_upiLink);
+    if (!mounted) return;
+    if (result == UpiLaunchResult.noApp) {
+      setState(() {
+        _showQr = true;
+        _triedPayment = true;
+      });
+      messenger.showSnackBar(SnackBar(content: Text(l10n.supportNoUpiApp)));
+      return;
+    }
+    setState(() {
+      _triedPayment = true;
+      _openedHint = true;
+    });
+  }
+
+  void _toggleQr() {
+    setState(() {
+      _showQr = !_showQr;
+      if (_showQr) _triedPayment = true;
+    });
   }
 
   Future<void> _copyUpiId() async {
     await Clipboard.setData(ClipboardData(text: widget.support.upiId));
     if (!mounted) return;
+    setState(() => _triedPayment = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.supportUpiIdCopied)),
     );
@@ -130,6 +155,7 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -141,135 +167,180 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.supportAuthorTitle(widget.authorName),
-            style: theme.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 6),
-          Text(l10n.supportDirectNote, style: theme.textTheme.bodySmall),
-          if ((widget.support.message ?? '').isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              widget.support.message!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          Text(l10n.supportChooseAmount, style: theme.textTheme.labelLarge),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final amount in _presetAmounts)
-                ChoiceChip(
-                  label: Text('₹$amount'),
-                  selected: _amount == amount,
-                  onSelected: (_) => setState(() {
-                    _customController.value = TextEditingValue(
-                      text: '$amount',
-                      selection: TextSelection.collapsed(
-                        offset: '$amount'.length,
-                      ),
-                    );
-                  }),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _customController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
-            ],
-            decoration: InputDecoration(
-              labelText: l10n.supportCustomAmount,
-              isDense: true,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _payWithUpiApp,
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            label: Text(l10n.supportPayWithUpi),
-          ),
-          const SizedBox(height: 8),
           Row(
             children: [
+              if (_step > 0)
+                IconButton(
+                  tooltip: l10n.back,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: () => setState(() => _step = 0),
+                ),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _showQr = !_showQr),
-                  icon: const Icon(Icons.qr_code_2),
-                  label: Text(l10n.supportShowQr),
+                child: Text(
+                  l10n.supportAuthorTitle(widget.authorName),
+                  style: theme.textTheme.titleLarge,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _copyUpiId,
-                  icon: const Icon(Icons.copy_rounded),
-                  label: Text(l10n.supportCopyUpiId),
-                ),
+              IconButton(
+                tooltip: l10n.close,
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
-          if (_showQr) ...[
-            const SizedBox(height: 16),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: QrImageView(
-                  data: _upiLink,
-                  size: 200,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${l10n.supportQrHint}\n${widget.support.upiId}',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-          const Divider(height: 32),
-          Text(l10n.supportIPaidHint, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _utrController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(12),
-            ],
-            decoration: InputDecoration(
-              labelText: l10n.supportUtrLabel,
-              helperText: l10n.supportUtrHelper,
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.tonalIcon(
-            onPressed: _submitting ? null : _submitClaim,
-            icon: _submitting
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check_circle_outline),
-            label: Text(l10n.supportIPaid),
-          ),
+          const SizedBox(height: 4),
+          if (_step == 0) ..._amountStep(l10n, theme) else ..._payStep(l10n, theme),
         ],
       ),
     );
+  }
+
+  List<Widget> _amountStep(AppLocalizations l10n, ThemeData theme) {
+    return [
+      Text(l10n.supportDirectNote, style: theme.textTheme.bodySmall),
+      if ((widget.support.message ?? '').isNotEmpty) ...[
+        const SizedBox(height: 10),
+        Text(
+          widget.support.message!,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+      const SizedBox(height: 16),
+      Text(l10n.supportStepAmountTitle, style: theme.textTheme.titleSmall),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final amount in _presetAmounts)
+            ChoiceChip(
+              label: Text('₹$amount'),
+              selected: _amount == amount,
+              onSelected: (_) => setState(() {
+                _customController.value = TextEditingValue(
+                  text: '$amount',
+                  selection: TextSelection.collapsed(offset: '$amount'.length),
+                );
+              }),
+            ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _customController,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(6),
+        ],
+        decoration: InputDecoration(
+          labelText: l10n.supportCustomAmount,
+          isDense: true,
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 16),
+      FilledButton(
+        onPressed: _amount == null ? null : () => setState(() => _step = 1),
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        child: Text(l10n.supportContinue),
+      ),
+    ];
+  }
+
+  List<Widget> _payStep(AppLocalizations l10n, ThemeData theme) {
+    return [
+      Text(
+        l10n.supportStepPayTitle(_amount ?? 0),
+        style: theme.textTheme.titleSmall,
+      ),
+      const SizedBox(height: 12),
+      FilledButton.icon(
+        onPressed: _payWithUpiApp,
+        icon: const Icon(Icons.account_balance_wallet_outlined),
+        label: Text(l10n.supportPayWithUpi),
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _toggleQr,
+              icon: const Icon(Icons.qr_code_2),
+              label: Text(l10n.supportShowQr),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _copyUpiId,
+              icon: const Icon(Icons.copy_rounded),
+              label: Text(l10n.supportCopyUpiId),
+            ),
+          ),
+        ],
+      ),
+      if (_openedHint) ...[
+        const SizedBox(height: 10),
+        Text(l10n.supportOpenedHint, style: theme.textTheme.bodySmall),
+      ],
+      if (_showQr) ...[
+        const SizedBox(height: 16),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: QrImageView(
+              data: _upiLink,
+              size: 200,
+              backgroundColor: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.supportQrHint,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+      if (_triedPayment) ...[
+        const Divider(height: 32),
+        Text(l10n.supportPaidPrompt, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(l10n.supportIPaidHint, style: theme.textTheme.bodySmall),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _utrController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(12),
+          ],
+          decoration: InputDecoration(
+            labelText: l10n.supportUtrLabel,
+            helperText: l10n.supportUtrHelper,
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: _submitting ? null : _submitClaim,
+          icon: _submitting
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.check_circle_outline),
+          label: Text(l10n.supportIPaid),
+        ),
+      ],
+    ];
   }
 }

@@ -6756,6 +6756,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as not received'**
   String get supportMarkedNotReceived;
+
+  /// No description provided for @supportContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get supportContinue;
+
+  /// No description provided for @supportStepAmountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How much would you like to give?'**
+  String get supportStepAmountTitle;
+
+  /// No description provided for @supportStepPayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to pay ₹{amount}'**
+  String supportStepPayTitle(int amount);
+
+  /// No description provided for @supportPaidPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid? Let the author know'**
+  String get supportPaidPrompt;
+
+  /// No description provided for @supportOpenedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the payment in your UPI app, then come back and tap \"I\'ve paid\".'**
+  String get supportOpenedHint;
+
+  /// No description provided for @supportMoreSupporters.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all supporters'**
+  String get supportMoreSupporters;
 }
 
 class _AppLocalizationsDelegate

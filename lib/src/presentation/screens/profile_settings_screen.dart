@@ -36,6 +36,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _isSaving = false;
   String? _populatedUserId;
   final _notificationPreferencesKey = GlobalKey();
+  final _supportKey = GlobalKey<SupportSettingsSectionState>();
   bool _didRevealNotificationSettings = false;
 
   @override
@@ -151,7 +152,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              SupportSettingsSection(userId: user.id),
+              SupportSettingsSection(key: _supportKey, userId: user.id),
               const SizedBox(height: 20),
               if (notificationSettings != null) ...[
                 _NotificationPreferencesSection(
@@ -205,6 +206,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.invalidInstagramProfile)));
       return;
     }
+    final supportError = _supportKey.currentState?.validate();
+    if (supportError != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(supportError)));
+      return;
+    }
     final nextSettings = _notificationSettings == null
         ? null
         : _settingsWithAppValues(
@@ -238,6 +246,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       if (notificationsChanged) {
         await repository.updateNotificationSettings(user.id, nextSettings);
       }
+      await _supportKey.currentState?.save();
       ref.invalidate(currentUserProvider);
       ref.invalidate(publicProfileProvider(user.id));
       if (!mounted) return;

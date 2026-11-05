@@ -114,14 +114,13 @@ class _SupportSectionState extends ConsumerState<SupportSection> {
       authorName: widget.authorName,
       support: active ? support : null,
       visible: visible,
-      expanded: _expanded,
-      onToggleExpanded: () => setState(() => _expanded = !_expanded),
     );
   }
 }
 
+
 // ---------------------------------------------------------------------------
-// Reader view
+// Reader view: one compact strip so the profile content stays near the top.
 // ---------------------------------------------------------------------------
 
 class _ReaderPanel extends StatelessWidget {
@@ -130,89 +129,105 @@ class _ReaderPanel extends StatelessWidget {
     required this.authorName,
     required this.support,
     required this.visible,
-    required this.expanded,
-    required this.onToggleExpanded,
   });
 
   final String authorId;
   final String authorName;
   final AuthorSupport? support;
   final List<SupportClaim> visible;
-  final bool expanded;
-  final VoidCallback onToggleExpanded;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final shown = expanded
-        ? visible
-        : visible.take(_SupportSectionState._collapsedCount).toList();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 12),
       child: GlassSurface(
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (support != null)
-              _SupportHero(
-                title: l10n.supportAuthorTitle(authorName),
-                subtitle: l10n.supportTagline,
-                message: support!.message,
-                action: FilledButton.icon(
-                  onPressed: () => showSupportAuthorSheet(
-                    context,
-                    authorId: authorId,
-                    authorName: authorName,
-                    support: support!,
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: scheme.primary.withValues(alpha: 0.14),
+                    ),
+                    child: Icon(
+                      Icons.volunteer_activism_rounded,
+                      size: 22,
+                      color: scheme.primary,
+                    ),
                   ),
-                  icon: const Icon(Icons.favorite_rounded),
-                  label: Text(l10n.supportAuthor),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                ),
-              ),
-            if (visible.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.volunteer_activism_outlined,
-                          size: 18,
-                          color: scheme.primary,
-                        ),
-                        const SizedBox(width: 8),
                         Text(
-                          l10n.supportersTitle,
+                          l10n.supportAuthorTitle(authorName),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const Spacer(),
                         Text(
-                          l10n.supportersCount(visible.length),
-                          style: theme.textTheme.labelMedium?.copyWith(
+                          l10n.supportTagline,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    for (final claim in shown) _SupporterRow(claim: claim),
-                    if (visible.length > _SupportSectionState._collapsedCount)
-                      TextButton(
-                        onPressed: onToggleExpanded,
-                        child: Text(expanded ? l10n.showLess : l10n.seeAll),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () => showSupportAuthorSheet(
+                      context,
+                      authorId: authorId,
+                      authorName: authorName,
+                      support: support!,
+                    ),
+                    icon: const Icon(Icons.favorite_rounded, size: 18),
+                    label: Text(l10n.support),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    ),
+                  ),
+                ],
+              ),
+            if (visible.isNotEmpty)
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => _showSupportersSheet(context, visible),
+                child: Padding(
+                  padding: EdgeInsets.only(top: support != null ? 10 : 0),
+                  child: Row(
+                    children: [
+                      _AvatarStack(claims: visible),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.supportersCount(visible.length),
+                          style: theme.textTheme.labelLarge,
+                        ),
                       ),
-                  ],
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -222,8 +237,83 @@ class _ReaderPanel extends StatelessWidget {
   }
 }
 
+Future<void> _showSupportersSheet(
+  BuildContext context,
+  List<SupportClaim> claims,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext)!;
+      final theme = Theme.of(sheetContext);
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.9,
+        builder: (_, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(20, 0, 12, 20),
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${l10n.supportersTitle} · ${l10n.supportersCount(claims.length)}',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.close,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                ),
+              ],
+            ),
+            for (final claim in claims) _SupporterRow(claim: claim),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// Up to three overlapping avatars.
+class _AvatarStack extends StatelessWidget {
+  const _AvatarStack({required this.claims});
+
+  final List<SupportClaim> claims;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = claims.take(3).toList();
+    const radius = 12.0;
+    const step = 16.0;
+    return SizedBox(
+      width: radius * 2 + 3 + step * (shown.length - 1),
+      height: radius * 2 + 3,
+      child: Stack(
+        children: [
+          for (var i = 0; i < shown.length; i++)
+            Positioned(
+              left: i * step,
+              child: CircleAvatar(
+                radius: radius + 1.5,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                child: _Avatar(claim: shown[i], radius: radius),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Author view
+// Author view: collapsed summary row, expands to the confirm controls.
 // ---------------------------------------------------------------------------
 
 class _AuthorPanel extends StatelessWidget {
@@ -246,95 +336,115 @@ class _AuthorPanel extends StatelessWidget {
     final scheme = theme.colorScheme;
     final pending = visible.where((c) => !c.isVerified).toList();
     final confirmed = visible.where((c) => c.isVerified).toList();
-    final shownConfirmed = expanded
-        ? confirmed
-        : confirmed.take(_SupportSectionState._collapsedCount).toList();
+    final shownConfirmed = confirmed
+        .take(_SupportSectionState._collapsedCount)
+        .toList();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 12),
       child: GlassSurface(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.favorite_rounded, size: 20, color: scheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.supportYourSupporters,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onToggleExpanded,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.favorite_rounded,
+                      size: 20,
+                      color: scheme.primary,
                     ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: l10n.supportSettingsTitle,
-                  icon: const Icon(Icons.settings_outlined),
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushNamed(AppRoutes.profileSettings),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  _CountChip(
-                    icon: Icons.check_circle,
-                    color: Colors.green,
-                    label: l10n.supportConfirmedCount(confirmed.length),
-                  ),
-                  if (pending.isNotEmpty)
-                    _CountChip(
-                      icon: Icons.schedule,
-                      color: scheme.tertiary,
-                      label: l10n.supportPendingCount(pending.length),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.supportYourSupporters,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            [
+                              l10n.supportConfirmedCount(confirmed.length),
+                              if (pending.isNotEmpty)
+                                l10n.supportPendingCount(pending.length),
+                            ].join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
-            ),
-            if (pending.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.only(right: 8, bottom: 4, top: 4),
-                child: Text(
-                  l10n.supportPendingTitle,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: scheme.tertiary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              for (final claim in pending)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8, bottom: 8),
-                  child: _PendingCard(claim: claim, onStatus: onStatus),
-                ),
-            ],
-            for (final claim in shownConfirmed)
-              _SupporterRow(
-                claim: claim,
-                trailing: PopupMenuButton<String>(
-                  tooltip: l10n.supportRemoveFromList,
-                  icon: const Icon(Icons.more_vert, size: 20),
-                  onSelected: (_) => onStatus(claim, SupportClaim.statusHidden),
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'remove',
-                      child: Text(l10n.supportRemoveFromList),
+                    if (pending.isNotEmpty)
+                      Badge(
+                        label: Text('${pending.length}'),
+                        backgroundColor: scheme.tertiary,
+                        textColor: scheme.onTertiary,
+                      ),
+                    Icon(
+                      expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                    ),
+                    IconButton(
+                      tooltip: l10n.supportSettingsTitle,
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.profileSettings),
                     ),
                   ],
                 ),
               ),
-            if (confirmed.length > _SupportSectionState._collapsedCount)
-              TextButton(
-                onPressed: onToggleExpanded,
-                child: Text(expanded ? l10n.showLess : l10n.seeAll),
-              ),
+            ),
+            if (expanded) ...[
+              if (pending.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 4, top: 4),
+                  child: Text(
+                    l10n.supportPendingTitle,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: scheme.tertiary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                for (final claim in pending)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8, bottom: 8),
+                    child: _PendingCard(claim: claim, onStatus: onStatus),
+                  ),
+              ],
+              for (final claim in shownConfirmed)
+                _SupporterRow(
+                  claim: claim,
+                  trailing: PopupMenuButton<String>(
+                    tooltip: l10n.supportRemoveFromList,
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    onSelected: (_) =>
+                        onStatus(claim, SupportClaim.statusHidden),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'remove',
+                        child: Text(l10n.supportRemoveFromList),
+                      ),
+                    ],
+                  ),
+                ),
+              if (confirmed.length > _SupportSectionState._collapsedCount)
+                TextButton(
+                  onPressed: () => _showSupportersSheet(context, confirmed),
+                  child: Text(l10n.supportMoreSupporters),
+                ),
+            ],
           ],
         ),
       ),
@@ -422,152 +532,57 @@ class _PendingCard extends StatelessWidget {
   }
 }
 
+
 class _SetupCard extends StatelessWidget {
   const _SetupCard();
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: GlassSurface(
-        padding: EdgeInsets.zero,
-        child: _SupportHero(
-          title: l10n.supportSetupTitle,
-          subtitle: l10n.supportSetupBody,
-          action: FilledButton.tonalIcon(
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoutes.profileSettings),
-            icon: const Icon(Icons.tune_rounded),
-            label: Text(l10n.supportSetupAction),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared pieces
-// ---------------------------------------------------------------------------
-
-class _SupportHero extends StatelessWidget {
-  const _SupportHero({
-    required this.title,
-    required this.subtitle,
-    required this.action,
-    this.message,
-  });
-
-  final String title;
-  final String subtitle;
-  final String? message;
-  final Widget action;
-
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.primaryContainer.withValues(alpha: 0.85),
-            scheme.tertiaryContainer.withValues(alpha: 0.55),
-          ],
-        ),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: scheme.primary.withValues(alpha: 0.14),
-                ),
-                child: Icon(
-                  Icons.volunteer_activism_rounded,
-                  color: scheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onPrimaryContainer,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: GlassSurface(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(
+          children: [
+            Icon(Icons.volunteer_activism_rounded, color: scheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.supportSetupTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
-                      ),
+                  ),
+                  Text(
+                    l10n.supportSetupBody,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if ((message ?? '').isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              '“$message”',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: scheme.onPrimaryContainer,
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 8),
+            FilledButton.tonal(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.profileSettings),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(l10n.supportSetupAction),
+            ),
           ],
-          const SizedBox(height: 14),
-          action,
-        ],
-      ),
-    );
-  }
-}
-
-class _CountChip extends StatelessWidget {
-  const _CountChip({
-    required this.icon,
-    required this.color,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-        ],
+        ),
       ),
     );
   }

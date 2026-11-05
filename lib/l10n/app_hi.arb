@@ -1633,5 +1633,12 @@
   "supportRemoveFromList": "सूची से हटाएँ",
   "supportActionFailed": "अपडेट नहीं हो सका: {error}",
   "@supportActionFailed": {"placeholders": {"error": {"type": "String"}}},
-  "supportMarkedNotReceived": "प्राप्त नहीं हुआ के रूप में चिह्नित"
+  "supportMarkedNotReceived": "प्राप्त नहीं हुआ के रूप में चिह्नित",
+  "supportContinue": "आगे बढ़ें",
+  "supportStepAmountTitle": "आप कितना देना चाहेंगे?",
+  "supportStepPayTitle": "₹{amount} कैसे चुकाना चाहेंगे?",
+  "@supportStepPayTitle": {"placeholders": {"amount": {"type": "int"}}},
+  "supportPaidPrompt": "भुगतान हो गया? लेखक को बताएँ",
+  "supportOpenedHint": "अपने UPI ऐप में भुगतान पूरा करें, फिर वापस आकर \"मैंने भुगतान कर दिया\" दबाएँ।",
+  "supportMoreSupporters": "सभी समर्थक देखें"
 }
