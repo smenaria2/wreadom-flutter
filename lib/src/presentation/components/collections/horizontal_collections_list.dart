@@ -26,10 +26,14 @@ class HorizontalCollectionsList extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return collectionsAsync.when(
-      loading: () => const SizedBox(
-        height: 140,
-        child: Center(child: CircularProgressIndicator()),
-      ),
+      // On read-only profiles the books load below; a second spinner above
+      // them just looks like a stuck loader.
+      loading: () => canCreate
+          ? const SizedBox(
+              height: 140,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : const SizedBox.shrink(),
       error: (error, _) => const SizedBox.shrink(),
       data: (collections) {
         final displayCollections = collections;

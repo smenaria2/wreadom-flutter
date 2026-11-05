@@ -3683,7 +3683,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get supportChooseAmount => 'राशि चुनें';
 
   @override
-  String get supportCustomAmount => 'अन्य राशि (₹)';
+  String get supportCustomAmount => 'राशि (₹)';
 
   @override
   String get supportPayWithUpi => 'UPI ऐप से भुगतान करें';
@@ -3773,4 +3773,68 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get supportConfirmed => 'प्राप्त के रूप में चिह्नित';
+
+  @override
+  String get supportTagline =>
+      'आपका 100% सपोर्ट UPI से सीधे लेखक को जाता है। कोई शुल्क नहीं।';
+
+  @override
+  String get supportYourSupporters => 'आपके सपोर्टर';
+
+  @override
+  String get supportPendingTitle => 'आपकी पुष्टि का इंतज़ार';
+
+  @override
+  String get supportReceived => 'प्राप्त हुआ';
+
+  @override
+  String get supportNotReceived => 'प्राप्त नहीं हुआ';
+
+  @override
+  String get supportSaysPaid => 'कहते हैं कि भुगतान किया';
+
+  @override
+  String get supportSetupTitle => 'पाठकों को आपके लेखन को सपोर्ट करने दें';
+
+  @override
+  String get supportSetupBody =>
+      'अपनी UPI ID जोड़ें, पाठक सीधे आपको टिप दे सकेंगे। 100% आपका।';
+
+  @override
+  String get supportSetupAction => 'सेट अप करें';
+
+  @override
+  String supportersCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सपोर्टर',
+      one: '1 सपोर्टर',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String supportConfirmedCount(int count) {
+    return '$count पुष्ट';
+  }
+
+  @override
+  String supportPendingCount(int count) {
+    return '$count लंबित';
+  }
+
+  @override
+  String get supportUndo => 'वापस करें';
+
+  @override
+  String get supportRemoveFromList => 'सूची से हटाएँ';
+
+  @override
+  String supportActionFailed(String error) {
+    return 'अपडेट नहीं हो सका: $error';
+  }
+
+  @override
+  String get supportMarkedNotReceived => 'प्राप्त नहीं हुआ के रूप में चिह्नित';
 }

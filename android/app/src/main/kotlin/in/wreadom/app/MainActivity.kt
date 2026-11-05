@@ -72,6 +72,31 @@ class MainActivity : AudioServiceActivity() {
             }
             result.success(openInBrowser(call.argument<String>("url")))
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "in.wreadom.app/upi"
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "pay") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+            result.success(openUpiChooser(call.argument<String>("uri")))
+        }
+    }
+
+    // Shows the system chooser of UPI apps for a upi://pay link. Returns false
+    // when no installed app can handle it.
+    private fun openUpiChooser(uri: String?): Boolean {
+        if (uri.isNullOrBlank()) return false
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+            val handlers = packageManager.queryIntentActivities(intent, 0)
+            if (handlers.isEmpty()) return false
+            startActivity(Intent.createChooser(intent, "Pay with"))
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     // Opens [url] in a browser app, never in this app (which owns wreadom.in).

@@ -141,6 +141,7 @@ void main() {
 
     await _pumpProfileSettings(tester, repository, user);
 
+    await _scrollUntilTextVisible(tester, 'Notification preferences');
     expect(find.text('Notification preferences'), findsOneWidget);
     expect(find.text('Direct messages'), findsNothing);
 

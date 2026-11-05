@@ -21,8 +21,7 @@ import '../components/feed_post_card.dart';
 import '../components/profile/profile_share_card.dart';
 import '../components/collections/horizontal_collections_list.dart';
 import '../components/profile/premium_ranks_widget.dart';
-import '../components/support/support_author_button.dart';
-import '../components/support/supporters_list_card.dart';
+import '../components/support/support_section.dart';
 import 'follow_list_screen.dart';
 import '../../utils/app_link_helper.dart';
 import '../../utils/image_proxy_utils.dart';
@@ -207,15 +206,9 @@ class PublicProfileScreen extends ConsumerWidget {
                               level == 'public' ||
                               (followersOnly &&
                                   (followingAsync.value ?? false))) ...[
-                            if (!isSelf) ...[
-                              const SizedBox(height: 12),
-                              SupportAuthorButton(
-                                authorId: user.id,
-                                authorName: _safePublicProfileDisplayName(user),
-                              ),
-                            ],
-                            SupportersListCard(
+                            SupportSection(
                               authorId: user.id,
+                              authorName: _safePublicProfileDisplayName(user),
                               isSelf: isSelf,
                             ),
                           ],

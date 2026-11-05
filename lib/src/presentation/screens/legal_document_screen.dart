@@ -89,15 +89,13 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
               if (_isAllowedLegalUri(nextUri)) {
                 return NavigationDecision.navigate;
               }
-              // Non-web schemes (mailto:, tel:, intent:) go to the system.
-              if (nextUri.scheme != 'http' && nextUri.scheme != 'https') {
-                unawaited(
-                  launchUrl(nextUri, mode: LaunchMode.externalApplication)
-                      .catchError((_) => false),
-                );
-                return NavigationDecision.prevent;
-              }
-              return NavigationDecision.navigate;
+              // Anything outside wreadom.in (other sites, mailto:, tel:) is
+              // handed to the system instead of loading inside this WebView.
+              unawaited(
+                launchUrl(nextUri, mode: LaunchMode.externalApplication)
+                    .catchError((_) => false),
+              );
+              return NavigationDecision.prevent;
             },
           ),
         );
@@ -181,7 +179,9 @@ class _LegalDocumentScreenState extends ConsumerState<LegalDocumentScreen> {
 }
 
 bool _isAllowedLegalUri(Uri uri) {
-  return (uri.scheme == 'https' || uri.scheme == 'http') && uri.host.isNotEmpty;
+  if (uri.scheme != 'https') return false;
+  final host = uri.host.toLowerCase();
+  return host == 'wreadom.in' || host == 'www.wreadom.in';
 }
 
 class _LegalFallbackView extends StatelessWidget {

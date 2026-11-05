@@ -6490,7 +6490,7 @@ abstract class AppLocalizations {
   /// No description provided for @supportCustomAmount.
   ///
   /// In en, this message translates to:
-  /// **'Other amount (₹)'**
+  /// **'Amount (₹)'**
   String get supportCustomAmount;
 
   /// No description provided for @supportPayWithUpi.
@@ -6660,6 +6660,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as received'**
   String get supportConfirmed;
+
+  /// No description provided for @supportTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'100% of your support goes to the author through UPI. No fees.'**
+  String get supportTagline;
+
+  /// No description provided for @supportYourSupporters.
+  ///
+  /// In en, this message translates to:
+  /// **'Your supporters'**
+  String get supportYourSupporters;
+
+  /// No description provided for @supportPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs your confirmation'**
+  String get supportPendingTitle;
+
+  /// No description provided for @supportReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get supportReceived;
+
+  /// No description provided for @supportNotReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Not received'**
+  String get supportNotReceived;
+
+  /// No description provided for @supportSaysPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Says they paid'**
+  String get supportSaysPaid;
+
+  /// No description provided for @supportSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let readers support your writing'**
+  String get supportSetupTitle;
+
+  /// No description provided for @supportSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your UPI ID and readers can tip you directly. You keep 100%.'**
+  String get supportSetupBody;
+
+  /// No description provided for @supportSetupAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get supportSetupAction;
+
+  /// No description provided for @supportersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 supporter} other{{count} supporters}}'**
+  String supportersCount(int count);
+
+  /// No description provided for @supportConfirmedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} confirmed'**
+  String supportConfirmedCount(int count);
+
+  /// No description provided for @supportPendingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pending'**
+  String supportPendingCount(int count);
+
+  /// No description provided for @supportUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get supportUndo;
+
+  /// No description provided for @supportRemoveFromList.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list'**
+  String get supportRemoveFromList;
+
+  /// No description provided for @supportActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update: {error}'**
+  String supportActionFailed(String error);
+
+  /// No description provided for @supportMarkedNotReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as not received'**
+  String get supportMarkedNotReceived;
 }
 
 class _AppLocalizationsDelegate

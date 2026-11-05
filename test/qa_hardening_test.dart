@@ -221,7 +221,7 @@ void main() {
     expect(repositorySource, contains('required String ownerUserId'));
     expect(repositorySource, contains("'operation': 'exportChapter'"));
     expect(repositorySource, contains("'operation': 'importSingles'"));
-    expect(repositorySource, contains('book.authorId?.trim() != userId'));
+    expect(repositorySource, contains('book.authorId?.trim() == userId'));
     expect(repositorySource, contains('isAcceptedCollaboration(book)'));
     expect(writerSource, contains('ownerUserId: user.id'));
     expect(mainSource, contains('if (Firebase.apps.isNotEmpty)'));
@@ -807,7 +807,10 @@ void main() {
       contains("request.auth.token.get('admin', false) == true"),
     );
     expect(rulesSource, contains('function validSelfUserUpdate(userId)'));
-    expect(rulesSource, isNot(contains("'fcmTokenRegistry'")));
+    // The token registry is server-managed: it may only appear in the user
+    // create deny-list, never in the self-update allow-list.
+    expect("'fcmTokenRegistry'".allMatches(rulesSource).length, 1);
+    expect(rulesSource, contains('!request.resource.data.keys().hasAny(['));
     expect(
       rulesSource,
       contains(
@@ -834,7 +837,9 @@ void main() {
       rulesSource,
       contains("request.resource.data.highlightedByUserId == uid()"),
     );
-    expect(rulesSource, contains("ownsIncomingAny('authorId', 'userId')"));
+    // Schema 2: book documents are created/deleted by Cloud Functions
+    // (chapterCommand), so clients can no longer create them directly.
+    expect(rulesSource, contains('allow create, delete: if isAdmin();'));
     expect(rulesSource, contains("function canEditBookData(data)"));
     expect(
       rulesSource,

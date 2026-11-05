@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/models/author_support.dart';
+import '../../../utils/upi_launcher.dart';
 import '../../../utils/upi_link_builder.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/support_providers.dart';
@@ -52,7 +52,6 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
 
   final _customController = TextEditingController();
   final _utrController = TextEditingController();
-  int? _presetAmount;
   bool _showQr = false;
   bool _submitting = false;
 
@@ -64,9 +63,8 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
   }
 
   int? get _amount {
-    final custom = int.tryParse(_customController.text.trim());
-    if (custom != null && custom > 0) return custom;
-    return _presetAmount;
+    final value = int.tryParse(_customController.text.trim());
+    return value != null && value > 0 ? value : null;
   }
 
   String get _upiLink => UpiLinkBuilder.build(
@@ -77,15 +75,7 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
 
   Future<void> _payWithUpiApp() async {
     final l10n = AppLocalizations.of(context)!;
-    var launched = false;
-    try {
-      launched = await launchUrl(
-        Uri.parse(_upiLink),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      launched = false;
-    }
+    final launched = await UpiLauncher.pay(_upiLink);
     if (!mounted || launched) return;
     setState(() => _showQr = true);
     ScaffoldMessenger.of(
@@ -176,11 +166,14 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
               for (final amount in _presetAmounts)
                 ChoiceChip(
                   label: Text('₹$amount'),
-                  selected:
-                      _presetAmount == amount && _customController.text.isEmpty,
+                  selected: _amount == amount,
                   onSelected: (_) => setState(() {
-                    _presetAmount = amount;
-                    _customController.clear();
+                    _customController.value = TextEditingValue(
+                      text: '$amount',
+                      selection: TextSelection.collapsed(
+                        offset: '$amount'.length,
+                      ),
+                    );
                   }),
                 ),
             ],

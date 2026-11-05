@@ -97,7 +97,7 @@ void main() {
     expect(source, contains('validCollaborationRemoval()'));
     expect(source, contains('validAcceptedCollaborationEdit()'));
     expect(source, contains("request.resource.data.status != 'deleted'"));
-    expect(source, contains("resource.data.collaborationStatus != 'accepted'"));
+    expect(source, contains('function hasAcceptedCollaboration(data)'));
     expect(
       source,
       contains("resource.data.collaborationStatus in ['pending', 'accepted']"),

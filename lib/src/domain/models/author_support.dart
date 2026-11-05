@@ -67,6 +67,20 @@ class SupportClaim {
   final int updatedAt;
   final int? verifiedAt;
 
+  SupportClaim withStatus(String newStatus) => SupportClaim(
+    id: id,
+    authorId: authorId,
+    supporterId: supporterId,
+    supporterName: supporterName,
+    supporterPhotoURL: supporterPhotoURL,
+    status: newStatus,
+    utr: utr,
+    amount: amount,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    verifiedAt: verifiedAt,
+  );
+
   bool get isVerified => status == statusVerified;
   bool get isHidden => status == statusHidden;
 

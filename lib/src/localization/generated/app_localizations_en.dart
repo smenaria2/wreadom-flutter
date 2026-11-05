@@ -3653,7 +3653,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportChooseAmount => 'Choose an amount';
 
   @override
-  String get supportCustomAmount => 'Other amount (₹)';
+  String get supportCustomAmount => 'Amount (₹)';
 
   @override
   String get supportPayWithUpi => 'Pay with UPI app';
@@ -3743,4 +3743,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportConfirmed => 'Marked as received';
+
+  @override
+  String get supportTagline =>
+      '100% of your support goes to the author through UPI. No fees.';
+
+  @override
+  String get supportYourSupporters => 'Your supporters';
+
+  @override
+  String get supportPendingTitle => 'Needs your confirmation';
+
+  @override
+  String get supportReceived => 'Received';
+
+  @override
+  String get supportNotReceived => 'Not received';
+
+  @override
+  String get supportSaysPaid => 'Says they paid';
+
+  @override
+  String get supportSetupTitle => 'Let readers support your writing';
+
+  @override
+  String get supportSetupBody =>
+      'Add your UPI ID and readers can tip you directly. You keep 100%.';
+
+  @override
+  String get supportSetupAction => 'Set up';
+
+  @override
+  String supportersCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count supporters',
+      one: '1 supporter',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String supportConfirmedCount(int count) {
+    return '$count confirmed';
+  }
+
+  @override
+  String supportPendingCount(int count) {
+    return '$count pending';
+  }
+
+  @override
+  String get supportUndo => 'Undo';
+
+  @override
+  String get supportRemoveFromList => 'Remove from list';
+
+  @override
+  String supportActionFailed(String error) {
+    return 'Could not update: $error';
+  }
+
+  @override
+  String get supportMarkedNotReceived => 'Marked as not received';
 }

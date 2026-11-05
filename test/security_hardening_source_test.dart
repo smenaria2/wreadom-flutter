@@ -53,8 +53,13 @@ void main() {
         'lib/src/presentation/widgets/instagram_embed_widget.dart',
       ).readAsStringSync();
 
-      expect(legal, contains('JavaScriptMode.disabled'));
+      // JavaScript is enabled for first-party wreadom.in pages only; every
+      // other host is blocked from loading in the WebView.
+      expect(legal, contains('JavaScriptMode.unrestricted'));
       expect(legal, contains('_isAllowedLegalUri'));
+      expect(legal, contains("host == 'wreadom.in'"));
+      expect(legal, contains("uri.scheme != 'https'"));
+      expect(legal, isNot(contains('uri.host.isNotEmpty;')));
       expect(media, contains('_isAllowedMediaNavigation'));
       expect(media, contains('_requiresJavaScript'));
       expect(archive, contains('_isAllowedArchiveNavigation'));
