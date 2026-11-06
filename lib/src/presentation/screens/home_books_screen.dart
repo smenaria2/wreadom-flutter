@@ -1,3 +1,4 @@
+import '../routing/web_route_settings.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -1801,6 +1802,7 @@ class _BookCardState extends State<_BookCard> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
+              settings: bookDetailRouteSettings(widget.book.id),
               builder: (_) => BookDetailScreen(
                 bookId: widget.book.id,
                 preloadedBook: widget.book,
@@ -2166,6 +2168,9 @@ class _AuthorSpotlight extends ConsumerWidget {
                                 return GestureDetector(
                                   onTap: () => Navigator.of(context).push(
                                     MaterialPageRoute(
+                                      settings: bookDetailRouteSettings(
+                                        book.id,
+                                      ),
                                       builder: (_) => BookDetailScreen(
                                         bookId: book.id,
                                         preloadedBook: book,

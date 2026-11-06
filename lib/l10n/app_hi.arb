@@ -1645,5 +1645,6 @@
   "@supportAuthorNote": {"placeholders": {"name": {"type": "String"}}},
   "supportStripTitle": "क्या आपको {name} का लेखन पसंद आ रहा है?",
   "@supportStripTitle": {"placeholders": {"name": {"type": "String"}}},
-  "supportOnlyYouInfo": "अभी यह केवल आपको दिख रहा है। लेखक द्वारा पुष्टि करते ही आपका नाम सभी को दिखेगा।"
+  "supportOnlyYouInfo": "अभी यह केवल आपको दिख रहा है। लेखक द्वारा पुष्टि करते ही आपका नाम सभी को दिखेगा।",
+  "pressBackAgainToExit": "बाहर निकलने के लिए फिर से बैक दबाएँ"
 }

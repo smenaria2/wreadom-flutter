@@ -1,3 +1,4 @@
+import '../routing/web_route_settings.dart';
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -602,6 +603,7 @@ class _SearchResultTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
+          settings: bookDetailRouteSettings(book.id),
           builder: (_) =>
               BookDetailScreen(bookId: book.id, preloadedBook: book),
         ),

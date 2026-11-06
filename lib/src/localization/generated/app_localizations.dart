@@ -6810,6 +6810,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only you can see this for now. Your name will show to everyone once the author confirms your support.'**
   String get supportOnlyYouInfo;
+
+  /// No description provided for @pressBackAgainToExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Press back again to exit'**
+  String get pressBackAgainToExit;
 }
 
 class _AppLocalizationsDelegate

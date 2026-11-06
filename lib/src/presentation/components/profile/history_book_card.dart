@@ -1,3 +1,4 @@
+import '../../routing/web_route_settings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/models/book.dart';
@@ -19,6 +20,7 @@ class HistoryBookCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
+            settings: bookDetailRouteSettings(book.id),
             builder: (_) =>
                 BookDetailScreen(bookId: book.id, preloadedBook: book),
           ),
@@ -44,9 +46,7 @@ class HistoryBookCard extends StatelessWidget {
                           child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
                       ),

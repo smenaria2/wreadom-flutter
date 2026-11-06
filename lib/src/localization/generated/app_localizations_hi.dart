@@ -3872,4 +3872,7 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get supportOnlyYouInfo =>
       'अभी यह केवल आपको दिख रहा है। लेखक द्वारा पुष्टि करते ही आपका नाम सभी को दिखेगा।';
+
+  @override
+  String get pressBackAgainToExit => 'बाहर निकलने के लिए फिर से बैक दबाएँ';
 }

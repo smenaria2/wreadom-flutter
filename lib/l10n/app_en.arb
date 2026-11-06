@@ -2140,5 +2140,6 @@
   "@supportAuthorNote": {"placeholders": {"name": {"type": "String"}}},
   "supportStripTitle": "Enjoying {name}'s writing?",
   "@supportStripTitle": {"placeholders": {"name": {"type": "String"}}},
-  "supportOnlyYouInfo": "Only you can see this for now. Your name will show to everyone once the author confirms your support."
+  "supportOnlyYouInfo": "Only you can see this for now. Your name will show to everyone once the author confirms your support.",
+  "pressBackAgainToExit": "Press back again to exit"
 }

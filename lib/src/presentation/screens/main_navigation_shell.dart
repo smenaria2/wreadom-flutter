@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,11 @@ import '../providers/auth_providers.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/low_power_notice_service.dart';
 
+/// On the web, browser Back on Home would leave the app for the previous
+/// site. When enabled, the first Back on Home asks for a second one instead.
+/// Mutable so tests can switch it; native apps are never affected.
+bool webBackGuardEnabled = kIsWeb;
+
 class MainNavigationShell extends ConsumerStatefulWidget {
   final int initialIndex;
   const MainNavigationShell({super.key, this.initialIndex = 0});
@@ -34,6 +40,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   final Set<int> _checkedUpdateNoticeBuilds = <int>{};
   bool _loadedWorkScheduled = false;
   int _notificationSetupGeneration = 0;
+  bool _exitArmed = false;
+  Timer? _exitArmTimer;
 
   static const String _updateNoticePrefix = 'wreadom_update_notice_shown_';
 
@@ -158,7 +166,25 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   void dispose() {
     _notificationSetupGeneration++;
     unawaited(_tokenRefreshSubscription?.cancel());
+    _exitArmTimer?.cancel();
     super.dispose();
+  }
+
+  void _armExit(String message) {
+    setState(() => _exitArmed = true);
+    _exitArmTimer?.cancel();
+    _exitArmTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _exitArmed = false);
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   List<Widget> get _screens => [
@@ -188,9 +214,15 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
     return PopScope(
       // Back on a non-Home tab returns to Home instead of exiting the app.
-      canPop: selectedIndex == 0,
+      // On web, Home also needs a second Back before the browser leaves.
+      canPop: selectedIndex == 0 && (!webBackGuardEnabled || _exitArmed),
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) ref.read(selectedTabProvider.notifier).setTab(0);
+        if (didPop) return;
+        if (selectedIndex != 0) {
+          ref.read(selectedTabProvider.notifier).setTab(0);
+          return;
+        }
+        _armExit(l10n.pressBackAgainToExit);
       },
       child: Scaffold(
         backgroundColor: Colors.transparent,

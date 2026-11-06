@@ -27,7 +27,15 @@ class AnalyticsService {
 
   static NavigatorObserver get observer {
     if (!_hasFirebase) return _DummyObserver();
-    return FirebaseAnalyticsObserver(analytics: analytics);
+    return FirebaseAnalyticsObserver(
+      analytics: analytics,
+      // Web entity routes like `/?book=<id>` exist only for the address bar;
+      // keep their ids out of analytics screen names.
+      nameExtractor: (settings) {
+        final name = settings.name;
+        return name != null && name.startsWith('/?') ? null : name;
+      },
+    );
   }
 
   static Future<void> setUserDisplayName(String? displayName) async {

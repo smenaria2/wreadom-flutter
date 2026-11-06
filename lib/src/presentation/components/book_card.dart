@@ -1,3 +1,4 @@
+import '../routing/web_route_settings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,7 @@ class BookCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
+            settings: bookDetailRouteSettings(book.id),
             builder: (_) =>
                 BookDetailScreen(bookId: book.id, preloadedBook: book),
           ),

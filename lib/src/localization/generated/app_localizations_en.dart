@@ -3842,4 +3842,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get supportOnlyYouInfo =>
       'Only you can see this for now. Your name will show to everyone once the author confirms your support.';
+
+  @override
+  String get pressBackAgainToExit => 'Press back again to exit';
 }
