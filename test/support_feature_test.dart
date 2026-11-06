@@ -8,10 +8,11 @@ SupportClaim _claim(
   int updatedAt = 1000,
   int? verifiedAt,
   String name = 'Reader',
+  String? supporter,
 }) => SupportClaim(
   id: id,
   authorId: 'a',
-  supporterId: id,
+  supporterId: supporter ?? id,
   supporterName: name,
   status: status,
   createdAt: updatedAt,
@@ -57,52 +58,79 @@ void main() {
   });
 
   group('SupportClaim.visibleSorted', () {
-    final now = DateTime.fromMillisecondsSinceEpoch(
-      100 * Duration.millisecondsPerDay,
-    );
-    final nowMs = now.millisecondsSinceEpoch;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    test('verified first, then claimed; hidden dropped', () {
+    SupportClaim claim(String id, String status, {String supporter = 'u'}) =>
+        _claim(
+          id,
+          status,
+          updatedAt: nowMs,
+          verifiedAt: status == 'verified' ? nowMs : null,
+          supporter: supporter,
+        );
+
+    test('author sees verified first, then pending; hidden dropped', () {
       final result = SupportClaim.visibleSorted([
         _claim('c1', 'claimed', updatedAt: nowMs - 1000),
         _claim('v1', 'verified', updatedAt: nowMs - 5000, verifiedAt: nowMs - 5000),
         _claim('h1', 'hidden', updatedAt: nowMs),
         _claim('c2', 'claimed', updatedAt: nowMs - 500),
         _claim('v2', 'verified', updatedAt: nowMs - 2000, verifiedAt: nowMs - 2000),
-      ], forAuthor: false, now: now);
+      ], forAuthor: true);
       expect(result.map((c) => c.id), ['v2', 'v1', 'c2', 'c1']);
     });
 
-    test('old unconfirmed claims hidden from public but not the author', () {
-      final old = _claim(
-        'old',
-        'claimed',
-        updatedAt: nowMs - const Duration(days: 20).inMilliseconds,
-      );
+    test('unconfirmed claims are hidden from everyone but the supporter', () {
+      final mine = claim('mine', 'claimed', supporter: 'me');
+      final other = claim('other', 'claimed', supporter: 'someone');
+      final verified = claim('v', 'verified', supporter: 'someone');
+
+      // Another reader sees only the confirmed one.
       expect(
-        SupportClaim.visibleSorted([old], forAuthor: false, now: now),
-        isEmpty,
+        SupportClaim.visibleSorted(
+          [mine, other, verified],
+          forAuthor: false,
+          viewerId: 'x',
+        ).map((c) => c.id),
+        ['v'],
       );
+      // Signed-out viewers see only confirmed ones.
       expect(
-        SupportClaim.visibleSorted([old], forAuthor: true, now: now),
-        hasLength(1),
+        SupportClaim.visibleSorted([mine, other, verified], forAuthor: false)
+            .map((c) => c.id),
+        ['v'],
+      );
+      // The supporter additionally sees their own pending claim.
+      expect(
+        SupportClaim.visibleSorted(
+          [mine, other, verified],
+          forAuthor: false,
+          viewerId: 'me',
+        ).map((c) => c.id),
+        ['v', 'mine'],
       );
     });
 
-    test('verified claims never expire and blank names are dropped', () {
-      final verifiedOld = _claim(
-        'v',
-        'verified',
-        updatedAt: 1,
-        verifiedAt: 1,
-      );
+    test('once confirmed the claim shows for everyone, including the payer', () {
+      final confirmed = claim('mine', 'verified', supporter: 'me');
+      for (final viewer in ['me', 'x', null]) {
+        expect(
+          SupportClaim.visibleSorted(
+            [confirmed],
+            forAuthor: false,
+            viewerId: viewer,
+          ),
+          hasLength(1),
+        );
+      }
+    });
+
+    test('blank names are dropped', () {
       final blank = _claim('b', 'verified', name: '');
-      final result = SupportClaim.visibleSorted(
-        [verifiedOld, blank],
-        forAuthor: false,
-        now: now,
+      expect(
+        SupportClaim.visibleSorted([blank], forAuthor: true),
+        isEmpty,
       );
-      expect(result.map((c) => c.id), ['v']);
     });
   });
 }

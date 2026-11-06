@@ -6792,6 +6792,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show all supporters'**
   String get supportMoreSupporters;
+
+  /// No description provided for @supportAuthorNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A thank-you note from {name}'**
+  String supportAuthorNote(String name);
+
+  /// No description provided for @supportStripTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoying {name}\'s writing?'**
+  String supportStripTitle(String name);
+
+  /// No description provided for @supportOnlyYouInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this for now. Your name will show to everyone once the author confirms your support.'**
+  String get supportOnlyYouInfo;
 }
 
 class _AppLocalizationsDelegate

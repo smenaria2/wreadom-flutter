@@ -40,7 +40,10 @@ void main() {
         publicProfile,
         contains('PremiumRanksWidget(user: user, compact: true)'),
       );
-      expect(publicProfile, contains('_ExpandableBio(text: user.bio!)'));
+      // The bio stays expandable; Instagram now lives inside "Show more".
+      expect(publicProfile, contains('_ExpandableBio('));
+      expect(publicProfile, contains('text: user.bio!'));
+      expect(publicProfile, contains('instagramHandle: user.instagramHandle'));
     },
   );
 

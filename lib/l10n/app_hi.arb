@@ -1640,5 +1640,10 @@
   "@supportStepPayTitle": {"placeholders": {"amount": {"type": "int"}}},
   "supportPaidPrompt": "भुगतान हो गया? लेखक को बताएँ",
   "supportOpenedHint": "अपने UPI ऐप में भुगतान पूरा करें, फिर वापस आकर \"मैंने भुगतान कर दिया\" दबाएँ।",
-  "supportMoreSupporters": "सभी समर्थक देखें"
+  "supportMoreSupporters": "सभी समर्थक देखें",
+  "supportAuthorNote": "{name} की ओर से धन्यवाद संदेश",
+  "@supportAuthorNote": {"placeholders": {"name": {"type": "String"}}},
+  "supportStripTitle": "क्या आपको {name} का लेखन पसंद आ रहा है?",
+  "@supportStripTitle": {"placeholders": {"name": {"type": "String"}}},
+  "supportOnlyYouInfo": "अभी यह केवल आपको दिख रहा है। लेखक द्वारा पुष्टि करते ही आपका नाम सभी को दिखेगा।"
 }

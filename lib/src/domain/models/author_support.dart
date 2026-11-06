@@ -52,9 +52,6 @@ class SupportClaim {
   static const statusVerified = 'verified';
   static const statusHidden = 'hidden';
 
-  /// Unconfirmed claims disappear from the public list after this long.
-  static const claimedLifetime = Duration(days: 14);
-
   final String id;
   final String authorId;
   final String supporterId;
@@ -101,20 +98,20 @@ class SupportClaim {
   }
 
   /// Claims to show in the supporters list: verified first (newest first),
-  /// then unconfirmed ones (newest first). Hidden claims are dropped, and
-  /// unconfirmed claims older than [claimedLifetime] are dropped unless
-  /// [forAuthor] is true, so the author can still confirm late payments.
+  /// then unconfirmed ones (newest first). Hidden claims are always dropped.
+  ///
+  /// An unconfirmed claim is private: it is shown only to the author
+  /// ([forAuthor]) and to the supporter who made it ([viewerId]). Everyone
+  /// else sees it only once the author has confirmed it.
   static List<SupportClaim> visibleSorted(
     Iterable<SupportClaim> claims, {
     required bool forAuthor,
-    DateTime? now,
+    String? viewerId,
   }) {
-    final nowMs = (now ?? DateTime.now()).millisecondsSinceEpoch;
-    final cutoff = nowMs - claimedLifetime.inMilliseconds;
     final list = claims.where((claim) {
       if (claim.isHidden || claim.supporterName.isEmpty) return false;
       if (claim.isVerified) return true;
-      return forAuthor || claim.updatedAt >= cutoff;
+      return forAuthor || (viewerId != null && claim.supporterId == viewerId);
     }).toList();
     list.sort((a, b) {
       if (a.isVerified != b.isVerified) return a.isVerified ? -1 : 1;

@@ -150,9 +150,11 @@ class PublicProfileScreen extends ConsumerWidget {
                           ],
                           if ((user.bio ?? '').isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            _ExpandableBio(text: user.bio!),
-                          ],
-                          if ((user.instagramHandle ?? '').isNotEmpty) ...[
+                            _ExpandableBio(
+                              text: user.bio!,
+                              instagramHandle: user.instagramHandle,
+                            ),
+                          ] else if ((user.instagramHandle ?? '').isNotEmpty) ...[
                             const SizedBox(height: 8),
                             InstagramProfileLink(handle: user.instagramHandle!),
                           ],
@@ -173,7 +175,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const _StatDivider(),
                               Expanded(
                                 child: _StatChip(
                                   label: l10n.following,
@@ -188,7 +190,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const _StatDivider(),
                               Expanded(
                                 child: _StatChip(
                                   label: l10n.works,
@@ -467,9 +469,12 @@ class _PrivacyNoticeCard extends StatelessWidget {
 }
 
 class _ExpandableBio extends StatefulWidget {
-  const _ExpandableBio({required this.text});
+  const _ExpandableBio({required this.text, this.instagramHandle});
 
   final String text;
+
+  /// Shown only once the bio is expanded ("Show more").
+  final String? instagramHandle;
 
   @override
   State<_ExpandableBio> createState() => _ExpandableBioState();
@@ -490,7 +495,8 @@ class _ExpandableBioState extends State<_ExpandableBio> {
           textScaler: MediaQuery.textScalerOf(context),
           maxLines: 3,
         )..layout(maxWidth: constraints.maxWidth);
-        final overflows = painter.didExceedMaxLines;
+        final hasInstagram = (widget.instagramHandle ?? '').isNotEmpty;
+        final overflows = painter.didExceedMaxLines || hasInstagram;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,6 +507,10 @@ class _ExpandableBioState extends State<_ExpandableBio> {
               overflow: _expanded ? null : TextOverflow.ellipsis,
               style: style,
             ),
+            if (_expanded && hasInstagram) ...[
+              const SizedBox(height: 8),
+              InstagramProfileLink(handle: widget.instagramHandle!),
+            ],
             if (overflows || _expanded)
               TextButton(
                 onPressed: () => setState(() => _expanded = !_expanded),
@@ -704,6 +714,17 @@ double _publicProfileCollapseProgress(FlexibleSpaceBarSettings? settings) {
   );
 }
 
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 28,
+    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+  );
+}
+
 class _StatChip extends StatelessWidget {
   const _StatChip({required this.label, required this.value, this.onTap});
 
@@ -714,34 +735,35 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      semanticButton: onTap != null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: theme.colorScheme.onSurface,
+    return Semantics(
+      button: onTap != null,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

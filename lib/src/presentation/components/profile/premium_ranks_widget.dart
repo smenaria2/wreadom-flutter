@@ -105,6 +105,7 @@ class _PremiumRanksWidgetState extends State<PremiumRanksWidget> {
             key: ValueKey(_track),
             user: widget.user,
             track: _track,
+            compact: widget.compact,
             onLeaderboardTap: () => _openLeaderboard(_track),
           ),
         ),
@@ -152,10 +153,12 @@ class _RankStatusFace extends StatelessWidget {
     required this.user,
     required this.track,
     required this.onLeaderboardTap,
+    this.compact = false,
   });
 
   final UserModel user;
   final RankTrack track;
+  final bool compact;
   final VoidCallback onLeaderboardTap;
 
   @override
@@ -173,6 +176,78 @@ class _RankStatusFace extends StatelessWidget {
         ? l10n.authorStatus
         : l10n.readerStatus;
     final title = localizedTierTitle(context, tier.tier, track);
+
+    if (compact) {
+      return Semantics(
+        label: '$status, $title, $points ${l10n.pointsLabel}',
+        child: GlassSurface(
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            key: const ValueKey('rank-leaderboard-arrow'),
+            borderRadius: BorderRadius.circular(16),
+            onTap: onLeaderboardTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: tier.gradient,
+                    ),
+                    child: Text(tier.icon, style: const TextStyle(fontSize: 14)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: tier.progressPercent / 100,
+                          minHeight: 4,
+                          borderRadius: BorderRadius.circular(2),
+                          backgroundColor: scheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
+                          valueColor: AlwaysStoppedAnimation(
+                            tier.gradient.colors.first,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '#${rank?.toString() ?? '--'}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: tier.definition.mainColor,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Semantics(
       label: '$status, $title, $points ${l10n.pointsLabel}',

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:librebook_flutter/src/localization/generated/app_localizations.dart';
 
 import '../../../domain/models/author_support.dart';
+import '../../providers/auth_providers.dart';
 import '../../providers/support_providers.dart';
 import '../../routing/app_routes.dart';
 import '../../widgets/glass_surface.dart';
@@ -93,9 +94,11 @@ class _SupportSectionState extends ConsumerState<SupportSection> {
               : claim,
         )
         .toList();
+    final viewerId = ref.watch(currentUserProvider).value?.id;
     final visible = SupportClaim.visibleSorted(
       effective,
       forAuthor: widget.isSelf,
+      viewerId: viewerId,
     );
 
     if (widget.isSelf) {
@@ -152,38 +155,16 @@ class _ReaderPanel extends StatelessWidget {
             if (support != null)
               Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: scheme.primary.withValues(alpha: 0.14),
-                    ),
-                    child: Icon(
-                      Icons.volunteer_activism_rounded,
-                      size: 22,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l10n.supportAuthorTitle(authorName),
-                          maxLines: 1,
+                          l10n.supportStripTitle(authorName),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          l10n.supportTagline,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -198,7 +179,7 @@ class _ReaderPanel extends StatelessWidget {
                       support: support!,
                     ),
                     icon: const Icon(Icons.favorite_rounded, size: 18),
-                    label: Text(l10n.support),
+                    label: Text(l10n.supportAuthor),
                     style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -273,7 +254,8 @@ Future<void> _showSupportersSheet(
                 ),
               ],
             ),
-            for (final claim in claims) _SupporterRow(claim: claim),
+            for (final claim in claims)
+              _SupporterRow(claim: claim, privateToViewer: !claim.isVerified),
           ],
         ),
       );
@@ -609,10 +591,17 @@ class _Avatar extends StatelessWidget {
 }
 
 class _SupporterRow extends StatelessWidget {
-  const _SupporterRow({required this.claim, this.trailing});
+  const _SupporterRow({
+    required this.claim,
+    this.trailing,
+    this.privateToViewer = false,
+  });
 
   final SupportClaim claim;
   final Widget? trailing;
+
+  /// True for the viewer's own unconfirmed claim (only they can see it).
+  final bool privateToViewer;
 
   @override
   Widget build(BuildContext context) {
@@ -643,18 +632,34 @@ class _SupporterRow extends StatelessWidget {
                 ),
               ),
             ),
-            Tooltip(
-              message: claim.isVerified
-                  ? l10n.supporterVerified
-                  : l10n.supporterUnverified,
-              child: Icon(
-                claim.isVerified ? Icons.check_circle : Icons.schedule,
-                size: 18,
-                color: claim.isVerified
-                    ? Colors.green
-                    : scheme.onSurfaceVariant,
+            if (!claim.isVerified && privateToViewer)
+              IconButton(
+                tooltip: l10n.supportOnlyYouInfo,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: scheme.primary,
+                ),
+                onPressed: () => ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(content: Text(l10n.supportOnlyYouInfo)),
+                  ),
+              )
+            else
+              Tooltip(
+                message: claim.isVerified
+                    ? l10n.supporterVerified
+                    : l10n.supporterUnverified,
+                child: Icon(
+                  claim.isVerified ? Icons.check_circle : Icons.schedule,
+                  size: 18,
+                  color: claim.isVerified
+                      ? Colors.green
+                      : scheme.onSurfaceVariant,
+                ),
               ),
-            ),
             ?trailing,
           ],
         ),

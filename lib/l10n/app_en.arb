@@ -2135,5 +2135,10 @@
   "@supportStepPayTitle": {"placeholders": {"amount": {"type": "int"}}},
   "supportPaidPrompt": "Paid? Let the author know",
   "supportOpenedHint": "Finish the payment in your UPI app, then come back and tap \"I've paid\".",
-  "supportMoreSupporters": "Show all supporters"
+  "supportMoreSupporters": "Show all supporters",
+  "supportAuthorNote": "A thank-you note from {name}",
+  "@supportAuthorNote": {"placeholders": {"name": {"type": "String"}}},
+  "supportStripTitle": "Enjoying {name}'s writing?",
+  "@supportStripTitle": {"placeholders": {"name": {"type": "String"}}},
+  "supportOnlyYouInfo": "Only you can see this for now. Your name will show to everyone once the author confirms your support."
 }

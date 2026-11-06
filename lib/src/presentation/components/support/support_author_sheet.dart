@@ -199,11 +199,46 @@ class _SupportAuthorSheetState extends ConsumerState<SupportAuthorSheet> {
     return [
       Text(l10n.supportDirectNote, style: theme.textTheme.bodySmall),
       if ((widget.support.message ?? '').isNotEmpty) ...[
-        const SizedBox(height: 10),
-        Text(
-          widget.support.message!,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontStyle: FontStyle.italic,
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(14),
+            border: Border(
+              left: BorderSide(color: theme.colorScheme.primary, width: 3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.format_quote_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      l10n.supportAuthorNote(widget.authorName),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.support.message!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ),
         ),
       ],

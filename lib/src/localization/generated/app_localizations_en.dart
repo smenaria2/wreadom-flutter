@@ -3828,4 +3828,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportMoreSupporters => 'Show all supporters';
+
+  @override
+  String supportAuthorNote(String name) {
+    return 'A thank-you note from $name';
+  }
+
+  @override
+  String supportStripTitle(String name) {
+    return 'Enjoying $name\'s writing?';
+  }
+
+  @override
+  String get supportOnlyYouInfo =>
+      'Only you can see this for now. Your name will show to everyone once the author confirms your support.';
 }
